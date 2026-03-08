@@ -126,12 +126,10 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-zinc-800 min-h-[64px]">
-        <div className="flex-shrink-0 w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center shadow-md">
-          <span className="text-white text-sm font-bold">P</span>
-        </div>
+        <img src="/logo.png" alt="PandaPoss" className="w-8 h-8 rounded-lg flex-shrink-0" />
         {!collapsed && (
           <span className="text-white font-bold text-lg tracking-tight">
-            PANDA<span className="text-brand-400">PLI</span>
+            Panda<span className="text-brand-400">Poss</span>
           </span>
         )}
       </div>

@@ -44,13 +44,9 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md">
         {/* Logo + marca */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-2xl mb-4 shadow-lg shadow-brand-600/30">
-            <span className="text-white text-2xl font-bold">P</span>
-          </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">
-            PANDA<span className="text-brand-400">PLI</span>
-          </h1>
-          <p className="text-zinc-400 text-sm mt-1">Sistema de Gestión</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-full.png" alt="PandaPoss" className="h-28 mx-auto mb-4 object-contain drop-shadow-2xl" />
+          <p className="text-zinc-400 text-sm mt-1">Sistema Punto de Venta</p>
         </div>
 
         {/* Card login */}
@@ -119,7 +115,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-zinc-600 text-xs mt-6">
-          PANDAPLI © {new Date().getFullYear()}
+          PandaPoss © {new Date().getFullYear()}
         </p>
       </div>
     </div>

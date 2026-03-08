@@ -6,8 +6,8 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PANDAPLI",
-  description: "Sistema de Gestión para Restaurantes",
+  title: "PandaPoss",
+  description: "Sistema Punto de Venta",
   icons: { icon: "/favicon.ico" },
 };
 

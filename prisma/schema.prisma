@@ -390,7 +390,7 @@ model Log {
 
 model Configuracion {
   id             Int     @id @default(1)
-  nombreEmpresa  String  @default("PANDAPLI") @db.VarChar(100)
+  nombreEmpresa  String  @default("PandaPoss") @db.VarChar(100)
   rut            String? @db.VarChar(20)
   direccion      String? @db.VarChar(200)
   telefono       String? @db.VarChar(20)

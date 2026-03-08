@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest) {
     },
     create: {
       id: 1,
-      nombreEmpresa: nombreEmpresa ?? "PANDAPLI",
+      nombreEmpresa: nombreEmpresa ?? "PandaPoss",
       moneda: moneda ?? "CLP",
       simbolo: simbolo ?? "$",
       ivaPorc: ivaPorc ?? 19,

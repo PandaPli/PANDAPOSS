@@ -1,4 +1,4 @@
-// ─── Tipos compartidos PANDAPLI ───────────────────────────────
+// ─── Tipos compartidos PandaPoss ───────────────────────────────
 
 export type Rol =
   | "ADMIN_GENERAL"

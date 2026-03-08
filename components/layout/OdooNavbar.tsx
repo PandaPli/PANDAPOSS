@@ -142,8 +142,9 @@ export function OdooNavbar() {
 
       {/* Logo + Current Module */}
       <Link href="/panel" className="flex items-center gap-2 ml-2 mr-4">
+        <img src="/logo.png" alt="PandaPoss" className="h-7 rounded" />
         <span className="text-white font-bold text-sm tracking-tight">
-          PANDA<span className="text-purple-200">PLI</span>
+          Panda<span className="text-purple-200">Poss</span>
         </span>
       </Link>
 

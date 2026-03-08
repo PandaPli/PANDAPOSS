@@ -11,7 +11,7 @@ export default async function ConfiguracionPage() {
 
   if (!config) {
     config = await prisma.configuracion.create({
-      data: { id: 1, nombreEmpresa: "PANDAPLI", moneda: "CLP", simbolo: "$", ivaPorc: 19 },
+      data: { id: 1, nombreEmpresa: "PandaPoss", moneda: "CLP", simbolo: "$", ivaPorc: 19 },
     });
   }
 

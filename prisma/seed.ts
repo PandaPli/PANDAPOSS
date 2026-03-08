@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding PANDAPLI database...");
+  console.log("🌱 Seeding PandaPoss database...");
 
   // Configuración general
   await prisma.configuracion.upsert({
@@ -12,7 +12,7 @@ async function main() {
     update: {},
     create: {
       id: 1,
-      nombreEmpresa: "PANDAPLI",
+      nombreEmpresa: "PandaPoss",
       moneda: "CLP",
       simbolo: "$",
       ivaPorc: 19,
@@ -39,7 +39,7 @@ async function main() {
       nombre: "Administrador General",
       usuario: "ADMIN",
       password: hash,
-      email: "admin@pandapli.com",
+      email: "admin@pandaposs.com",
       rol: Rol.ADMIN_GENERAL,
       sucursalId: sucursal.id,
     },
