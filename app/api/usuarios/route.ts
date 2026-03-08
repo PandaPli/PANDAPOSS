@@ -14,7 +14,10 @@ export async function GET() {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
   const usuarios = await prisma.usuario.findMany({
+    where: rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : undefined,
     include: { sucursal: { select: { nombre: true } } },
     orderBy: { nombre: "asc" },
   });

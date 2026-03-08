@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   LayoutGrid, Search, Bell, ChevronDown, LogOut, User,
   LayoutDashboard, UtensilsCrossed, ShoppingCart, ClipboardList,
-  Package, Users, BarChart3, Settings, Wallet, UserCog,
+  Package, Users, BarChart3, Settings, Wallet, UserCog, Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Rol } from "@/types";
@@ -30,6 +30,7 @@ const modules: AppModule[] = [
   { label: "Clientes", href: "/clientes", icon: <Users size={24} />, color: "bg-cyan-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },
 { label: "Cajas", href: "/cajas", icon: <Wallet size={24} />, color: "bg-yellow-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "CASHIER"] },
   { label: "Usuarios", href: "/usuarios", icon: <UserCog size={24} />, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL"] },
+  { label: "Sucursales", href: "/sucursales", icon: <Building2 size={24} />, color: "bg-rose-500", roles: ["ADMIN_GENERAL"] },
   { label: "Configuración", href: "/configuracion", icon: <Settings size={24} />, color: "bg-gray-500", roles: ["ADMIN_GENERAL"] },
 ];
 

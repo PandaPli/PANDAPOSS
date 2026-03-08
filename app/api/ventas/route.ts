@@ -2,18 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import type { Rol } from "@/types";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rol = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const { searchParams } = new URL(req.url);
   const limit = Number(searchParams.get("limit") ?? 20);
   const page = Number(searchParams.get("page") ?? 1);
   const skip = (page - 1) * limit;
 
+  const where =
+    rol !== "ADMIN_GENERAL" && sucursalId
+      ? { caja: { sucursalId } }
+      : {};
+
   const [ventas, total] = await Promise.all([
     prisma.venta.findMany({
+      where,
       take: limit,
       skip,
       orderBy: { creadoEn: "desc" },
@@ -23,7 +33,7 @@ export async function GET(req: NextRequest) {
         _count: { select: { detalles: true } },
       },
     }),
-    prisma.venta.count(),
+    prisma.venta.count({ where }),
   ]);
 
   return NextResponse.json({ ventas, total, pages: Math.ceil(total / limit) });

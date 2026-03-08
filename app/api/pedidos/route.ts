@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import type { Rol } from "@/types";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rol = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const { searchParams } = new URL(req.url);
   const tipo = searchParams.get("tipo");
@@ -15,6 +19,15 @@ export async function GET(req: NextRequest) {
     where: {
       ...(tipo ? { tipo: tipo as never } : {}),
       ...(estado ? { estado: estado as never } : { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } }),
+      // Filtrar por sucursal vía caja o mesa
+      ...(rol !== "ADMIN_GENERAL" && sucursalId
+        ? {
+            OR: [
+              { caja: { sucursalId } },
+              { mesa: { sala: { sucursalId } } },
+            ],
+          }
+        : {}),
     },
     include: {
       mesa: { select: { nombre: true } },
