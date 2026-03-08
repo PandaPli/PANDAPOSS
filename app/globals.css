@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --topbar-height: 46px;
+    --subbar-height: 44px;
+  }
+
+  * {
+    @apply border-odoo-border;
+  }
+
+  body {
+    @apply text-odoo-text bg-odoo-bg;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-400;
+  }
+}
+
+@layer components {
+  /* ── Botones estilo Odoo ── */
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5
+           bg-odoo-purple text-white rounded
+           font-medium text-sm hover:bg-odoo-purple-dark
+           active:bg-odoo-purple-dark transition-colors
+           disabled:opacity-50 disabled:cursor-not-allowed
+           shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5
+           bg-white text-odoo-text border border-odoo-border rounded
+           font-medium text-sm hover:bg-gray-50
+           active:bg-gray-100 transition-colors;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5
+           text-odoo-text-muted rounded text-sm
+           hover:bg-gray-100 transition-colors;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5
+           bg-red-600 text-white rounded
+           font-medium text-sm hover:bg-red-700 transition-colors;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center gap-1.5 px-4 py-1.5
+           bg-emerald-600 text-white rounded
+           font-medium text-sm hover:bg-emerald-700 transition-colors;
+  }
+
+  /* ── Card Odoo ── */
+  .card {
+    @apply bg-white rounded border border-odoo-border shadow-sm;
+  }
+
+  /* ── Inputs Odoo ── */
+  .input {
+    @apply w-full px-3 py-1.5 bg-white border border-odoo-border rounded text-sm
+           text-odoo-text placeholder:text-odoo-text-muted
+           focus:outline-none focus:border-odoo-purple focus:shadow-[0_0_0_1px_rgba(124,45,158,0.15)]
+           transition;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-odoo-text mb-1;
+  }
+
+  /* ── Badges Odoo ── */
+  .badge-libre {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700;
+  }
+  .badge-ocupada {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700;
+  }
+  .badge-reservada {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700;
+  }
+
+  .stat-card {
+    @apply card p-4 flex items-start gap-4;
+  }
+}
