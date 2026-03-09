@@ -11,9 +11,14 @@ const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {
   PASTRY:  { emoji: "🧁", msg: "Endulzando el dia!" },
 };
 
-async function getPedidos() {
+async function getPedidos(rol: Rol | undefined, sucursalId: number | null) {
+  const sucursalWhere =
+    rol !== "ADMIN_GENERAL" && sucursalId
+      ? { OR: [{ caja: { sucursalId } }, { mesa: { sala: { sucursalId } } }] }
+      : {};
+
   return prisma.pedido.findMany({
-    where: { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } },
+    where: { ...sucursalWhere, estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } },
     include: {
       mesa: { select: { nombre: true } },
       usuario: { select: { nombre: true } },
@@ -31,7 +36,8 @@ async function getPedidos() {
 export default async function PedidosPage() {
   const session = await getServerSession(authOptions);
   const rol = (session?.user as { rol?: Rol })?.rol;
-  const pedidos = await getPedidos();
+  const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
+  const pedidos = await getPedidos(rol, sucursalId);
 
   const data = pedidos.map((p) => ({
     id: p.id,

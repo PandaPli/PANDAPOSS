@@ -1,8 +1,17 @@
 import { prisma } from "@/lib/db";
 import { MesasClient } from "./MesasClient";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import type { Rol } from "@/types";
 
-async function getMesas() {
+async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
+  const where =
+    rol !== "ADMIN_GENERAL" && sucursalId
+      ? { sala: { sucursalId } }
+      : {};
+
   return prisma.mesa.findMany({
+    where,
     include: {
       sala: { select: { nombre: true } },
       pedidos: {
@@ -21,7 +30,10 @@ async function getMesas() {
 }
 
 export default async function MesasPage() {
-  const mesas = await getMesas();
+  const session = await getServerSession(authOptions);
+  const rol = (session?.user as { rol?: Rol })?.rol;
+  const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
+  const mesas = await getMesas(rol, sucursalId);
 
   // Serializar (Decimal → number)
   const mesasData = mesas.map((m) => ({
