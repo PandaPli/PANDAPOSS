@@ -67,8 +67,14 @@ export function CheckoutModal({ simbolo = "$", cajaId, usuarioId, onClose, onSuc
       });
 
       if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error ?? "Error al registrar venta");
+        let errorMsg = "Error al registrar la venta";
+        try {
+          const d = await res.json();
+          errorMsg = d.error ?? errorMsg;
+        } catch {
+          // La respuesta no es JSON (500 del servidor)
+        }
+        throw new Error(errorMsg);
       }
 
       const venta = await res.json();

@@ -54,68 +54,82 @@ export async function POST(req: NextRequest) {
   const count = await prisma.venta.count();
   const numero = `VTA-${String(count + 1).padStart(6, "0")}`;
 
-  const venta = await prisma.$transaction(async (tx) => {
-    // Crear venta
-    const v = await tx.venta.create({
-      data: {
-        numero,
-        cajaId: cajaId || null,
-        clienteId: clienteId || null,
-        usuarioId,
-        subtotal,
-        descuento: descuento || 0,
-        impuesto: impuesto || 0,
-        total,
-        metodoPago,
-        estado: "PAGADA",
-        detalles: {
-          create: items.map((item: {
-            productoId?: number;
-            comboId?: number;
-            cantidad: number;
-            precio: number;
-            subtotal: number;
-          }) => ({
-            productoId: item.productoId || null,
-            comboId: item.comboId || null,
-            cantidad: item.cantidad,
-            precio: item.precio,
-            descuento: 0,
-            subtotal: item.subtotal,
-          })),
-        },
-      },
-    });
-
-    // Actualizar stock y kardex por cada producto
-    for (const item of items) {
-      if (item.productoId) {
-        await tx.producto.update({
-          where: { id: item.productoId },
-          data: { stock: { decrement: item.cantidad } },
-        });
-        await tx.kardex.create({
-          data: {
-            productoId: item.productoId,
-            tipo: "SALIDA",
-            cantidad: item.cantidad,
-            motivo: "Venta",
-            ventaId: v.id,
+  try {
+    const venta = await prisma.$transaction(async (tx) => {
+      // Crear venta
+      const v = await tx.venta.create({
+        data: {
+          numero,
+          cajaId: cajaId ? Number(cajaId) : null,
+          clienteId: clienteId ? Number(clienteId) : null,
+          usuarioId: Number(usuarioId),
+          subtotal: Number(subtotal),
+          descuento: Number(descuento || 0),
+          impuesto: Number(impuesto || 0),
+          total: Number(total),
+          metodoPago,
+          estado: "PAGADA",
+          detalles: {
+            create: items.map((item: {
+              productoId?: number | null;
+              comboId?: number | null;
+              cantidad: number;
+              precio: number;
+              subtotal: number;
+            }) => ({
+              productoId: item.productoId ? Number(item.productoId) : null,
+              comboId: item.comboId ? Number(item.comboId) : null,
+              cantidad: Number(item.cantidad),
+              precio: Number(item.precio),
+              descuento: 0,
+              subtotal: Number(item.subtotal),
+            })),
           },
+        },
+      });
+
+      // Actualizar stock y kardex por cada producto
+      for (const item of items) {
+        if (item.productoId) {
+          await tx.producto.update({
+            where: { id: Number(item.productoId) },
+            data: { stock: { decrement: Number(item.cantidad) } },
+          });
+          await tx.kardex.create({
+            data: {
+              productoId: Number(item.productoId),
+              tipo: "SALIDA",
+              cantidad: Number(item.cantidad),
+              motivo: "Venta",
+              ventaId: v.id,
+            },
+          });
+        }
+      }
+
+      // Liberar mesa si aplica
+      if (mesaId) {
+        await tx.mesa.update({
+          where: { id: Number(mesaId) },
+          data: { estado: "LIBRE" },
         });
       }
-    }
 
-    // Liberar mesa si aplica
-    if (mesaId) {
-      await tx.mesa.update({
-        where: { id: mesaId },
-        data: { estado: "LIBRE" },
-      });
-    }
+      return v;
+    });
 
-    return v;
-  });
+    // Serializar Decimals a números antes de enviar
+    return NextResponse.json({
+      id: venta.id,
+      numero: venta.numero,
+      total: Number(venta.total),
+      estado: venta.estado,
+      creadoEn: venta.creadoEn,
+    }, { status: 201 });
 
-  return NextResponse.json(venta, { status: 201 });
+  } catch (error) {
+    console.error("[POST /api/ventas] Error:", error);
+    const message = error instanceof Error ? error.message : "Error interno al registrar la venta";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
