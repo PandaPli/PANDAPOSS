@@ -9,10 +9,18 @@ const ROLE_ROUTES: Record<Rol, string[]> = {
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas"],
   WAITER: ["/panel", "/mesas", "/pedidos"],
-  CHEF: ["/panel", "/pedidos"],
-  BAR: ["/panel", "/pedidos"],
-  PASTRY: ["/panel", "/pedidos"],
+  // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
+  CHEF: ["/pedidos"],
+  BAR: ["/pedidos"],
+  PASTRY: ["/pedidos"],
   DELIVERY: ["/panel", "/pedidos"],
+};
+
+// Página de inicio por rol (default: /panel)
+const ROLE_HOME: Partial<Record<Rol, string>> = {
+  CHEF: "/pedidos",
+  BAR: "/pedidos",
+  PASTRY: "/pedidos",
 };
 
 function canAccess(rol: Rol, path: string): boolean {
@@ -30,8 +38,11 @@ export default withAuth(
     if (!token) return NextResponse.redirect(new URL("/login", req.url));
 
     const rol = token.rol as Rol;
+
+    // Si no tiene acceso, redirigir a su página de inicio
     if (!canAccess(rol, pathname)) {
-      return NextResponse.redirect(new URL("/panel", req.url));
+      const home = ROLE_HOME[rol] ?? "/panel";
+      return NextResponse.redirect(new URL(home, req.url));
     }
 
     return NextResponse.next();

@@ -74,9 +74,10 @@ export const ROLE_ROUTES: Record<Rol, string[]> = {
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas"],
   WAITER: ["/panel", "/mesas", "/pedidos"],
-  CHEF: ["/panel", "/pedidos"],
-  BAR: ["/panel", "/pedidos"],
-  PASTRY: ["/panel", "/pedidos"],
+  // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
+  CHEF: ["/pedidos"],
+  BAR: ["/pedidos"],
+  PASTRY: ["/pedidos"],
   DELIVERY: ["/panel", "/pedidos"],
 };
 
