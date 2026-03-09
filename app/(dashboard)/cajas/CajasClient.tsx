@@ -27,7 +27,7 @@ interface Props {
 
 export function CajasClient({ cajas: initial, simbolo }: Props) {
   const router = useRouter();
-  const [cajas] = useState(initial);
+  const [cajas, setCajas] = useState(initial);
   const [loading, setLoading] = useState<number | null>(null);
   const [modal, setModal] = useState<{ type: "abrir" | "cerrar" | "nueva"; cajaId?: number } | null>(null);
   const [saldoInicio, setSaldoInicio] = useState("");
@@ -38,19 +38,29 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
   const [error, setError] = useState("");
 
   async function abrirCaja() {
-    if (!modal || modal.type !== "abrir") return;
-    setLoading(modal.cajaId!);
+    if (!modal || modal.type !== "abrir" || !modal.cajaId) return;
+    const cajaId = modal.cajaId;
+    setLoading(cajaId);
     setError("");
     try {
-      const res = await fetch(`/api/cajas/${modal.cajaId}`, {
+      const res = await fetch(`/api/cajas/${cajaId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "abrir", saldoInicio: Number(saldoInicio) || 0 }),
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error);
+        throw new Error(d.error ?? "Error al abrir la caja");
       }
+      const cajaActualizada = await res.json();
+      // Actualizar estado local inmediatamente (sin esperar router.refresh)
+      setCajas((prev) =>
+        prev.map((c) =>
+          c.id === cajaId
+            ? { ...c, estado: "ABIERTA", saldoInicio: Number(saldoInicio) || 0, abiertaEn: cajaActualizada.abiertaEn }
+            : c
+        )
+      );
       setModal(null);
       setSaldoInicio("");
       router.refresh();
@@ -62,11 +72,12 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
   }
 
   async function cerrarCaja() {
-    if (!modal || modal.type !== "cerrar") return;
-    setLoading(modal.cajaId!);
+    if (!modal || modal.type !== "cerrar" || !modal.cajaId) return;
+    const cajaId = modal.cajaId;
+    setLoading(cajaId);
     setError("");
     try {
-      const res = await fetch(`/api/cajas/${modal.cajaId}`, {
+      const res = await fetch(`/api/cajas/${cajaId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -77,9 +88,17 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error);
+        throw new Error(d.error ?? "Error al cerrar la caja");
       }
       const data = await res.json();
+      // Actualizar estado local inmediatamente
+      setCajas((prev) =>
+        prev.map((c) =>
+          c.id === cajaId
+            ? { ...c, estado: "CERRADA", cerradaEn: data.cerradaEn, usuario: null }
+            : c
+        )
+      );
       setResult({ totalVentas: data.totalVentas, diferencia: data.diferencia });
     } catch (e) {
       setError((e as Error).message);
@@ -100,8 +119,10 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
       });
       if (!res.ok) {
         const d = await res.json();
-        throw new Error(d.error);
+        throw new Error(d.error ?? "Error al crear la caja");
       }
+      const nueva = await res.json();
+      setCajas((prev) => [...prev, { ...nueva, usuario: null, sucursal: null }]);
       setModal(null);
       setNombreNueva("");
       router.refresh();
