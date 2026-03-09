@@ -45,6 +45,7 @@ export default async function PedidosPage() {
     tipo: p.tipo as "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR",
     estado: p.estado as "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO",
     observacion: p.observacion,
+    meseroLlamado: p.meseroLlamado,
     creadoEn: p.creadoEn.toISOString(),
     mesa: p.mesa,
     usuario: p.usuario,

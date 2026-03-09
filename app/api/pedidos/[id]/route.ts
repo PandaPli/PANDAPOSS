@@ -10,13 +10,20 @@ export async function PATCH(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { estado } = await req.json();
+  const body = await req.json();
+  const { estado, meseroLlamado } = body;
   const { id: idStr } = await params;
   const id = Number(idStr);
 
+  const data: { estado?: string; meseroLlamado?: boolean } = {};
+  if (estado !== undefined) data.estado = estado;
+  if (meseroLlamado !== undefined) data.meseroLlamado = meseroLlamado;
+  // Al entregar, limpiar llamada al mesero
+  if (estado === "ENTREGADO") data.meseroLlamado = false;
+
   const pedido = await prisma.pedido.update({
     where: { id },
-    data: { estado },
+    data,
     include: { mesa: true },
   });
 

@@ -290,9 +290,10 @@ model Pedido {
   usuarioId   Int
   tipo        TipoPedido   @default(COCINA)
   estado      EstadoPedido @default(PENDIENTE)
-  observacion String?      @db.Text
-  creadoEn    DateTime     @default(now())
-  actualizadoEn DateTime   @updatedAt
+  observacion   String?      @db.Text
+  meseroLlamado Boolean      @default(false)
+  creadoEn      DateTime     @default(now())
+  actualizadoEn DateTime     @updatedAt
 
   mesa        Mesa?        @relation(fields: [mesaId], references: [id])
   caja        Caja?        @relation(fields: [cajaId], references: [id])

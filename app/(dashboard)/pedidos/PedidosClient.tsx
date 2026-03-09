@@ -54,11 +54,28 @@ export function PedidosClient({ pedidos: initial }: Props) {
       body: JSON.stringify({ estado }),
     });
     setPedidos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, estado } : p))
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, estado, meseroLlamado: estado === "ENTREGADO" ? false : p.meseroLlamado }
+          : p
+      )
     );
     if (estado === "ENTREGADO") {
       setTimeout(refresh, 500);
     }
+  }
+
+  async function handleLlamarMesero(id: number) {
+    await fetch(`/api/pedidos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ meseroLlamado: true, estado: "LISTO" }),
+    });
+    setPedidos((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, meseroLlamado: true, estado: "LISTO" } : p
+      )
+    );
   }
 
   return (
@@ -129,7 +146,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
               </div>
             ) : (
               pendientes.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} />
+                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
               ))
             )}
           </div>
@@ -149,7 +166,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
               </div>
             ) : (
               enProceso.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} />
+                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
               ))
             )}
           </div>
@@ -169,7 +186,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
               </div>
             ) : (
               listos.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} />
+                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
               ))
             )}
           </div>

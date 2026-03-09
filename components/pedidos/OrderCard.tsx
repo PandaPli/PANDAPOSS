@@ -8,6 +8,7 @@ import { useState } from "react";
 interface OrderCardProps {
   pedido: PedidoConDetalles;
   onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
+  onLlamarMesero: (id: number) => Promise<void>;
 }
 
 const nextEstado: Partial<Record<EstadoPedido, EstadoPedido>> = {
@@ -22,8 +23,9 @@ const nextLabel: Partial<Record<EstadoPedido, string>> = {
   LISTO: "Listo!",
 };
 
-export function OrderCard({ pedido, onUpdateEstado }: OrderCardProps) {
+export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingMesero, setLoadingMesero] = useState(false);
 
   async function handleUpdate() {
     const next = nextEstado[pedido.estado];
@@ -33,11 +35,28 @@ export function OrderCard({ pedido, onUpdateEstado }: OrderCardProps) {
     setLoading(false);
   }
 
+  async function handleLlamarMesero() {
+    setLoadingMesero(true);
+    await onLlamarMesero(pedido.id);
+    setLoadingMesero(false);
+  }
+
   const siguiente = nextEstado[pedido.estado];
   const tiempoStr = timeAgo(pedido.creadoEn);
 
   return (
-    <div className="card p-0 overflow-hidden animate-fade-in">
+    <div className={cn(
+      "card p-0 overflow-hidden animate-fade-in",
+      pedido.meseroLlamado && "ring-2 ring-amber-400"
+    )}>
+      {/* Banner llamada al mesero */}
+      {pedido.meseroLlamado && (
+        <div className="flex items-center gap-2 bg-amber-400 px-4 py-1.5 text-white text-xs font-bold">
+          <Bell size={13} className="animate-bounce" />
+          Mesero solicitado — pendiente de retirar
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
@@ -110,10 +129,21 @@ export function OrderCard({ pedido, onUpdateEstado }: OrderCardProps) {
           </button>
         )}
         <button
-          className="px-4 py-3 text-sm font-medium text-surface-muted hover:bg-brand-50 hover:text-brand-600 transition-all border-l border-surface-border flex items-center gap-1.5"
+          onClick={handleLlamarMesero}
+          disabled={loadingMesero || pedido.meseroLlamado}
+          className={cn(
+            "px-4 py-3 text-sm font-medium transition-all border-l border-surface-border flex items-center gap-1.5 disabled:opacity-50",
+            pedido.meseroLlamado
+              ? "bg-amber-50 text-amber-600"
+              : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
+          )}
         >
-          <Bell size={14} />
-          Llamar Mesero
+          {loadingMesero ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Bell size={14} className={pedido.meseroLlamado ? "animate-bounce" : ""} />
+          )}
+          {pedido.meseroLlamado ? "Llamado" : "Llamar Mesero"}
         </button>
       </div>
     </div>

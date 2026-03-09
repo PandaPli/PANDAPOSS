@@ -86,6 +86,7 @@ export interface PedidoConDetalles {
   tipo: TipoPedido;
   estado: EstadoPedido;
   observacion: string | null;
+  meseroLlamado: boolean;
   creadoEn: string;
   mesa?: { nombre: string } | null;
   usuario: { nombre: string };
