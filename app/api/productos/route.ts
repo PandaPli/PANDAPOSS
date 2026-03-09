@@ -15,15 +15,28 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get("q") ?? "";
   const categoriaId = searchParams.get("categoria");
 
+  // Construir filtros como array para AND (evita conflicto si hay múltiples OR)
+  const andFilters: object[] = [];
+
+  // Filtro por sucursal: ADMIN_GENERAL ve todo; los demás ven su sucursal + globales
+  if (rol !== "ADMIN_GENERAL" && sucursalId !== null) {
+    andFilters.push({ OR: [{ sucursalId }, { sucursalId: null }] });
+  }
+
+  // Filtro de búsqueda
+  if (q) {
+    andFilters.push({ OR: [{ nombre: { contains: q } }, { codigo: { contains: q } }] });
+  }
+
+  // Filtro por categoría
+  if (categoriaId) {
+    andFilters.push({ categoriaId: Number(categoriaId) });
+  }
+
   const productos = await prisma.producto.findMany({
     where: {
       activo: true,
-      // ADMIN_GENERAL ve todos; los demás ven los de su sucursal o los globales (sucursalId null)
-      ...(rol !== "ADMIN_GENERAL"
-        ? { OR: [{ sucursalId: sucursalId ?? 0 }, { sucursalId: null }] }
-        : {}),
-      ...(q ? { OR: [{ nombre: { contains: q } }, { codigo: { contains: q } }] } : {}),
-      ...(categoriaId ? { categoriaId: Number(categoriaId) } : {}),
+      ...(andFilters.length > 0 ? { AND: andFilters } : {}),
     },
     include: { categoria: { select: { nombre: true } } },
     orderBy: { nombre: "asc" },

@@ -103,8 +103,7 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
               <button
                 key={p.id}
                 onClick={() => handleAdd(p)}
-                disabled={p.stock <= 0}
-                className="group card p-3 text-left hover:border-brand-300 hover:shadow-md active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="group card p-3 text-left hover:border-brand-300 hover:shadow-md active:scale-95 transition-all"
               >
                 {/* Imagen o placeholder */}
                 <div className="w-full aspect-square bg-zinc-100 rounded-lg mb-2.5 overflow-hidden flex items-center justify-center">
