@@ -13,7 +13,7 @@ interface TableMapProps {
 const estadoConfig: Record<EstadoMesa, { label: string; card: string; badge: string; dot: string }> = {
   LIBRE: {
     label: "Libre",
-    card: "bg-white border-zinc-200 hover:border-emerald-300 hover:shadow-md cursor-pointer",
+    card: "bg-white border-surface-border hover:border-emerald-300 hover:shadow-md cursor-pointer",
     badge: "badge-libre",
     dot: "bg-emerald-500",
   },
@@ -52,15 +52,15 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-1.5 text-sm">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          <span className="text-zinc-600">{countPorEstado.LIBRE} libres</span>
+          <span className="text-surface-muted">{countPorEstado.LIBRE} libres</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-          <span className="text-zinc-600">{countPorEstado.OCUPADA} ocupadas</span>
+          <span className="text-surface-muted">{countPorEstado.OCUPADA} ocupadas</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-          <span className="text-zinc-600">{countPorEstado.RESERVADA} reservadas</span>
+          <span className="text-surface-muted">{countPorEstado.RESERVADA} reservadas</span>
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
               "px-3 py-1.5 text-sm rounded-lg font-medium transition-colors",
               salaFiltro === "todas"
                 ? "bg-brand-600 text-white"
-                : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
+                : "bg-white text-surface-muted border border-surface-border hover:bg-surface-bg"
             )}
           >
             Todas
@@ -86,7 +86,7 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
                 "px-3 py-1.5 text-sm rounded-lg font-medium transition-colors",
                 salaFiltro === sala
                   ? "bg-brand-600 text-white"
-                  : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50"
+                  : "bg-white text-surface-muted border border-surface-border hover:bg-surface-bg"
               )}
             >
               {sala}
@@ -117,23 +117,23 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
               </div>
 
               {/* Nombre mesa */}
-              <p className="font-bold text-zinc-900 text-base leading-tight">{mesa.nombre}</p>
-              <p className="text-xs text-zinc-400 mt-0.5">{mesa.sala.nombre}</p>
+              <p className="font-bold text-surface-text text-base leading-tight">{mesa.nombre}</p>
+              <p className="text-xs text-surface-muted mt-0.5">{mesa.sala.nombre}</p>
 
               {/* Info pedido */}
               {pedido ? (
                 <div className="mt-3 space-y-1">
-                  <div className="flex items-center gap-1 text-xs text-zinc-500">
+                  <div className="flex items-center gap-1 text-xs text-surface-muted">
                     <Users size={12} />
                     <span>{pedido._count.detalles} producto{pedido._count.detalles !== 1 ? "s" : ""}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-zinc-400">
+                  <div className="flex items-center gap-1 text-xs text-surface-muted">
                     <Clock size={12} />
                     <span>{timeAgo(pedido.creadoEn)}</span>
                   </div>
                 </div>
               ) : (
-                <div className="mt-3 flex items-center gap-1 text-xs text-zinc-300">
+                <div className="mt-3 flex items-center gap-1 text-xs text-surface-muted">
                   <Users size={12} />
                   <span>Cap. {mesa.capacidad}</span>
                 </div>
@@ -141,7 +141,7 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
 
               {/* Arrow hover */}
               <div className="mt-3 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                <ChevronRight size={14} className="text-zinc-400" />
+                <ChevronRight size={14} className="text-surface-muted" />
               </div>
             </button>
           );

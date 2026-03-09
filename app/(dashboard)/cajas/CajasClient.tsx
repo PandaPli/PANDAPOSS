@@ -146,8 +146,8 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
     <>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Cajas</h1>
-          <p className="text-zinc-500 text-sm mt-1">Gestión de cajas y arqueos</p>
+          <h1 className="text-2xl font-bold text-surface-text">Cajas</h1>
+          <p className="text-surface-muted text-sm mt-1">Gestión de cajas y arqueos</p>
         </div>
         <button onClick={() => setModal({ type: "nueva" })} className="btn-primary">
           <Plus size={16} />
@@ -161,14 +161,14 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
           <div key={caja.id} className={`card p-5 ${caja.estado === "ABIERTA" ? "border-emerald-200 bg-emerald-50/30" : ""}`}>
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="font-semibold text-zinc-900">{caja.nombre}</h3>
-                <p className="text-xs text-zinc-400">{caja.sucursal?.nombre}</p>
+                <h3 className="font-semibold text-surface-text">{caja.nombre}</h3>
+                <p className="text-xs text-surface-muted">{caja.sucursal?.nombre}</p>
               </div>
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${
                   caja.estado === "ABIERTA"
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-zinc-100 text-zinc-500 border-zinc-200"
+                    : "bg-surface-bg text-surface-muted border-surface-border"
                 }`}
               >
                 {caja.estado === "ABIERTA" ? <DoorOpen size={12} /> : <DoorClosed size={12} />}
@@ -178,15 +178,15 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
 
             {caja.estado === "ABIERTA" && (
               <div className="space-y-1 mb-3 text-sm">
-                <p className="text-zinc-600">
-                  <span className="text-zinc-400">Cajero:</span> {caja.usuario?.nombre ?? "—"}
+                <p className="text-surface-text">
+                  <span className="text-surface-muted">Cajero:</span> {caja.usuario?.nombre ?? "—"}
                 </p>
-                <p className="text-zinc-600 flex items-center gap-1">
-                  <Clock size={12} className="text-zinc-400" />
+                <p className="text-surface-text flex items-center gap-1">
+                  <Clock size={12} className="text-surface-muted" />
                   Abierta: {caja.abiertaEn ? new Date(caja.abiertaEn).toLocaleString("es-CL") : "—"}
                 </p>
-                <p className="text-zinc-600">
-                  <span className="text-zinc-400">Saldo inicio:</span>{" "}
+                <p className="text-surface-text">
+                  <span className="text-surface-muted">Saldo inicio:</span>{" "}
                   <span className="font-semibold">{formatCurrency(caja.saldoInicio, simbolo)}</span>
                 </p>
               </div>
@@ -221,14 +221,14 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
       {modal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-100">
-              <h2 className="font-bold text-zinc-900 flex items-center gap-2">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
+              <h2 className="font-bold text-surface-text flex items-center gap-2">
                 <Wallet size={18} className="text-brand-600" />
                 {modal.type === "abrir" && "Abrir Caja"}
                 {modal.type === "cerrar" && (result ? "Resumen de Cierre" : "Cerrar Caja")}
                 {modal.type === "nueva" && "Nueva Caja"}
               </h2>
-              <button onClick={cerrarModal} className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg">
+              <button onClick={cerrarModal} className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-lg">
                 <X size={18} />
               </button>
             </div>
@@ -270,7 +270,7 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
                       min={0}
                       step={0.01}
                     />
-                    <p className="text-xs text-zinc-400 mt-1">Dinero en efectivo al momento de abrir</p>
+                    <p className="text-xs text-surface-muted mt-1">Dinero en efectivo al momento de abrir</p>
                   </div>
                   <button
                     onClick={abrirCaja}
@@ -319,24 +319,24 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
 
               {modal.type === "cerrar" && result && (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2 border-b border-zinc-100">
-                    <span className="text-zinc-500 text-sm">Total Ventas</span>
-                    <span className="font-semibold text-zinc-900 flex items-center gap-1">
+                  <div className="flex items-center justify-between py-2 border-b border-surface-border">
+                    <span className="text-surface-muted text-sm">Total Ventas</span>
+                    <span className="font-semibold text-surface-text flex items-center gap-1">
                       <TrendingUp size={14} className="text-emerald-500" />
                       {formatCurrency(result.totalVentas, simbolo)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-zinc-100">
-                    <span className="text-zinc-500 text-sm">Saldo Final</span>
-                    <span className="font-semibold text-zinc-900">
+                  <div className="flex items-center justify-between py-2 border-b border-surface-border">
+                    <span className="text-surface-muted text-sm">Saldo Final</span>
+                    <span className="font-semibold text-surface-text">
                       {formatCurrency(Number(saldoFinal), simbolo)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-zinc-500 text-sm">Diferencia</span>
+                    <span className="text-surface-muted text-sm">Diferencia</span>
                     <span
                       className={`font-bold flex items-center gap-1 ${
-                        result.diferencia > 0 ? "text-emerald-600" : result.diferencia < 0 ? "text-red-600" : "text-zinc-600"
+                        result.diferencia > 0 ? "text-emerald-600" : result.diferencia < 0 ? "text-red-600" : "text-surface-muted"
                       }`}
                     >
                       {result.diferencia > 0 ? <TrendingUp size={14} /> : result.diferencia < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}

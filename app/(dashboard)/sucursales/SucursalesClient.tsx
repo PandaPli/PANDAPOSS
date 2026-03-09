@@ -106,14 +106,14 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-odoo-text">Sucursales</h1>
-          <p className="text-sm text-odoo-text-muted mt-0.5">
+          <h1 className="text-2xl font-bold text-surface-text">Sucursales</h1>
+          <p className="text-sm text-surface-muted mt-0.5">
             Gestión de locales y restaurantes ({sucursales.length} registradas)
           </p>
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 bg-odoo-purple text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+          className="btn-primary"
         >
           <Plus size={16} />
           Nueva Sucursal
@@ -122,7 +122,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
 
       {/* Grid de Sucursales */}
       {sucursales.length === 0 ? (
-        <div className="text-center py-16 text-odoo-text-muted">
+        <div className="text-center py-16 text-surface-muted">
           <Building2 size={48} className="mx-auto mb-3 opacity-30" />
           <p className="text-lg font-medium">No hay sucursales registradas</p>
           <p className="text-sm">Crea la primera sucursal para comenzar</p>
@@ -132,18 +132,18 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
           {sucursales.map((s) => (
             <div
               key={s.id}
-              className={`bg-white rounded-xl border shadow-sm p-5 transition-all ${
-                s.activa ? "border-odoo-border" : "border-gray-200 opacity-60"
+              className={`bg-white rounded-xl border shadow-card p-5 transition-all ${
+                s.activa ? "border-surface-border" : "border-surface-border opacity-60"
               }`}
             >
               {/* Card header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg ${s.activa ? "bg-odoo-purple" : "bg-gray-400"}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg ${s.activa ? "bg-brand-500" : "bg-surface-muted"}`}>
                     {s.simbolo}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-odoo-text">{s.nombre}</h3>
+                    <h3 className="font-semibold text-surface-text">{s.nombre}</h3>
                     {s.activa ? (
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
                         <CheckCircle2 size={12} /> Activa
@@ -157,7 +157,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                 </div>
                 <button
                   onClick={() => openEdit(s)}
-                  className="p-1.5 rounded hover:bg-odoo-hover text-odoo-text-muted hover:text-odoo-text transition-colors"
+                  className="p-1.5 rounded hover:bg-surface-bg text-surface-text-muted hover:text-surface-text transition-colors"
                   title="Editar"
                 >
                   <Pencil size={15} />
@@ -165,7 +165,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
               </div>
 
               {/* Info */}
-              <div className="space-y-1.5 text-sm text-odoo-text-muted mb-4">
+              <div className="space-y-1.5 text-sm text-surface-text-muted mb-4">
                 {s.direccion && <p className="truncate">📍 {s.direccion}</p>}
                 {s.telefono && <p>📞 {s.telefono}</p>}
                 {s.email && <p className="truncate">✉️ {s.email}</p>}
@@ -175,7 +175,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
               </div>
 
               {/* Stats */}
-              <div className="flex items-center gap-4 pt-3 border-t border-odoo-border text-xs text-odoo-text-muted">
+              <div className="flex items-center gap-4 pt-3 border-t border-surface-border text-xs text-surface-text-muted">
                 <span className="flex items-center gap-1">
                   <Users size={13} /> {s._count.usuarios} usuarios
                 </span>
@@ -204,19 +204,19 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       {open && (
         <div className="fixed inset-0 z-50 flex">
           <div className="flex-1 bg-black/30 backdrop-blur-sm" onClick={closeDrawer} />
-          <div className="w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-in-right">
+          <div className="w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-in">
             {/* Drawer header */}
-            <div className="flex items-center justify-between p-5 border-b border-odoo-border">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
               <div>
-                <h2 className="font-semibold text-odoo-text">
+                <h2 className="font-semibold text-surface-text">
                   {editing ? "Editar Sucursal" : "Nueva Sucursal"}
                 </h2>
-                <p className="text-xs text-odoo-text-muted mt-0.5">
+                <p className="text-xs text-surface-text-muted mt-0.5">
                   {editing ? `Modificando: ${editing.nombre}` : "Completa los datos del local"}
                 </p>
               </div>
-              <button onClick={closeDrawer} className="p-1.5 rounded hover:bg-odoo-hover transition-colors">
-                <X size={18} className="text-odoo-text-muted" />
+              <button onClick={closeDrawer} className="p-1.5 rounded hover:bg-surface-bg transition-colors">
+                <X size={18} className="text-surface-text-muted" />
               </button>
             </div>
 
@@ -227,7 +227,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
               )}
 
               <div>
-                <label className="block text-sm font-medium text-odoo-text mb-1">
+                <label className="label">
                   Nombre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -236,70 +236,70 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   required
                   placeholder="Ej: Casa Matriz, Sucursal Norte"
-                  className="w-full px-3 py-2 border border-odoo-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-odoo-purple/30 focus:border-odoo-purple"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-odoo-text mb-1">Dirección</label>
+                <label className="label">Dirección</label>
                 <input
                   type="text"
                   value={form.direccion}
                   onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                   placeholder="Av. Principal 123, Ciudad"
-                  className="w-full px-3 py-2 border border-odoo-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-odoo-purple/30 focus:border-odoo-purple"
+                  className="input"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-odoo-text mb-1">Teléfono</label>
+                  <label className="label">Teléfono</label>
                   <input
                     type="text"
                     value={form.telefono}
                     onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                     placeholder="+56 9 1234 5678"
-                    className="w-full px-3 py-2 border border-odoo-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-odoo-purple/30 focus:border-odoo-purple"
+                    className="input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-odoo-text mb-1">Símbolo moneda</label>
+                  <label className="label">Símbolo moneda</label>
                   <input
                     type="text"
                     value={form.simbolo}
                     onChange={(e) => setForm({ ...form, simbolo: e.target.value })}
                     maxLength={5}
                     placeholder="$"
-                    className="w-full px-3 py-2 border border-odoo-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-odoo-purple/30 focus:border-odoo-purple"
+                    className="input"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-odoo-text mb-1">Email</label>
+                <label className="label">Email</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="sucursal@pandaposs.com"
-                  className="w-full px-3 py-2 border border-odoo-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-odoo-purple/30 focus:border-odoo-purple"
+                  className="input"
                 />
               </div>
             </form>
 
             {/* Footer */}
-            <div className="p-5 border-t border-odoo-border flex gap-3">
+            <div className="p-5 border-t border-surface-border flex gap-3">
               <button
                 type="button"
                 onClick={closeDrawer}
-                className="flex-1 px-4 py-2.5 border border-odoo-border text-odoo-text rounded-lg hover:bg-odoo-hover transition-colors text-sm font-medium"
+                className="btn-secondary flex-1 justify-center"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 px-4 py-2.5 bg-odoo-purple text-white rounded-lg hover:bg-purple-700 disabled:opacity-60 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                className="btn-primary flex-1 justify-center"
               >
                 {loading && <Loader2 size={15} className="animate-spin" />}
                 {editing ? "Guardar cambios" : "Crear sucursal"}

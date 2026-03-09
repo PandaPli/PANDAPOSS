@@ -6,15 +6,15 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PandaPoss",
-  description: "Sistema Punto de Venta",
+  title: "PandaPoss — Punto de Venta",
+  description: "Sistema POS para restaurantes — Zap Zapp Food SpA",
   icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased bg-zinc-50 text-zinc-900`}>
+      <body className={`${inter.className} antialiased bg-surface-bg text-surface-text`}>
         <Providers>{children}</Providers>
       </body>
     </html>

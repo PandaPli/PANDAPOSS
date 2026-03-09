@@ -340,6 +340,7 @@ model Venta {
   pedido      Pedido?     @relation(fields: [pedidoId], references: [id])
   detalles    DetalleVenta[]
   kardex      Kardex[]
+  pagos       PagoVenta[]
 
   @@map("ventas")
 }
@@ -374,6 +375,19 @@ model Kardex {
   venta       Venta?     @relation(fields: [ventaId], references: [id])
 
   @@map("kardex")
+}
+
+model PagoVenta {
+  id          Int        @id @default(autoincrement())
+  ventaId     Int
+  metodoPago  MetodoPago
+  monto       Decimal    @db.Decimal(10, 2)
+  referencia  String?    @db.VarChar(100)
+  creadoEn    DateTime   @default(now())
+
+  venta       Venta      @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+
+  @@map("pagos_ventas")
 }
 
 model Log {

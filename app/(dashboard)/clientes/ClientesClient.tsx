@@ -98,8 +98,8 @@ export function ClientesClient({ clientes: initial }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Clientes</h1>
-          <p className="text-zinc-500 text-sm mt-1">{filtrados.length} cliente{filtrados.length !== 1 ? "s" : ""}</p>
+          <h1 className="text-2xl font-bold text-surface-text">Clientes</h1>
+          <p className="text-surface-muted text-sm mt-1">{filtrados.length} cliente{filtrados.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={abrirFormNuevo} className="btn-primary">
           <Plus size={16} />
@@ -109,7 +109,7 @@ export function ClientesClient({ clientes: initial }: Props) {
 
       {/* Búsqueda */}
       <div className="relative max-w-md">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
           type="text"
           placeholder="Buscar por nombre, email o teléfono..."
@@ -124,37 +124,37 @@ export function ClientesClient({ clientes: initial }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Email</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Teléfono</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Dirección</th>
+              <tr className="border-b border-surface-border bg-surface-bg">
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Nombre</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Email</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Teléfono</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Dirección</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-surface-border">
               {filtrados.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
-                    <Users size={32} className="mx-auto text-zinc-200 mb-2" />
-                    <p className="text-zinc-400">Sin clientes</p>
+                    <Users size={32} className="mx-auto text-surface-muted mb-2" />
+                    <p className="text-surface-muted">Sin clientes</p>
                   </td>
                 </tr>
               ) : (
                 filtrados.map((c) => (
-                  <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-zinc-800">{c.nombre}</td>
-                    <td className="px-4 py-3 text-zinc-500">
+                  <tr key={c.id} className="hover:bg-surface-bg transition-colors">
+                    <td className="px-4 py-3 font-medium text-surface-text">{c.nombre}</td>
+                    <td className="px-4 py-3 text-surface-muted">
                       {c.email ? (
                         <span className="flex items-center gap-1"><Mail size={13} />{c.email}</span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500">
+                    <td className="px-4 py-3 text-surface-muted">
                       {c.telefono ? (
                         <span className="flex items-center gap-1"><Phone size={13} />{c.telefono}</span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500 max-w-48 truncate">
+                    <td className="px-4 py-3 text-surface-muted max-w-48 truncate">
                       {c.direccion ? (
                         <span className="flex items-center gap-1"><MapPin size={13} />{c.direccion}</span>
                       ) : "—"}
@@ -162,7 +162,7 @@ export function ClientesClient({ clientes: initial }: Props) {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => abrirFormEditar(c)}
-                        className="p-1.5 text-zinc-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                        className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                       >
                         <Edit2 size={15} />
                       </button>
@@ -179,13 +179,13 @@ export function ClientesClient({ clientes: initial }: Props) {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-end">
           <div className="bg-white h-full sm:h-auto sm:rounded-l-2xl w-full max-w-md shadow-2xl flex flex-col animate-slide-in">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-100">
-              <h2 className="font-bold text-zinc-900">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
+              <h2 className="font-bold text-surface-text">
                 {editando ? "Editar Cliente" : "Nuevo Cliente"}
               </h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-lg transition-colors"
               >
                 <X size={18} />
               </button>
@@ -241,7 +241,7 @@ export function ClientesClient({ clientes: initial }: Props) {
               </div>
             </form>
 
-            <div className="p-5 border-t border-zinc-100 flex gap-3">
+            <div className="p-5 border-t border-surface-border flex gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1 justify-center">
                 Cancelar
               </button>

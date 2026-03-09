@@ -31,6 +31,7 @@ export default async function NuevaVentaPage() {
   const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
   const simbolo = (session?.user as { simbolo?: string })?.simbolo ?? "$";
   const userId = (session?.user as { id?: number })?.id ?? 0;
+  const meseroNombre = session?.user?.name ?? "Cajero";
 
   const [productos, cajaAbierta] = await Promise.all([
     getProductos(sucursalId),
@@ -55,6 +56,7 @@ export default async function NuevaVentaPage() {
       usuarioId={userId}
       cajaId={cajaAbierta?.id}
       cajaNombre={cajaAbierta?.nombre}
+      meseroNombre={meseroNombre}
     />
   );
 }

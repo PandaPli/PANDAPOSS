@@ -16,7 +16,6 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
   const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
   const addItem = useCartStore((s) => s.addItem);
 
-  // Categorías únicas
   const categorias = useMemo(() => {
     const map = new Map<number, string>();
     productos.forEach((p) => {
@@ -51,26 +50,26 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
 
   return (
     <div className="flex flex-col h-full gap-3">
-      {/* Búsqueda */}
+      {/* Busqueda */}
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
           type="text"
           placeholder="Buscar producto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input pl-9"
+          className="input pl-10"
         />
       </div>
 
-      {/* Filtro categoría */}
+      {/* Filtro categoria */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         <button
           onClick={() => setCategoriaFiltro(null)}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+          className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
             !categoriaFiltro
-              ? "bg-zinc-900 text-white"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              ? "bg-brand-500 text-white shadow-sm"
+              : "bg-white border border-surface-border text-surface-muted hover:bg-brand-50 hover:text-brand-600"
           }`}
         >
           Todos
@@ -79,10 +78,10 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
           <button
             key={id}
             onClick={() => setCategoriaFiltro(id)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               categoriaFiltro === id
-                ? "bg-zinc-900 text-white"
-                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                ? "bg-brand-500 text-white shadow-sm"
+                : "bg-white border border-surface-border text-surface-muted hover:bg-brand-50 hover:text-brand-600"
             }`}
           >
             {nombre}
@@ -93,8 +92,8 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
       {/* Grid productos */}
       <div className="flex-1 overflow-y-auto">
         {filtrados.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-zinc-300">
-            <Package size={36} className="mb-2" />
+          <div className="flex flex-col items-center justify-center h-48 text-surface-muted">
+            <Package size={36} className="mb-2 opacity-40" />
             <p className="text-sm">Sin productos encontrados</p>
           </div>
         ) : (
@@ -103,23 +102,22 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
               <button
                 key={p.id}
                 onClick={() => handleAdd(p)}
-                className="group card p-3 text-left hover:border-brand-300 hover:shadow-md active:scale-95 transition-all"
+                className="group card p-3 text-left hover:border-brand-300 hover:shadow-elevated active:scale-[0.97] transition-all"
               >
-                {/* Imagen o placeholder */}
-                <div className="w-full aspect-square bg-zinc-100 rounded-lg mb-2.5 overflow-hidden flex items-center justify-center">
+                <div className="w-full aspect-square bg-surface-bg rounded-xl mb-2.5 overflow-hidden flex items-center justify-center">
                   {p.imagen ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.imagen} alt={p.nombre} className="w-full h-full object-cover" />
                   ) : (
-                    <Package size={28} className="text-zinc-300" />
+                    <Package size={28} className="text-surface-muted opacity-30" />
                   )}
                 </div>
 
-                <p className="text-sm font-semibold text-zinc-800 leading-tight line-clamp-2">
+                <p className="text-sm font-semibold text-surface-text leading-tight line-clamp-2">
                   {p.nombre}
                 </p>
-                <p className="text-xs text-zinc-400 mt-0.5">{p.codigo}</p>
-                <p className="text-brand-600 font-bold text-sm mt-1.5">
+                <p className="text-xs text-surface-muted mt-0.5">{p.codigo}</p>
+                <p className="text-brand-500 font-bold text-sm mt-1.5">
                   {formatCurrency(p.precio, simbolo)}
                 </p>
 

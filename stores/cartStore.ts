@@ -5,6 +5,7 @@ interface CartState {
   items: CartItem[];
   mesaId: number | null;
   clienteId: number | null;
+  pedidoId: number | null;
   descuento: number;
   ivaPorc: number;
 
@@ -14,6 +15,7 @@ interface CartState {
   updateObservacion: (id: number, tipo: "producto" | "combo", obs: string) => void;
   setMesa: (id: number | null) => void;
   setCliente: (id: number | null) => void;
+  setPedido: (id: number | null) => void;
   setDescuento: (v: number) => void;
   setIva: (v: number) => void;
   clear: () => void;
@@ -29,6 +31,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   mesaId: null,
   clienteId: null,
+  pedidoId: null,
   descuento: 0,
   ivaPorc: 0,
 
@@ -76,9 +79,10 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   setMesa: (id) => set({ mesaId: id }),
   setCliente: (id) => set({ clienteId: id }),
+  setPedido: (id) => set({ pedidoId: id }),
   setDescuento: (v) => set({ descuento: v }),
   setIva: (v) => set({ ivaPorc: v }),
-  clear: () => set({ items: [], mesaId: null, clienteId: null, descuento: 0 }),
+  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0 }),
 
   subtotal: () =>
     get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),

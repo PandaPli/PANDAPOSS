@@ -43,8 +43,8 @@ export default async function MesasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Mesas</h1>
-        <p className="text-zinc-500 text-sm mt-1">Estado actual de todas las mesas</p>
+        <h1 className="text-2xl font-bold text-surface-text">Mesas</h1>
+        <p className="text-surface-muted text-sm mt-1">Estado actual de todas las mesas</p>
       </div>
       <MesasClient mesas={mesasData} />
     </div>

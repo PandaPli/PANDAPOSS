@@ -38,6 +38,13 @@ export interface CartItem {
   imagen?: string;
 }
 
+// Pagos
+export interface PagoItem {
+  metodoPago: MetodoPago;
+  monto: number;
+  referencia?: string;
+}
+
 // APIs
 export interface ApiResponse<T = unknown> {
   ok: boolean;

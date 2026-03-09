@@ -13,7 +13,7 @@ interface StatsCardProps {
 const colorMap = {
   brand: {
     bg: "bg-brand-50",
-    icon: "bg-brand-100 text-brand-600",
+    icon: "bg-brand-100 text-brand-500",
     trend: "text-brand-600",
   },
   emerald: {
@@ -42,12 +42,12 @@ export function StatsCard({ title, value, subtitle, icon: Icon, trend, color = "
   const colors = colorMap[color];
 
   return (
-    <div className={cn("card p-5", colors.bg, "border-0")}>
+    <div className={cn("rounded-xl p-5 border-0", colors.bg)}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-odoo-text-muted">{title}</p>
-          <p className="text-2xl font-bold text-odoo-text mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-odoo-text-muted mt-0.5">{subtitle}</p>}
+          <p className="text-sm font-medium text-surface-muted">{title}</p>
+          <p className="text-2xl font-bold text-surface-text mt-1">{value}</p>
+          {subtitle && <p className="text-xs text-surface-muted mt-0.5">{subtitle}</p>}
         </div>
         <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0", colors.icon)}>
           <Icon size={22} />

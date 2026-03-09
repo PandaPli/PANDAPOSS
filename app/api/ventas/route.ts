@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import type { Rol } from "@/types";
+import type { Rol, MetodoPago } from "@/types";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -44,13 +44,16 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { cajaId, clienteId, usuarioId, items, subtotal, descuento, impuesto, total, metodoPago, mesaId } = body;
+  const {
+    cajaId, clienteId, usuarioId, items, subtotal, descuento,
+    impuesto, total, metodoPago, mesaId, pedidoId, pagos
+  } = body;
 
   if (!items?.length) {
-    return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 });
+    return NextResponse.json({ error: "El carrito esta vacio" }, { status: 400 });
   }
 
-  // Generar número de venta
+  // Generar numero de venta
   const count = await prisma.venta.count();
   const numero = `VTA-${String(count + 1).padStart(6, "0")}`;
 
@@ -63,6 +66,7 @@ export async function POST(req: NextRequest) {
           cajaId: cajaId ? Number(cajaId) : null,
           clienteId: clienteId ? Number(clienteId) : null,
           usuarioId: Number(usuarioId),
+          pedidoId: pedidoId ? Number(pedidoId) : null,
           subtotal: Number(subtotal),
           descuento: Number(descuento || 0),
           impuesto: Number(impuesto || 0),
@@ -88,24 +92,52 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Actualizar stock y kardex por cada producto
-      for (const item of items) {
-        if (item.productoId) {
-          await tx.producto.update({
-            where: { id: Number(item.productoId) },
-            data: { stock: { decrement: Number(item.cantidad) } },
-          });
-          await tx.kardex.create({
-            data: {
-              productoId: Number(item.productoId),
-              tipo: "SALIDA",
-              cantidad: Number(item.cantidad),
-              motivo: "Venta",
-              ventaId: v.id,
-            },
-          });
-        }
+      // Crear registros de pago
+      if (pagos && Array.isArray(pagos) && pagos.length > 0) {
+        await Promise.all(
+          pagos.map((pago: { metodoPago: MetodoPago; monto: number; referencia?: string }) =>
+            tx.pagoVenta.create({
+              data: {
+                ventaId: v.id,
+                metodoPago: pago.metodoPago,
+                monto: Number(pago.monto),
+                referencia: pago.referencia || null,
+              },
+            })
+          )
+        );
+      } else {
+        // Retrocompatible: crear 1 pago con el total
+        await tx.pagoVenta.create({
+          data: {
+            ventaId: v.id,
+            metodoPago: metodoPago,
+            monto: Number(total),
+          },
+        });
       }
+
+      // Actualizar stock y kardex en paralelo por producto
+      const productItems = items.filter((item: { productoId?: number | null }) => item.productoId);
+      await Promise.all(
+        productItems.map((item: { productoId: number; cantidad: number }) =>
+          Promise.all([
+            tx.producto.update({
+              where: { id: Number(item.productoId) },
+              data: { stock: { decrement: Number(item.cantidad) } },
+            }),
+            tx.kardex.create({
+              data: {
+                productoId: Number(item.productoId),
+                tipo: "SALIDA",
+                cantidad: Number(item.cantidad),
+                motivo: "Venta",
+                ventaId: v.id,
+              },
+            }),
+          ])
+        )
+      );
 
       // Liberar mesa si aplica
       if (mesaId) {
@@ -116,9 +148,9 @@ export async function POST(req: NextRequest) {
       }
 
       return v;
-    });
+    }, { timeout: 15000 });
 
-    // Serializar Decimals a números antes de enviar
+    // Serializar Decimals a numeros antes de enviar
     return NextResponse.json({
       id: venta.id,
       numero: venta.numero,

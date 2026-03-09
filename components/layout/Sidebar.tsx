@@ -147,7 +147,7 @@ export function Sidebar() {
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group",
                 active
                   ? "bg-brand-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  : "text-zinc-400 hover:text-white hover:bg-white/10"
               )}
             >
               <span className="flex-shrink-0">{item.icon}</span>
@@ -174,7 +174,7 @@ export function Sidebar() {
             <div className="min-w-0">
               <p className="text-white text-sm font-medium truncate">{nombre}</p>
               {rol && (
-                <p className="text-zinc-500 text-xs flex items-center gap-1">
+                <p className="text-zinc-400 text-xs flex items-center gap-1">
                   {roleIcons[rol]}
                   {roleLabels[rol]}
                 </p>
@@ -187,7 +187,7 @@ export function Sidebar() {
       {/* Colapsar */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 bg-zinc-800 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white transition-colors"
+        className="absolute -right-3 top-20 bg-zinc-900 border border-zinc-700 rounded-full p-1 text-zinc-400 hover:text-white transition-colors"
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>

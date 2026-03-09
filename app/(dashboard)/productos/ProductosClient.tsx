@@ -108,8 +108,8 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
     <>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Productos</h1>
-          <p className="text-zinc-500 text-sm mt-1">{filtrados.length} producto{filtrados.length !== 1 ? "s" : ""}</p>
+          <h1 className="text-2xl font-bold text-surface-text">Productos</h1>
+          <p className="text-surface-muted text-sm mt-1">{filtrados.length} producto{filtrados.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={abrirFormNuevo} className="btn-primary">
           <Plus size={16} />
@@ -119,7 +119,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
 
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
           <input type="text" placeholder="Buscar por nombre o código..." value={search}
             onChange={(e) => setSearch(e.target.value)} className="input pl-9" />
         </div>
@@ -133,40 +133,40 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Código</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Producto</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Categoría</th>
-                <th className="text-right px-4 py-3 font-medium text-zinc-500">Precio</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Estado</th>
+              <tr className="border-b border-surface-border bg-surface-bg">
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Código</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Producto</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Categoría</th>
+                <th className="text-right px-4 py-3 font-medium text-surface-muted">Precio</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-surface-border">
               {filtrados.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
-                    <Package size={32} className="mx-auto text-zinc-200 mb-2" />
-                    <p className="text-zinc-400">Sin productos</p>
+                    <Package size={32} className="mx-auto text-surface-muted mb-2" />
+                    <p className="text-surface-muted">Sin productos</p>
                   </td>
                 </tr>
               ) : (
                 filtrados.map((p) => (
-                  <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-500">{p.codigo}</td>
-                    <td className="px-4 py-3 font-medium text-zinc-800">{p.nombre}</td>
-                    <td className="px-4 py-3 text-zinc-500">{p.categoria?.nombre ?? "—"}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-zinc-900">
+                  <tr key={p.id} className="hover:bg-surface-bg transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs text-surface-muted">{p.codigo}</td>
+                    <td className="px-4 py-3 font-medium text-surface-text">{p.nombre}</td>
+                    <td className="px-4 py-3 text-surface-muted">{p.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-surface-text">
                       {formatCurrency(p.precio, simbolo)}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
-                        p.enMenu ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-zinc-100 text-zinc-500 border-zinc-200"
+                        p.enMenu ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-surface-bg text-surface-muted border-surface-border"
                       }`}>{p.enMenu ? "En menú" : "Oculto"}</span>
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => abrirFormEditar(p)}
-                        className="p-1.5 text-zinc-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
+                        className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
                         <Edit2 size={15} />
                       </button>
                     </td>
@@ -181,9 +181,9 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-end">
           <div className="bg-white h-full sm:h-auto sm:rounded-l-2xl w-full max-w-md shadow-2xl flex flex-col animate-slide-in">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-100">
-              <h2 className="font-bold text-zinc-900">{editando ? "Editar Producto" : "Nuevo Producto"}</h2>
-              <button onClick={() => setShowForm(false)} className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
+              <h2 className="font-bold text-surface-text">{editando ? "Editar Producto" : "Nuevo Producto"}</h2>
+              <button onClick={() => setShowForm(false)} className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-lg transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -233,12 +233,12 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
               </div>
 
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-sm text-surface-text cursor-pointer">
                   <input type="checkbox" checked={form.enMenu}
                     onChange={(e) => setForm({ ...form, enMenu: e.target.checked })} className="rounded" />
                   Visible en menú
                 </label>
-                <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-sm text-surface-text cursor-pointer">
                   <input type="checkbox" checked={form.ivaActivo}
                     onChange={(e) => setForm({ ...form, ivaActivo: e.target.checked })} className="rounded" />
                   Aplica IVA
@@ -246,7 +246,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
               </div>
             </form>
 
-            <div className="p-5 border-t border-zinc-100 flex gap-3">
+            <div className="p-5 border-t border-surface-border flex gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1 justify-center">Cancelar</button>
               <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={loading} className="btn-primary flex-1 justify-center">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : null}

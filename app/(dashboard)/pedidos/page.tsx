@@ -1,5 +1,15 @@
 import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { PedidosClient } from "./PedidosClient";
+import type { Rol } from "@/types";
+
+/* Micro-mensajes por rol */
+const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {
+  CHEF:    { emoji: "🍳", msg: "Hoy saldran platos perfectos." },
+  BAR:     { emoji: "🍹", msg: "A mezclar felicidad!" },
+  PASTRY:  { emoji: "🧁", msg: "Endulzando el dia!" },
+};
 
 async function getPedidos() {
   return prisma.pedido.findMany({
@@ -19,6 +29,8 @@ async function getPedidos() {
 }
 
 export default async function PedidosPage() {
+  const session = await getServerSession(authOptions);
+  const rol = (session?.user as { rol?: Rol })?.rol;
   const pedidos = await getPedidos();
 
   const data = pedidos.map((p) => ({
@@ -39,12 +51,26 @@ export default async function PedidosPage() {
     })),
   }));
 
+  const welcome = rol ? WELCOME[rol] : null;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Pedidos</h1>
-        <p className="text-zinc-500 text-sm mt-1">Sistema de visualización de cocina (KDS)</p>
-      </div>
+      {/* Header con micro-mensaje */}
+      {welcome ? (
+        <div className="bg-gradient-to-r from-brand-500 to-brand-400 rounded-2xl p-5 flex items-center gap-4 shadow-md">
+          <span className="text-4xl">{welcome.emoji}</span>
+          <div>
+            <h1 className="text-xl font-bold text-white">Buen turno!</h1>
+            <p className="text-brand-100 text-sm">{welcome.msg}</p>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h1 className="text-2xl font-bold text-surface-text">Pedidos</h1>
+          <p className="text-surface-muted text-sm mt-1">Sistema de visualizacion de cocina (KDS)</p>
+        </div>
+      )}
+
       <PedidosClient pedidos={data} />
     </div>
   );

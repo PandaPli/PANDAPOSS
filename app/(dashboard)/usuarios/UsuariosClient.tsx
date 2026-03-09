@@ -135,8 +135,8 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
     <>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Usuarios</h1>
-          <p className="text-zinc-500 text-sm mt-1">{filtrados.length} usuario{filtrados.length !== 1 ? "s" : ""}</p>
+          <h1 className="text-2xl font-bold text-surface-text">Usuarios</h1>
+          <p className="text-surface-muted text-sm mt-1">{filtrados.length} usuario{filtrados.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={abrirFormNuevo} className="btn-primary">
           <Plus size={16} />
@@ -145,7 +145,7 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
       </div>
 
       <div className="relative max-w-md">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
           type="text"
           placeholder="Buscar por nombre, usuario o email..."
@@ -159,47 +159,47 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Usuario</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Rol</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Sucursal</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-500">Estado</th>
+              <tr className="border-b border-surface-border bg-surface-bg">
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Nombre</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Usuario</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Rol</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Sucursal</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-surface-border">
               {filtrados.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
-                    <UserCog size={32} className="mx-auto text-zinc-200 mb-2" />
-                    <p className="text-zinc-400">Sin usuarios</p>
+                    <UserCog size={32} className="mx-auto text-surface-muted mb-2" />
+                    <p className="text-surface-muted">Sin usuarios</p>
                   </td>
                 </tr>
               ) : (
                 filtrados.map((u) => {
                   const roleLabel = ROLES.find((r) => r.value === u.rol)?.label ?? u.rol;
                   return (
-                    <tr key={u.id} className="hover:bg-zinc-50 transition-colors">
+                    <tr key={u.id} className="hover:bg-surface-bg transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">
                             {u.nombre.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-medium text-zinc-800">{u.nombre}</p>
-                            {u.email && <p className="text-xs text-zinc-400">{u.email}</p>}
+                            <p className="font-medium text-surface-text">{u.nombre}</p>
+                            {u.email && <p className="text-xs text-surface-muted">{u.email}</p>}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-500">{u.usuario}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-surface-muted">{u.usuario}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${roleColors[u.rol] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${roleColors[u.rol] ?? "bg-surface-bg text-surface-muted border-surface-border"}`}>
                           <Shield size={11} />
                           {roleLabel}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-zinc-500">{u.sucursal?.nombre ?? "—"}</td>
+                      <td className="px-4 py-3 text-surface-muted">{u.sucursal?.nombre ?? "—"}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
                           u.status === "ACTIVO"
@@ -212,7 +212,7 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => abrirFormEditar(u)}
-                          className="p-1.5 text-zinc-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                          className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                         >
                           <Edit2 size={15} />
                         </button>
@@ -230,11 +230,11 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-end">
           <div className="bg-white h-full sm:h-auto sm:rounded-l-2xl w-full max-w-md shadow-2xl flex flex-col animate-slide-in">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-100">
-              <h2 className="font-bold text-zinc-900">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
+              <h2 className="font-bold text-surface-text">
                 {editando ? "Editar Usuario" : "Nuevo Usuario"}
               </h2>
-              <button onClick={() => setShowForm(false)} className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg">
+              <button onClick={() => setShowForm(false)} className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-lg">
                 <X size={18} />
               </button>
             </div>
@@ -334,7 +334,7 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
               )}
             </form>
 
-            <div className="p-5 border-t border-zinc-100 flex gap-3">
+            <div className="p-5 border-t border-surface-border flex gap-3">
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1 justify-center">
                 Cancelar
               </button>

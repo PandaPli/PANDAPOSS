@@ -34,14 +34,14 @@ export function MesasClient({ mesas }: Props) {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl animate-fade-in">
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-zinc-100">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
               <div>
-                <h2 className="font-bold text-zinc-900 text-lg">{mesaSeleccionada.nombre}</h2>
-                <p className="text-sm text-zinc-400">{mesaSeleccionada.sala.nombre}</p>
+                <h2 className="font-bold text-surface-text text-lg">{mesaSeleccionada.nombre}</h2>
+                <p className="text-sm text-surface-muted">{mesaSeleccionada.sala.nombre}</p>
               </div>
               <button
                 onClick={() => setMesaSeleccionada(null)}
-                className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+                className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-xl transition-colors"
               >
                 <X size={18} />
               </button>
@@ -51,17 +51,17 @@ export function MesasClient({ mesas }: Props) {
             <div className="p-5 space-y-4">
               {mesaSeleccionada.pedidoActivo ? (
                 <div className="space-y-3">
-                  <div className="bg-zinc-50 rounded-xl p-4 space-y-2">
+                  <div className="bg-surface-bg rounded-xl p-4 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-zinc-500">Pedido activo:</span>
+                      <span className="text-surface-muted">Pedido activo:</span>
                       <span className="font-medium">#{mesaSeleccionada.pedidoActivo.id}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-zinc-500">Productos:</span>
+                      <span className="text-surface-muted">Productos:</span>
                       <span className="font-medium">{mesaSeleccionada.pedidoActivo._count.detalles}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-zinc-500">Desde:</span>
+                      <span className="text-surface-muted">Desde:</span>
                       <span className="font-medium">{formatDateTime(mesaSeleccionada.pedidoActivo.creadoEn)}</span>
                     </div>
                   </div>
@@ -83,7 +83,7 @@ export function MesasClient({ mesas }: Props) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-zinc-500 text-sm text-center py-2">Mesa disponible</p>
+                  <p className="text-surface-muted text-sm text-center py-2">Mesa disponible</p>
                   <a
                     href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
                     className="btn-primary w-full justify-center"

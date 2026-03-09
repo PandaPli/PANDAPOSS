@@ -72,8 +72,8 @@ export function ConfiguracionClient({ config }: Props) {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">Configuración</h1>
-        <p className="text-zinc-500 text-sm mt-1">Datos generales de la empresa y sistema</p>
+        <h1 className="text-2xl font-bold text-surface-text">Configuración</h1>
+        <p className="text-surface-muted text-sm mt-1">Datos generales de la empresa y sistema</p>
       </div>
 
       {msg && (
@@ -93,7 +93,7 @@ export function ConfiguracionClient({ config }: Props) {
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Building2 size={18} className="text-brand-600" />
-            <h2 className="font-semibold text-zinc-900">Datos de la Empresa</h2>
+            <h2 className="font-semibold text-surface-text">Datos de la Empresa</h2>
           </div>
           <div className="space-y-4">
             <div>
@@ -151,7 +151,7 @@ export function ConfiguracionClient({ config }: Props) {
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-4">
             <Receipt size={18} className="text-brand-600" />
-            <h2 className="font-semibold text-zinc-900">Facturación e Impuestos</h2>
+            <h2 className="font-semibold text-surface-text">Facturación e Impuestos</h2>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>

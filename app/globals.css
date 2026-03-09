@@ -4,16 +4,20 @@
 
 @layer base {
   :root {
-    --topbar-height: 46px;
-    --subbar-height: 44px;
+    --brand-500: #6C3BFF;
+    --brand-700: #4B22B3;
+    --surface-bg: #F6F7FB;
+    --surface-border: #E6E8F0;
+    --surface-text: #1F2430;
+    --surface-muted: #6B7280;
   }
 
   * {
-    @apply border-odoo-border;
+    @apply border-surface-border;
   }
 
   body {
-    @apply text-odoo-text bg-odoo-bg;
+    @apply text-surface-text bg-surface-bg;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -25,78 +29,100 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-zinc-300 rounded-full;
+    @apply bg-brand-200 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-zinc-400;
+    @apply bg-brand-300;
   }
 }
 
 @layer components {
-  /* ── Botones estilo Odoo ── */
+  /* ── Botones PandaPoss ── */
   .btn-primary {
-    @apply inline-flex items-center gap-1.5 px-4 py-1.5
-           bg-odoo-purple text-white rounded
-           font-medium text-sm hover:bg-odoo-purple-dark
-           active:bg-odoo-purple-dark transition-colors
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           bg-brand-500 text-white rounded-xl
+           font-semibold text-sm hover:bg-brand-600
+           active:bg-brand-700 transition-all
            disabled:opacity-50 disabled:cursor-not-allowed
-           shadow-sm;
+           shadow-sm hover:shadow-md;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-1.5 px-4 py-1.5
-           bg-white text-odoo-text border border-odoo-border rounded
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           bg-white text-surface-text border border-surface-border rounded-xl
            font-medium text-sm hover:bg-gray-50
-           active:bg-gray-100 transition-colors;
+           active:bg-gray-100 transition-all;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5
-           text-odoo-text-muted rounded text-sm
-           hover:bg-gray-100 transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           text-surface-muted rounded-xl text-sm
+           hover:bg-brand-50 hover:text-brand-600 transition-all;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-1.5 px-4 py-1.5
-           bg-red-600 text-white rounded
-           font-medium text-sm hover:bg-red-700 transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           bg-red-500 text-white rounded-xl
+           font-semibold text-sm hover:bg-red-600 transition-all;
   }
 
   .btn-success {
-    @apply inline-flex items-center gap-1.5 px-4 py-1.5
-           bg-emerald-600 text-white rounded
-           font-medium text-sm hover:bg-emerald-700 transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           bg-emerald-500 text-white rounded-xl
+           font-semibold text-sm hover:bg-emerald-600 transition-all;
   }
 
-  /* ── Card Odoo ── */
+  /* ── Card PandaPoss ── */
   .card {
-    @apply bg-white rounded border border-odoo-border shadow-sm;
+    @apply bg-white rounded-xl border border-surface-border shadow-card;
   }
 
-  /* ── Inputs Odoo ── */
+  /* ── Inputs táctiles ── */
   .input {
-    @apply w-full px-3 py-1.5 bg-white border border-odoo-border rounded text-sm
-           text-odoo-text placeholder:text-odoo-text-muted
-           focus:outline-none focus:border-odoo-purple focus:shadow-[0_0_0_1px_rgba(124,45,158,0.15)]
-           transition;
+    @apply w-full px-4 py-2.5 bg-white border border-surface-border rounded-xl text-sm
+           text-surface-text placeholder:text-surface-muted
+           focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+           transition-all;
   }
 
   .label {
-    @apply block text-sm font-medium text-odoo-text mb-1;
+    @apply block text-sm font-medium text-surface-text mb-1.5;
   }
 
-  /* ── Badges Odoo ── */
+  /* ── Badges de estado ── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
   .badge-libre {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700;
+    @apply badge bg-gray-100 text-gray-600;
   }
   .badge-ocupada {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700;
+    @apply badge bg-red-100 text-red-700;
   }
   .badge-reservada {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700;
+    @apply badge bg-amber-100 text-amber-700;
+  }
+  .badge-nuevo {
+    @apply badge bg-brand-100 text-brand-700;
+  }
+  .badge-preparando {
+    @apply badge bg-amber-100 text-amber-700;
+  }
+  .badge-listo {
+    @apply badge bg-emerald-100 text-emerald-700;
   }
 
+  /* ── Stat card ── */
   .stat-card {
-    @apply card p-4 flex items-start gap-4;
+    @apply card p-5 flex items-start gap-4;
   }
+}
+
+/* ── Scrollbar oculto para filtros ── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
