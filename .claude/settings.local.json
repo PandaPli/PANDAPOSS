@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx prisma migrate deploy)",
+      "Bash(npx prisma db push)",
+      "Bash(npx prisma db push --skip-generate)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx prisma generate)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(ls -la \"C:/Users/PANDA/Desktop/pandapliPOSS/app/\\(dashboard\\)/\")",
+      "Bash(ls \"C:/Users/PANDA/Desktop/pandapliPOSS/app/\\(dashboard\\)/productos/\")",
+      "Bash(find \"C:/Users/PANDA/Desktop/pandapliPOSS/app/\\(dashboard\\)/ventas\" -type f)",
+      "Bash(ls -la \"C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\app\\\\\\(dashboard\\)\\\\delivery\"\" 2>&1 || echo \"DELIVERY_ROUTE_NOT_FOUND \")",
+      "Bash(npx prisma db push --accept-data-loss)",
+      "Bash(findstr /i \"plan\" \"C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\\\\index.d.ts\")",
+      "Bash(findstr /i \"Plan\\\\|plan\" \"C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\\\\index.d.ts\")",
+      "Bash(Select-String -Path \"C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\\\\index.d.ts\" -Pattern \"plan\")",
+      "Bash(Select-Object -First 10)",
+      "Bash(cmd /c \"powershell -Command \"\"Select-String -Path ''C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\\\\index.d.ts'' -Pattern ''plan'' | Select-Object -First 10\"\"\")",
+      "Bash(cmd /c \"curl -s http://localhost:3001/ 2>&1 | head -c 200\")",
+      "Bash(cmd /c \"curl -s http://localhost:3000/api/auth/session\")",
+      "Bash(node -e \":*)",
+      "Bash(cmd /c \"npx tsc --noEmit 2>&1\")",
+      "Bash(cmd /c \"curl -s -o nul -w \"\"%{http_code}\"\" http://localhost:3000/sucursales\")",
+      "Bash(cmd /c \"powershell -Command \"\"Get-Content ''C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\\\\index.d.ts'' | Select-String -Pattern ''plan'' | Select-Object -First 10\"\"\")",
+      "Bash(cmd /c \"powershell -Command \"\"\\(Get-Content ''C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\@prisma\\\\client\\\\index.d.ts'' | Select-String -Pattern ''plan'' | Select-Object -First 5\\) 2>&1\"\"\")",
+      "Bash(cmd /c \"powershell -Command \"\"Get-ChildItem ''C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\\\\'' | Select-Object Name, LastWriteTime | Sort-Object LastWriteTime -Descending | Select-Object -First 5\"\"\")",
+      "Bash(cmd /c \"dir \"\"C:\\\\Users\\\\PANDA\\\\Desktop\\\\pandapliPOSS\\\\node_modules\\\\.prisma\\\\client\"\" /od /b 2>&1 | tail -5\")",
+      "Bash(npx prisma migrate dev --name add-seccion-producto)",
+      "Bash(npx prisma migrate dev --name add-seccion-producto --skip-generate)"
+    ]
+  }
+}

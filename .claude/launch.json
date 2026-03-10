@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "next-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npm run dev -- --port 3001"],
+      "port": 3001
+    },
+    {
+      "name": "prisma-studio",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx prisma studio"],
+      "port": 5555
+    },
+    {
+      "name": "next-start",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npm run start"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}
