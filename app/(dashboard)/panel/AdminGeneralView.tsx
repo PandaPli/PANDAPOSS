@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
-import { PLAN_LIMITS, type PlanTipo } from "@/lib/plans";
+import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
 import { MultiSalesChart } from "@/components/dashboard/MultiSalesChart";
 import { formatCurrency } from "@/lib/utils";
 import { Building2, Users, Package, Truck, QrCode, Mail, TrendingUp, CreditCard } from "lucide-react";

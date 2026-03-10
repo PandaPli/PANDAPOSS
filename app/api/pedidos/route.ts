@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
+import { PedidoRepo } from "@/server/repositories/pedido.repo";
+import { PedidoService } from "@/server/services/pedido.service";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,35 +13,11 @@ export async function GET(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const { searchParams } = new URL(req.url);
-  const tipo = searchParams.get("tipo");
-  const estado = searchParams.get("estado");
-
-  const pedidos = await prisma.pedido.findMany({
-    where: {
-      ...(tipo ? { tipo: tipo as never } : {}),
-      ...(estado ? { estado: estado as never } : { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } }),
-      // Filtrar por sucursal vía caja o mesa
-      ...(rol !== "ADMIN_GENERAL" && sucursalId
-        ? {
-            OR: [
-              { caja: { sucursalId } },
-              { mesa: { sala: { sucursalId } } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      mesa: { select: { nombre: true } },
-      usuario: { select: { nombre: true } },
-      repartidor: { select: { nombre: true } },
-      detalles: {
-        include: {
-          producto: { select: { nombre: true } },
-          combo: { select: { nombre: true } },
-        },
-      },
-    },
-    orderBy: { creadoEn: "asc" },
+  const pedidos = await PedidoRepo.list({
+    sucursalId,
+    isAdmin: rol === "ADMIN_GENERAL",
+    tipo:   searchParams.get("tipo"),
+    estado: searchParams.get("estado"),
   });
 
   return NextResponse.json(pedidos);
@@ -51,37 +28,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { mesaId, cajaId, tipo, items, observacion, direccionEntrega, telefonoCliente, repartidorId } = body;
-
   const userId = (session.user as { id: number }).id;
 
-  const pedido = await prisma.pedido.create({
-    data: {
-      mesaId: mesaId || null,
-      cajaId: cajaId || null,
-      usuarioId: userId,
-      tipo: tipo || "COCINA",
-      estado: "PENDIENTE",
-      observacion,
-      direccionEntrega: direccionEntrega || null,
-      telefonoCliente: telefonoCliente || null,
-      repartidorId: repartidorId || null,
-      detalles: {
-        create: items.map((item: { productoId?: number; comboId?: number; cantidad: number; observacion?: string }) => ({
-          productoId: item.productoId || null,
-          comboId: item.comboId || null,
-          cantidad: item.cantidad,
-          observacion: item.observacion || null,
-        })),
-      },
-    },
-    include: { detalles: true },
-  });
-
-  // Marcar mesa como ocupada
-  if (mesaId) {
-    await prisma.mesa.update({ where: { id: mesaId }, data: { estado: "OCUPADA" } });
-  }
-
+  const pedido = await PedidoService.create({ ...body, usuarioId: userId });
   return NextResponse.json(pedido, { status: 201 });
 }

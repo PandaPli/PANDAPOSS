@@ -6,45 +6,60 @@ import { Plus, Search, Edit2, Users, X, Loader2, Phone, Mail, MapPin } from "luc
 
 interface Cliente {
   id: number;
+  rut?: string | null;
   nombre: string;
   email: string | null;
   telefono: string | null;
   direccion: string | null;
   activo: boolean;
+  sucursalId: number | null;
+  sucursal?: { id: number; nombre: string };
 }
+
+interface Sucursal { id: number; nombre: string; }
 
 interface Props {
   clientes: Cliente[];
+  sucursales: Sucursal[];
+  rol: string;
+  sucursalIdSesion: number | null;
 }
 
 const emptyForm = {
-  nombre: "", email: "", telefono: "", direccion: "",
+  nombre: "", email: "", telefono: "", direccion: "", sucursalId: "",
 };
 
-export function ClientesClient({ clientes: initial }: Props) {
+export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdSesion }: Props) {
   const router = useRouter();
   const [clientes] = useState(initial);
   const [search, setSearch] = useState("");
+  const [sucFiltro, setSucFiltro] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Cliente | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isPandaAdmin = rol === "ADMIN_GENERAL";
+
   const filtrados = useMemo(() => {
-    if (!search) return clientes;
-    const q = search.toLowerCase();
-    return clientes.filter(
-      (c) =>
-        c.nombre.toLowerCase().includes(q) ||
-        (c.email && c.email.toLowerCase().includes(q)) ||
-        (c.telefono && c.telefono.includes(q))
-    );
-  }, [clientes, search]);
+    return clientes.filter((c) => {
+      const matchSearch = !search || (
+        c.nombre.toLowerCase().includes(search.toLowerCase()) ||
+        (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
+        (c.telefono && c.telefono.includes(search))
+      );
+      const matchSuc = !sucFiltro || c.sucursalId === sucFiltro;
+      return matchSearch && matchSuc;
+    });
+  }, [clientes, search, sucFiltro]);
 
   function abrirFormNuevo() {
     setEditando(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      sucursalId: isPandaAdmin ? "" : String(sucursalIdSesion ?? ""),
+    });
     setError("");
     setShowForm(true);
   }
@@ -56,6 +71,7 @@ export function ClientesClient({ clientes: initial }: Props) {
       email: c.email ?? "",
       telefono: c.telefono ?? "",
       direccion: c.direccion ?? "",
+      sucursalId: c.sucursalId ? String(c.sucursalId) : "",
     });
     setError("");
     setShowForm(true);
@@ -72,6 +88,7 @@ export function ClientesClient({ clientes: initial }: Props) {
       email: form.email || null,
       telefono: form.telefono || null,
       direccion: form.direccion || null,
+      sucursalId: form.sucursalId ? Number(form.sucursalId) : null,
     };
 
     try {
@@ -107,16 +124,28 @@ export function ClientesClient({ clientes: initial }: Props) {
         </button>
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative max-w-md">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
-        <input
-          type="text"
-          placeholder="Buscar por nombre, email o teléfono..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input pl-9"
-        />
+      {/* Filtros */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, email o teléfono..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input pl-9"
+          />
+        </div>
+        {isPandaAdmin && (
+          <select
+            value={sucFiltro ?? ""}
+            onChange={(e) => setSucFiltro(e.target.value ? Number(e.target.value) : null)}
+            className="input w-auto"
+          >
+            <option value="">Todas las sucursales</option>
+            {sucursales.map((s) => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
+          </select>
+        )}
       </div>
 
       {/* Tabla */}
@@ -129,13 +158,16 @@ export function ClientesClient({ clientes: initial }: Props) {
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Email</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Teléfono</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Dirección</th>
+                {isPandaAdmin && (
+                  <th className="text-left px-4 py-3 font-medium text-surface-muted">Sucursal</th>
+                )}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
               {filtrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
+                  <td colSpan={isPandaAdmin ? 6 : 5} className="px-4 py-12 text-center">
                     <Users size={32} className="mx-auto text-surface-muted mb-2" />
                     <p className="text-surface-muted">Sin clientes</p>
                   </td>
@@ -159,6 +191,15 @@ export function ClientesClient({ clientes: initial }: Props) {
                         <span className="flex items-center gap-1"><MapPin size={13} />{c.direccion}</span>
                       ) : "—"}
                     </td>
+                    {isPandaAdmin && (
+                      <td className="px-4 py-3">
+                        {c.sucursal ? (
+                          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                            {c.sucursal.nombre}
+                          </span>
+                        ) : <span className="text-surface-muted">—</span>}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <button
                         onClick={() => abrirFormEditar(c)}
@@ -239,6 +280,22 @@ export function ClientesClient({ clientes: initial }: Props) {
                   placeholder="Calle, número, ciudad"
                 />
               </div>
+
+              {isPandaAdmin && (
+                <div>
+                  <label className="label">Sucursal</label>
+                  <select
+                    className="input"
+                    value={form.sucursalId}
+                    onChange={(e) => setForm({ ...form, sucursalId: e.target.value })}
+                  >
+                    <option value="">Sin asignar</option>
+                    {sucursales.map((s) => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </form>
 
             <div className="p-5 border-t border-surface-border flex gap-3">

@@ -4,21 +4,26 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 async function getData() {
-  const [productos, categorias] = await Promise.all([
+  const [productos, categorias, sucursales] = await Promise.all([
     prisma.producto.findMany({
       where: { activo: true },
-      include: { categoria: { select: { id: true, nombre: true } } },
+      include: {
+        categoria: { select: { id: true, nombre: true } },
+        sucursal: { select: { id: true, nombre: true } },
+      },
       orderBy: { nombre: "asc" },
     }),
     prisma.categoria.findMany({ where: { activa: true }, orderBy: { nombre: "asc" } }),
+    prisma.sucursal.findMany({ where: { activa: true }, orderBy: { nombre: "asc" } }),
   ]);
-  return { productos, categorias };
+  return { productos, categorias, sucursales };
 }
 
 export default async function ProductosPage() {
   const session = await getServerSession(authOptions);
   const simbolo = (session?.user as { simbolo?: string })?.simbolo ?? "$";
-  const { productos, categorias } = await getData();
+  const rol = (session?.user as { rol?: string })?.rol ?? "";
+  const { productos, categorias, sucursales } = await getData();
 
   const data = productos.map((p) => ({
     id: p.id,
@@ -32,12 +37,14 @@ export default async function ProductosPage() {
     enMenu: p.enMenu,
     ivaActivo: p.ivaActivo,
     categoriaId: p.categoriaId,
+    sucursalId: p.sucursalId,
     categoria: p.categoria ?? undefined,
+    sucursal: p.sucursal ?? undefined,
   }));
 
   return (
     <div className="space-y-6">
-      <ProductosClient productos={data} categorias={categorias} simbolo={simbolo} />
+      <ProductosClient productos={data} categorias={categorias} sucursales={sucursales} simbolo={simbolo} rol={rol} />
     </div>
   );
 }

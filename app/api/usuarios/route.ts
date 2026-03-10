@@ -1,31 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import bcrypt from "bcryptjs";
 import type { Rol } from "@/types";
-import { checkLimit } from "@/lib/plans";
+import { UsuarioRepo } from "@/server/repositories/usuario.repo";
+import { checkLimit } from "@/core/billing/limitChecker";
+
+const ADMIN_ROLES: Rol[] = ["ADMIN_GENERAL", "ADMIN_SUCURSAL"];
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rol = (session.user as { rol: Rol }).rol;
-  if (!["ADMIN_GENERAL", "ADMIN_SUCURSAL"].includes(rol)) {
-    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-  }
+  if (!ADMIN_ROLES.includes(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
-
-  const usuarios = await prisma.usuario.findMany({
-    where: rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : undefined,
-    include: { sucursal: { select: { nombre: true } } },
-    orderBy: { nombre: "asc" },
-  });
-
-  // No enviar passwords
-  const safe = usuarios.map(({ password, ...u }) => u);
-  return NextResponse.json(safe);
+  const usuarios = await UsuarioRepo.list({ sucursalId, isAdmin: rol === "ADMIN_GENERAL" });
+  return NextResponse.json(usuarios);
 }
 
 export async function POST(req: NextRequest) {
@@ -33,42 +24,28 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rol = (session.user as { rol: Rol }).rol;
-  if (!["ADMIN_GENERAL", "ADMIN_SUCURSAL"].includes(rol)) {
-    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-  }
+  if (!ADMIN_ROLES.includes(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-  const body = await req.json();
-  const { nombre, usuario, password, email, rolUsuario, sucursalId } = body;
-
+  const { nombre, usuario, password, email, rolUsuario, sucursalId } = await req.json();
   if (!nombre || !usuario || !password) {
     return NextResponse.json({ error: "Nombre, usuario y contraseña son requeridos" }, { status: 400 });
   }
 
-  const existe = await prisma.usuario.findUnique({ where: { usuario: usuario.toUpperCase() } });
-  if (existe) {
-    return NextResponse.json({ error: "El nombre de usuario ya existe" }, { status: 400 });
-  }
+  const existe = await UsuarioRepo.findByUsuario(usuario);
+  if (existe) return NextResponse.json({ error: "El nombre de usuario ya existe" }, { status: 400 });
 
   const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const effectiveSucursalId = sucursalId || userSucursalId;
-  const { allowed, error: limitError } = await checkLimit(effectiveSucursalId, "usuarios");
-  if (!allowed) return NextResponse.json({ error: limitError }, { status: 403 });
 
-  const hash = await bcrypt.hash(password, 10);
+  const { allowed, error } = await checkLimit(effectiveSucursalId, "usuarios");
+  if (!allowed) return NextResponse.json({ error }, { status: 403 });
 
-  const nuevoUsuario = await prisma.usuario.create({
-    data: {
-      nombre,
-      usuario: usuario.toUpperCase(),
-      password: hash,
-      email: email || null,
-      rol: rolUsuario || "WAITER",
-      sucursalId: sucursalId || null,
-    },
+  const nuevoUsuario = await UsuarioRepo.create({
+    nombre, usuario, password, email,
+    rol: rolUsuario,
+    sucursalId: sucursalId ?? null,
   });
-
-  const { password: _, ...safe } = nuevoUsuario;
-  return NextResponse.json(safe, { status: 201 });
+  return NextResponse.json(nuevoUsuario, { status: 201 });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -76,24 +53,12 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rol = (session.user as { rol: Rol }).rol;
-  if (!["ADMIN_GENERAL", "ADMIN_SUCURSAL"].includes(rol)) {
-    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-  }
+  if (!ADMIN_ROLES.includes(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-  const body = await req.json();
-  const { id, password, rolUsuario, ...rest } = body;
-
+  const { id, password, rolUsuario, ...rest } = await req.json();
   const data: Record<string, unknown> = { ...rest };
   if (rolUsuario) data.rol = rolUsuario;
-  if (password) {
-    data.password = await bcrypt.hash(password, 10);
-  }
 
-  const actualizado = await prisma.usuario.update({
-    where: { id: Number(id) },
-    data,
-  });
-
-  const { password: _, ...safe } = actualizado;
-  return NextResponse.json(safe);
+  const actualizado = await UsuarioRepo.update(Number(id), data, password);
+  return NextResponse.json(actualizado);
 }

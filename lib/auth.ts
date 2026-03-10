@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.usuario.findUnique({
           where: { usuario: credentials.usuario.toUpperCase() },
-          include: { sucursal: { select: { simbolo: true } } },
+          include: { sucursal: { select: { simbolo: true, plan: true, delivery: true, menuQR: true } } },
         });
 
         if (!user || user.status !== "ACTIVO") return null;
@@ -38,6 +38,9 @@ export const authOptions: NextAuthOptions = {
           usuario: user.usuario,
           sucursalId: user.sucursalId,
           simbolo: user.sucursal?.simbolo ?? "$",
+          plan: user.sucursal?.plan ?? "BASICO",
+          delivery: user.sucursal ? user.sucursal.delivery : true,
+          menuQR:   user.sucursal ? user.sucursal.menuQR   : true,
         };
       },
     }),
@@ -45,12 +48,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string };
+        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean };
         token.id = Number(u.id);
         token.rol = u.rol;
         token.usuario = u.usuario;
         token.sucursalId = u.sucursalId;
         token.simbolo = u.simbolo;
+        token.plan     = u.plan;
+        token.delivery = u.delivery;
+        token.menuQR   = u.menuQR;
       }
       return token;
     },
@@ -61,6 +67,9 @@ export const authOptions: NextAuthOptions = {
         (session.user as { usuario: string }).usuario = token.usuario as string;
         (session.user as { sucursalId: number | null }).sucursalId = token.sucursalId as number | null;
         (session.user as { simbolo: string }).simbolo = token.simbolo as string;
+        (session.user as { plan: string }).plan         = token.plan     as string;
+        (session.user as { delivery: boolean }).delivery = token.delivery as boolean;
+        (session.user as { menuQR: boolean }).menuQR     = token.menuQR   as boolean;
       }
       return session;
     },
@@ -70,7 +79,7 @@ export const authOptions: NextAuthOptions = {
 // Mapa de roles y sus rutas permitidas
 export const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes"],
+  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery", "/carta-qr", "/planes"],
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas"],
   WAITER: ["/panel", "/mesas", "/pedidos"],
@@ -78,7 +87,7 @@ export const ROLE_ROUTES: Record<Rol, string[]> = {
   CHEF: ["/pedidos"],
   BAR: ["/pedidos"],
   PASTRY: ["/pedidos"],
-  DELIVERY: ["/panel", "/pedidos"],
+  DELIVERY: ["/panel", "/pedidos", "/delivery"],
 };
 
 export function canAccess(rol: Rol, path: string): boolean {

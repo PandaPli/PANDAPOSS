@@ -7,8 +7,15 @@ export default async function UsuariosPage() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
 
+  const rol = (session.user as { rol?: string })?.rol ?? "";
+  const sucursalId = (session.user as { sucursalId?: number | null })?.sucursalId ?? null;
+
   const [usuarios, sucursales] = await Promise.all([
     prisma.usuario.findMany({
+      where: {
+        rol: { not: "ADMIN_GENERAL" },
+        ...(rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {}),
+      },
       include: { sucursal: { select: { nombre: true } } },
       orderBy: { nombre: "asc" },
     }),

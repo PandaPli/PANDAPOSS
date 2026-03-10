@@ -11,11 +11,12 @@ interface Sucursal {
   email: string | null;
   simbolo: string;
   activa: boolean;
+  plan: "BASICO" | "PRO";
   creadoEn: string | Date;
   _count: { usuarios: number; cajas: number };
 }
 
-const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$" };
+const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO" };
 
 export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal[] }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>(initial);
@@ -40,6 +41,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       telefono: s.telefono ?? "",
       email: s.email ?? "",
       simbolo: s.simbolo,
+      plan: s.plan,
     });
     setError("");
     setOpen(true);
@@ -172,6 +174,13 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                 {!s.direccion && !s.telefono && !s.email && (
                   <p className="italic text-xs">Sin información de contacto</p>
                 )}
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                  s.plan === "PRO"
+                    ? "bg-amber-50 text-amber-700 border-amber-300"
+                    : "bg-slate-100 text-slate-600 border-slate-300"
+                }`}>
+                  {s.plan === "PRO" ? "⭐ PRO" : "BÁSICO"}
+                </span>
               </div>
 
               {/* Stats */}
@@ -263,15 +272,15 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   />
                 </div>
                 <div>
-                  <label className="label">Símbolo moneda</label>
-                  <input
-                    type="text"
-                    value={form.simbolo}
-                    onChange={(e) => setForm({ ...form, simbolo: e.target.value })}
-                    maxLength={5}
-                    placeholder="$"
+                  <label className="label">Suscripción</label>
+                  <select
+                    value={form.plan}
+                    onChange={(e) => setForm({ ...form, plan: e.target.value as "BASICO" | "PRO" })}
                     className="input"
-                  />
+                  >
+                    <option value="BASICO">BÁSICO</option>
+                    <option value="PRO">PRO</option>
+                  </select>
                 </div>
               </div>
 

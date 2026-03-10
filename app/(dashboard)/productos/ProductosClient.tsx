@@ -6,6 +6,7 @@ import { Plus, Search, Edit2, Package, X, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface Categoria { id: number; nombre: string; }
+interface Sucursal { id: number; nombre: string; }
 interface Producto {
   id: number;
   codigo: string;
@@ -16,13 +17,17 @@ interface Producto {
   enMenu: boolean;
   ivaActivo: boolean;
   categoriaId: number | null;
+  sucursalId: number | null;
   categoria?: { id: number; nombre: string } | undefined;
+  sucursal?: { id: number; nombre: string } | undefined;
 }
 
 interface Props {
   productos: Producto[];
   categorias: Categoria[];
+  sucursales: Sucursal[];
   simbolo: string;
+  rol: string;
 }
 
 const emptyForm = {
@@ -30,11 +35,12 @@ const emptyForm = {
   ivaActivo: false, ivaPorc: "0", enMenu: true,
 };
 
-export function ProductosClient({ productos: initial, categorias, simbolo }: Props) {
+export function ProductosClient({ productos: initial, categorias, sucursales, simbolo, rol }: Props) {
   const router = useRouter();
   const [productos] = useState(initial);
   const [search, setSearch] = useState("");
   const [catFiltro, setCatFiltro] = useState<number | null>(null);
+  const [sucFiltro, setSucFiltro] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -47,9 +53,10 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
         || p.nombre.toLowerCase().includes(search.toLowerCase())
         || p.codigo.toLowerCase().includes(search.toLowerCase());
       const matchCat = !catFiltro || p.categoriaId === catFiltro;
-      return matchSearch && matchCat;
+      const matchSuc = !sucFiltro || p.sucursalId === sucFiltro;
+      return matchSearch && matchCat && matchSuc;
     });
-  }, [productos, search, catFiltro]);
+  }, [productos, search, catFiltro, sucFiltro]);
 
   function abrirFormNuevo() {
     setEditando(null);
@@ -127,6 +134,12 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
           <option value="">Todas las categorías</option>
           {categorias.map((c) => (<option key={c.id} value={c.id}>{c.nombre}</option>))}
         </select>
+        {rol === "ADMIN_GENERAL" && (
+          <select value={sucFiltro ?? ""} onChange={(e) => setSucFiltro(e.target.value ? Number(e.target.value) : null)} className="input w-auto">
+            <option value="">Todas las sucursales</option>
+            {sucursales.map((s) => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
+          </select>
+        )}
       </div>
 
       <div className="card overflow-hidden">
@@ -137,6 +150,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Código</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Producto</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Categoría</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Sucursal</th>
                 <th className="text-right px-4 py-3 font-medium text-surface-muted">Precio</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
                 <th className="px-4 py-3" />
@@ -145,7 +159,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
             <tbody className="divide-y divide-surface-border">
               {filtrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <Package size={32} className="mx-auto text-surface-muted mb-2" />
                     <p className="text-surface-muted">Sin productos</p>
                   </td>
@@ -156,6 +170,13 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
                     <td className="px-4 py-3 font-mono text-xs text-surface-muted">{p.codigo}</td>
                     <td className="px-4 py-3 font-medium text-surface-text">{p.nombre}</td>
                     <td className="px-4 py-3 text-surface-muted">{p.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {p.sucursal ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                          {p.sucursal.nombre}
+                        </span>
+                      ) : <span className="text-surface-muted">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-right font-semibold text-surface-text">
                       {formatCurrency(p.precio, simbolo)}
                     </td>
