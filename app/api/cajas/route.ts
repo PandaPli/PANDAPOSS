@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
+import { checkLimit } from "@/lib/plans";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -34,13 +35,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
   }
 
-  const userId = (session.user as { id: number }).id;
   const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const effectiveSucursalId = sucursalId || userSucursalId || 1;
+  const { allowed, error: limitError } = await checkLimit(effectiveSucursalId, "cajas");
+  if (!allowed) return NextResponse.json({ error: limitError }, { status: 403 });
 
   const caja = await prisma.caja.create({
     data: {
       nombre,
-      sucursalId: sucursalId || userSucursalId || 1,
+      sucursalId: effectiveSucursalId,
     },
   });
 

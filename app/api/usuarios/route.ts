@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import type { Rol } from "@/types";
+import { checkLimit } from "@/lib/plans";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -47,6 +48,11 @@ export async function POST(req: NextRequest) {
   if (existe) {
     return NextResponse.json({ error: "El nombre de usuario ya existe" }, { status: 400 });
   }
+
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const effectiveSucursalId = sucursalId || userSucursalId;
+  const { allowed, error: limitError } = await checkLimit(effectiveSucursalId, "usuarios");
+  if (!allowed) return NextResponse.json({ error: limitError }, { status: 403 });
 
   const hash = await bcrypt.hash(password, 10);
 
