@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
+import { checkLimit } from "@/lib/plans";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -58,6 +59,10 @@ export async function POST(req: NextRequest) {
   if (!codigo || !nombre || precio === undefined) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
   }
+
+  const effectiveSucursalId = rol !== "ADMIN_GENERAL" ? sucursalId : (body.sucursalId ?? null);
+  const { allowed, error: limitError } = await checkLimit(effectiveSucursalId, "productos");
+  if (!allowed) return NextResponse.json({ error: limitError }, { status: 403 });
 
   const producto = await prisma.producto.create({
     data: {

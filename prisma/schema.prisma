@@ -72,23 +72,33 @@ enum EstadoUsuario {
   INACTIVO
 }
 
+enum PlanTipo {
+  BASICO
+  PRO
+}
+
 // ─── MODELOS ──────────────────────────────────────────────────
 
 model Sucursal {
-  id         Int      @id @default(autoincrement())
-  nombre     String   @db.VarChar(100)
-  direccion  String?  @db.VarChar(200)
-  telefono   String?  @db.VarChar(20)
-  email      String?  @db.VarChar(100)
-  simbolo    String   @default("$") @db.VarChar(5)
-  activa     Boolean  @default(true)
-  creadoEn   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  nombre       String   @db.VarChar(100)
+  direccion    String?  @db.VarChar(200)
+  telefono     String?  @db.VarChar(20)
+  email        String?  @db.VarChar(100)
+  simbolo      String   @default("$") @db.VarChar(5)
+  activa       Boolean  @default(true)
+  plan         PlanTipo @default(BASICO)
+  delivery     Boolean  @default(false)
+  menuQR       Boolean  @default(false)
+  correoActivo Boolean  @default(false)
+  creadoEn     DateTime @default(now())
 
-  usuarios   Usuario[]
-  salas      Sala[]
-  cajas      Caja[]
-  productos  Producto[]
+  usuarios     Usuario[]
+  salas        Sala[]
+  cajas        Caja[]
+  productos    Producto[]
   ingredientes Ingrediente[]
+  clientes     Cliente[]
 
   @@map("sucursales")
 }
@@ -226,8 +236,10 @@ model Cliente {
   telefono   String?  @db.VarChar(20)
   direccion  String?  @db.VarChar(200)
   activo     Boolean  @default(true)
+  sucursalId Int?
   creadoEn   DateTime @default(now())
 
+  sucursal   Sucursal? @relation(fields: [sucursalId], references: [id])
   ventas     Venta[]
 
   @@map("clientes")
