@@ -87,9 +87,13 @@ export interface PedidoConDetalles {
   estado: EstadoPedido;
   observacion: string | null;
   meseroLlamado: boolean;
+  direccionEntrega: string | null;
+  telefonoCliente: string | null;
+  repartidorId: number | null;
   creadoEn: string;
   mesa?: { nombre: string } | null;
   usuario: { nombre: string };
+  repartidor?: { nombre: string } | null;
   detalles: {
     id: number;
     cantidad: number;

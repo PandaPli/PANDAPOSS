@@ -11,13 +11,22 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { estado, meseroLlamado } = body;
+  const { estado, meseroLlamado, repartidorId, direccionEntrega, telefonoCliente } = body;
   const { id: idStr } = await params;
   const id = Number(idStr);
 
-  const data: { estado?: string; meseroLlamado?: boolean } = {};
+  const data: {
+    estado?: string;
+    meseroLlamado?: boolean;
+    repartidorId?: number | null;
+    direccionEntrega?: string | null;
+    telefonoCliente?: string | null;
+  } = {};
   if (estado !== undefined) data.estado = estado;
   if (meseroLlamado !== undefined) data.meseroLlamado = meseroLlamado;
+  if (repartidorId !== undefined) data.repartidorId = repartidorId || null;
+  if (direccionEntrega !== undefined) data.direccionEntrega = direccionEntrega || null;
+  if (telefonoCliente !== undefined) data.telefonoCliente = telefonoCliente || null;
   // Al entregar, limpiar llamada al mesero
   if (estado === "ENTREGADO") data.meseroLlamado = false;
 

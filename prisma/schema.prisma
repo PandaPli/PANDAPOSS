@@ -109,6 +109,7 @@ model Usuario {
   cajas       Caja[]
   ventas      Venta[]
   pedidos     Pedido[]
+  pedidosRepartidor Pedido[] @relation("PedidosRepartidor")
   arqueos     Arqueo[]
   logs        Log[]
 
@@ -283,21 +284,25 @@ model Arqueo {
 }
 
 model Pedido {
-  id          Int          @id @default(autoincrement())
-  numero      Int          @default(0)
-  mesaId      Int?
-  cajaId      Int?
-  usuarioId   Int
-  tipo        TipoPedido   @default(COCINA)
-  estado      EstadoPedido @default(PENDIENTE)
-  observacion   String?      @db.Text
-  meseroLlamado Boolean      @default(false)
-  creadoEn      DateTime     @default(now())
-  actualizadoEn DateTime     @updatedAt
+  id              Int          @id @default(autoincrement())
+  numero          Int          @default(0)
+  mesaId          Int?
+  cajaId          Int?
+  usuarioId       Int
+  repartidorId    Int?
+  tipo            TipoPedido   @default(COCINA)
+  estado          EstadoPedido @default(PENDIENTE)
+  observacion     String?      @db.Text
+  meseroLlamado   Boolean      @default(false)
+  direccionEntrega String?     @db.VarChar(300)
+  telefonoCliente  String?     @db.VarChar(30)
+  creadoEn        DateTime     @default(now())
+  actualizadoEn   DateTime     @updatedAt
 
   mesa        Mesa?        @relation(fields: [mesaId], references: [id])
   caja        Caja?        @relation(fields: [cajaId], references: [id])
   usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+  repartidor  Usuario?     @relation("PedidosRepartidor", fields: [repartidorId], references: [id])
   detalles    DetallePedido[]
   venta       Venta?
 
