@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.usuario.findUnique({
           where: { usuario: credentials.usuario.toUpperCase() },
-          include: { sucursal: { select: { simbolo: true, plan: true, delivery: true, menuQR: true } } },
+          include: { sucursal: { select: { simbolo: true, plan: true, delivery: true, menuQR: true, logoUrl: true } } },
         });
 
         if (!user || user.status !== "ACTIVO") return null;
@@ -41,6 +41,7 @@ export const authOptions: NextAuthOptions = {
           plan: user.sucursal?.plan ?? "BASICO",
           delivery: user.sucursal ? user.sucursal.delivery : true,
           menuQR:   user.sucursal ? user.sucursal.menuQR   : true,
+          logoUrl:  user.sucursal?.logoUrl ?? null,
         };
       },
     }),
@@ -48,7 +49,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean };
+        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean; logoUrl: string | null };
         token.id = Number(u.id);
         token.rol = u.rol;
         token.usuario = u.usuario;
@@ -57,6 +58,7 @@ export const authOptions: NextAuthOptions = {
         token.plan     = u.plan;
         token.delivery = u.delivery;
         token.menuQR   = u.menuQR;
+        token.logoUrl  = u.logoUrl;
       }
       return token;
     },
@@ -70,6 +72,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as { plan: string }).plan         = token.plan     as string;
         (session.user as { delivery: boolean }).delivery = token.delivery as boolean;
         (session.user as { menuQR: boolean }).menuQR     = token.menuQR   as boolean;
+        (session.user as { logoUrl: string | null }).logoUrl = token.logoUrl as string | null;
       }
       return session;
     },
@@ -79,7 +82,7 @@ export const authOptions: NextAuthOptions = {
 // Mapa de roles y sus rutas permitidas
 export const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery", "/carta-qr", "/planes"],
+  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery", "/carta-qr", "/planes", "/configuracion"],
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas"],
   WAITER: ["/panel", "/mesas", "/pedidos"],

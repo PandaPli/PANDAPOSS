@@ -173,7 +173,7 @@ export function PandaNavbar() {
 
       {/* Logo + Current Module */}
       <Link href="/panel" className="flex items-center gap-2.5 ml-3 mr-4">
-        <img src="/logo.png" alt="PandaPoss" className="w-8 h-8 rounded-xl" />
+        <img src={(session?.user as { logoUrl?: string | null })?.logoUrl || "/logo.png"} alt="PandaPoss" className="w-8 h-8 rounded-xl object-contain" />
         <span className="text-white font-bold text-sm tracking-tight">
           Panda<span className="text-brand-200">Poss</span>
         </span>

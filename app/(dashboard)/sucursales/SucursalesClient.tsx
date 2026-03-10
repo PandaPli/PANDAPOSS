@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Pencil, Building2, Users, Wallet, CheckCircle2, XCircle, X, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Pencil, Building2, Users, Wallet, CheckCircle2, XCircle, X, Loader2, ImageIcon, Upload } from "lucide-react";
 
 interface Sucursal {
   id: number;
@@ -12,11 +12,12 @@ interface Sucursal {
   simbolo: string;
   activa: boolean;
   plan: "BASICO" | "PRO";
+  logoUrl: string | null;
   creadoEn: string | Date;
   _count: { usuarios: number; cajas: number };
 }
 
-const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO" };
+const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO", logoUrl: null as string | null };
 
 export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal[] }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>(initial);
@@ -25,6 +26,8 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [logoLoading, setLogoLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function openNew() {
     setEditing(null);
@@ -42,6 +45,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       email: s.email ?? "",
       simbolo: s.simbolo,
       plan: s.plan,
+      logoUrl: s.logoUrl ?? null,
     });
     setError("");
     setOpen(true);
@@ -52,6 +56,25 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
     setEditing(null);
     setForm(emptyForm);
     setError("");
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al subir imagen");
+      setForm((prev) => ({ ...prev, logoUrl: data.url }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al subir logo");
+    } finally {
+      setLogoLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,7 +88,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
         const res = await fetch(`/api/sucursales/${editing.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...form, logoUrl: form.logoUrl ?? null }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error al actualizar");
@@ -234,6 +257,48 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
               )}
+
+              {/* Logo */}
+              <div>
+                <label className="label">Logo de Sucursal</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl border-2 border-dashed border-surface-border flex items-center justify-center bg-surface-bg flex-shrink-0 overflow-hidden">
+                    {form.logoUrl ? (
+                      <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <ImageIcon size={24} className="text-surface-muted opacity-40" />
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={logoLoading}
+                      className="btn-secondary text-xs"
+                    >
+                      {logoLoading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                      {form.logoUrl ? "Cambiar" : "Subir logo"}
+                    </button>
+                    {form.logoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, logoUrl: null }))}
+                        className="btn-secondary text-xs"
+                      >
+                        <X size={12} />
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <div>
                 <label className="label">

@@ -91,6 +91,7 @@ model Sucursal {
   delivery     Boolean  @default(false)
   menuQR       Boolean  @default(false)
   correoActivo Boolean  @default(false)
+  logoUrl      String?  @db.VarChar(255)
   creadoEn     DateTime @default(now())
 
   usuarios     Usuario[]

@@ -126,7 +126,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-zinc-800 min-h-[64px]">
-        <img src="/logo.png" alt="PandaPoss" className="w-8 h-8 rounded-lg flex-shrink-0" />
+        <img src={(session?.user as { logoUrl?: string | null })?.logoUrl || "/logo.png"} alt="PandaPoss" className="w-8 h-8 rounded-lg flex-shrink-0 object-contain" />
         {!collapsed && (
           <span className="text-white font-bold text-lg tracking-tight">
             Panda<span className="text-brand-400">Poss</span>

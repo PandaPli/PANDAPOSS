@@ -15,20 +15,34 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rol = (session.user as { rol: Rol }).rol;
-  if (!isAdmin(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  const sessionSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const { id: idStr } = await params;
   const id = Number(idStr);
+
+  const esPropietario = rol === "ADMIN_SUCURSAL" && sessionSucursalId === id;
+  if (!isAdmin(rol) && !esPropietario) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+
   const body = await req.json();
-  const { nombre, direccion, telefono, email, simbolo, activa } = body;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl } = body;
 
   const data: Record<string, unknown> = {};
-  if (nombre !== undefined) data.nombre = nombre.trim();
-  if (direccion !== undefined) data.direccion = direccion?.trim() || null;
-  if (telefono !== undefined) data.telefono = telefono?.trim() || null;
-  if (email !== undefined) data.email = email?.trim() || null;
-  if (simbolo !== undefined) data.simbolo = simbolo?.trim() || "$";
-  if (activa !== undefined) data.activa = activa;
+
+  // ADMIN_SUCURSAL solo puede actualizar su propio logo
+  if (esPropietario && !isAdmin(rol)) {
+    if (logoUrl !== undefined) data.logoUrl = logoUrl || null;
+  } else {
+    // ADMIN_GENERAL puede actualizar todo
+    if (nombre !== undefined) data.nombre = nombre.trim();
+    if (direccion !== undefined) data.direccion = direccion?.trim() || null;
+    if (telefono !== undefined) data.telefono = telefono?.trim() || null;
+    if (email !== undefined) data.email = email?.trim() || null;
+    if (simbolo !== undefined) data.simbolo = simbolo?.trim() || "$";
+    if (activa !== undefined) data.activa = activa;
+    if (logoUrl !== undefined) data.logoUrl = logoUrl || null;
+  }
 
   const sucursal = await prisma.sucursal.update({
     where: { id },
