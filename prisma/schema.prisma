@@ -67,6 +67,11 @@ enum TipoKardex {
   AJUSTE
 }
 
+enum Plan {
+  BASIC
+  PRO
+}
+
 enum EstadoUsuario {
   ACTIVO
   INACTIVO
@@ -81,6 +86,7 @@ model Sucursal {
   telefono   String?  @db.VarChar(20)
   email      String?  @db.VarChar(100)
   simbolo    String   @default("$") @db.VarChar(5)
+  plan       Plan     @default(BASIC)
   activa     Boolean  @default(true)
   creadoEn   DateTime @default(now())
 
@@ -166,12 +172,13 @@ model Producto {
   imagen       String?   @db.VarChar(255)
   ivaActivo    Boolean   @default(false)
   ivaPorc      Decimal   @default(0) @db.Decimal(5, 2)
-  activo       Boolean   @default(true)
-  enMenu       Boolean   @default(true)
+  activo       Boolean     @default(true)
+  enMenu       Boolean     @default(true)
+  seccion      TipoPedido?
   categoriaId  Int?
   sucursalId   Int?
-  creadoEn     DateTime  @default(now())
-  actualizadoEn DateTime @updatedAt
+  creadoEn     DateTime    @default(now())
+  actualizadoEn DateTime   @updatedAt
 
   categoria    Categoria?  @relation(fields: [categoriaId], references: [id])
   sucursal     Sucursal?   @relation(fields: [sucursalId], references: [id])

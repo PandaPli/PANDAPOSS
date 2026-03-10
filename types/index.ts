@@ -11,6 +11,8 @@ export type Rol =
   | "PASTRY"
   | "DELIVERY";
 
+export type Plan = "BASIC" | "PRO";
+
 export type EstadoMesa = "LIBRE" | "OCUPADA" | "RESERVADA";
 export type EstadoPedido = "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO";
 export type TipoPedido = "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR";
@@ -24,6 +26,7 @@ export interface SessionUser {
   rol: Rol;
   sucursalId: number | null;
   simbolo: string;
+  plan: Plan;
 }
 
 // Carrito POS
@@ -36,6 +39,7 @@ export interface CartItem {
   cantidad: number;
   observacion?: string;
   imagen?: string;
+  seccion?: TipoPedido | null;
 }
 
 // Pagos
@@ -62,6 +66,7 @@ export interface ProductoCard {
   stock: number;
   categoriaId: number | null;
   categoria?: { nombre: string };
+  seccion?: TipoPedido | null;
 }
 
 // Mesas

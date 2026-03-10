@@ -47,6 +47,7 @@ export default async function NuevaVentaPage() {
     stock: Number(p.stock),
     categoriaId: p.categoriaId,
     categoria: p.categoria ?? undefined,
+    seccion: p.seccion ?? null,
   }));
 
   return (

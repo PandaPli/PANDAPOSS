@@ -7,10 +7,10 @@ import { useState, useRef, useEffect } from "react";
 import {
   LayoutGrid, Search, ChevronDown, LogOut, User,
   LayoutDashboard, UtensilsCrossed, ShoppingCart, ClipboardList,
-  Package, Users, BarChart3, Settings, Wallet, UserCog, Building2,
+  Package, Users, BarChart3, Settings, Wallet, UserCog, Building2, Truck, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Rol } from "@/types";
+import type { Plan, Rol } from "@/types";
 
 interface AppModule {
   label: string;
@@ -18,6 +18,7 @@ interface AppModule {
   icon: React.ReactNode;
   color: string;
   roles: Rol[];
+  plan?: Plan; // si se indica, solo visible cuando plan coincide (o ADMIN_GENERAL)
 }
 
 const modules: AppModule[] = [
@@ -26,8 +27,9 @@ const modules: AppModule[] = [
   { label: "Pedidos", href: "/pedidos", icon: <ClipboardList size={22} />, color: "bg-amber-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"] },
   { label: "Punto de Venta", href: "/ventas/nueva", icon: <ShoppingCart size={22} />, color: "bg-emerald-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },
   { label: "Ventas", href: "/ventas", icon: <BarChart3 size={22} />, color: "bg-teal-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },
-  { label: "Productos", href: "/productos", icon: <Package size={22} />, color: "bg-indigo-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY"] },
+  { label: "Productos", href: "/productos", icon: <Package size={22} />, color: "bg-indigo-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },
   { label: "Clientes", href: "/clientes", icon: <Users size={22} />, color: "bg-cyan-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },
+  { label: "Delivery", href: "/delivery", icon: <Truck size={22} />, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "DELIVERY"], plan: "PRO" },
   { label: "Cajas", href: "/cajas", icon: <Wallet size={22} />, color: "bg-yellow-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "CASHIER"] },
   { label: "Usuarios", href: "/usuarios", icon: <UserCog size={22} />, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL"] },
   { label: "Sucursales", href: "/sucursales", icon: <Building2 size={22} />, color: "bg-rose-500", roles: ["ADMIN_GENERAL"] },
@@ -56,8 +58,11 @@ export function PandaNavbar() {
   const userRef = useRef<HTMLDivElement>(null);
 
   const rol = (session?.user as { rol?: Rol })?.rol;
+  const plan = (session?.user as { plan?: Plan })?.plan ?? "BASIC";
   const nombre = session?.user?.name ?? "Usuario";
 
+  // Módulos visibles por rol; los que tienen `plan: "PRO"` se muestran siempre
+  // (bloqueados si no es PRO) para que el usuario sepa que existen
   const visible = modules.filter((m) => !rol || m.roles.includes(rol));
   const current = modules.find((m) => pathname === m.href || pathname.startsWith(m.href + "/"));
 
@@ -109,6 +114,24 @@ export function PandaNavbar() {
             <div className="p-3 grid grid-cols-4 gap-1 max-h-[340px] overflow-y-auto">
               {filtered.map((mod) => {
                 const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
+                const locked = !!mod.plan && mod.plan !== plan && rol !== "ADMIN_GENERAL";
+                if (locked) {
+                  return (
+                    <div
+                      key={mod.href}
+                      title="Disponible en plan PRO"
+                      className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-center opacity-60 cursor-not-allowed relative"
+                    >
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm grayscale", mod.color)}>
+                        {mod.icon}
+                      </div>
+                      <span className="text-[11px] font-semibold leading-tight text-surface-muted">{mod.label}</span>
+                      <span className="absolute top-1 right-1 bg-amber-400 text-white rounded-full p-0.5">
+                        <Lock size={8} />
+                      </span>
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     key={mod.href}

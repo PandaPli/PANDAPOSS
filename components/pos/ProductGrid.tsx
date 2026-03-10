@@ -45,6 +45,7 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
       nombre: p.nombre,
       precio: p.precio,
       imagen: p.imagen ?? undefined,
+      seccion: p.seccion ?? null,
     });
   }
 

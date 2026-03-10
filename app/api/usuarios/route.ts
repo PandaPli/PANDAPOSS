@@ -16,8 +16,9 @@ export async function GET() {
 
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
+  const baseWhere = rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {};
   const usuarios = await prisma.usuario.findMany({
-    where: rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : undefined,
+    where: { ...baseWhere, rol: { not: "ADMIN_GENERAL" } },
     include: { sucursal: { select: { nombre: true } } },
     orderBy: { nombre: "asc" },
   });

@@ -68,7 +68,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero }: OrderCardP
             <span>
               {pedido.tipo === "COCINA" ? "Pedido de comida"
                 : pedido.tipo === "BAR" ? "Pedido de bebidas"
-                : pedido.tipo === "REPOSTERIA" ? "Pedido reposteria"
+                : pedido.tipo === "REPOSTERIA" ? "Cuarto caliente"
                 : pedido.tipo === "DELIVERY" ? "Pedido delivery"
                 : "Pedido mostrador"}
             </span>

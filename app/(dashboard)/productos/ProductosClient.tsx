@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { Plus, Search, Edit2, Package, X, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
+type Seccion = "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR";
+
+const SECCIONES: { value: Seccion; label: string }[] = [
+  { value: "COCINA", label: "Cocina" },
+  { value: "BAR", label: "Bar" },
+  { value: "REPOSTERIA", label: "Cuarto Caliente" },
+  { value: "DELIVERY", label: "Delivery" },
+  { value: "MOSTRADOR", label: "Mostrador" },
+];
+
 interface Categoria { id: number; nombre: string; }
 interface Producto {
   id: number;
@@ -17,6 +27,7 @@ interface Producto {
   ivaActivo: boolean;
   categoriaId: number | null;
   categoria?: { id: number; nombre: string } | undefined;
+  seccion?: Seccion | null;
 }
 
 interface Props {
@@ -27,7 +38,7 @@ interface Props {
 
 const emptyForm = {
   codigo: "", nombre: "", precio: "", categoriaId: "",
-  ivaActivo: false, ivaPorc: "0", enMenu: true,
+  ivaActivo: false, ivaPorc: "0", enMenu: true, seccion: "" as Seccion | "",
 };
 
 export function ProductosClient({ productos: initial, categorias, simbolo }: Props) {
@@ -64,6 +75,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
       codigo: p.codigo, nombre: p.nombre, precio: String(p.precio),
       categoriaId: p.categoriaId ? String(p.categoriaId) : "",
       ivaActivo: p.ivaActivo, ivaPorc: "0", enMenu: p.enMenu,
+      seccion: p.seccion ?? "",
     });
     setError("");
     setShowForm(true);
@@ -83,6 +95,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
       ivaActivo: form.ivaActivo,
       ivaPorc: Number(form.ivaPorc),
       enMenu: form.enMenu,
+      seccion: form.seccion || null,
     };
 
     try {
@@ -137,6 +150,7 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Código</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Producto</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Categoría</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Sección KDS</th>
                 <th className="text-right px-4 py-3 font-medium text-surface-muted">Precio</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
                 <th className="px-4 py-3" />
@@ -156,6 +170,15 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
                     <td className="px-4 py-3 font-mono text-xs text-surface-muted">{p.codigo}</td>
                     <td className="px-4 py-3 font-medium text-surface-text">{p.nombre}</td>
                     <td className="px-4 py-3 text-surface-muted">{p.categoria?.nombre ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {p.seccion ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border bg-brand-50 text-brand-700 border-brand-200">
+                          {SECCIONES.find((s) => s.value === p.seccion)?.label ?? p.seccion}
+                        </span>
+                      ) : (
+                        <span className="text-surface-muted text-xs">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right font-semibold text-surface-text">
                       {formatCurrency(p.precio, simbolo)}
                     </td>
@@ -230,6 +253,15 @@ export function ProductosClient({ productos: initial, categorias, simbolo }: Pro
                     onChange={(e) => setForm({ ...form, ivaPorc: e.target.value })}
                     min={0} max={100} />
                 </div>
+              </div>
+
+              <div>
+                <label className="label">Sección KDS</label>
+                <select className="input" value={form.seccion}
+                  onChange={(e) => setForm({ ...form, seccion: e.target.value as Seccion | "" })}>
+                  <option value="">Sin sección (Cocina por defecto)</option>
+                  {SECCIONES.map((s) => (<option key={s.value} value={s.value}>{s.label}</option>))}
+                </select>
               </div>
 
               <div className="flex items-center gap-4">

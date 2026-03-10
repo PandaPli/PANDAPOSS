@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import type { Rol } from "@/types";
+import type { Plan, Rol } from "@/types";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8 horas
@@ -30,6 +30,15 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(credentials.password, user.password);
         if (!valid) return null;
 
+        // Obtener el plan de la sucursal via raw query (el campo plan es nuevo)
+        let plan: Plan = "BASIC";
+        if (user.sucursalId) {
+          const rows = await prisma.$queryRaw<{ plan: string }[]>`
+            SELECT plan FROM sucursales WHERE id = ${user.sucursalId} LIMIT 1
+          `;
+          plan = (rows[0]?.plan ?? "BASIC") as Plan;
+        }
+
         return {
           id: String(user.id),
           name: user.nombre,
@@ -38,6 +47,7 @@ export const authOptions: NextAuthOptions = {
           usuario: user.usuario,
           sucursalId: user.sucursalId,
           simbolo: user.sucursal?.simbolo ?? "$",
+          plan,
         };
       },
     }),
@@ -45,12 +55,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string };
+        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: Plan };
         token.id = Number(u.id);
         token.rol = u.rol;
         token.usuario = u.usuario;
         token.sucursalId = u.sucursalId;
         token.simbolo = u.simbolo;
+        token.plan = u.plan;
       }
       return token;
     },
@@ -61,6 +72,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as { usuario: string }).usuario = token.usuario as string;
         (session.user as { sucursalId: number | null }).sucursalId = token.sucursalId as number | null;
         (session.user as { simbolo: string }).simbolo = token.simbolo as string;
+        (session.user as { plan: Plan }).plan = (token.plan ?? "BASIC") as Plan;
       }
       return session;
     },
@@ -70,15 +82,15 @@ export const authOptions: NextAuthOptions = {
 // Mapa de roles y sus rutas permitidas
 export const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes"],
-  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
-  CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas"],
+  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery"],
+  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones", "/delivery"],
+  CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas", "/delivery"],
   WAITER: ["/panel", "/mesas", "/pedidos"],
   // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
   CHEF: ["/pedidos"],
   BAR: ["/pedidos"],
   PASTRY: ["/pedidos"],
-  DELIVERY: ["/panel", "/pedidos"],
+  DELIVERY: ["/panel", "/pedidos", "/delivery"],
 };
 
 export function canAccess(rol: Rol, path: string): boolean {

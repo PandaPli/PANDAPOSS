@@ -9,6 +9,7 @@ export default async function UsuariosPage() {
 
   const [usuarios, sucursales] = await Promise.all([
     prisma.usuario.findMany({
+      where: { rol: { not: "ADMIN_GENERAL" } },
       include: { sucursal: { select: { nombre: true } } },
       orderBy: { nombre: "asc" },
     }),

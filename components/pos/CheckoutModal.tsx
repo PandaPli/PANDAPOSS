@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, CreditCard, Banknote, ArrowLeftRight, Loader2, CheckCircle2, Plus, Trash2 } from "lucide-react";
+import { X, CreditCard, Banknote, ArrowLeftRight, Loader2, CheckCircle2, Plus, Trash2, Printer } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { MetodoPago, PagoItem } from "@/types";
@@ -35,6 +35,8 @@ export function CheckoutModal({ simbolo = "$", cajaId, usuarioId, onClose, onSuc
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [vueltoFinal, setVueltoFinal] = useState(0);
+  const [ventaInfo, setVentaInfo] = useState<{ id: number; numero: string } | null>(null);
+  const [itemsSnapshot, setItemsSnapshot] = useState<typeof items>([]);
 
   const tot = total();
   const sumaPagos = pagos.reduce((acc, p) => acc + p.monto, 0);
@@ -135,14 +137,76 @@ export function CheckoutModal({ simbolo = "$", cajaId, usuarioId, onClose, onSuc
         setVueltoFinal(sobrepago);
       }
 
+      // Guardar snapshot antes de limpiar el carrito
+      setItemsSnapshot([...items]);
+      setVentaInfo({ id: venta.id, numero: venta.numero ?? String(venta.id) });
       setSuccess(true);
       clear();
-      setTimeout(() => onSuccess(venta.id), 1500);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleImprimir(imprimir: boolean) {
+    if (imprimir && ventaInfo) {
+      const win = window.open("", "_blank", "width=400,height=600");
+      if (win) {
+        const fecha = new Date().toLocaleString("es-CL");
+        const lineas = itemsSnapshot
+          .map(
+            (it) =>
+              `<tr>
+                <td style="padding:2px 4px">${it.nombre}</td>
+                <td style="padding:2px 4px;text-align:center">${it.cantidad}</td>
+                <td style="padding:2px 4px;text-align:right">${formatCurrency(it.precio * it.cantidad, simbolo)}</td>
+              </tr>`
+          )
+          .join("");
+
+        win.document.write(`
+          <!DOCTYPE html><html><head>
+          <meta charset="utf-8"/>
+          <title>Boleta ${ventaInfo.numero}</title>
+          <style>
+            body{font-family:monospace;font-size:13px;margin:0;padding:16px;color:#111}
+            h2{text-align:center;margin:0 0 4px}
+            .center{text-align:center}
+            .sep{border:none;border-top:1px dashed #999;margin:8px 0}
+            table{width:100%;border-collapse:collapse}
+            th{text-align:left;border-bottom:1px solid #ccc;padding:2px 4px;font-size:11px;color:#555}
+            .total{font-weight:bold;font-size:15px}
+            .vuelto{background:#d1fae5;padding:6px 8px;border-radius:6px;margin-top:8px;font-weight:bold;text-align:center}
+          </style>
+          </head><body>
+          <h2>PandaPoss</h2>
+          <p class="center" style="margin:0;font-size:12px;color:#555">Boleta N° ${ventaInfo.numero}</p>
+          <p class="center" style="margin:4px 0 0;font-size:11px;color:#888">${fecha}</p>
+          <hr class="sep"/>
+          <table>
+            <thead><tr>
+              <th>Producto</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio</th>
+            </tr></thead>
+            <tbody>${lineas}</tbody>
+          </table>
+          <hr class="sep"/>
+          <table>
+            <tr><td>Subtotal</td><td style="text-align:right">${formatCurrency(subtotal(), simbolo)}</td></tr>
+            ${totalDescuento() > 0 ? `<tr><td>Descuento</td><td style="text-align:right">- ${formatCurrency(totalDescuento(), simbolo)}</td></tr>` : ""}
+            ${totalIva() > 0 ? `<tr><td>IVA</td><td style="text-align:right">${formatCurrency(totalIva(), simbolo)}</td></tr>` : ""}
+            <tr class="total"><td>TOTAL</td><td style="text-align:right">${formatCurrency(tot, simbolo)}</td></tr>
+          </table>
+          ${vueltoFinal > 0 ? `<div class="vuelto">Vuelto: ${formatCurrency(vueltoFinal, simbolo)}</div>` : ""}
+          <hr class="sep"/>
+          <p class="center" style="font-size:11px;color:#888;margin-top:8px">¡Gracias por su compra!</p>
+          <script>window.onload=function(){window.print();window.close();}<\/script>
+          </body></html>
+        `);
+        win.document.close();
+      }
+    }
+    onSuccess(ventaInfo!.id);
   }
 
   if (success) {
@@ -152,13 +216,35 @@ export function CheckoutModal({ simbolo = "$", cajaId, usuarioId, onClose, onSuc
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-surface-text mb-1">Venta completada!</h2>
+          <h2 className="text-xl font-bold text-surface-text mb-1">¡Venta completada!</h2>
           <p className="text-surface-muted text-sm">Total cobrado: {formatCurrency(tot, simbolo)}</p>
           {vueltoFinal > 0 && (
-            <div className="mt-4 p-3 bg-emerald-50 rounded-xl text-emerald-700 font-semibold">
+            <div className="mt-3 p-3 bg-emerald-50 rounded-xl text-emerald-700 font-semibold">
               Vuelto: {formatCurrency(vueltoFinal, simbolo)}
             </div>
           )}
+
+          {/* Pregunta de impresión */}
+          <div className="mt-5 pt-5 border-t border-surface-border">
+            <p className="text-sm font-semibold text-surface-text mb-3 flex items-center justify-center gap-2">
+              <Printer size={16} className="text-surface-muted" />
+              ¿Desea imprimir la boleta?
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleImprimir(true)}
+                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-all"
+              >
+                <Printer size={15} /> Sí, imprimir
+              </button>
+              <button
+                onClick={() => handleImprimir(false)}
+                className="py-2.5 rounded-xl border border-surface-border text-surface-muted hover:bg-surface-bg font-semibold text-sm transition-all"
+              >
+                No, continuar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Building2, Users, Wallet, CheckCircle2, XCircle, X, Loader2 } from "lucide-react";
+import { Plus, Pencil, Building2, Users, Wallet, CheckCircle2, XCircle, X, Loader2, Zap, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Plan = "BASIC" | "PRO";
 
 interface Sucursal {
   id: number;
@@ -10,12 +13,13 @@ interface Sucursal {
   telefono: string | null;
   email: string | null;
   simbolo: string;
+  plan: Plan;
   activa: boolean;
   creadoEn: string | Date;
   _count: { usuarios: number; cajas: number };
 }
 
-const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$" };
+const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASIC" as Plan };
 
 export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal[] }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>(initial);
@@ -40,6 +44,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       telefono: s.telefono ?? "",
       email: s.email ?? "",
       simbolo: s.simbolo,
+      plan: s.plan,
     });
     setError("");
     setOpen(true);
@@ -68,7 +73,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error al actualizar");
         setSucursales((prev) =>
-          prev.map((s) => (s.id === editing.id ? { ...s, ...data } : s))
+          prev.map((s) => (s.id === editing.id ? { ...s, ...data, plan: data.plan ?? s.plan } : s))
         );
       } else {
         // Crear
@@ -143,7 +148,18 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                     {s.simbolo}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-surface-text">{s.nombre}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-surface-text">{s.nombre}</h3>
+                      {s.plan === "PRO" ? (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+                          <Star size={9} className="fill-violet-500 text-violet-500" /> PRO
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">
+                          BASIC
+                        </span>
+                      )}
+                    </div>
                     {s.activa ? (
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
                         <CheckCircle2 size={12} /> Activa
@@ -284,6 +300,41 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   placeholder="sucursal@pandaposs.com"
                   className="input"
                 />
+              </div>
+
+              {/* Plan selector */}
+              <div>
+                <label className="label">Plan de suscripción</label>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, plan: "BASIC" })}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all",
+                      form.plan === "BASIC"
+                        ? "border-gray-400 bg-gray-50"
+                        : "border-surface-border hover:border-gray-300 hover:bg-gray-50/50"
+                    )}
+                  >
+                    <Zap size={20} className={form.plan === "BASIC" ? "text-gray-600" : "text-surface-muted"} />
+                    <span className={cn("text-sm font-bold", form.plan === "BASIC" ? "text-gray-700" : "text-surface-muted")}>BASIC</span>
+                    <span className="text-[10px] text-surface-muted text-center leading-tight">Funciones estándar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, plan: "PRO" })}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all",
+                      form.plan === "PRO"
+                        ? "border-violet-500 bg-violet-50"
+                        : "border-surface-border hover:border-violet-300 hover:bg-violet-50/30"
+                    )}
+                  >
+                    <Star size={20} className={form.plan === "PRO" ? "fill-violet-500 text-violet-500" : "text-surface-muted"} />
+                    <span className={cn("text-sm font-bold", form.plan === "PRO" ? "text-violet-700" : "text-surface-muted")}>PRO</span>
+                    <span className="text-[10px] text-surface-muted text-center leading-tight">Delivery + funciones premium</span>
+                  </button>
+                </div>
               </div>
             </form>
 

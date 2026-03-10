@@ -4,30 +4,101 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
-import { ChefHat, Wine, CakeSlice, Bike, UtensilsCrossed, RefreshCw } from "lucide-react";
+import { ChefHat, Wine, Flame, Bike, UtensilsCrossed, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNode }[] = [
-  { key: "TODOS", label: "Todos", icon: <UtensilsCrossed size={16} /> },
-  { key: "COCINA", label: "Cocina", icon: <ChefHat size={16} /> },
-  { key: "BAR", label: "Bar", icon: <Wine size={16} /> },
-  { key: "REPOSTERIA", label: "Reposteria", icon: <CakeSlice size={16} /> },
-  { key: "DELIVERY", label: "Delivery", icon: <Bike size={16} /> },
+// ─── Secciones KDS ────────────────────────────────────────────────────────────
+const SECCIONES: {
+  key: TipoPedido;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  headerBg: string;
+}[] = [
+  {
+    key: "COCINA",
+    label: "Cocina",
+    icon: <ChefHat size={15} />,
+    color: "text-orange-600",
+    badgeBg: "bg-orange-100",
+    badgeText: "text-orange-700",
+    headerBg: "bg-orange-50 border-orange-200",
+  },
+  {
+    key: "BAR",
+    label: "Bar",
+    icon: <Wine size={15} />,
+    color: "text-purple-600",
+    badgeBg: "bg-purple-100",
+    badgeText: "text-purple-700",
+    headerBg: "bg-purple-50 border-purple-200",
+  },
+  {
+    key: "REPOSTERIA",
+    label: "Cuarto Caliente",
+    icon: <Flame size={15} />,
+    color: "text-rose-600",
+    badgeBg: "bg-rose-100",
+    badgeText: "text-rose-700",
+    headerBg: "bg-rose-50 border-rose-200",
+  },
+  {
+    key: "DELIVERY",
+    label: "Delivery",
+    icon: <Bike size={15} />,
+    color: "text-sky-600",
+    badgeBg: "bg-sky-100",
+    badgeText: "text-sky-700",
+    headerBg: "bg-sky-50 border-sky-200",
+  },
 ];
 
+// ─── Columnas de estado ────────────────────────────────────────────────────────
+const COLUMNAS: {
+  estado: EstadoPedido;
+  label: string;
+  dot: string;
+  badgeBg: string;
+  badgeText: string;
+}[] = [
+  {
+    estado: "PENDIENTE",
+    label: "Pendiente",
+    dot: "bg-brand-500",
+    badgeBg: "bg-brand-100",
+    badgeText: "text-brand-700",
+  },
+  {
+    estado: "EN_PROCESO",
+    label: "En Preparación",
+    dot: "bg-amber-500",
+    badgeBg: "bg-amber-100",
+    badgeText: "text-amber-700",
+  },
+  {
+    estado: "LISTO",
+    label: "Listo para servir",
+    dot: "bg-emerald-500",
+    badgeBg: "bg-emerald-100",
+    badgeText: "text-emerald-700",
+  },
+];
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface Props {
   pedidos: PedidoConDetalles[];
 }
 
+// ─── Componente ───────────────────────────────────────────────────────────────
 export function PedidosClient({ pedidos: initial }: Props) {
   const router = useRouter();
   const [pedidos, setPedidos] = useState(initial);
-  const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">("TODOS");
-  const [, setLastRefresh] = useState(new Date());
+  const [seccionFiltro, setSeccionFiltro] = useState<TipoPedido | "TODOS">("TODOS");
 
   const refresh = useCallback(() => {
     router.refresh();
-    setLastRefresh(new Date());
   }, [router]);
 
   useEffect(() => {
@@ -39,13 +110,11 @@ export function PedidosClient({ pedidos: initial }: Props) {
     setPedidos(initial);
   }, [initial]);
 
-  const filtrados = tipoFiltro === "TODOS"
-    ? pedidos
-    : pedidos.filter((p) => p.tipo === tipoFiltro);
-
-  const pendientes = filtrados.filter((p) => p.estado === "PENDIENTE");
-  const enProceso = filtrados.filter((p) => p.estado === "EN_PROCESO");
-  const listos = filtrados.filter((p) => p.estado === "LISTO");
+  // Secciones visibles según filtro
+  const seccionesVisibles =
+    seccionFiltro === "TODOS"
+      ? SECCIONES
+      : SECCIONES.filter((s) => s.key === seccionFiltro);
 
   async function handleUpdateEstado(id: number, estado: EstadoPedido) {
     await fetch(`/api/pedidos/${id}`, {
@@ -78,32 +147,59 @@ export function PedidosClient({ pedidos: initial }: Props) {
     );
   }
 
+  const totalActivos = pedidos.length;
+
   return (
     <div className="space-y-5">
-      {/* Tabs tipo */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {tipoTabs.map((tab) => {
-          const count = tab.key === "TODOS"
-            ? pedidos.length
-            : pedidos.filter((p) => p.tipo === tab.key).length;
 
+      {/* ── Tabs de sección ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* TODOS */}
+        <button
+          onClick={() => setSeccionFiltro("TODOS")}
+          className={cn(
+            "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
+            seccionFiltro === "TODOS"
+              ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
+              : "bg-white border border-surface-border text-surface-muted hover:bg-brand-50 hover:text-brand-600 hover:border-brand-200"
+          )}
+        >
+          <UtensilsCrossed size={15} />
+          Todos
+          {totalActivos > 0 && (
+            <span className={cn(
+              "text-xs rounded-full px-2 py-0.5 min-w-[22px] text-center font-bold",
+              seccionFiltro === "TODOS" ? "bg-white/25 text-white" : "bg-brand-100 text-brand-600"
+            )}>
+              {totalActivos}
+            </span>
+          )}
+        </button>
+
+        {/* Separador vertical */}
+        <div className="w-px h-8 bg-surface-border mx-1" />
+
+        {/* Secciones */}
+        {SECCIONES.map((sec) => {
+          const count = pedidos.filter((p) => p.tipo === sec.key).length;
+          const active = seccionFiltro === sec.key;
           return (
             <button
-              key={tab.key}
-              onClick={() => setTipoFiltro(tab.key)}
+              key={sec.key}
+              onClick={() => setSeccionFiltro(sec.key)}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                tipoFiltro === tab.key
+                active
                   ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
                   : "bg-white border border-surface-border text-surface-muted hover:bg-brand-50 hover:text-brand-600 hover:border-brand-200"
               )}
             >
-              {tab.icon}
-              {tab.label}
+              {sec.icon}
+              {sec.label}
               {count > 0 && (
                 <span className={cn(
                   "text-xs rounded-full px-2 py-0.5 min-w-[22px] text-center font-bold",
-                  tipoFiltro === tab.key ? "bg-white/25 text-white" : "bg-brand-100 text-brand-600"
+                  active ? "bg-white/25 text-white" : "bg-brand-100 text-brand-600"
                 )}>
                   {count}
                 </span>
@@ -112,6 +208,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
           );
         })}
 
+        {/* Botón refrescar */}
         <button
           onClick={refresh}
           className="ml-auto flex items-center gap-2 text-xs text-surface-muted hover:text-brand-600 transition-colors bg-white border border-surface-border px-3 py-2 rounded-xl hover:bg-brand-50"
@@ -122,74 +219,88 @@ export function PedidosClient({ pedidos: initial }: Props) {
         </button>
       </div>
 
-      {/* Columnas KDS */}
-      {filtrados.length === 0 ? (
+      {/* ── Contenido KDS ───────────────────────────────────────────────── */}
+      {totalActivos === 0 ? (
         <div className="card p-16 text-center">
           <img src="/logo.png" alt="PandaPoss" className="w-16 h-16 mx-auto mb-4 opacity-40" />
           <p className="text-surface-text font-semibold text-lg">Sin pedidos activos</p>
           <p className="text-surface-muted text-sm mt-1">Los pedidos apareceran aqui automaticamente</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Columna Pendientes */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-3 h-3 rounded-full bg-brand-500" />
-              <h3 className="font-bold text-surface-text">Pendientes</h3>
-              <span className="text-xs font-bold bg-brand-100 text-brand-700 rounded-full px-2 py-0.5">
-                {pendientes.length}
-              </span>
-            </div>
-            {pendientes.length === 0 ? (
-              <div className="card p-8 text-center border-dashed">
-                <p className="text-surface-muted text-sm">Sin pedidos pendientes</p>
-              </div>
-            ) : (
-              pendientes.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
-              ))
-            )}
-          </div>
+        <div className="space-y-8">
+          {seccionesVisibles.map((sec) => {
+            const pedidosSeccion = pedidos.filter((p) => p.tipo === sec.key);
 
-          {/* Columna En Preparacion */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-3 h-3 rounded-full bg-amber-500" />
-              <h3 className="font-bold text-surface-text">En Preparacion</h3>
-              <span className="text-xs font-bold bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
-                {enProceso.length}
-              </span>
-            </div>
-            {enProceso.length === 0 ? (
-              <div className="card p-8 text-center border-dashed">
-                <p className="text-surface-muted text-sm">Nada en preparacion</p>
-              </div>
-            ) : (
-              enProceso.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
-              ))
-            )}
-          </div>
+            // Si no hay pedidos en esta sección y estamos en "TODOS", no mostrar
+            if (seccionFiltro === "TODOS" && pedidosSeccion.length === 0) return null;
 
-          {/* Columna Listo */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-3 h-3 rounded-full bg-emerald-500" />
-              <h3 className="font-bold text-surface-text">Listo para servir</h3>
-              <span className="text-xs font-bold bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">
-                {listos.length}
-              </span>
-            </div>
-            {listos.length === 0 ? (
-              <div className="card p-8 text-center border-dashed">
-                <p className="text-surface-muted text-sm">Nada listo aun</p>
+            return (
+              <div key={sec.key} className="space-y-3">
+                {/* ── Cabecera de sección ── */}
+                <div className={cn(
+                  "flex items-center gap-3 px-4 py-2.5 rounded-xl border font-bold text-sm",
+                  sec.headerBg,
+                  sec.color
+                )}>
+                  {sec.icon}
+                  <span className="uppercase tracking-wide">{sec.label}</span>
+                  <span className={cn(
+                    "ml-1 text-xs rounded-full px-2.5 py-0.5 font-bold",
+                    sec.badgeBg,
+                    sec.badgeText
+                  )}>
+                    {pedidosSeccion.length} pedido{pedidosSeccion.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                {/* ── 3 columnas de estado ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pl-2">
+                  {COLUMNAS.map((col) => {
+                    const cards = pedidosSeccion.filter((p) => p.estado === col.estado);
+                    return (
+                      <div key={col.estado} className="space-y-3">
+                        {/* Header de columna */}
+                        <div className="flex items-center gap-2 px-1">
+                          <span className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", col.dot)} />
+                          <h4 className="font-bold text-surface-text text-sm">{col.label}</h4>
+                          <span className={cn(
+                            "text-xs font-bold rounded-full px-2 py-0.5",
+                            col.badgeBg,
+                            col.badgeText
+                          )}>
+                            {cards.length}
+                          </span>
+                        </div>
+
+                        {/* Cards o placeholder */}
+                        {cards.length === 0 ? (
+                          <div className="rounded-xl border-2 border-dashed border-surface-border p-6 text-center">
+                            <p className="text-surface-muted text-xs">Sin pedidos</p>
+                          </div>
+                        ) : (
+                          cards.map((pedido) => (
+                            <OrderCard
+                              key={pedido.id}
+                              pedido={pedido}
+                              onUpdateEstado={handleUpdateEstado}
+                              onLlamarMesero={handleLlamarMesero}
+                            />
+                          ))
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ) : (
-              listos.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
-              ))
-            )}
-          </div>
+            );
+          })}
+
+          {/* Si estamos en TODOS pero solo hay pedidos en secciones que no se muestran */}
+          {seccionFiltro === "TODOS" && seccionesVisibles.every((s) => pedidos.filter((p) => p.tipo === s.key).length === 0) && (
+            <div className="card p-16 text-center">
+              <p className="text-surface-muted text-sm">Sin pedidos activos</p>
+            </div>
+          )}
         </div>
       )}
     </div>

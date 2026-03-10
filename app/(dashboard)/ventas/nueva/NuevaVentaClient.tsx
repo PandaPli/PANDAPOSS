@@ -7,7 +7,7 @@ import { CartPanel } from "@/components/pos/CartPanel";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
-import type { ProductoCard } from "@/types";
+import type { ProductoCard, TipoPedido } from "@/types";
 import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
@@ -36,34 +36,51 @@ export function NuevaVentaClient({ productos, simbolo, usuarioId, cajaId, cajaNo
     setOrdenMsg("");
 
     try {
-      const body = {
-        mesaId: mesaId || null,
-        cajaId: cajaId || null,
-        tipo: "COCINA",
-        items: items.map((i) => ({
-          productoId: i.tipo === "producto" ? i.id : null,
-          comboId: i.tipo === "combo" ? i.id : null,
-          cantidad: i.cantidad,
-          observacion: i.observacion || null,
-        })),
-      };
-
-      const res = await fetch("/api/pedidos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Error al enviar orden");
+      // Agrupar items por sección
+      const grupos = new Map<TipoPedido, typeof items>();
+      for (const item of items) {
+        const seccion: TipoPedido = (item.seccion as TipoPedido) ?? "COCINA";
+        if (!grupos.has(seccion)) grupos.set(seccion, []);
+        grupos.get(seccion)!.push(item);
       }
 
-      const pedido = await res.json();
-      setPedido(pedido.id);
-      setOrdenMsg(`Orden #${pedido.id} enviada a cocina`);
+      // Crear un pedido por sección
+      const resultados = await Promise.all(
+        Array.from(grupos.entries()).map(([tipo, sectionItems]) =>
+          fetch("/api/pedidos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mesaId: mesaId || null,
+              cajaId: cajaId || null,
+              tipo,
+              items: sectionItems.map((i) => ({
+                productoId: i.tipo === "producto" ? i.id : null,
+                comboId: i.tipo === "combo" ? i.id : null,
+                cantidad: i.cantidad,
+                observacion: i.observacion || null,
+              })),
+            }),
+          }).then((r) => {
+            if (!r.ok) throw new Error(`Error enviando a ${tipo}`);
+            return r.json();
+          })
+        )
+      );
 
-      // Auto-hide message after 4s
+      // Guardar el primer pedidoId para vincularlo con la venta
+      if (resultados[0]) setPedido(resultados[0].id);
+
+      const seccionLabels: Record<TipoPedido, string> = {
+        COCINA: "Cocina",
+        BAR: "Bar",
+        REPOSTERIA: "Cuarto Caliente",
+        DELIVERY: "Delivery",
+        MOSTRADOR: "Mostrador",
+      };
+      const secciones = Array.from(grupos.keys()).map((k) => seccionLabels[k]).join(", ");
+      setOrdenMsg(`Orden enviada → ${secciones}`);
+
       setTimeout(() => setOrdenMsg(""), 4000);
     } catch (e) {
       setOrdenMsg((e as Error).message);

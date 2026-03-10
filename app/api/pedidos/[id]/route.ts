@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import type { EstadoPedido } from "@prisma/client";
 
 export async function PATCH(
   req: NextRequest,
@@ -15,7 +16,7 @@ export async function PATCH(
   const { id: idStr } = await params;
   const id = Number(idStr);
 
-  const data: { estado?: string; meseroLlamado?: boolean } = {};
+  const data: { estado?: EstadoPedido; meseroLlamado?: boolean } = {};
   if (estado !== undefined) data.estado = estado;
   if (meseroLlamado !== undefined) data.meseroLlamado = meseroLlamado;
   // Al entregar, limpiar llamada al mesero

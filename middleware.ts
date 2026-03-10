@@ -55,9 +55,8 @@ export default withAuth(
 );
 
 export const config = {
-  // Solo proteger páginas — excluir TODAS las rutas /api/
-  // (las rutas API manejan su propia auth con getServerSession)
+  // Solo proteger páginas — excluir rutas /api/, /menu y assets estáticos
   matcher: [
-    "/((?!login|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    "/((?!login|menu|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };
