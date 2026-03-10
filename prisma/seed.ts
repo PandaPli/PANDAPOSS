@@ -45,18 +45,22 @@ async function main() {
     },
   });
 
-  // Sala y mesas de ejemplo
+  // Punto de atención principal + 30 mesas
   const sala = await prisma.sala.upsert({
     where: { id: 1 },
     update: {},
-    create: { id: 1, nombre: "Salón Principal", sucursalId: sucursal.id },
+    create: { id: 1, nombre: "Mesón", sucursalId: sucursal.id },
   });
 
-  const mesasData = ["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6"].map(
-    (nombre) => ({ nombre, salaId: sala.id, capacidad: 4 })
-  );
-  for (const m of mesasData) {
-    await prisma.mesa.create({ data: m }).catch(() => {});
+  const mesasExistentes = await prisma.mesa.count({ where: { salaId: sala.id } });
+  if (mesasExistentes === 0) {
+    await prisma.mesa.createMany({
+      data: Array.from({ length: 30 }, (_, i) => ({
+        nombre: `Mesa ${i + 1}`,
+        salaId: sala.id,
+        capacidad: 4,
+      })),
+    });
   }
 
   // Categorías base

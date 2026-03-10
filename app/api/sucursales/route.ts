@@ -49,5 +49,17 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Auto-crear punto de atención Mesón + 30 mesas
+  const sala = await prisma.sala.create({
+    data: { nombre: "Mesón", sucursalId: sucursal.id },
+  });
+  await prisma.mesa.createMany({
+    data: Array.from({ length: 30 }, (_, i) => ({
+      nombre: `Mesa ${i + 1}`,
+      salaId: sala.id,
+      capacidad: 4,
+    })),
+  });
+
   return NextResponse.json(sucursal, { status: 201 });
 }

@@ -26,7 +26,7 @@ interface AppModule {
 
 const modules: AppModule[] = [
   { label: "Panel",         href: "/panel",       icon: <LayoutDashboard size={22} />, color: "bg-brand-500",   roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"] },
-  { label: "Mesas",         href: "/mesas",       icon: <UtensilsCrossed size={22} />, color: "bg-orange-500",  roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER"] },
+  { label: "Atención",      href: "/mesas",       icon: <UtensilsCrossed size={22} />, color: "bg-orange-500",  roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER"] },
   { label: "Pedidos",       href: "/pedidos",     icon: <ClipboardList   size={22} />, color: "bg-amber-500",   roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"] },
   { label: "Punto de Venta",href: "/ventas/nueva",icon: <ShoppingCart    size={22} />, color: "bg-emerald-500", roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },
   { label: "Ventas",        href: "/ventas",      icon: <BarChart3       size={22} />, color: "bg-teal-500",    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"] },

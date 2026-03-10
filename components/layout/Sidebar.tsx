@@ -28,7 +28,7 @@ const navItems: NavItem[] = [
     roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"],
   },
   {
-    label: "Mesas",
+    label: "Atención",
     href: "/mesas",
     icon: <UtensilsCrossed size={20} />,
     roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER"],
