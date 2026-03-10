@@ -22,6 +22,7 @@ async function getPedidos(rol: Rol | undefined, sucursalId: number | null) {
     include: {
       mesa: { select: { nombre: true } },
       usuario: { select: { nombre: true } },
+      repartidor: { select: { nombre: true } },
       detalles: {
         include: {
           producto: { select: { nombre: true } },
@@ -46,9 +47,13 @@ export default async function PedidosPage() {
     estado: p.estado as "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO",
     observacion: p.observacion,
     meseroLlamado: p.meseroLlamado,
+    direccionEntrega: p.direccionEntrega,
+    telefonoCliente: p.telefonoCliente,
+    repartidorId: p.repartidorId,
     creadoEn: p.creadoEn.toISOString(),
     mesa: p.mesa,
     usuario: p.usuario,
+    repartidor: p.repartidor,
     detalles: p.detalles.map((d) => ({
       id: d.id,
       cantidad: d.cantidad,

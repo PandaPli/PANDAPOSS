@@ -7,6 +7,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import type { Rol } from "@/types";
+import { AdminGeneralView } from "./AdminGeneralView";
 
 /* Micro-mensajes por rol */
 const ROLE_GREETING: Partial<Record<Rol, string>> = {
@@ -67,6 +68,11 @@ export default async function PanelPage() {
   const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
   const simbolo = (session?.user as { simbolo?: string })?.simbolo ?? "$";
   const rol = (session?.user as { rol?: Rol })?.rol;
+
+  // ADMIN_GENERAL ve el panel PANDAADMIN
+  if (rol === "ADMIN_GENERAL") {
+    return <AdminGeneralView />;
+  }
 
   const { ventasHoy, pedidosActivos, mesasOcupadas, ultimasVentas, ventasChart } =
     await getDashboardData(rol ?? "CASHIER", sucursalId);
