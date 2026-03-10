@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
     include: {
       mesa: { select: { nombre: true } },
       usuario: { select: { nombre: true } },
+      repartidor: { select: { nombre: true } },
       detalles: {
         include: {
           producto: { select: { nombre: true } },
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { mesaId, cajaId, tipo, items, observacion } = body;
+  const { mesaId, cajaId, tipo, items, observacion, direccionEntrega, telefonoCliente, repartidorId } = body;
 
   const userId = (session.user as { id: number }).id;
 
@@ -62,6 +63,9 @@ export async function POST(req: NextRequest) {
       tipo: tipo || "COCINA",
       estado: "PENDIENTE",
       observacion,
+      direccionEntrega: direccionEntrega || null,
+      telefonoCliente: telefonoCliente || null,
+      repartidorId: repartidorId || null,
       detalles: {
         create: items.map((item: { productoId?: number; comboId?: number; cantidad: number; observacion?: string }) => ({
           productoId: item.productoId || null,
