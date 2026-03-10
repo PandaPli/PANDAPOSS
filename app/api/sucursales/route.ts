@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const body = await req.json();
-  const { nombre, direccion, telefono, email, simbolo } = body;
+  const { nombre, direccion, telefono, email, simbolo, plan } = body;
 
   if (!nombre?.trim()) {
     return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       telefono: telefono?.trim() || null,
       email: email?.trim() || null,
       simbolo: simbolo?.trim() || "$",
+      plan: plan === "PRO" ? "PRO" : "BASICO",
     },
   });
 

@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   const body = await req.json();
-  const { nombre, direccion, telefono, email, simbolo, activa } = body;
+  const { nombre, direccion, telefono, email, simbolo, activa, plan } = body;
 
   const data: Record<string, unknown> = {};
   if (nombre !== undefined) data.nombre = nombre.trim();
@@ -29,6 +29,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (email !== undefined) data.email = email?.trim() || null;
   if (simbolo !== undefined) data.simbolo = simbolo?.trim() || "$";
   if (activa !== undefined) data.activa = activa;
+  if (plan !== undefined) data.plan = plan;
 
   const sucursal = await prisma.sucursal.update({
     where: { id },

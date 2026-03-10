@@ -11,11 +11,12 @@ interface Sucursal {
   email: string | null;
   simbolo: string;
   activa: boolean;
+  plan: "BASICO" | "PRO";
   creadoEn: string | Date;
   _count: { usuarios: number; cajas: number };
 }
 
-const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$" };
+const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO" };
 
 export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal[] }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>(initial);
@@ -40,6 +41,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       telefono: s.telefono ?? "",
       email: s.email ?? "",
       simbolo: s.simbolo,
+      plan: s.plan,
     });
     setError("");
     setOpen(true);
@@ -59,7 +61,6 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
 
     try {
       if (editing) {
-        // Editar
         const res = await fetch(`/api/sucursales/${editing.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -71,7 +72,6 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
           prev.map((s) => (s.id === editing.id ? { ...s, ...data } : s))
         );
       } else {
-        // Crear
         const res = await fetch("/api/sucursales", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -143,7 +143,16 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                     {s.simbolo}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-surface-text">{s.nombre}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-surface-text">{s.nombre}</h3>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        s.plan === "PRO"
+                          ? "bg-violet-100 text-violet-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {s.plan}
+                      </span>
+                    </div>
                     {s.activa ? (
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
                         <CheckCircle2 size={12} /> Activa
@@ -225,6 +234,37 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
               )}
+
+              {/* Plan selector */}
+              <div>
+                <label className="label">Plan de suscripción</label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, plan: "BASICO" })}
+                    className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      form.plan === "BASICO"
+                        ? "border-amber-400 bg-amber-50 text-amber-700"
+                        : "border-surface-border text-surface-muted hover:border-amber-200"
+                    }`}
+                  >
+                    BÁSICO
+                    <p className="text-xs font-normal mt-0.5 opacity-70">10 usuarios · 1 caja</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, plan: "PRO" })}
+                    className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      form.plan === "PRO"
+                        ? "border-violet-500 bg-violet-50 text-violet-700"
+                        : "border-surface-border text-surface-muted hover:border-violet-200"
+                    }`}
+                  >
+                    PRO
+                    <p className="text-xs font-normal mt-0.5 opacity-70">20 usuarios · 2 cajas</p>
+                  </button>
+                </div>
+              </div>
 
               <div>
                 <label className="label">
