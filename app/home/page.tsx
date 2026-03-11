@@ -396,9 +396,7 @@ const Footer = () => (
   <footer className="bg-white border-t border-surface-border py-12">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
       <div className="flex items-center gap-3 font-black text-xl text-surface-text tracking-tight">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md">
-           🐼 
-        </div>
+        <img src="/logo.png" alt="PandaPoss" className="w-10 h-10 object-contain drop-shadow" />
         PandaPoss
       </div>
       <p className="text-surface-muted text-sm">
@@ -433,9 +431,7 @@ const Navbar = () => (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center h-20">
         <Link href="/home" className="flex items-center gap-3 font-black text-2xl text-surface-text tracking-tight group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md group-hover:shadow-brand-500/30 transition-shadow">
-            🐼
-          </div>
+          <img src="/logo.png" alt="PandaPoss" className="w-10 h-10 object-contain drop-shadow group-hover:scale-105 transition-transform" />
           PandaPoss
         </Link>
         <div className="hidden md:flex items-center gap-8">

@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
     label: "Panel",
     href: "/panel",
     icon: <LayoutDashboard size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"],
+    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER"],
   },
   {
     label: "Atención",
@@ -73,7 +73,7 @@ const navItems: NavItem[] = [
     label: "Usuarios",
     href: "/usuarios",
     icon: <UserCog size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL"],
+    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY"],
   },
   {
     label: "Configuración",
