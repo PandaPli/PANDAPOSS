@@ -236,7 +236,7 @@ export function PandaNavbar() {
                 Configuracion
               </Link>
               <Link
-                href="/usuarios"
+                href="/perfil"
                 onClick={() => setShowUser(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-text hover:bg-brand-50 transition-colors"
               >

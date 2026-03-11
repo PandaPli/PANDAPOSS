@@ -5,15 +5,15 @@ import type { Rol } from "@/types";
 // Lógica inline para evitar importar bcryptjs en Edge Runtime
 const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/compras", "/reportes", "/configuracion"],
-  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
-  CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas"],
-  WAITER: ["/panel", "/mesas", "/pedidos"],
+  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/compras", "/reportes", "/configuracion", "/perfil"],
+  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones", "/perfil"],
+  CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas", "/perfil"],
+  WAITER: ["/panel", "/mesas", "/pedidos", "/perfil"],
   // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
-  CHEF: ["/pedidos"],
-  BAR: ["/pedidos"],
-  PASTRY: ["/pedidos"],
-  DELIVERY: ["/panel", "/pedidos"],
+  CHEF: ["/pedidos", "/perfil"],
+  BAR: ["/pedidos", "/perfil"],
+  PASTRY: ["/pedidos", "/perfil"],
+  DELIVERY: ["/panel", "/pedidos", "/perfil"],
 };
 
 // Página de inicio por rol (default: /panel)
