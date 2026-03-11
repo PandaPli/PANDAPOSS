@@ -25,31 +25,42 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+  }
+
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, plan } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
   // ADMIN_SUCURSAL solo puede actualizar su propio logo
   if (esPropietario && !isAdmin(rol)) {
-    if (logoUrl !== undefined) data.logoUrl = logoUrl || null;
+    if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
   } else {
     // ADMIN_GENERAL puede actualizar todo
-    if (nombre !== undefined) data.nombre = nombre.trim();
-    if (direccion !== undefined) data.direccion = direccion?.trim() || null;
-    if (telefono !== undefined) data.telefono = telefono?.trim() || null;
-    if (email !== undefined) data.email = email?.trim() || null;
-    if (simbolo !== undefined) data.simbolo = simbolo?.trim() || "$";
+    if (nombre !== undefined) data.nombre = (nombre as string).trim();
+    if (direccion !== undefined) data.direccion = (direccion as string)?.trim() || null;
+    if (telefono !== undefined) data.telefono = (telefono as string)?.trim() || null;
+    if (email !== undefined) data.email = (email as string)?.trim() || null;
+    if (simbolo !== undefined) data.simbolo = (simbolo as string)?.trim() || "$";
     if (activa !== undefined) data.activa = activa;
-    if (logoUrl !== undefined) data.logoUrl = logoUrl || null;
+    if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
+    if (plan !== undefined) data.plan = plan;
   }
 
-  const sucursal = await prisma.sucursal.update({
-    where: { id },
-    data,
-  });
-
-  return NextResponse.json(sucursal);
+  try {
+    const sucursal = await prisma.sucursal.update({
+      where: { id },
+      data,
+    });
+    return NextResponse.json(sucursal);
+  } catch (err) {
+    console.error("PATCH /api/sucursales/[id]:", err);
+    return NextResponse.json({ error: "Error al actualizar sucursal" }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
