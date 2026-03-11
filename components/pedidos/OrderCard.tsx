@@ -9,6 +9,7 @@ interface OrderCardProps {
   pedido: PedidoConDetalles;
   onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
   onLlamarMesero: (id: number) => Promise<void>;
+  isDelivery?: boolean;
 }
 
 const nextEstado: Partial<Record<EstadoPedido, EstadoPedido>> = {
@@ -23,7 +24,7 @@ const nextLabel: Partial<Record<EstadoPedido, string>> = {
   LISTO: "Listo!",
 };
 
-export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero }: OrderCardProps) {
+export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
 
@@ -107,45 +108,47 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero }: OrderCardP
       )}
 
       {/* Acciones */}
-      <div className="flex border-t border-surface-border">
-        {siguiente && (
+      {!isDelivery && (
+        <div className="flex border-t border-surface-border">
+          {siguiente && (
+            <button
+              onClick={handleUpdate}
+              disabled={loading}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all",
+                pedido.estado === "PENDIENTE" && "bg-brand-500 hover:bg-brand-600 text-white",
+                pedido.estado === "EN_PROCESO" && "bg-amber-500 hover:bg-amber-600 text-white",
+                pedido.estado === "LISTO" && "bg-emerald-500 hover:bg-emerald-600 text-white",
+                "disabled:opacity-50"
+              )}
+            >
+              {loading ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <CheckCircle2 size={15} />
+              )}
+              {nextLabel[pedido.estado]}
+            </button>
+          )}
           <button
-            onClick={handleUpdate}
-            disabled={loading}
+            onClick={handleLlamarMesero}
+            disabled={loadingMesero || pedido.meseroLlamado}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all",
-              pedido.estado === "PENDIENTE" && "bg-brand-500 hover:bg-brand-600 text-white",
-              pedido.estado === "EN_PROCESO" && "bg-amber-500 hover:bg-amber-600 text-white",
-              pedido.estado === "LISTO" && "bg-emerald-500 hover:bg-emerald-600 text-white",
-              "disabled:opacity-50"
+              "px-4 py-3 text-sm font-medium transition-all border-l border-surface-border flex items-center gap-1.5 disabled:opacity-50",
+              pedido.meseroLlamado
+                ? "bg-amber-50 text-amber-600"
+                : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
             )}
           >
-            {loading ? (
-              <Loader2 size={15} className="animate-spin" />
+            {loadingMesero ? (
+              <Loader2 size={14} className="animate-spin" />
             ) : (
-              <CheckCircle2 size={15} />
+              <Bell size={14} className={pedido.meseroLlamado ? "animate-bounce" : ""} />
             )}
-            {nextLabel[pedido.estado]}
+            {pedido.meseroLlamado ? "Llamado" : "Llamar Mesero"}
           </button>
-        )}
-        <button
-          onClick={handleLlamarMesero}
-          disabled={loadingMesero || pedido.meseroLlamado}
-          className={cn(
-            "px-4 py-3 text-sm font-medium transition-all border-l border-surface-border flex items-center gap-1.5 disabled:opacity-50",
-            pedido.meseroLlamado
-              ? "bg-amber-50 text-amber-600"
-              : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
-          )}
-        >
-          {loadingMesero ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Bell size={14} className={pedido.meseroLlamado ? "animate-bounce" : ""} />
-          )}
-          {pedido.meseroLlamado ? "Llamado" : "Llamar Mesero"}
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

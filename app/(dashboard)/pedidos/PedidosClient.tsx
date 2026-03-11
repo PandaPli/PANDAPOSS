@@ -15,11 +15,15 @@ const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNod
   { key: "DELIVERY", label: "Delivery", icon: <Bike size={16} /> },
 ];
 
+import type { Rol } from "@/types";
+
 interface Props {
   pedidos: PedidoConDetalles[];
+  rol?: Rol;
 }
 
-export function PedidosClient({ pedidos: initial }: Props) {
+export function PedidosClient({ pedidos: initial, rol }: Props) {
+  const isDelivery = rol === "DELIVERY";
   const router = useRouter();
   const [pedidos, setPedidos] = useState(initial);
   const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">("TODOS");
@@ -146,7 +150,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
               </div>
             ) : (
               pendientes.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
+                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} isDelivery={isDelivery} />
               ))
             )}
           </div>
@@ -166,7 +170,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
               </div>
             ) : (
               enProceso.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
+                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} isDelivery={isDelivery} />
               ))
             )}
           </div>
@@ -186,7 +190,7 @@ export function PedidosClient({ pedidos: initial }: Props) {
               </div>
             ) : (
               listos.map((pedido) => (
-                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} />
+                <OrderCard key={pedido.id} pedido={pedido} onUpdateEstado={handleUpdateEstado} onLlamarMesero={handleLlamarMesero} isDelivery={isDelivery} />
               ))
             )}
           </div>

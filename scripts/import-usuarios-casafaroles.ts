@@ -5,18 +5,18 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-const SUCURSAL_ID = 2; // CasaFaroles
+const SUCURSAL_ID = 1; // CasaFaroles
 
 const usuarios = [
-  { nombre: "MARBELLA PAREDES MARQUEZ",   email: "paredesmarquez@gmail.com",    rol: "SECRETARY",      usuario: "ADMIN15",       password: "12345" },
-  { nombre: "CAROLINA CABRERA",           email: "secretariaebasica@gmail.com", rol: "ADMIN_SUCURSAL", usuario: "ADMIN",         password: "12345" },
-  { nombre: "LEIDA YARITZA RODRIGUEZ",    email: "leiday@gmail.com",            rol: "CASHIER",        usuario: "CAJERO123",     password: "12345" },
-  { nombre: "CARLOS JESUS GUTIERREZ",     email: "cjg@gmail.com",               rol: "WAITER",         usuario: "MESERO123",     password: "12345" },
-  { nombre: "PEDRO JESUS CHIRINOS",       email: "jesusch@gmail.com",           rol: "CHEF",           usuario: "COCINERO123",   password: "12345" },
-  { nombre: "RAFAEL CLEMENTINO CONTRERAS",email: "clemen@gmail.com",            rol: "BAR",            usuario: "BARRA123",      password: "12345" },
-  { nombre: "SUSANA CAROLINA MORA DURAN", email: "carlosduran@gmail.com",       rol: "PASTRY",         usuario: "PASTELERIA123", password: "12345" },
-  { nombre: "RAFAEL CHAVEZ RAMIREZ",      email: "rafaelchav@gmail.com",        rol: "DELIVERY",       usuario: "REPARTIDOR123", password: "12345" },
-  { nombre: "KARLA",                      email: "karlafaroles@gmail.com",      rol: "WAITER",         usuario: "KARLA",         password: "12345" },
+  { nombre: "MARBELLA PAREDES MARQUEZ",    email: "paredesmarquez@gmail.com",    rol: "SECRETARY",      usuario: "MARBELLA", password: "12345" },
+  { nombre: "CAROLINA CABRERA",            email: "secretariaebasica@gmail.com", rol: "ADMIN_SUCURSAL", usuario: "ADMIN",    password: "12345" },
+  { nombre: "LEIDA YARITZA RODRIGUEZ",     email: "leiday@gmail.com",            rol: "CASHIER",        usuario: "LEIDA",    password: "12345" },
+  { nombre: "CARLOS JESUS GUTIERREZ",      email: "cjg@gmail.com",               rol: "WAITER",         usuario: "CARLOS",   password: "12345" },
+  { nombre: "PEDRO JESUS CHIRINOS",        email: "jesusch@gmail.com",           rol: "CHEF",           usuario: "PEDRO",    password: "12345" },
+  { nombre: "RAFAEL CLEMENTINO CONTRERAS", email: "clemen@gmail.com",            rol: "BAR",            usuario: "CLEMEN",   password: "12345" },
+  { nombre: "SUSANA CAROLINA MORA DURAN",  email: "carlosduran@gmail.com",       rol: "PASTRY",         usuario: "SUSANA",   password: "12345" },
+  { nombre: "RAFAEL CHAVEZ RAMIREZ",       email: "rafaelchav@gmail.com",        rol: "DELIVERY",       usuario: "RAFA",     password: "12345" },
+  { nombre: "KARLA",                       email: "karlafaroles@gmail.com",      rol: "WAITER",         usuario: "KARLA",    password: "12345" },
 ];
 
 async function main() {

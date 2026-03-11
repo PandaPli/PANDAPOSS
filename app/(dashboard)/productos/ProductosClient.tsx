@@ -31,7 +31,7 @@ interface Props {
 }
 
 const emptyForm = {
-  codigo: "", nombre: "", precio: "", categoriaId: "",
+  codigo: "", nombre: "", precio: "", categoriaId: "", sucursalId: "",
   ivaActivo: false, ivaPorc: "0", enMenu: true,
 };
 
@@ -70,6 +70,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
     setForm({
       codigo: p.codigo, nombre: p.nombre, precio: String(p.precio),
       categoriaId: p.categoriaId ? String(p.categoriaId) : "",
+      sucursalId: p.sucursalId ? String(p.sucursalId) : "",
       ivaActivo: p.ivaActivo, ivaPorc: "0", enMenu: p.enMenu,
     });
     setError("");
@@ -87,6 +88,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       nombre: form.nombre,
       precio: Number(form.precio),
       categoriaId: form.categoriaId ? Number(form.categoriaId) : null,
+      sucursalId: form.sucursalId ? Number(form.sucursalId) : null,
       ivaActivo: form.ivaActivo,
       ivaPorc: Number(form.ivaPorc),
       enMenu: form.enMenu,
@@ -237,6 +239,17 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   required placeholder="Nombre del producto" />
               </div>
+
+              {rol === "ADMIN_GENERAL" && (
+                <div>
+                  <label className="label">Sucursal</label>
+                  <select className="input" value={form.sucursalId}
+                    onChange={(e) => setForm({ ...form, sucursalId: e.target.value })}>
+                    <option value="">Global (Todas las sucursales)</option>
+                    {sucursales.map((s) => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

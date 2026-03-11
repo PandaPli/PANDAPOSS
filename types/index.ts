@@ -36,6 +36,7 @@ export interface CartItem {
   cantidad: number;
   observacion?: string;
   imagen?: string;
+  guardado?: boolean; // Indica si ya está en la BD
 }
 
 // Pagos

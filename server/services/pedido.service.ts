@@ -27,6 +27,7 @@ export interface UpdatePedidoInput {
   repartidorId?: number | null;
   direccionEntrega?: string | null;
   telefonoCliente?: string | null;
+  nuevosItems?: PedidoItem[];
 }
 
 export const PedidoService = {
@@ -82,10 +83,21 @@ export const PedidoService = {
     // Al entregar, limpiar llamada al mesero
     if (estado === "ENTREGADO") data.meseroLlamado = false;
 
+    if (input.nuevosItems && input.nuevosItems.length > 0) {
+      data.detalles = {
+        create: input.nuevosItems.map((item) => ({
+          productoId: item.productoId ?? null,
+          comboId: item.comboId ?? null,
+          cantidad: item.cantidad,
+          observacion: item.observacion ?? null,
+        })),
+      };
+    }
+
     const pedido = await prisma.pedido.update({
       where: { id },
       data,
-      include: { mesa: true },
+      include: { mesa: true, detalles: true },
     });
 
     // Auto-liberar mesa cuando no quedan pedidos activos

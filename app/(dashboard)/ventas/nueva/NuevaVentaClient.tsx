@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProductGrid } from "@/components/pos/ProductGrid";
 import { CartPanel } from "@/components/pos/CartPanel";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
-import type { ProductoCard } from "@/types";
+import type { ProductoCard, CartItem } from "@/types";
 import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
@@ -20,9 +20,18 @@ interface Props {
   cajaId?: number;
   cajaNombre?: string;
   meseroNombre?: string;
+  initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
 }
 
-export function NuevaVentaClient({ productos, simbolo, usuarioId, cajaId, cajaNombre, meseroNombre }: Props) {
+export function NuevaVentaClient({
+  productos,
+  simbolo,
+  usuarioId,
+  cajaId,
+  cajaNombre,
+  meseroNombre,
+  initialOrder,
+}: Props) {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPrecuenta, setShowPrecuenta] = useState(false);
@@ -30,30 +39,57 @@ export function NuevaVentaClient({ productos, simbolo, usuarioId, cajaId, cajaNo
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  const { items, mesaId, setPedido, total } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved } = useCartStore();
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
 
+  // Hidratar estado inicial
+  useEffect(() => {
+    if (initialOrder && items.length === 0 && !pedidoId) {
+      setInitialState(initialOrder.items, initialOrder.id, initialOrder.mesaId);
+    }
+  }, [initialOrder, items.length, pedidoId, setInitialState]);
+
   async function handleOrden() {
-    if (items.length === 0) return;
+    // Filtrar solo items que NO están guardados en la BD
+    const nuevosItems = items.filter((i) => !i.guardado);
+    
+    if (nuevosItems.length === 0) {
+      setOrdenMsg("No hay productos nuevos para enviar");
+      setTimeout(() => setOrdenMsg(""), 3000);
+      return;
+    }
 
     setOrdenLoading(true);
     setOrdenMsg("");
 
     try {
-      const body = {
-        mesaId: mesaId || null,
-        cajaId: cajaId || null,
-        tipo: "COCINA",
-        items: items.map((i) => ({
-          productoId: i.tipo === "producto" ? i.id : null,
-          comboId: i.tipo === "combo" ? i.id : null,
-          cantidad: i.cantidad,
-          observacion: i.observacion || null,
-        })),
-      };
+      const isUpdate = !!pedidoId;
+      const url = isUpdate ? `/api/pedidos/${pedidoId}` : "/api/pedidos";
+      const method = isUpdate ? "PATCH" : "POST";
 
-      const res = await fetch("/api/pedidos", {
-        method: "POST",
+      const body = isUpdate
+        ? {
+            nuevosItems: nuevosItems.map((i) => ({
+              productoId: i.tipo === "producto" ? i.id : null,
+              comboId: i.tipo === "combo" ? i.id : null,
+              cantidad: i.cantidad,
+              observacion: i.observacion || null,
+            })),
+          }
+        : {
+            mesaId: mesaId || null,
+            cajaId: cajaId || null,
+            tipo: "COCINA",
+            items: nuevosItems.map((i) => ({
+              productoId: i.tipo === "producto" ? i.id : null,
+              comboId: i.tipo === "combo" ? i.id : null,
+              cantidad: i.cantidad,
+              observacion: i.observacion || null,
+            })),
+          };
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -64,8 +100,12 @@ export function NuevaVentaClient({ productos, simbolo, usuarioId, cajaId, cajaNo
       }
 
       const pedido = await res.json();
-      setPedido(pedido.id);
-      setOrdenMsg(`Orden #${pedido.id} enviada a cocina`);
+      if (!isUpdate) setPedido(pedido.id);
+      
+      // Marcar los nuevos items como guardados localmente
+      markAsSaved();
+
+      setOrdenMsg(isUpdate ? "Orden actualizada" : `Orden #${pedido.id} enviada`);
       setTimeout(() => setOrdenMsg(""), 4000);
     } catch (e) {
       setOrdenMsg((e as Error).message);

@@ -83,7 +83,7 @@ export default async function PedidosPage() {
         </div>
       )}
 
-      <PedidosClient pedidos={data} />
+      <PedidosClient pedidos={data} rol={rol} />
     </div>
   );
 }

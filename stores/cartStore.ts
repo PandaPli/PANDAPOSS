@@ -19,6 +19,8 @@ interface CartState {
   setDescuento: (v: number) => void;
   setIva: (v: number) => void;
   clear: () => void;
+  setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
+  markAsSaved: () => void;
 
   // Calculados
   subtotal: () => number;
@@ -83,6 +85,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   setDescuento: (v) => set({ descuento: v }),
   setIva: (v) => set({ ivaPorc: v }),
   clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0 }),
+  setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
+  markAsSaved: () => set((s) => ({ items: s.items.map((i) => ({ ...i, guardado: true })) })),
 
   subtotal: () =>
     get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),

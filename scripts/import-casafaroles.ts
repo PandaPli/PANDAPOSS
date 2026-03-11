@@ -1,53 +1,286 @@
 /**
  * Script de importación masiva — CasaFaroles
- * Fuente: productos_cargamasiva_CasaFaroles.csv
+ * Fuente: planilla_carga_completa_CasaFaroles_2.xlsx (257 productos)
+ * Generado: 2026-03-10
  */
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const SUCURSAL_ID = 2; // CasaFaroles
+const SUCURSAL_ID = 1; // CasaFaroles
 
-// Datos del CSV — precios en CLP (S/. = símbolo local)
 const csvData = [
-  { codigo: "153",  categoria: "BAR",          nombre: "A CARMEN ETIQUETA NEGRA",  precio: 6900 },
-  { codigo: "119",  categoria: "BAR",          nombre: "ABSOLUT",                  precio: 6500 },
-  { codigo: "135",  categoria: "BAR",          nombre: "ABSOLUT SABORES",          precio: 6900 },
-  { codigo: "190",  categoria: "SIN ALCOHOL",  nombre: "AGUA CON GAS",             precio: 1900 },
-  { codigo: "850",  categoria: "SIN ALCOHOL",  nombre: "AGUA CON GAS (2)",         precio: 1900 },
-  { codigo: "195",  categoria: "SIN ALCOHOL",  nombre: "AGUA SIN GAS",             precio: 1900 },
-  { codigo: "68",   categoria: "BAR",          nombre: "ALTO DEL CARMEN 35",       precio: 4900 },
-  { codigo: "851",  categoria: "BAR",          nombre: "ALTO DEL CARMEN 35°",      precio: 4900 },
-  { codigo: "150",  categoria: "BAR",          nombre: "ALTO DEL CARMEN 40°",      precio: 5800 },
-  { codigo: "151",  categoria: "BAR",          nombre: "ALTO TRANSP 40°",          precio: 5900 },
-  { codigo: "1001", categoria: "BAR",          nombre: "AMARETTO",                 precio: 5900 },
-  { codigo: "2",    categoria: "BAR",          nombre: "AMARETTO DISARONNO",       precio: 6900 },
-  { codigo: "1",    categoria: "BEBIDAS",      nombre: "AMARETTO SOUR",            precio: 5900 },
-  { codigo: "31",   categoria: "BAR",          nombre: "APEROL",                   precio: 6900 },
-  { codigo: "186",  categoria: "BAR",          nombre: "APEROL MARACUYA",          precio: 7900 },
-  { codigo: "63",   categoria: "BROCHETAS",    nombre: "ARPONES DE CARNE",         precio: 12900 },
-  { codigo: "64",   categoria: "BROCHETAS",    nombre: "ARPONES DE POLLO",         precio: 10900 },
-  { codigo: "89",   categoria: "BAR",          nombre: "AUSTRAL CALAFATE",         precio: 4500 },
-  { codigo: "852",  categoria: "BAR",          nombre: "AUSTRAL CALAFATE (2)",     precio: 4500 },
-  { codigo: "116",  categoria: "BAR",          nombre: "AUSTRAL CALAFATE 500CC",   precio: 5800 },
-  { codigo: "90",   categoria: "BAR",          nombre: "AUSTRAL LAGER",            precio: 4500 },
-  { codigo: "91",   categoria: "BAR",          nombre: "AUSTRAL TORRES DEL PAINE", precio: 4500 },
-  { codigo: "270",  categoria: "SANDWICHS AVE",nombre: "AVE ALEMAN",               precio: 7800 },
-  { codigo: "184",  categoria: "SANDWICHS AVE",nombre: "AVE CHACARERA",            precio: 7800 },
-  { codigo: "271",  categoria: "SANDWICHS AVE",nombre: "AVE COMPLETO",             precio: 7800 },
-  { codigo: "273",  categoria: "SANDWICHS AVE",nombre: "AVE ITALIANA",             precio: 8800 },
-  { codigo: "274",  categoria: "SANDWICHS AVE",nombre: "AVE LUCO",                 precio: 7700 },
-  { codigo: "278",  categoria: "SANDWICHS AVE",nombre: "AVE MAYO",                 precio: 7600 },
-  { codigo: "277",  categoria: "SANDWICHS AVE",nombre: "AVE PALTA",                precio: 7600 },
-  { codigo: "275",  categoria: "SANDWICHS AVE",nombre: "AVE PIMENTON",             precio: 7400 },
-  { codigo: "183",  categoria: "SANDWICHS AVE",nombre: "AVE SOLA",                 precio: 7200 },
-  { codigo: "276",  categoria: "SANDWICHS AVE",nombre: "AVE TOMATE",               precio: 7600 },
+  { codigo: "CF-0153", categoria: "BAR", nombre: "A CARMEN ETIQUETA NEGRA", costo: 1500, precio: 6900, stock: 25, stockMinimo: 20 },
+  { codigo: "CF-0119", categoria: "BAR", nombre: "ABSOLUT", costo: 1500, precio: 6500, stock: 3, stockMinimo: 10 },
+  { codigo: "CF-0135", categoria: "BAR", nombre: "ABSOLUT SABORES", costo: 1500, precio: 6900, stock: 16, stockMinimo: 10 },
+  { codigo: "CF-0190", categoria: "SIN ALCOHOL", nombre: "AGUA CON GAS", costo: 700, precio: 1900, stock: 0, stockMinimo: 5 },
+  { codigo: "CF-0850", categoria: "SIN ALCOHOL", nombre: "AGUA CON GAS", costo: 700, precio: 1900, stock: 985, stockMinimo: 999 },
+  { codigo: "CF-0195", categoria: "SIN ALCOHOL", nombre: "AGUA SIN GAS", costo: 700, precio: 1900, stock: 14, stockMinimo: 0 },
+  { codigo: "CF-0068", categoria: "BAR", nombre: "ALTO DEL CARMEN 35", costo: 500, precio: 4900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-0851", categoria: "BAR", nombre: "ALTO DEL CARMEN 35°", costo: 1500, precio: 4900, stock: 972, stockMinimo: 999 },
+  { codigo: "CF-0150", categoria: "BAR", nombre: "ALTO DEL CARMEN 40°", costo: 1500, precio: 5800, stock: 8, stockMinimo: 15 },
+  { codigo: "CF-0151", categoria: "BAR", nombre: "ALTO TRANSP 40°", costo: 1500, precio: 5900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-1001", categoria: "BAR", nombre: "AMARETTO", costo: 500, precio: 5900, stock: 9998, stockMinimo: 999 },
+  { codigo: "CF-0002", categoria: "BAR", nombre: "AMARETTO DISARONNO", costo: 500, precio: 6900, stock: 99, stockMinimo: 30 },
+  { codigo: "CF-0001", categoria: "BEBIDAS", nombre: "AMARETTO SOUR", costo: 500, precio: 5900, stock: 497, stockMinimo: 50 },
+  { codigo: "CF-0031", categoria: "BAR", nombre: "APEROL", costo: 100, precio: 6900, stock: 949, stockMinimo: 500 },
+  { codigo: "CF-0186", categoria: "BAR", nombre: "APEROL MARACUYA", costo: 1500, precio: 7900, stock: 9, stockMinimo: 5 },
+  { codigo: "CF-0063", categoria: "BROCHETAS", nombre: "ARPONES DE CARNE", costo: 5000, precio: 12900, stock: 41, stockMinimo: 0 },
+  { codigo: "CF-0064", categoria: "BROCHETAS", nombre: "ARPONES DE POLLO", costo: 5000, precio: 10900, stock: 39, stockMinimo: 20 },
+  { codigo: "CF-0089", categoria: "BAR", nombre: "AUSTRAL CALAFATE", costo: 1500, precio: 4500, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-0852", categoria: "BAR", nombre: "AUSTRAL CALAFATE", costo: 1300, precio: 4500, stock: 980, stockMinimo: 999 },
+  { codigo: "CF-0116", categoria: "BAR", nombre: "AUSTRAL CALAFATE 500CC", costo: 1500, precio: 5800, stock: 13, stockMinimo: 12 },
+  { codigo: "CF-0090", categoria: "BAR", nombre: "AUSTRAL LAGER", costo: 1500, precio: 4500, stock: 18, stockMinimo: 12 },
+  { codigo: "CF-0091", categoria: "BAR", nombre: "AUSTRAL TORRES DEL PAINE", costo: 1500, precio: 4500, stock: 23, stockMinimo: 10 },
+  { codigo: "CF-0270", categoria: "SANDWICHS AVE", nombre: "AVE ALEMAN", costo: 1000, precio: 7800, stock: 100, stockMinimo: 80 },
+  { codigo: "CF-0184", categoria: "SANDWICHS AVE", nombre: "AVE CHACARERA", costo: 1500, precio: 7800, stock: 16, stockMinimo: 5 },
+  { codigo: "CF-0271", categoria: "SANDWICHS AVE", nombre: "AVE COMPLETO", costo: 1000, precio: 7800, stock: 100, stockMinimo: 80 },
+  { codigo: "CF-0273", categoria: "SANDWICHS AVE", nombre: "AVE ITALIANA", costo: 1000, precio: 8800, stock: 99, stockMinimo: 90 },
+  { codigo: "CF-0274", categoria: "SANDWICHS AVE", nombre: "AVE LUCO", costo: 1000, precio: 7700, stock: 99, stockMinimo: 90 },
+  { codigo: "CF-0278", categoria: "SANDWICHS AVE", nombre: "AVE MAYO", costo: 1000, precio: 7600, stock: 100, stockMinimo: 50 },
+  { codigo: "CF-0277", categoria: "SANDWICHS AVE", nombre: "AVE PALTA", costo: 1000, precio: 7600, stock: 97, stockMinimo: 90 },
+  { codigo: "CF-0275", categoria: "SANDWICHS AVE", nombre: "AVE PIMENTON", costo: 1000, precio: 7400, stock: 100, stockMinimo: 80 },
+  { codigo: "CF-0183", categoria: "SANDWICHS AVE", nombre: "AVE SOLA", costo: 1500, precio: 7200, stock: 49, stockMinimo: 15 },
+  { codigo: "CF-0276", categoria: "SANDWICHS AVE", nombre: "AVE TOMATE", costo: 1000, precio: 7600, stock: 100, stockMinimo: 90 },
+  { codigo: "CF-0500", categoria: "BAR", nombre: "BAIILEYS", costo: 1000, precio: 5900, stock: 999, stockMinimo: 999 },
+  { codigo: "CF-0103", categoria: "BAR", nombre: "BALLANTINES 7 AÑOS", costo: 1500, precio: 6900, stock: 20, stockMinimo: 10 },
+  { codigo: "CF-0012", categoria: "BAR", nombre: "BAR ABIERTO", costo: 500, precio: 14990, stock: 112, stockMinimo: 50 },
+  { codigo: "CF-0110", categoria: "BAR", nombre: "BARCELO AÑEJO", costo: 1500, precio: 6200, stock: 1, stockMinimo: 12 },
+  { codigo: "CF-1000", categoria: "COCINA", nombre: "BARROS LUCO", costo: 1500, precio: 6900, stock: 1498, stockMinimo: 1490 },
+  { codigo: "CF-0099", categoria: "BAR", nombre: "BASE CHELADA SABORES", costo: 500, precio: 2500, stock: 14, stockMinimo: 15 },
+  { codigo: "CF-0098", categoria: "BAR", nombre: "BASE MICHELADA SABORES", costo: 500, precio: 2500, stock: 19, stockMinimo: 12 },
+  { codigo: "CF-0124", categoria: "BAR", nombre: "BEEFEATER", costo: 1500, precio: 6700, stock: 12, stockMinimo: 15 },
+  { codigo: "CF-0126", categoria: "BAR", nombre: "BEEFEATER PINK", costo: 1500, precio: 6900, stock: 22, stockMinimo: 15 },
+  { codigo: "CF-0118", categoria: "BAR", nombre: "BEEFETER PINK+BERRIERS", costo: 1500, precio: 7100, stock: 9, stockMinimo: 10 },
+  { codigo: "CF-0127", categoria: "BAR", nombre: "BOMBAY", costo: 1500, precio: 6900, stock: 14, stockMinimo: 12 },
+  { codigo: "CF-0076", categoria: "BAR", nombre: "BUDWEISER", costo: 700, precio: 3500, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-0785", categoria: "BAR", nombre: "BUDWEISER PROMO", costo: 780, precio: 2500, stock: 1000, stockMinimo: 999 },
+  { codigo: "CF-0129", categoria: "BAR", nombre: "BULLDOG", costo: 1500, precio: 7900, stock: 20, stockMinimo: 15 },
+  { codigo: "CF-0206", categoria: "COCINA", nombre: "CAFE", costo: 500, precio: 1900, stock: 496, stockMinimo: 50 },
+  { codigo: "CF-0703", categoria: "BAR", nombre: "CAIPIRIÑA", costo: 500, precio: 5900, stock: 994, stockMinimo: 500 },
+  { codigo: "CF-0058", categoria: "PAPAS FRITAS", nombre: "CAMARONES FAROLES", costo: 5000, precio: 15900, stock: 33, stockMinimo: 20 },
+  { codigo: "CF-0900", categoria: "BAR", nombre: "CAMPARI NARANJA", costo: 1000, precio: 7100, stock: 999, stockMinimo: 999 },
+  { codigo: "CF-0081", categoria: "BAR", nombre: "CERVEZA SIN ALCOHOL", costo: 700, precio: 3500, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-10523", categoria: "BAR", nombre: "CERVEZA SIN ALCOHOL", costo: 500, precio: 3500, stock: 8, stockMinimo: 10520000 },
+  { codigo: "CF-2002", categoria: "BAR", nombre: "CERVEZAS", costo: 700, precio: 2500, stock: 1500, stockMinimo: 1490 },
+  { codigo: "CF-0216", categoria: "CEVICHES", nombre: "CEVICHE DE CHAMPIÑONES", costo: 2000, precio: 10900, stock: 58, stockMinimo: 40 },
+  { codigo: "CF-0210", categoria: "CEVICHES", nombre: "CEVICHE DE LA CASA", costo: 1500, precio: 12900, stock: 9, stockMinimo: 5 },
+  { codigo: "CF-0266", categoria: "CEVICHES", nombre: "CEVICHE GRAN FAROL", costo: 500, precio: 14900, stock: 92, stockMinimo: 90 },
+  { codigo: "CF-0230", categoria: "CEVICHES", nombre: "CEVICHE MIXTO", costo: 500, precio: 13900, stock: 1484, stockMinimo: 500 },
+  { codigo: "CF-0026", categoria: "BAR", nombre: "CHARDONNAY SOUR", costo: 500, precio: 5900, stock: 98, stockMinimo: 50 },
+  { codigo: "CF-0078", categoria: "BAR", nombre: "CHELADA", costo: 500, precio: 1500, stock: 0, stockMinimo: 1490 },
+  { codigo: "CF-0853", categoria: "BAR", nombre: "CHELADA", costo: 500, precio: 1500, stock: 954, stockMinimo: 999 },
+  { codigo: "CF-0105", categoria: "BAR", nombre: "CHIVAS REGAL", costo: 1500, precio: 9900, stock: 24, stockMinimo: 10 },
+  { codigo: "CF-0003", categoria: "BAR", nombre: "CLAVO OXIDADO", costo: 500, precio: 6900, stock: 84, stockMinimo: 50 },
+  { codigo: "CF-0290", categoria: "BEBIDAS", nombre: "COCA 220", costo: 5, precio: 10, stock: 14, stockMinimo: 90000 },
+  { codigo: "CF-0046", categoria: "BEBIDAS", nombre: "COCA 220 CC", costo: 10, precio: 10, stock: 0, stockMinimo: 30 },
+  { codigo: "CF-0854", categoria: "BEBIDAS", nombre: "COCA COLA 220", costo: 5, precio: 10, stock: 9991, stockMinimo: 99999 },
+  { codigo: "CF-10522", categoria: "BEBIDAS", nombre: "COCA COLA 330", costo: 200, precio: 1900, stock: 105199990, stockMinimo: 10520000 },
+  { codigo: "CF-0045", categoria: "BEBIDAS", nombre: "COCA COLA 330 CC", costo: 700, precio: 1900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-10521", categoria: "BEBIDAS", nombre: "COCA COLA 330CC", costo: 200, precio: 1900, stock: 10499972, stockMinimo: 10500000 },
+  { codigo: "CF-0191", categoria: "BEBIDAS", nombre: "COCA COLA ZERO", costo: 700, precio: 1900, stock: 0, stockMinimo: 6 },
+  { codigo: "CF-0291", categoria: "BEBIDAS", nombre: "COCA ZER 220", costo: 5, precio: 10, stock: 0, stockMinimo: 10000 },
+  { codigo: "CF-0047", categoria: "BEBIDAS", nombre: "COCA ZERO 220", costo: 10, precio: 10, stock: 0, stockMinimo: 50 },
+  { codigo: "CF-0780", categoria: "BEBIDAS", nombre: "COCA ZERO 220 CC", costo: 448, precio: 1200, stock: 77, stockMinimo: 99999 },
+  { codigo: "CF-0860", categoria: "BEBIDAS", nombre: "COCA ZERO 220CC", costo: 5, precio: 10, stock: 9951, stockMinimo: 99999 },
+  { codigo: "CF-0859", categoria: "BEBIDAS", nombre: "COCA ZERO 330", costo: 700, precio: 1900, stock: 0, stockMinimo: 99000 },
+  { codigo: "CF-0185", categoria: "BAR", nombre: "COPA DE SANGRIA", costo: 1500, precio: 4900, stock: 26, stockMinimo: 15 },
+  { codigo: "CF-0168", categoria: "BAR", nombre: "COPA DE VINO", costo: 500, precio: 4900, stock: 19, stockMinimo: 10 },
+  { codigo: "CF-0074", categoria: "BAR", nombre: "CORONA", costo: 700, precio: 3500, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-1050", categoria: "BAR", nombre: "CORONA", costo: 700, precio: 3500, stock: 155, stockMinimo: 200000 },
+  { codigo: "CF-0871", categoria: "BAR", nombre: "CORONA 330 CC", costo: 700, precio: 3500, stock: 9988, stockMinimo: 99999 },
+  { codigo: "CF-0350", categoria: "BAR", nombre: "CORONA 330CC", costo: 700, precio: 3500, stock: 0, stockMinimo: 10000 },
+  { codigo: "CF-0005", categoria: "BAR", nombre: "DAIQUIRI", costo: 500, precio: 6500, stock: 98, stockMinimo: 50 },
+  { codigo: "CF-0008", categoria: "BAR", nombre: "DAIQUIRI FRAMBUEZA", costo: 500, precio: 6900, stock: 86, stockMinimo: 50 },
+  { codigo: "CF-0010", categoria: "BAR", nombre: "DAIQUIRI FRUTILLA", costo: 500, precio: 6900, stock: 96, stockMinimo: 50 },
+  { codigo: "CF-0007", categoria: "BAR", nombre: "DAIQUIRI MARACUYA", costo: 500, precio: 6900, stock: 93, stockMinimo: 50 },
+  { codigo: "CF-0011", categoria: "BAR", nombre: "DAIQUIRI MSNGO", costo: 500, precio: 6900, stock: 94, stockMinimo: 50 },
+  { codigo: "CF-0009", categoria: "BAR", nombre: "DAIQUIRI PIÑA", costo: 500, precio: 6900, stock: 95, stockMinimo: 50 },
+  { codigo: "CF-0096", categoria: "BAR", nombre: "DOLBEK MAQUI", costo: 1500, precio: 4500, stock: 14, stockMinimo: 15 },
+  { codigo: "CF-0006", categoria: "BAR", nombre: "DSIQUIRI MANGO", costo: 500, precio: 6900, stock: 100, stockMinimo: 50 },
+  { codigo: "CF-2005", categoria: "BAR", nombre: "ESPUMANTE BRUT", costo: 1500, precio: 14900, stock: 996, stockMinimo: 990 },
+  { codigo: "CF-0182", categoria: "BEBIDAS", nombre: "FANTA 330CC", costo: 700, precio: 1900, stock: 9, stockMinimo: 5 },
+  { codigo: "CF-0189", categoria: "BAR", nombre: "FERNET", costo: 1000, precio: 5900, stock: 0, stockMinimo: 99999 },
+  { codigo: "CF-1500", categoria: "BAR", nombre: "FERNET", costo: 1000, precio: 5900, stock: 99993, stockMinimo: 99999 },
+  { codigo: "CF-2001", categoria: "BAR", nombre: "GIN 3500", costo: 1000, precio: 3500, stock: 1496, stockMinimo: 1490 },
+  { codigo: "CF-14521452000", categoria: "BAR", nombre: "GIN REDBULL", costo: 7400, precio: 7400, stock: 152487567, stockMinimo: 14526958 },
+  { codigo: "CF-0790", categoria: "BAR", nombre: "GIN TONIC PROMO", costo: 1500, precio: 3900, stock: 993, stockMinimo: 999 },
+  { codigo: "CF-0044", categoria: "BAR", nombre: "GINGER 220CC", costo: 10, precio: 10, stock: 23, stockMinimo: 50 },
+  { codigo: "CF-0122", categoria: "BAR", nombre: "GINGER 330CC", costo: 700, precio: 2700, stock: 19, stockMinimo: 5 },
+  { codigo: "CF-0104", categoria: "BAR", nombre: "GLENFIDDICH 12 AÑOS", costo: 2000, precio: 10900, stock: 21, stockMinimo: 20 },
+  { codigo: "CF-0111", categoria: "BAR", nombre: "HAVANNA 7 AÑOS", costo: 1500, precio: 8900, stock: 2, stockMinimo: 12 },
+  { codigo: "CF-0123", categoria: "BAR", nombre: "HAVANNA ESPECIAL", costo: 1500, precio: 5900, stock: 21, stockMinimo: 10 },
+  { codigo: "CF-0115", categoria: "BAR", nombre: "HAVANNA RESERVA", costo: 1500, precio: 6900, stock: 15, stockMinimo: 12 },
+  { codigo: "CF-0077", categoria: "BAR", nombre: "HEINEKER", costo: 700, precio: 3500, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-0800", categoria: "BAR", nombre: "HEINEKER", costo: 700, precio: 3500, stock: 920, stockMinimo: 999 },
+  { codigo: "CF-0872", categoria: "BAR", nombre: "HEINEKER", costo: 1300, precio: 3500, stock: 9996, stockMinimo: 99999 },
+  { codigo: "CF-0781", categoria: "BAR", nombre: "HEINEKER PROMO", costo: 780, precio: 2500, stock: 999, stockMinimo: 999 },
+  { codigo: "CF-0131", categoria: "BAR", nombre: "HENDRICKS", costo: 1500, precio: 8900, stock: 19, stockMinimo: 20 },
+  { codigo: "CF-0159", categoria: "BAR", nombre: "HORCON QUEMADO 35°", costo: 1500, precio: 6100, stock: 21, stockMinimo: 20 },
+  { codigo: "CF-0160", categoria: "BAR", nombre: "HORCON QUEMADO 40°", costo: 1500, precio: 6500, stock: 25, stockMinimo: 20 },
+  { codigo: "CF-0161", categoria: "BAR", nombre: "HORCON QUEMADO 46°", costo: 1500, precio: 6900, stock: 19, stockMinimo: 20 },
+  { codigo: "CF-0050", categoria: "BAR", nombre: "JACK DANIEL HONEY", costo: 1500, precio: 6900, stock: 942, stockMinimo: 50 },
+  { codigo: "CF-10530", categoria: "BAR", nombre: "JACK DANIEL N°7", costo: 500, precio: 6900, stock: 999953, stockMinimo: 100000 },
+  { codigo: "CF-0049", categoria: "BAR", nombre: "JACK DANIEL OLD 7", costo: 1500, precio: 6900, stock: 0, stockMinimo: 50 },
+  { codigo: "CF-2003", categoria: "BAR", nombre: "JACK DANIEL OLD N°7", costo: 1500, precio: 6900, stock: 0, stockMinimo: 14900 },
+  { codigo: "CF-0051", categoria: "BAR", nombre: "JACK DANIELS APPLE", costo: 1500, precio: 6900, stock: 5, stockMinimo: 20 },
+  { codigo: "CF-0004", categoria: "BAR", nombre: "JACK DANIELS OXIDADO", costo: 500, precio: 8900, stock: 99, stockMinimo: 50 },
+  { codigo: "CF-0260", categoria: "BAR", nombre: "JAGERMEISTER", costo: 500, precio: 6300, stock: 4998, stockMinimo: 1000 },
+  { codigo: "CF-0072", categoria: "BAR", nombre: "JARRA DE SANGRIA", costo: 5000, precio: 16900, stock: 16, stockMinimo: 5 },
+  { codigo: "CF-50300", categoria: "BAR", nombre: "JOHNIE ROJO", costo: 500, precio: 6300, stock: 99999983, stockMinimo: 1000000 },
+  { codigo: "CF-0041", categoria: "BAR", nombre: "JOHNIIE BLACK LABEL", costo: 1000, precio: 7400, stock: 13, stockMinimo: 50 },
+  { codigo: "CF-0101", categoria: "BAR", nombre: "JOHNNIE RED LABEL", costo: 1500, precio: 6300, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-0100", categoria: "BAR", nombre: "JOHNNIE WALKER DOUBLE BLACK", costo: 1500, precio: 8500, stock: 5, stockMinimo: 15 },
+  { codigo: "CF-0176", categoria: "SIN ALCOHOL", nombre: "JUGO DE PIÑA", costo: 1500, precio: 4900, stock: 12, stockMinimo: 0 },
+  { codigo: "CF-0173", categoria: "BAR", nombre: "JUGO FRAMBUEZA", costo: 1500, precio: 4900, stock: 0, stockMinimo: 10 },
+  { codigo: "CF-0174", categoria: "SIN ALCOHOL", nombre: "JUGO MANGO", costo: 1500, precio: 4900, stock: 0, stockMinimo: 10 },
+  { codigo: "CF-0175", categoria: "SIN ALCOHOL", nombre: "JUGO MARACUYA", costo: 1500, precio: 4900, stock: 10, stockMinimo: 5 },
+  { codigo: "CF-2006", categoria: "BAR", nombre: "KALUA", costo: 1000, precio: 4900, stock: 1000, stockMinimo: 500 },
+  { codigo: "CF-0083", categoria: "BAR", nombre: "KROSS GOLDEN", costo: 1500, precio: 4500, stock: 13, stockMinimo: 12 },
+  { codigo: "CF-0084", categoria: "BAR", nombre: "KUNSTMAN ARANDANO", costo: 1500, precio: 4500, stock: 18, stockMinimo: 12 },
+  { codigo: "CF-0085", categoria: "BAR", nombre: "KUNSTMAN LAGER", costo: 1500, precio: 4500, stock: 16, stockMinimo: 12 },
+  { codigo: "CF-0087", categoria: "BAR", nombre: "KUNSTMAN SIN ALCOHOL", costo: 1500, precio: 4500, stock: 13, stockMinimo: 20 },
+  { codigo: "CF-0088", categoria: "BAR", nombre: "KUNSTMAN TOROBAYO", costo: 1500, precio: 4500, stock: 0, stockMinimo: 12 },
+  { codigo: "CF-0086", categoria: "BAR", nombre: "KUNSTMANM MIEL", costo: 1500, precio: 4500, stock: 11, stockMinimo: 12 },
+  { codigo: "CF-0177", categoria: "SIN ALCOHOL", nombre: "LIMONADA CLASICA", costo: 1500, precio: 4500, stock: 15, stockMinimo: 5 },
+  { codigo: "CF-0107", categoria: "SIN ALCOHOL", nombre: "LIMONADA MENTA JENGIBRE", costo: 1500, precio: 4900, stock: 0, stockMinimo: 10 },
+  { codigo: "CF-0162", categoria: "BAR", nombre: "MAL PASO PEDRO JIMENEZ", costo: 1500, precio: 6900, stock: 19, stockMinimo: 20 },
+  { codigo: "CF-0016", categoria: "BAR", nombre: "MANGO SOUR", costo: 500, precio: 4900, stock: 477, stockMinimo: 100 },
+  { codigo: "CF-0802", categoria: "BAR", nombre: "MANGO SOUR CATEDRAL", costo: 1500, precio: 8900, stock: 999, stockMinimo: 999 },
+  { codigo: "CF-95862480", categoria: "BAR", nombre: "MARACUYA SPRITE", costo: 1500, precio: 5900, stock: 1059349, stockMinimo: 1095831 },
+  { codigo: "CF-0140", categoria: "BAR", nombre: "MARACUYA SPRITZ", costo: 1500, precio: 5900, stock: 0, stockMinimo: 5 },
+  { codigo: "CF-10528445", categoria: "SANDWICHS MECHADAS", nombre: "MECHADA A LO POBRE", costo: 1500, precio: 8800, stock: 105250, stockMinimo: 10524 },
+  { codigo: "CF-0272", categoria: "SANDWICHS MECHADAS", nombre: "MECHADA BARROS LUCO", costo: 2000, precio: 7700, stock: 90, stockMinimo: 90 },
+  { codigo: "CF-0055", categoria: "PAPAS FRITAS", nombre: "MECHADA FAROLES", costo: 5000, precio: 14900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-5251", categoria: "COCINA", nombre: "MECHADA FAROLES", costo: 1500, precio: 14900, stock: 9999997, stockMinimo: 10000000 },
+  { codigo: "CF-0263", categoria: "SANDWICHS MECHADAS", nombre: "MECHADA ITALIANA", costo: 500, precio: 8600, stock: 983, stockMinimo: 900 },
+  { codigo: "CF-105298", categoria: "SANDWICHS MECHADAS", nombre: "MECHADA LUCO CHAMPIÑON", costo: 1500, precio: 8800, stock: 10520, stockMinimo: 202512 },
+  { codigo: "CF-0079", categoria: "BAR", nombre: "MICHELADA", costo: 500, precio: 1500, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-10500", categoria: "BAR", nombre: "MICHELADA", costo: 500, precio: 1500, stock: 4976, stockMinimo: 10000 },
+  { codigo: "CF-2000", categoria: "BAR", nombre: "MISTRAL 2000", costo: 500, precio: 2000, stock: 1497, stockMinimo: 1499 },
+  { codigo: "CF-0052", categoria: "BAR", nombre: "MISTRAL 35°", costo: 1000, precio: 4900, stock: 0, stockMinimo: 50 },
+  { codigo: "CF-0154", categoria: "BAR", nombre: "MISTRAL 40°", costo: 1500, precio: 5900, stock: 0, stockMinimo: 15 },
+  { codigo: "CF-0873", categoria: "BAR", nombre: "MISTRAL 40°", costo: 1500, precio: 5900, stock: 9987, stockMinimo: 99999 },
+  { codigo: "CF-0157", categoria: "BAR", nombre: "MISTRAL BARRICA TOSTADA", costo: 1500, precio: 6900, stock: 25, stockMinimo: 15 },
+  { codigo: "CF-0158", categoria: "BAR", nombre: "MISTRAL CRISTALINO", costo: 1500, precio: 6900, stock: 23, stockMinimo: 15 },
+  { codigo: "CF-0156", categoria: "BAR", nombre: "MISTRAL GRAN NOBEL", costo: 4500, precio: 8900, stock: 24, stockMinimo: 10 },
+  { codigo: "CF-0073", categoria: "BAR", nombre: "MISTRAL MANZANA", costo: 5000, precio: 6900, stock: 1, stockMinimo: 10 },
+  { codigo: "CF-0155", categoria: "BAR", nombre: "MISTRAL NOBEL", costo: 1500, precio: 6900, stock: 0, stockMinimo: 10 },
+  { codigo: "CF-1501", categoria: "BAR", nombre: "MISTRAL NOBEL", costo: 1000, precio: 6900, stock: 9985, stockMinimo: 99999 },
+  { codigo: "CF-5500", categoria: "BAR", nombre: "MISTRAL35", costo: 500, precio: 4900, stock: 748, stockMinimo: 7900000 },
+  { codigo: "CF-0700", categoria: "BAR", nombre: "MOJITO CORONA", costo: 1000, precio: 7900, stock: 989, stockMinimo: 999 },
+  { codigo: "CF-0701", categoria: "BAR", nombre: "MOJITO CORONA SABORES", costo: 1500, precio: 8500, stock: 982, stockMinimo: 900 },
+  { codigo: "CF-0032", categoria: "BAR", nombre: "MOJITO CUBANO", costo: 1000, precio: 6600, stock: 0, stockMinimo: 500 },
+  { codigo: "CF-19990", categoria: "BAR", nombre: "MOJITO CUBANO", costo: 1500, precio: 6600, stock: 99999968, stockMinimo: 10000000 },
+  { codigo: "CF-0178", categoria: "SIN ALCOHOL", nombre: "MOJITO CUBANO SIN ACOHOL", costo: 1500, precio: 6600, stock: 8, stockMinimo: 2 },
+  { codigo: "CF-0035", categoria: "BAR", nombre: "MOJITO FRAMBUEZA", costo: 100, precio: 7900, stock: 0, stockMinimo: 50 },
+  { codigo: "CF-10520", categoria: "BAR", nombre: "MOJITO FRAMBUEZA", costo: 500, precio: 7900, stock: 999968, stockMinimo: 1000000 },
+  { codigo: "CF-0770", categoria: "BAR", nombre: "MOJITO JACK DANIEL SABORES", costo: 1000, precio: 8900, stock: 99992, stockMinimo: 99999 },
+  { codigo: "CF-0360", categoria: "BAR", nombre: "MOJITO JACK SABORES", costo: 500, precio: 8900, stock: 966, stockMinimo: 999 },
+  { codigo: "CF-0226", categoria: "BAR", nombre: "MOJITO JAGERMEISTER", costo: 500, precio: 8500, stock: 489, stockMinimo: 400 },
+  { codigo: "CF-0014", categoria: "BAR", nombre: "MOJITO LITRO CUBANO", costo: 500, precio: 13500, stock: 4000, stockMinimo: 500 },
+  { codigo: "CF-0786", categoria: "BAR", nombre: "MOJITO LITRO CUBANO PROMOCION", costo: 2500, precio: 8900, stock: 998, stockMinimo: 990 },
+  { codigo: "CF-0013", categoria: "BAR", nombre: "MOJITO LITRO PROMO", costo: 500, precio: 9900, stock: 970, stockMinimo: 500 },
+  { codigo: "CF-0015", categoria: "BAR", nombre: "MOJITO LITRO SABORES", costo: 500, precio: 14900, stock: 3998, stockMinimo: 500 },
+  { codigo: "CF-0034", categoria: "BAR", nombre: "MOJITO MANGO", costo: 1000, precio: 7900, stock: 22, stockMinimo: 50 },
+  { codigo: "CF-0033", categoria: "BAR", nombre: "MOJITO MARACUYA", costo: 1000, precio: 7900, stock: 927, stockMinimo: 500 },
+  { codigo: "CF-0069", categoria: "BAR", nombre: "MOJITO PIÑA", costo: 500, precio: 7900, stock: 33, stockMinimo: 20 },
+  { codigo: "CF-20001", categoria: "BAR", nombre: "MOJITO REDBULL", costo: 1500, precio: 7900, stock: 999998, stockMinimo: 100000000 },
+  { codigo: "CF-0181", categoria: "SIN ALCOHOL", nombre: "MOJITO SABORES SIN ALCOHOL", costo: 1500, precio: 6900, stock: 0, stockMinimo: 2 },
+  { codigo: "CF-10528", categoria: "BAR", nombre: "MOJITO SIN ALCOHOL SABIRES", costo: 1500, precio: 6900, stock: 1050278, stockMinimo: 10502892 },
+  { codigo: "CF-0040", categoria: "BAR", nombre: "MOJITO SIN ALCOHOL SABORES", costo: 1000, precio: 6900, stock: 87, stockMinimo: 50 },
+  { codigo: "CF-0750", categoria: "BAR", nombre: "MOSCOW MULE", costo: 1000, precio: 7900, stock: 994, stockMinimo: 999 },
+  { codigo: "CF-0171", categoria: "BAR", nombre: "NEGRONI", costo: 1500, precio: 6900, stock: 15, stockMinimo: 15 },
+  { codigo: "CF-105242", categoria: "BAR", nombre: "OLD FASHION", costo: 1500, precio: 6900, stock: 1052053, stockMinimo: 1052627852 },
+  { codigo: "CF-0054", categoria: "PAPAS FRITAS", nombre: "PAPAS FAROLES", costo: 1500, precio: 8900, stock: 1466, stockMinimo: 149 },
+  { codigo: "CF-0053", categoria: "PAPAS FRITAS", nombre: "PAPAS FRITAS TRADICIONALES", costo: 500, precio: 6900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-55500", categoria: "PAPAS FRITAS", nombre: "PAPAS TRADICIONALES", costo: 500, precio: 6900, stock: 9969, stockMinimo: 1000000 },
+  { codigo: "CF-0018", categoria: "BAR", nombre: "PIÑA COLADA CON ALCOHOL", costo: 1000, precio: 7900, stock: 42, stockMinimo: 50 },
+  { codigo: "CF-0180", categoria: "SIN ALCOHOL", nombre: "PIÑA COLADA SIN ALCOHOL", costo: 1500, precio: 6500, stock: 1, stockMinimo: 2 },
+  { codigo: "CF-0065", categoria: "BROCHETAS", nombre: "PINCHOS DE CAMARONES", costo: 5000, precio: 13900, stock: 38, stockMinimo: 20 },
+  { codigo: "CF-0019", categoria: "BAR", nombre: "PISCO SOUR NACIONAL", costo: 500, precio: 4900, stock: 466, stockMinimo: 100 },
+  { codigo: "CF-0801", categoria: "BAR", nombre: "PISCO SOUR NACIONAL CATEDRAL", costo: 1500, precio: 8900, stock: 997, stockMinimo: 999 },
+  { codigo: "CF-0021", categoria: "BAR", nombre: "PISCO SOUR PERUANO", costo: 1000, precio: 6900, stock: 78, stockMinimo: 50 },
+  { codigo: "CF-0022", categoria: "BAR", nombre: "PISCO SOUR PERUANO CATEDRAL", costo: 1000, precio: 8900, stock: 85, stockMinimo: 50 },
+  { codigo: "CF-0020", categoria: "BAR", nombre: "PISCO SOUR SABORES", costo: 500, precio: 5600, stock: 95, stockMinimo: 50 },
+  { codigo: "CF-0057", categoria: "PAPAS FRITAS", nombre: "POLLO FAROLES", costo: 500, precio: 14900, stock: 42, stockMinimo: 20 },
+  { codigo: "CF-0201", categoria: "BAR", nombre: "PROMO ALTO 35", costo: 500, precio: 3900, stock: 49, stockMinimo: 0 },
+  { codigo: "CF-0200", categoria: "BAR", nombre: "PROMO MISTRAL 35", costo: 500, precio: 3900, stock: 42, stockMinimo: 20 },
+  { codigo: "CF-0280", categoria: "BAR", nombre: "PROMO RAMAZZOTTI", costo: 500, precio: 3900, stock: 992, stockMinimo: 900 },
+  { codigo: "CF-0199", categoria: "BAR", nombre: "PROMO TROPICAL GIN", costo: 500, precio: 3900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-0071", categoria: "QUESADILLAS", nombre: "QUESADILLA DE POLLO", costo: 500, precio: 12500, stock: 31, stockMinimo: 20 },
+  { codigo: "CF-0264", categoria: "QUESADILLAS", nombre: "QUESADILLA VEGETARIANA", costo: 500, precio: 9900, stock: 999, stockMinimo: 800 },
+  { codigo: "CF-0121", categoria: "QUESADILLAS", nombre: "QUESADILLAS DE CAMARON", costo: 1500, precio: 13500, stock: 20, stockMinimo: 2 },
+  { codigo: "CF-0261", categoria: "QUESADILLAS", nombre: "QUESADILLAS DE RES", costo: 500, precio: 12500, stock: 989, stockMinimo: 500 },
+  { codigo: "CF-0028", categoria: "BAR", nombre: "RAMAZZOTTI", costo: 100, precio: 7400, stock: 0, stockMinimo: 50 },
+  { codigo: "CF-65000", categoria: "BAR", nombre: "RAMAZZOTTI", costo: 500, precio: 7400, stock: 99933, stockMinimo: 100000 },
+  { codigo: "CF-0030", categoria: "BAR", nombre: "RAMAZZOTTI VIOLETO", costo: 1000, precio: 7400, stock: 98, stockMinimo: 50 },
+  { codigo: "CF-5000", categoria: "BAR", nombre: "RED LABEL", costo: 1000, precio: 6300, stock: 491, stockMinimo: 500000 },
+  { codigo: "CF-0250", categoria: "SIN ALCOHOL", nombre: "REDBULL", costo: 1200, precio: 2700, stock: 977, stockMinimo: 50 },
+  { codigo: "CF-0166", categoria: "BAR", nombre: "REPUBLICANO 40°AÑEJADO", costo: 1500, precio: 6400, stock: 22, stockMinimo: 20 },
+  { codigo: "CF-0165", categoria: "BAR", nombre: "REPUBLICANO 40°TRANSPARENTE", costo: 1500, precio: 6400, stock: 23, stockMinimo: 10 },
+  { codigo: "CF-0172", categoria: "BAR", nombre: "RESERVA TORO DE PIEDRA", costo: 8900, precio: 19900, stock: 5, stockMinimo: 2 },
+  { codigo: "CF-0855", categoria: "BAR", nombre: "RICADONNA", costo: 13900, precio: 23900, stock: 24, stockMinimo: 24 },
+  { codigo: "CF-0106", categoria: "BAR", nombre: "RON BACARDI", costo: 1500, precio: 5900, stock: 22, stockMinimo: 12 },
+  { codigo: "CF-0108", categoria: "BAR", nombre: "RON BACARDI AÑEJO", costo: 1500, precio: 6100, stock: 24, stockMinimo: 10 },
+  { codigo: "CF-0109", categoria: "BAR", nombre: "RON BACARDI SABORES", costo: 1500, precio: 6200, stock: 25, stockMinimo: 10 },
+  { codigo: "CF-0080", categoria: "BAR", nombre: "ROYAL GUARD", costo: 700, precio: 3500, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-0202", categoria: "BAR", nombre: "RUSO BLANCO", costo: 500, precio: 6900, stock: 30, stockMinimo: 20 },
+  { codigo: "CF-0203", categoria: "BAR", nombre: "RUSO NEGRO", costo: 500, precio: 6900, stock: 49, stockMinimo: 10 },
+  { codigo: "CF-10000", categoria: "BAR", nombre: "SHOT DE MARACUYA", costo: 200, precio: 1000, stock: 4994, stockMinimo: 1000 },
+  { codigo: "CF-0197", categoria: "BAR", nombre: "SHOT JAGERMEISTER", costo: 500, precio: 4900, stock: 42, stockMinimo: 20 },
+  { codigo: "CF-0194", categoria: "BAR", nombre: "SHOTS  EL JIMADOR", costo: 500, precio: 4800, stock: 40, stockMinimo: 20 },
+  { codigo: "CF-0196", categoria: "BAR", nombre: "SHOTS JOSE CUERVO", costo: 500, precio: 4800, stock: 47, stockMinimo: 25 },
+  { codigo: "CF-0141", categoria: "BAR", nombre: "SKY", costo: 1500, precio: 6500, stock: 18, stockMinimo: 15 },
+  { codigo: "CF-0755", categoria: "BEBIDAS", nombre: "SPRITE 220", costo: 5, precio: 10, stock: 99884, stockMinimo: 99999 },
+  { codigo: "CF-0048", categoria: "BEBIDAS", nombre: "SPRITE 220 CC", costo: 10, precio: 10, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-0880", categoria: "BEBIDAS", nombre: "SPRITE 220 CC", costo: 5, precio: 10, stock: 6, stockMinimo: 99999 },
+  { codigo: "CF-0070", categoria: "BEBIDAS", nombre: "SPRITE 330", costo: 700, precio: 1900, stock: 8, stockMinimo: 20 },
+  { codigo: "CF-0193", categoria: "BEBIDAS", nombre: "SPRITE ZERO", costo: 700, precio: 1900, stock: 22, stockMinimo: 14 },
+  { codigo: "CF-0114", categoria: "BAR", nombre: "ST GERMAIN SPRITZ", costo: 1500, precio: 8900, stock: 14, stockMinimo: 10 },
+  { codigo: "CF-0075", categoria: "BAR", nombre: "STELLA ARTOIS", costo: 700, precio: 3500, stock: 7, stockMinimo: 12 },
+  { codigo: "CF-0130", categoria: "BAR", nombre: "STOLISCHNAYA", costo: 1500, precio: 6400, stock: 11, stockMinimo: 10 },
+  { codigo: "CF-0059", categoria: "TABLAS", nombre: "TABLA FAROLES", costo: 5000, precio: 24900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-5504", categoria: "TABLAS", nombre: "TABLA FAROLES", costo: 1500, precio: 24900, stock: 99974, stockMinimo: 10000 },
+  { codigo: "CF-0037", categoria: "TABLAS", nombre: "TABLA MAR Y TIERRA", costo: 5000, precio: 24900, stock: 0, stockMinimo: 20 },
+  { codigo: "CF-50559", categoria: "COCINA", nombre: "TABLA MAR Y TIERRA", costo: 1500, precio: 24900, stock: 6, stockMinimo: 1000000 },
+  { codigo: "CF-0038", categoria: "TABLAS", nombre: "TABLA RUSTICA", costo: 1000, precio: 19900, stock: 66, stockMinimo: 50 },
+  { codigo: "CF-0128", categoria: "BAR", nombre: "TANQUERAY LONDON DRY", costo: 1500, precio: 6900, stock: 14, stockMinimo: 10 },
+  { codigo: "CF-0207", categoria: "COCINA", nombre: "TE", costo: 50, precio: 1900, stock: 38, stockMinimo: 20 },
+  { codigo: "CF-0204", categoria: "BAR", nombre: "TEQUILA BLUE", costo: 500, precio: 6900, stock: 37, stockMinimo: 20 },
+  { codigo: "CF-0027", categoria: "BAR", nombre: "TEQUILA MARGARITA", costo: 1000, precio: 6900, stock: 71, stockMinimo: 50 },
+  { codigo: "CF-0774", categoria: "BAR", nombre: "TEQUILA MARGARITA SABORES", costo: 1000, precio: 7400, stock: 996, stockMinimo: 990 },
+  { codigo: "CF-0205", categoria: "BAR", nombre: "TEQUILA SUNRISE", costo: 500, precio: 6900, stock: 46, stockMinimo: 20 },
+  { codigo: "CF-0017", categoria: "BAR", nombre: "TOM COLLINS", costo: 500, precio: 6900, stock: 488, stockMinimo: 50 },
+  { codigo: "CF-0120", categoria: "BAR", nombre: "TONICA 220", costo: 10, precio: 10, stock: 0, stockMinimo: 15 },
+  { codigo: "CF-0862", categoria: "BEBIDAS", nombre: "TONICA 220", costo: 5, precio: 10, stock: 0, stockMinimo: 99999 },
+  { codigo: "CF-2004", categoria: "BEBIDAS", nombre: "TONICA 330", costo: 900, precio: 2100, stock: 14999, stockMinimo: 14900 },
+  { codigo: "CF-0042", categoria: "BROCHETAS", nombre: "TRIADA FAROLESA", costo: 1000, precio: 19900, stock: 22, stockMinimo: 40 },
+  { codigo: "CF-0117", categoria: "BAR", nombre: "TROPICAL GIN", costo: 1500, precio: 7400, stock: 0, stockMinimo: 500 },
+  { codigo: "CF-0300", categoria: "BAR", nombre: "TROPICAL GIN", costo: 2000, precio: 7400, stock: 0, stockMinimo: 5000 },
+  { codigo: "CF-0771", categoria: "BAR", nombre: "TROPICAL GIN", costo: 2000, precio: 7400, stock: 99836, stockMinimo: 999999 },
+  { codigo: "CF-50550", categoria: "COCINA", nombre: "VALENTIN  TABLA FAROLES", costo: 500, precio: 14900, stock: 10500, stockMinimo: 10550 },
+  { codigo: "CF-0056", categoria: "PAPAS FRITAS", nombre: "VEGGIE FAROLES", costo: 5000, precio: 12900, stock: 495, stockMinimo: 40 },
+  { codigo: "CF-0268", categoria: "PAPAS FRITAS", nombre: "VEGGIE FAROLES", costo: 500, precio: 12900, stock: 100, stockMinimo: 80 },
+  { codigo: "CF-0170", categoria: "BAR", nombre: "VINO DIABLO", costo: 6800, precio: 15900, stock: 0, stockMinimo: 2 },
+  { codigo: "CF-0882", categoria: "BAR", nombre: "VINO DIABLO", costo: 5990, precio: 16900, stock: 5, stockMinimo: 9 },
+  { codigo: "CF-0097", categoria: "BAR", nombre: "VOLCANES LUCUMA", costo: 1500, precio: 4500, stock: 20, stockMinimo: 10 },
+  { codigo: "CF-0023", categoria: "BAR", nombre: "WHISKY SOUR", costo: 1000, precio: 6900, stock: 87, stockMinimo: 50 },
+  { codigo: "CF-0024", categoria: "BAR", nombre: "WHISKY SOUR JACK DANIELS", costo: 1000, precio: 7900, stock: 99, stockMinimo: 50 }
 ];
 
 async function main() {
   console.log("🚀 Importando productos para CasaFaroles...\n");
 
-  // 1. Crear categorías únicas si no existen
+  // 1. Verificar que la sucursal existe
+  const sucursal = await prisma.sucursal.findUnique({ where: { id: SUCURSAL_ID } });
+  if (!sucursal) {
+    console.error(`❌ No existe sucursal con id=${SUCURSAL_ID}. Verifica la BD.`);
+    process.exit(1);
+  }
+  console.log(`✅ Sucursal: ${sucursal.nombre} (id=${SUCURSAL_ID})\n`);
+
+  // 2. Crear categorías únicas si no existen
   const categoriasUnicas = [...new Set(csvData.map((r) => r.categoria))];
   const categoriaMap: Record<string, number> = {};
 
@@ -61,61 +294,53 @@ async function main() {
     console.log(`📁 Categoría: ${nombre} (id=${cat.id})`);
   }
 
-  // 2. Importar productos (upsert por código)
+  // 3. Importar productos (upsert por código CF-XXXX)
   let creados = 0;
   let actualizados = 0;
   let errores = 0;
 
   for (const row of csvData) {
-    // El código en la BD es UPPERCASE y único globalmente
-    // Para CasaFaroles usamos prefijo CF- para evitar colisiones
-    const codigoFinal = `CF-${row.codigo.padStart(4, "0")}`;
-
     try {
-      const existing = await prisma.producto.findUnique({ where: { codigo: codigoFinal } });
-
-      if (existing) {
-        await prisma.producto.update({
-          where: { codigo: codigoFinal },
-          data: {
-            nombre: row.nombre,
-            precio: row.precio,
-            categoriaId: categoriaMap[row.categoria],
-            sucursalId: SUCURSAL_ID,
-            enMenu: true,
-            activo: true,
-          },
-        });
-        actualizados++;
-        console.log(`  ✏️  Actualizado: ${codigoFinal} — ${row.nombre}`);
-      } else {
-        await prisma.producto.create({
-          data: {
-            codigo: codigoFinal,
-            nombre: row.nombre,
-            precio: row.precio,
-            categoriaId: categoriaMap[row.categoria],
-            sucursalId: SUCURSAL_ID,
-            enMenu: true,
-            activo: true,
-            stock: 0,
-            stockMinimo: 0,
-          },
-        });
-        creados++;
-        console.log(`  ✅ Creado:     ${codigoFinal} — ${row.nombre} ($${row.precio.toLocaleString()})`);
-      }
+      const result = await prisma.producto.upsert({
+        where: { codigo: row.codigo },
+        update: {
+          nombre: row.nombre,
+          precio: row.precio,
+          costo: row.costo,
+          stock: row.stock,
+          stockMinimo: row.stockMinimo,
+          categoriaId: categoriaMap[row.categoria],
+          sucursalId: SUCURSAL_ID,
+          enMenu: true,
+          activo: true,
+        },
+        create: {
+          codigo: row.codigo,
+          nombre: row.nombre,
+          precio: row.precio,
+          costo: row.costo,
+          stock: row.stock,
+          stockMinimo: row.stockMinimo,
+          categoriaId: categoriaMap[row.categoria],
+          sucursalId: SUCURSAL_ID,
+          enMenu: true,
+          activo: true,
+        },
+      });
+      const accion = result.creadoEn.getTime() === result.actualizadoEn.getTime() ? "✅ Creado" : "✏️  Actualizado";
+      console.log(`  ${accion}: ${row.codigo} — ${row.nombre}`);
+      if (accion.includes("Creado")) creados++; else actualizados++;
     } catch (err) {
-      console.error(`  ❌ Error en ${codigoFinal}: ${err}`);
+      console.error(`  ❌ Error en ${row.codigo}: ${err}`);
       errores++;
     }
   }
 
   console.log(`\n🎉 Importación completada:`);
-  console.log(`   ✅ Creados:     ${creados}`);
+  console.log(`   ✅ Creados:      ${creados}`);
   console.log(`   ✏️  Actualizados: ${actualizados}`);
-  console.log(`   ❌ Errores:     ${errores}`);
-  console.log(`   📦 Total:       ${csvData.length}`);
+  console.log(`   ❌ Errores:      ${errores}`);
+  console.log(`   📦 Total:        ${csvData.length}`);
 }
 
 main()

@@ -57,7 +57,14 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
               className="flex items-start gap-3 p-3 bg-surface-bg rounded-xl"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-surface-text truncate">{item.nombre}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-surface-text truncate">{item.nombre}</p>
+                  {item.guardado && (
+                    <span title="Enviado a cocina" className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                      ENVIADO
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-brand-500 font-medium mt-0.5">
                   {formatCurrency(item.precio * item.cantidad, simbolo)}
                 </p>
@@ -73,20 +80,23 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                   onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
-                  className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+                  disabled={item.guardado}
+                  className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all disabled:opacity-50"
                 >
                   <Minus size={12} />
                 </button>
                 <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
                 <button
                   onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
-                  className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+                  disabled={item.guardado}
+                  className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all disabled:opacity-50"
                 >
                   <Plus size={12} />
                 </button>
                 <button
                   onClick={() => removeItem(item.id, item.tipo)}
-                  className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
+                  disabled={item.guardado}
+                  className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1 disabled:opacity-30 disabled:hover:bg-transparent"
                 >
                   <Trash2 size={12} />
                 </button>
