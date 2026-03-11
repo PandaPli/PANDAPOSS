@@ -8,6 +8,7 @@ import { SalesChart } from "@/components/dashboard/SalesChart";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { AdminGeneralView } from "./AdminGeneralView";
+import { WaiterPanel } from "./WaiterPanel";
 
 /* Micro-mensajes por rol */
 const ROLE_GREETING: Partial<Record<Rol, string>> = {
@@ -72,6 +73,11 @@ export default async function PanelPage() {
   // ADMIN_GENERAL ve el panel PANDAADMIN
   if (rol === "ADMIN_GENERAL") {
     return <AdminGeneralView />;
+  }
+
+  // WAITER ve su panel operativo
+  if (rol === "WAITER") {
+    return <WaiterPanel />;
   }
 
   const { ventasHoy, pedidosActivos, mesasOcupadas, ultimasVentas, ventasChart } =
