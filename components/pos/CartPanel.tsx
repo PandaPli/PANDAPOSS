@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ordenLoading }: Props) {
-  const { items, removeItem, updateCantidad, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId } =
+  const { items, removeItem, updateCantidad, updateObservacion, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId } =
     useCartStore();
 
   const sub = subtotal();
@@ -61,6 +61,13 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
                 <p className="text-xs text-brand-500 font-medium mt-0.5">
                   {formatCurrency(item.precio * item.cantidad, simbolo)}
                 </p>
+                <input
+                  type="text"
+                  value={item.observacion ?? ""}
+                  onChange={(e) => updateObservacion(item.id, item.tipo, e.target.value)}
+                  placeholder="Nota: sin sal, poco hielo..."
+                  className="mt-1.5 w-full text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
+                />
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
