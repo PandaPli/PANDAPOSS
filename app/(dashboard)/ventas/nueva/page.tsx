@@ -11,7 +11,8 @@ async function getProductos(sucursalId: number | null) {
     where: {
       activo: true,
       enMenu: true,
-      ...(sucursalId ? { OR: [{ sucursalId }, { sucursalId: null }] } : {}),
+      // Aislamiento estricto: solo productos de la sucursal del usuario
+      ...(sucursalId ? { sucursalId } : {}),
     },
     include: { categoria: { select: { nombre: true } } },
     orderBy: { nombre: "asc" },

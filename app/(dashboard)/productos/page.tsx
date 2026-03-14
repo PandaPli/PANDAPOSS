@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/auth";
 
 async function getData(rol: string, sucursalId: number | null) {
   // Construir filtros de sucursal
-  const sucFiltro = rol === "ADMIN_GENERAL" ? {} : { OR: [{ sucursalId }, { sucursalId: null }] };
+  // Aislamiento estricto: ADMIN_GENERAL ve todo; demás solo ven su sucursal
+  const sucFiltro = rol === "ADMIN_GENERAL" ? {} : (sucursalId ? { sucursalId } : { id: -1 });
 
   const [productos, categorias, sucursales] = await Promise.all([
     prisma.producto.findMany({

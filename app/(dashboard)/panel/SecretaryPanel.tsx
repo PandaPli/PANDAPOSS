@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { startOfDay, endOfDay } from "date-fns";
-import { Package, Users, TrendingUp, BarChart, ArrowRight } from "lucide-react";
+import { Package, Users, TrendingUp, BarChart, ArrowRight, UtensilsCrossed, ShoppingCart, Monitor } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";

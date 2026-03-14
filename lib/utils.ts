@@ -5,11 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number, simbolo = "$"): string {
-  return `${simbolo} ${new Intl.NumberFormat("es-CL", {
+/** Formato CLP: $5.200  $18.000  $120.000  — sin decimales, separador miles punto */
+export function formatCurrency(amount: number, _simbolo = "$"): string {
+  return `$${new Intl.NumberFormat("es-CL", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount)}`;
+  }).format(Math.round(amount))}`;
 }
 
 export function formatDate(date: string | Date): string {

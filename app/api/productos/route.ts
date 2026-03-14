@@ -19,9 +19,9 @@ export async function GET(req: NextRequest) {
   // Construir filtros como array para AND (evita conflicto si hay múltiples OR)
   const andFilters: object[] = [];
 
-  // Filtro por sucursal: ADMIN_GENERAL ve todo; los demás ven su sucursal + globales
-  if (rol !== "ADMIN_GENERAL" && sucursalId !== null) {
-    andFilters.push({ OR: [{ sucursalId }, { sucursalId: null }] });
+  // Aislamiento estricto: ADMIN_GENERAL ve todo; demás solo ven su sucursal
+  if (rol !== "ADMIN_GENERAL") {
+    andFilters.push(sucursalId !== null ? { sucursalId } : { id: -1 });
   }
 
   // Filtro de búsqueda

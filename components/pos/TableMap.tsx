@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronRight, Clock, Users } from "lucide-react";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn, timeAgo, formatCurrency } from "@/lib/utils";
 import type { EstadoMesa, MesaConEstado } from "@/types";
 
 interface TableMapProps {
@@ -45,7 +45,17 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
   const [salaFiltro, setSalaFiltro] = useState<string>("todas");
 
   const salas = Array.from(new Set(mesas.map((m) => m.sala.nombre)));
-  const mesasFiltradas = salaFiltro === "todas" ? mesas : mesas.filter((m) => m.sala.nombre === salaFiltro);
+
+  // Orden numérico: "Mesa 2" antes que "Mesa 10"
+  const sortNumerical = (a: MesaConEstado, b: MesaConEstado) => {
+    const n = (s: string) => parseInt(s.replace(/\D+/g, "") || "0", 10);
+    const diff = n(a.nombre) - n(b.nombre);
+    return diff !== 0 ? diff : a.nombre.localeCompare(b.nombre, "es");
+  };
+
+  const mesasFiltradas = (salaFiltro === "todas" ? mesas : mesas.filter((m) => m.sala.nombre === salaFiltro))
+    .slice()
+    .sort(sortNumerical);
 
   const countPorEstado: Record<EstadoMesa, number> = {
     LIBRE: mesas.filter((m) => m.estado === "LIBRE").length,
@@ -120,7 +130,7 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
                 <div className="mt-2 space-y-1.5">
                   {/* Total grande y robusto */}
                   <p className="text-2xl font-black text-red-700 leading-none tracking-tight">
-                    ${pedido.total.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(pedido.total)}
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-xs text-surface-muted">

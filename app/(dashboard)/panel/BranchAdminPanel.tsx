@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/db";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
-import { ShoppingBag, ClipboardList, UtensilsCrossed, TrendingUp } from "lucide-react";
+import { ShoppingBag, ClipboardList, UtensilsCrossed, TrendingUp, ShoppingCart, Monitor, ArrowRight } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import Link from "next/link";
 
 interface Props {
   sucursalId: number;
@@ -94,6 +95,54 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
           icon={UtensilsCrossed}
           color="violet"
         />
+      </div>
+
+      {/* Accesos Rápidos */}
+      <div className="card p-6">
+        <h2 className="text-lg font-bold text-surface-text mb-4">Accesos Rápidos</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/mesas"
+            className="flex items-center gap-4 p-4 rounded-xl border border-surface-border bg-surface-bg hover:bg-white hover:border-red-200 hover:shadow-sm transition-all group"
+          >
+            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+              <UtensilsCrossed size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-surface-text">Mesas</p>
+              <p className="text-xs text-surface-muted">Ver estado del salón</p>
+            </div>
+            <ArrowRight size={16} className="text-surface-muted group-hover:text-red-500 transition-colors flex-shrink-0" />
+          </Link>
+
+          <Link
+            href="/ventas/nueva"
+            className="flex items-center gap-4 p-4 rounded-xl border border-surface-border bg-surface-bg hover:bg-white hover:border-brand-200 hover:shadow-sm transition-all group"
+          >
+            <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+              <ShoppingCart size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-surface-text">Punto de Venta</p>
+              <p className="text-xs text-surface-muted">Nueva venta rápida</p>
+            </div>
+            <ArrowRight size={16} className="text-surface-muted group-hover:text-brand-500 transition-colors flex-shrink-0" />
+          </Link>
+
+          <Link
+            href="/pedidos"
+            className="flex items-center gap-4 p-4 rounded-xl border border-surface-border bg-surface-bg hover:bg-white hover:border-amber-200 hover:shadow-sm transition-all group"
+          >
+            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+              <Monitor size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-surface-text">KDS</p>
+              <p className="text-xs text-surface-muted">Comandas en cocina / bar</p>
+            </div>
+            <ArrowRight size={16} className="text-surface-muted group-hover:text-amber-500 transition-colors flex-shrink-0" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

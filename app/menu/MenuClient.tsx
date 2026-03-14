@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { Plus, Minus, ShoppingCart, Loader2, Info } from "lucide-react";
 
+const clp = (n: number) =>
+  `$${new Intl.NumberFormat("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n))}`;
+
 interface ProductoBase {
   id: number;
   nombre: string;
@@ -180,7 +183,7 @@ export function MenuClient({ sucursalId, sucursalNombre, mesaId, mesaNombre, cat
                               <p className="text-xs text-gray-500 mt-1 line-clamp-2">{prod.descripcion}</p>
                             )}
                             <p className="text-indigo-600 font-bold mt-2">
-                              ${Number(prod.precio).toFixed(0)}
+                              {clp(Number(prod.precio))}
                             </p>
                           </div>
                         </div>
@@ -228,7 +231,7 @@ export function MenuClient({ sucursalId, sucursalNombre, mesaId, mesaNombre, cat
           <div className="max-w-2xl mx-auto px-4 py-3 pb-8 sm:pb-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 font-medium">Total Pedido</p>
-              <p className="font-bold text-gray-900 text-lg">${cartTotal.toFixed(0)}</p>
+              <p className="font-bold text-gray-900 text-lg">{clp(cartTotal)}</p>
             </div>
             <button 
               onClick={() => setShowCart(true)}
@@ -273,7 +276,7 @@ export function MenuClient({ sucursalId, sucursalNombre, mesaId, mesaNombre, cat
                      </span>
                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 text-sm">{item.nombre}</p>
-                        <p className="text-gray-500 text-sm font-semibold">${Number(item.precio).toFixed(0)}</p>
+                        <p className="text-gray-500 text-sm font-semibold">{clp(Number(item.precio))}</p>
                         <div className="mt-2">
                            <input 
                              type="text" 
@@ -315,7 +318,7 @@ export function MenuClient({ sucursalId, sucursalNombre, mesaId, mesaNombre, cat
             <div className="shrink-0 p-5 bg-white border-t border-gray-100 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.05)] pb-safe">
                <div className="flex justify-between items-end mb-4 px-1">
                  <span className="text-gray-500 font-medium">Total a pagar:</span>
-                 <span className="text-2xl font-black text-gray-900">${cartTotal.toFixed(0)}</span>
+                 <span className="text-2xl font-black text-gray-900">{clp(cartTotal)}</span>
                </div>
                <button 
                  onClick={submitOrder}
