@@ -150,6 +150,10 @@ export function CheckoutModal({
       })
       .join("");
 
+    const tip10 = completedSale.total * 1.1;
+    const tip15 = completedSale.total * 1.15;
+    const tip20 = completedSale.total * 1.2;
+
     const itemsHtml = completedSale.items
       .map(
         (item, index) => `
@@ -193,6 +197,16 @@ export function CheckoutModal({
           </div>
         </div>
         <div class="divider"></div>
+        <div class="suggested-box">
+          <p class="suggested-label">Total sugerido con propina 10%</p>
+          <p class="suggested-total">${formatCurrency(tip10, simbolo)}</p>
+        </div>
+        <div class="section-block" style="margin-bottom:6px;">
+          <p class="section-title">Otras propinas sugeridas</p>
+          <div class="row"><span>15% Maravilloso</span><span style="font-weight:bold;">${formatCurrency(tip15, simbolo)}</span></div>
+          <div class="row"><span>20% Extraordinario</span><span style="font-weight:bold;">${formatCurrency(tip20, simbolo)}</span></div>
+        </div>
+        <div class="divider"></div>
         <div class="section-block">
           <p class="section-title">Detalle de pago</p>
           ${pagosHtml}
@@ -216,6 +230,9 @@ export function CheckoutModal({
       .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
       .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
       .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
+      .suggested-box{margin:6px 0;border:1px dashed #000;padding:6px;text-align:center;}
+      .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
+      .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
     </style></head><body>${html}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
