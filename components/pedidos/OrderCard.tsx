@@ -3,7 +3,7 @@
 import { CheckCircle2, Clock, UtensilsCrossed, Loader2, Bell, Printer } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 interface OrderCardProps {
   pedido: PedidoConDetalles;
@@ -35,7 +35,6 @@ const tipoLabel: Record<string, string> = {
 export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
 
   async function handleUpdate() {
     const next = nextEstado[pedido.estado];
@@ -194,24 +193,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             </div>
           )}
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-1 text-xs text-surface-muted">
-            <Clock size={12} />
-            <span>Hace {tiempoStr}</span>
-          </div>
-          <button
-            onClick={handlePrint}
-            title="Imprimir comanda"
-            className="flex items-center gap-1 text-xs text-surface-muted hover:text-brand-600 hover:bg-brand-50 px-2 py-1 rounded-lg transition-colors border border-surface-border"
-          >
-            <Printer size={12} />
-            Imprimir
-          </button>
+        <div className="flex items-center gap-1 text-xs text-surface-muted">
+          <Clock size={12} />
+          <span>Hace {tiempoStr}</span>
         </div>
       </div>
 
       {/* Productos */}
-      <div ref={printRef} className="px-4 pb-3 space-y-1.5">
+      <div className="px-4 pb-3 space-y-1.5">
         {pedido.detalles.map((d) => (
           <div key={d.id} className="flex items-start gap-2 bg-surface-bg rounded-lg px-3 py-2">
             <span className="font-bold text-sm text-brand-600 flex-shrink-0">
@@ -275,6 +264,13 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
               <Bell size={14} className={pedido.meseroLlamado ? "animate-bounce" : ""} />
             )}
             {pedido.meseroLlamado ? "Llamado" : "Llamar Mesero"}
+          </button>
+          <button
+            onClick={handlePrint}
+            title="Imprimir comanda"
+            className="px-3 py-3 text-surface-muted hover:text-brand-600 hover:bg-brand-50 transition-all border-l border-surface-border flex items-center justify-center"
+          >
+            <Printer size={15} />
           </button>
         </div>
       )}
