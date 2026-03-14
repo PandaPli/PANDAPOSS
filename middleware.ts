@@ -52,7 +52,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|menu|pedir|track|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    "/((?!login|home|menu|pedir|track|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };
 
