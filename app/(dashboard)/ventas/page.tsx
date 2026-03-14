@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Plus, Eye, TrendingUp, TrendingDown, ShoppingBag, Users, Trophy, Star } from "lucide-react";
+import { Plus, Eye, TrendingUp, TrendingDown, ShoppingBag, Users, Trophy, Star, BarChart3 } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -257,10 +257,16 @@ export default async function VentasPage() {
           <h1 className="text-2xl font-bold text-surface-text">Ventas</h1>
           <p className="text-surface-muted text-sm mt-1">Historial de transacciones</p>
         </div>
-        <Link href="/ventas/nueva" className="btn-primary">
-          <Plus size={16} />
-          Nueva Venta
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/ventas/analisis" className="btn-secondary flex items-center gap-1.5">
+            <BarChart3 size={15} />
+            Análisis
+          </Link>
+          <Link href="/ventas/nueva" className="btn-primary">
+            <Plus size={16} />
+            Nueva Venta
+          </Link>
+        </div>
       </div>
 
       {/* ── KPI Cards ── */}
