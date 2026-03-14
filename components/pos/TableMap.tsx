@@ -42,8 +42,6 @@ const estadoConfig: Record<EstadoMesa, { label: string; card: string; badge: str
 };
 
 export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
-  const [salaFiltro, setSalaFiltro] = useState<string>("todas");
-
   // Deduplicar salas manteniendo esQR
   const salasMap = new Map<string, { nombre: string; esQR: boolean }>();
   mesas.forEach((m) => {
@@ -55,6 +53,9 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
   const salasRegulares = salas.filter((s) => !s.esQR);
   const salasQR = salas.filter((s) => s.esQR);
 
+  const defaultSala = salasRegulares[0]?.nombre ?? salasQR[0]?.nombre ?? "";
+  const [salaFiltro, setSalaFiltro] = useState<string>(defaultSala);
+
   // Orden numérico: "Mesa 2" antes que "Mesa 10"
   const sortNumerical = (a: MesaConEstado, b: MesaConEstado) => {
     const n = (s: string) => parseInt(s.replace(/\D+/g, "") || "0", 10);
@@ -62,7 +63,8 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
     return diff !== 0 ? diff : a.nombre.localeCompare(b.nombre, "es");
   };
 
-  const mesasFiltradas = (salaFiltro === "todas" ? mesas : mesas.filter((m) => m.sala.nombre === salaFiltro))
+  const mesasFiltradas = mesas
+    .filter((m) => m.sala.nombre === salaFiltro)
     .slice()
     .sort(sortNumerical);
 
@@ -73,9 +75,9 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
     RESERVADA: mesas.filter((m) => m.estado === "RESERVADA").length,
   };
 
-  const mesasSalon = mesasFiltradas.filter((m) => !m.sala.esQR);
-  const mesasQRFilt = mesasFiltradas.filter((m) => m.sala.esQR);
-  const mostrarSecciones = salaFiltro === "todas" && mesasQRFilt.length > 0 && mesasSalon.length > 0;
+  // Mesas activas (no LIBRE) por sala
+  const activasPorSala = (nombre: string) =>
+    mesas.filter((m) => m.sala.nombre === nombre && m.estado !== "LIBRE").length;
 
   const renderMesaCard = (mesa: MesaConEstado) => {
     const cfg = estadoConfig[mesa.estado];
@@ -150,28 +152,29 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
 
       {salas.length > 1 && (
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSalaFiltro("todas")}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              salaFiltro === "todas" ? "bg-brand-600 text-white" : "border border-surface-border bg-white text-surface-muted hover:bg-surface-bg"
-            )}
-          >
-            Todas
-          </button>
-
-          {salasRegulares.map((sala) => (
-            <button
-              key={sala.nombre}
-              onClick={() => setSalaFiltro(sala.nombre)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                salaFiltro === sala.nombre ? "bg-brand-600 text-white" : "border border-surface-border bg-white text-surface-muted hover:bg-surface-bg"
-              )}
-            >
-              {sala.nombre}
-            </button>
-          ))}
+          {salasRegulares.map((sala) => {
+            const activas = activasPorSala(sala.nombre);
+            return (
+              <button
+                key={sala.nombre}
+                onClick={() => setSalaFiltro(sala.nombre)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5",
+                  salaFiltro === sala.nombre ? "bg-brand-600 text-white" : "border border-surface-border bg-white text-surface-muted hover:bg-surface-bg"
+                )}
+              >
+                {sala.nombre}
+                {activas > 0 && (
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
+                    salaFiltro === sala.nombre ? "bg-white/25 text-white" : "bg-brand-100 text-brand-700"
+                  )}>
+                    {activas}
+                  </span>
+                )}
+              </button>
+            );
+          })}
 
           {salasRegulares.length > 0 && salasQR.length > 0 && (
             <div className="flex items-center px-1">
@@ -179,51 +182,38 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
             </div>
           )}
 
-          {salasQR.map((sala) => (
-            <button
-              key={sala.nombre}
-              onClick={() => setSalaFiltro(sala.nombre)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5",
-                salaFiltro === sala.nombre
-                  ? "bg-blue-600 text-white"
-                  : "border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
-              )}
-            >
-              <QrCode size={12} />
-              {sala.nombre}
-            </button>
-          ))}
+          {salasQR.map((sala) => {
+            const activas = activasPorSala(sala.nombre);
+            return (
+              <button
+                key={sala.nombre}
+                onClick={() => setSalaFiltro(sala.nombre)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5",
+                  salaFiltro === sala.nombre
+                    ? "bg-blue-600 text-white"
+                    : "border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
+                )}
+              >
+                <QrCode size={12} />
+                {sala.nombre}
+                {activas > 0 && (
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
+                    salaFiltro === sala.nombre ? "bg-white/25 text-white" : "bg-blue-200 text-blue-700"
+                  )}>
+                    {activas}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {mostrarSecciones ? (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-sm font-bold text-surface-muted mb-3 uppercase tracking-wide">Salón</h3>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-              {mesasSalon.map(renderMesaCard)}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 border-t border-dashed border-blue-200" />
-            <div className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-              <QrCode size={11} />
-              Mesas QR
-            </div>
-            <div className="flex-1 border-t border-dashed border-blue-200" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-            {mesasQRFilt.map(renderMesaCard)}
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-          {mesasFiltradas.map(renderMesaCard)}
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+        {mesasFiltradas.map(renderMesaCard)}
+      </div>
     </div>
   );
 }

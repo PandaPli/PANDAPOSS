@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/pos/TableMap";
+import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
 import { X, ShoppingCart, Plus } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
@@ -26,7 +27,7 @@ export function MesasClient({ mesas }: Props) {
   }
 
   return (
-    <>
+    <InactivityScreen>
       <TableMap mesas={mesas} onSelectMesa={setMesaSeleccionada} />
 
       {/* Modal detalle mesa */}
@@ -103,7 +104,7 @@ export function MesasClient({ mesas }: Props) {
           </div>
         </div>
       )}
-    </>
+    </InactivityScreen>
   );
 }
 
