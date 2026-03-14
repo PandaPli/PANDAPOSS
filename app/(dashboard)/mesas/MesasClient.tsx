@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/pos/TableMap";
 import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
-import { X, ShoppingCart, Plus, Maximize, Minimize } from "lucide-react";
+import { X, ShoppingCart, Plus, Maximize, Minimize, LogIn } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 interface Props {
@@ -92,24 +92,42 @@ export function MesasClient({ mesas }: Props) {
                     </div>
                   </div>
 
+                  {/* Entrar a la Mesa — acción principal */}
                   <a
                     href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
-                    className="btn-primary w-full justify-center"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
                   >
-                    <ShoppingCart size={16} />
-                    Cobrar Mesa
+                    <LogIn size={17} />
+                    Entrar a la Mesa
                   </a>
-                  <a
-                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
-                    className="btn-secondary w-full justify-center"
-                  >
-                    <Plus size={16} />
-                    Agregar Productos
-                  </a>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
+                      className="btn-primary justify-center text-sm py-2.5"
+                    >
+                      <ShoppingCart size={15} />
+                      Cobrar
+                    </a>
+                    <a
+                      href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
+                      className="btn-secondary justify-center text-sm py-2.5"
+                    >
+                      <Plus size={15} />
+                      Agregar
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <p className="text-surface-muted text-sm text-center py-2">Mesa disponible</p>
+                  <a
+                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
+                  >
+                    <LogIn size={17} />
+                    Entrar a la Mesa
+                  </a>
                   <a
                     href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
                     className="btn-primary w-full justify-center"
