@@ -20,7 +20,16 @@ async function getData(rol: string, sucursalId: number | null) {
       },
       orderBy: { nombre: "asc" },
     }),
-    prisma.categoria.findMany({ where: { activa: true }, orderBy: { nombre: "asc" } }),
+    // Categorías filtradas: solo las que tienen productos de esta sucursal
+    prisma.categoria.findMany({
+      where: {
+        activa: true,
+        ...(rol !== "ADMIN_GENERAL" && sucursalId
+          ? { productos: { some: { sucursalId } } }
+          : {}),
+      },
+      orderBy: { nombre: "asc" },
+    }),
     prisma.sucursal.findMany({ 
       where: { activa: true, ...(rol === "ADMIN_GENERAL" ? {} : { id: sucursalId ?? -1 }) }, 
       orderBy: { nombre: "asc" } 
