@@ -67,14 +67,14 @@ export function MesasClient({ mesas }: Props) {
                   </div>
 
                   <a
-                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}&pedido=${mesaSeleccionada.pedidoActivo.id}`}
+                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
                     className="btn-primary w-full justify-center"
                   >
                     <ShoppingCart size={16} />
                     Cobrar Mesa
                   </a>
                   <a
-                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}&pedido=${mesaSeleccionada.pedidoActivo.id}`}
+                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
                     className="btn-secondary w-full justify-center"
                   >
                     <Plus size={16} />

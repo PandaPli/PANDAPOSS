@@ -103,33 +103,21 @@ export function NuevaVentaClient({
     setOrdenMsg("");
 
     try {
-      const isUpdate = !!pedidoId;
-      const url = isUpdate ? `/api/pedidos/${pedidoId}` : "/api/pedidos";
-      const method = isUpdate ? "PATCH" : "POST";
+      // Siempre crear un NUEVO pedido por cada envío → cola individual en KDS
+      const body = {
+        mesaId: mesaId || null,
+        cajaId: cajaId || null,
+        tipo: "COCINA",
+        items: nuevosItems.map((i) => ({
+          productoId: i.tipo === "producto" ? i.id : null,
+          comboId: i.tipo === "combo" ? i.id : null,
+          cantidad: i.cantidad,
+          observacion: i.observacion || null,
+        })),
+      };
 
-      const body = isUpdate
-        ? {
-            nuevosItems: nuevosItems.map((i) => ({
-              productoId: i.tipo === "producto" ? i.id : null,
-              comboId: i.tipo === "combo" ? i.id : null,
-              cantidad: i.cantidad,
-              observacion: i.observacion || null,
-            })),
-          }
-        : {
-            mesaId: mesaId || null,
-            cajaId: cajaId || null,
-            tipo: "COCINA",
-            items: nuevosItems.map((i) => ({
-              productoId: i.tipo === "producto" ? i.id : null,
-              comboId: i.tipo === "combo" ? i.id : null,
-              cantidad: i.cantidad,
-              observacion: i.observacion || null,
-            })),
-          };
-
-      const res = await fetch(url, {
-        method,
+      const res = await fetch("/api/pedidos", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -140,11 +128,10 @@ export function NuevaVentaClient({
       }
 
       const pedido = await res.json();
-      if (!isUpdate) setPedido(pedido.id);
-
+      setPedido(pedido.id);
       markAsSaved();
 
-      setOrdenMsg(isUpdate ? "Orden actualizada" : `Orden #${pedido.id} enviada`);
+      setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
       setTimeout(() => setOrdenMsg(""), 4000);
     } catch (e) {
       setOrdenMsg((e as Error).message);

@@ -36,63 +36,68 @@ async function getSucursalBranding(sucursalId: number | null) {
 }
 
 async function getPedido(pedidoId?: number, mesaId?: number) {
-  let pedido = null;
+  const detalleInclude = { include: { producto: true, combo: true } };
 
+  // Buscar por pedidoId específico primero (para referencia directa)
   if (pedidoId && !isNaN(pedidoId)) {
-    pedido = await prisma.pedido.findFirst({
-      where: {
-        id: pedidoId,
-        estado: { in: [...PEDIDOS_ACTIVOS] },
-        venta: null,
-      },
-      include: {
-        detalles: {
-          include: {
-            producto: true,
-            combo: true,
-          },
-        },
-      },
+    const p = await prisma.pedido.findFirst({
+      where: { id: pedidoId, estado: { in: [...PEDIDOS_ACTIVOS] }, venta: null },
+      include: { detalles: detalleInclude },
     });
+    if (p) {
+      // Igual que por mesaId: cargamos TODOS los pedidos activos de esa mesa
+      const mesaIdTarget = p.mesaId ?? undefined;
+      if (mesaIdTarget) return getAllPedidosMesa(mesaIdTarget);
+    }
   }
 
-  if (!pedido && mesaId && !isNaN(mesaId)) {
-    pedido = await prisma.pedido.findFirst({
-      where: {
-        mesaId,
-        estado: { in: [...PEDIDOS_ACTIVOS] },
-        venta: null,
-      },
-      include: {
-        detalles: {
-          include: {
-            producto: true,
-            combo: true,
-          },
-        },
-      },
-      orderBy: { creadoEn: "desc" },
-    });
+  // Buscar por mesaId: cargar todos los pedidos activos de la mesa
+  if (mesaId && !isNaN(mesaId)) {
+    return getAllPedidosMesa(mesaId);
   }
 
-  if (!pedido) return null;
+  return null;
+}
 
-  const initialItems: CartItem[] = pedido.detalles.map((d) => {
-    const item = d.producto || d.combo;
-    return {
-      id: item!.id,
-      tipo: d.productoId ? "producto" : "combo",
-      codigo: item!.codigo,
-      nombre: item!.nombre,
-      precio: Number(item!.precio),
-      cantidad: d.cantidad,
-      observacion: d.observacion ?? undefined,
-      imagen: item!.imagen ?? undefined,
-      guardado: true,
-    };
+/** Carga todos los pedidos activos de una mesa y combina sus ítems */
+async function getAllPedidosMesa(mesaId: number) {
+  const pedidos = await prisma.pedido.findMany({
+    where: {
+      mesaId,
+      estado: { in: [...PEDIDOS_ACTIVOS] },
+      venta: null,
+    },
+    include: {
+      detalles: {
+        include: { producto: true, combo: true },
+      },
+    },
+    orderBy: { creadoEn: "asc" }, // más antiguo primero
   });
 
-  return { id: pedido.id, mesaId: pedido.mesaId, items: initialItems };
+  if (pedidos.length === 0) return null;
+
+  // Combinar todos los ítems de todos los pedidos (todos guardado: true)
+  const initialItems: CartItem[] = pedidos.flatMap((pedido) =>
+    pedido.detalles.map((d) => {
+      const item = d.producto || d.combo;
+      return {
+        id: item!.id,
+        tipo: (d.productoId ? "producto" : "combo") as "producto" | "combo",
+        codigo: item!.codigo,
+        nombre: item!.nombre,
+        precio: Number(item!.precio),
+        cantidad: d.cantidad,
+        observacion: d.observacion ?? undefined,
+        imagen: item!.imagen ?? undefined,
+        guardado: true,
+      };
+    })
+  );
+
+  // Retornar con el pedido más reciente como referencia de ID
+  const ultimo = pedidos[pedidos.length - 1];
+  return { id: ultimo.id, mesaId, items: initialItems };
 }
 
 interface Props {

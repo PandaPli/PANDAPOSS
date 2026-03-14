@@ -14,9 +14,9 @@ async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
     include: {
       sala: { select: { nombre: true } },
       pedidos: {
+        // Sin take: 1 → traemos TODOS los pedidos activos para sumar total real
         where: { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } },
-        orderBy: { creadoEn: "desc" },
-        take: 1,
+        orderBy: { creadoEn: "asc" },
         select: {
           id: true,
           creadoEn: true,
@@ -51,15 +51,21 @@ export default async function MesasPage() {
     capacidad: m.capacidad,
     salaId: m.salaId,
     sala: m.sala,
-    pedidoActivo: m.pedidos[0]
+    pedidoActivo: m.pedidos.length > 0
       ? {
-          id: m.pedidos[0].id,
+          // id del pedido más reciente (para referencia)
+          id: m.pedidos[m.pedidos.length - 1].id,
+          // creadoEn del pedido más antiguo (tiempo real de ocupación)
           creadoEn: m.pedidos[0].creadoEn.toISOString(),
-          _count: m.pedidos[0]._count,
-          total: m.pedidos[0].detalles.reduce((sum, d) => {
-            const precio = Number(d.producto?.precio ?? d.combo?.precio ?? 0);
-            return sum + precio * d.cantidad;
-          }, 0),
+          // Suma de ítems y total de TODOS los pedidos activos
+          _count: {
+            detalles: m.pedidos.reduce((acc, p) => acc + p._count.detalles, 0),
+          },
+          total: m.pedidos.reduce((acc, p) =>
+            acc + p.detalles.reduce((s, d) => {
+              const precio = Number(d.producto?.precio ?? d.combo?.precio ?? 0);
+              return s + precio * d.cantidad;
+            }, 0), 0),
         }
       : null,
   }));
