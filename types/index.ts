@@ -36,6 +36,8 @@ export interface CartItem {
   imagen?: string;
   guardado?: boolean;
   cancelado?: boolean;
+  /** ID del DetallePedido en DB (presente cuando guardado: true) */
+  detalleId?: number;
 }
 
 export interface PagoItem {
@@ -94,6 +96,7 @@ export interface PedidoConDetalles {
     id: number;
     cantidad: number;
     observacion: string | null;
+    cancelado?: boolean;
     producto?: { nombre: string } | null;
     combo?: { nombre: string } | null;
   }[];

@@ -91,6 +91,8 @@ async function getAllPedidosMesa(mesaId: number) {
         observacion: d.observacion ?? undefined,
         imagen: item!.imagen ?? undefined,
         guardado: true,
+        cancelado: d.cancelado ?? false,
+        detalleId: d.id, // para sincronizar ediciones con KDS
       };
     })
   );

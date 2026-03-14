@@ -58,15 +58,29 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
     const meseroLabel = pedido.usuario?.nombre ?? "—";
     const tipo = tipoLabel[pedido.tipo] ?? pedido.tipo;
 
-    const itemsHtml = pedido.detalles.map((d) => `
-      <div class="item">
-        <div class="item-row">
-          <span class="qty">${d.cantidad}x</span>
-          <span class="item-name">${d.producto?.nombre ?? d.combo?.nombre ?? "—"}</span>
+    const itemsHtml = pedido.detalles.map((d) => {
+      const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "—";
+      if (d.cancelado) {
+        return `
+          <div class="item" style="opacity:0.5;">
+            <div class="item-row" style="text-decoration:line-through;">
+              <span class="qty">${d.cantidad}x</span>
+              <span class="item-name">${nombre}</span>
+              <span style="font-size:11px;margin-left:6px;">[ANULADO]</span>
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="item">
+          <div class="item-row">
+            <span class="qty">${d.cantidad}x</span>
+            <span class="item-name">${nombre}</span>
+          </div>
+          ${d.observacion ? `<div class="item-obs">➜ ${d.observacion}</div>` : ""}
         </div>
-        ${d.observacion ? `<div class="item-obs">➜ ${d.observacion}</div>` : ""}
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     const html = `
       <!DOCTYPE html>
@@ -248,15 +262,27 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       {/* Productos */}
       <div className="px-4 pb-3 space-y-1.5">
         {pedido.detalles.map((d) => (
-          <div key={d.id} className="flex items-start gap-2 bg-surface-bg rounded-lg px-3 py-2">
-            <span className="font-bold text-sm text-brand-600 flex-shrink-0">
+          <div
+            key={d.id}
+            className={`flex items-start gap-2 rounded-lg px-3 py-2 ${
+              d.cancelado
+                ? "bg-gray-100 opacity-60"
+                : "bg-surface-bg"
+            }`}
+          >
+            <span className={`font-bold text-sm flex-shrink-0 ${d.cancelado ? "text-gray-400 line-through" : "text-brand-600"}`}>
               {d.cantidad}x
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-surface-text">
-                {d.producto?.nombre ?? d.combo?.nombre ?? "—"}
-              </p>
-              {d.observacion && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`text-sm font-semibold ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+                  {d.producto?.nombre ?? d.combo?.nombre ?? "—"}
+                </p>
+                {d.cancelado && (
+                  <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">ANULADO</span>
+                )}
+              </div>
+              {d.observacion && !d.cancelado && (
                 <p className="text-xs text-surface-muted italic mt-0.5">{d.observacion}</p>
               )}
             </div>

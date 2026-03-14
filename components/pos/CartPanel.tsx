@@ -1,8 +1,10 @@
 "use client";
 
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
+import type { CartItem } from "@/types";
 
 interface Props {
   simbolo?: string;
@@ -13,14 +15,48 @@ interface Props {
   canCancelItems?: boolean;
 }
 
+/** Llama al API para persistir el cambio de un detalle en DB → KDS lo verá en próximo poll */
+async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cantidad?: number; observacion?: string | null }) {
+  await fetch(`/api/pedidos/detalles/${detalleId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).catch(() => {}); // silencioso — el carrito local ya se actualizó
+}
+
 export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
   const { items, removeItem, updateCantidad, updateObservacion, cancelItem, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId } =
     useCartStore();
 
-  const sub = subtotal();
+  // Track observaciones "sucias" para ítems guardados (para mostrar botón guardar nota)
+  const [dirtyObs, setDirtyObs] = useState<Record<string, string>>({});
+
+  const sub  = subtotal();
   const desc = totalDescuento();
-  const iva = totalIva();
-  const tot = total();
+  const iva  = totalIva();
+  const tot  = total();
+
+  const itemKey = (item: CartItem) => `${item.tipo}-${item.id}`;
+
+  /** Anular / reactivar ítem guardado → sincroniza con KDS inmediatamente */
+  const handleCancel = useCallback(async (item: CartItem) => {
+    const newCancelado = !item.cancelado;
+    cancelItem(item.id, item.tipo);
+    if (item.detalleId) {
+      await syncDetalle(item.detalleId, { cancelado: newCancelado });
+    }
+  }, [cancelItem]);
+
+  /** Guardar cambio de observación de ítem ya enviado a cocina */
+  const handleSaveObs = useCallback(async (item: CartItem) => {
+    const key = itemKey(item);
+    const nuevaObs = dirtyObs[key] ?? item.observacion ?? "";
+    updateObservacion(item.id, item.tipo, nuevaObs);
+    setDirtyObs((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    if (item.detalleId) {
+      await syncDetalle(item.detalleId, { observacion: nuevaObs || null });
+    }
+  }, [dirtyObs, updateObservacion]);
 
   return (
     <div className="flex flex-col h-full bg-white border-l border-surface-border">
@@ -52,85 +88,110 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
             <p className="text-xs mt-1 opacity-60">Selecciona productos del menu</p>
           </div>
         ) : (
-          items.map((item) => (
-            <div
-              key={`${item.tipo}-${item.id}`}
-              className={`flex items-start gap-3 p-3 rounded-xl transition-all ${item.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className={`text-sm font-semibold truncate ${item.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
-                    {item.nombre}
+          items.map((item) => {
+            const key = itemKey(item);
+            const obsValue = dirtyObs[key] ?? item.observacion ?? "";
+            const obsDirty = key in dirtyObs && dirtyObs[key] !== (item.observacion ?? "");
+
+            return (
+              <div
+                key={key}
+                className={`flex items-start gap-3 p-3 rounded-xl transition-all ${item.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={`text-sm font-semibold truncate ${item.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+                      {item.nombre}
+                    </p>
+                    {item.cancelado ? (
+                      <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">ANULADO</span>
+                    ) : item.guardado ? (
+                      <span title="Enviado a cocina" className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">ENVIADO</span>
+                    ) : null}
+                  </div>
+
+                  <p className={`text-xs font-medium mt-0.5 ${item.cancelado ? "line-through text-gray-400" : "text-brand-500"}`}>
+                    {formatCurrency(item.precio * item.cantidad, simbolo)}
                   </p>
-                  {item.cancelado ? (
-                    <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">
-                      ANULADO
-                    </span>
-                  ) : item.guardado ? (
-                    <span title="Enviado a cocina" className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">
-                      ENVIADO
-                    </span>
-                  ) : null}
+
+                  {!item.cancelado && (
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={obsValue}
+                        onChange={(e) => {
+                          if (item.guardado) {
+                            setDirtyObs((prev) => ({ ...prev, [key]: e.target.value }));
+                          } else {
+                            updateObservacion(item.id, item.tipo, e.target.value);
+                          }
+                        }}
+                        placeholder="Nota: sin sal, poco hielo..."
+                        className="flex-1 text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
+                      />
+                      {/* Botón guardar nota solo si el ítem ya está en cocina y la nota cambió */}
+                      {item.guardado && obsDirty && (
+                        <button
+                          onClick={() => handleSaveObs(item)}
+                          title="Enviar nota a cocina"
+                          className="w-6 h-6 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-all flex-shrink-0"
+                        >
+                          <Check size={11} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <p className={`text-xs font-medium mt-0.5 ${item.cancelado ? "line-through text-gray-400" : "text-brand-500"}`}>
-                  {formatCurrency(item.precio * item.cantidad, simbolo)}
-                </p>
-                {!item.cancelado && (
-                  <input
-                    type="text"
-                    value={item.observacion ?? ""}
-                    onChange={(e) => updateObservacion(item.id, item.tipo, e.target.value)}
-                    placeholder="Nota: sin sal, poco hielo..."
-                    className="mt-1.5 w-full text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
-                  />
-                )}
+
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Ítems NO guardados: controles normales */}
+                  {!item.guardado && !item.cancelado && (
+                    <>
+                      <button
+                        onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
+                        className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
+                      <button
+                        onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
+                        className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+                      >
+                        <Plus size={12} />
+                      </button>
+                      <button
+                        onClick={() => removeItem(item.id, item.tipo)}
+                        className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Ítems GUARDADOS con permiso: solo botón anular */}
+                  {item.guardado && canCancelItems && (
+                    <button
+                      onClick={() => handleCancel(item)}
+                      title={item.cancelado ? "Reactivar producto" : "Anular producto"}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ml-1 ${
+                        item.cancelado
+                          ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                          : "text-red-400 hover:bg-red-50"
+                      }`}
+                    >
+                      <Ban size={12} />
+                    </button>
+                  )}
+
+                  {/* Ítems GUARDADOS sin permiso: solo mostrar cantidad */}
+                  {item.guardado && !canCancelItems && !item.cancelado && (
+                    <span className="w-5 text-center text-sm font-bold text-surface-muted">{item.cantidad}</span>
+                  )}
+                </div>
               </div>
-
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {!item.guardado && !item.cancelado && (
-                  <>
-                    <button
-                      onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
-                      className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
-                    <button
-                      onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
-                      className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
-                    >
-                      <Plus size={12} />
-                    </button>
-                    <button
-                      onClick={() => removeItem(item.id, item.tipo)}
-                      className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </>
-                )}
-
-                {item.guardado && canCancelItems && (
-                  <button
-                    onClick={() => cancelItem(item.id, item.tipo)}
-                    title={item.cancelado ? "Reactivar producto" : "Anular producto"}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ml-1 ${
-                      item.cancelado
-                        ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                        : "text-red-400 hover:bg-red-50"
-                    }`}
-                  >
-                    <Ban size={12} />
-                  </button>
-                )}
-
-                {item.guardado && !canCancelItems && !item.cancelado && (
-                  <span className="w-5 text-center text-sm font-bold text-surface-muted">{item.cantidad}</span>
-                )}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

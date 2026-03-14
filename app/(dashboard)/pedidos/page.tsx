@@ -58,6 +58,7 @@ export default async function PedidosPage() {
       id: d.id,
       cantidad: d.cantidad,
       observacion: d.observacion,
+      cancelado: d.cancelado ?? false,
       producto: d.producto,
       combo: d.combo,
     })),
