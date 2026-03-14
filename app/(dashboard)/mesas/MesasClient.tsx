@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/pos/TableMap";
 import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
-import { X, ShoppingCart, Plus } from "lucide-react";
+import { X, ShoppingCart, Plus, Maximize, Minimize } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 interface Props {
@@ -15,6 +15,15 @@ interface Props {
 export function MesasClient({ mesas }: Props) {
   const router = useRouter();
   const [mesaSeleccionada, setMesaSeleccionada] = useState<MesaConEstado | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }, []);
 
   async function cambiarEstado(id: number, estado: string) {
     await fetch("/api/mesas", {
@@ -28,6 +37,22 @@ export function MesasClient({ mesas }: Props) {
 
   return (
     <InactivityScreen>
+      {/* Encabezado con botón fullscreen */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-text">Atención</h1>
+          <p className="text-surface-muted text-sm mt-1">Puntos de atención y estado de mesas</p>
+        </div>
+        <button
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+          className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2 text-sm font-medium text-surface-muted shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
+        >
+          {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+          <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Pantalla completa"}</span>
+        </button>
+      </div>
+
       <TableMap mesas={mesas} onSelectMesa={setMesaSeleccionada} />
 
       {/* Modal detalle mesa */}
