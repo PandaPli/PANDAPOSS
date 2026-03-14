@@ -163,11 +163,9 @@ async function getAnalytics(
           productoId: true,
           cantidad:   true,
           subtotal:   true,
-          venta: { select: { creadoEn: true } },
           producto: {
             select: {
-              nombre:      true,
-              categoriaId: true,
+              nombre:    true,
               categoria: { select: { nombre: true } },
             },
           },

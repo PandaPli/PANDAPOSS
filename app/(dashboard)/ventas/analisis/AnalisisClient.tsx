@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend,
+  ResponsiveContainer, Cell,
 } from "recharts";
 import {
   BarChart3, Clock, ShoppingBag, TrendingUp, Users,
@@ -12,10 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import type {
-  AnalisisData, VentaTurno, TopProducto, BajaRotacion,
-  VentaHora, VentaCategoria, AlertaSinVenta,
-} from "./page";
+import type { AnalisisData, VentaTurno } from "./page";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
