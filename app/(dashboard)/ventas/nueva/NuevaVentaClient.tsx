@@ -9,14 +9,16 @@ import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
 import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed } from "lucide-react";
-import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+
+const CANCEL_ROLES = ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER", "SECRETARY", "WAITER"];
 
 interface Props {
   productos: ProductoCard[];
   simbolo: string;
   usuarioId: number;
+  userRol?: string;
   cajaId?: number;
   cajaNombre?: string;
   meseroNombre?: string;
@@ -27,6 +29,7 @@ export function NuevaVentaClient({
   productos,
   simbolo,
   usuarioId,
+  userRol,
   cajaId,
   cajaNombre,
   meseroNombre,
@@ -48,6 +51,14 @@ export function NuevaVentaClient({
       setInitialState(initialOrder.items, initialOrder.id, initialOrder.mesaId);
     }
   }, [initialOrder, items.length, pedidoId, setInitialState]);
+
+  async function handleVolver() {
+    const unsaved = items.filter((i) => !i.guardado);
+    if (unsaved.length > 0) {
+      await handleOrden();
+    }
+    router.push("/mesas");
+  }
 
   async function handleOrden() {
     // Filtrar solo items que NO están guardados en la BD
@@ -122,10 +133,10 @@ export function NuevaVentaClient({
     <div className="h-[calc(100vh-52px)] flex flex-col gap-0 -m-6">
       {/* Barra superior */}
       <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-surface-border flex-shrink-0">
-        <Link href="/mesas" className="btn-ghost text-sm">
+        <button onClick={handleVolver} className="btn-ghost text-sm">
           <ArrowLeft size={16} />
           <span className="hidden sm:inline">Volver</span>
-        </Link>
+        </button>
         <h1 className="font-bold text-surface-text text-sm sm:text-base">Nueva Orden</h1>
 
         {/* Orden toast */}
@@ -209,6 +220,7 @@ export function NuevaVentaClient({
             onOrden={handleOrden}
             onPrecuenta={() => setShowPrecuenta(true)}
             ordenLoading={ordenLoading}
+            canCancelItems={userRol ? CANCEL_ROLES.includes(userRol) : false}
           />
         </div>
       </div>
@@ -248,6 +260,7 @@ export function NuevaVentaClient({
         <PrecuentaModal
           simbolo={simbolo}
           meseroNombre={meseroNombre}
+          mesaNombre={mesaId ? `Mesa ${mesaId}` : undefined}
           onClose={() => setShowPrecuenta(false)}
         />
       )}

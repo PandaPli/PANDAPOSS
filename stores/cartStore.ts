@@ -18,6 +18,7 @@ interface CartState {
   setPedido: (id: number | null) => void;
   setDescuento: (v: number) => void;
   setIva: (v: number) => void;
+  cancelItem: (id: number, tipo: "producto" | "combo") => void;
   clear: () => void;
   setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
   markAsSaved: () => void;
@@ -79,6 +80,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     }));
   },
 
+  cancelItem: (id, tipo) =>
+    set((s) => ({
+      items: s.items.map((i) =>
+        i.id === id && i.tipo === tipo ? { ...i, cancelado: !i.cancelado } : i
+      ),
+    })),
+
   setMesa: (id) => set({ mesaId: id }),
   setCliente: (id) => set({ clienteId: id }),
   setPedido: (id) => set({ pedidoId: id }),
@@ -89,7 +97,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => ({ ...i, guardado: true })) })),
 
   subtotal: () =>
-    get().items.reduce((acc, i) => acc + i.precio * i.cantidad, 0),
+    get().items.reduce((acc, i) => (i.cancelado ? acc : acc + i.precio * i.cantidad), 0),
 
   totalDescuento: () => {
     const sub = get().subtotal();

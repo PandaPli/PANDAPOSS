@@ -37,6 +37,7 @@ export interface CartItem {
   observacion?: string;
   imagen?: string;
   guardado?: boolean; // Indica si ya está en la BD
+  cancelado?: boolean; // Anulado por autorización
 }
 
 // Pagos

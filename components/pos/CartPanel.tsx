@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2 } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 
@@ -10,10 +10,11 @@ interface Props {
   onOrden: () => void;
   onPrecuenta: () => void;
   ordenLoading?: boolean;
+  canCancelItems?: boolean;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ordenLoading }: Props) {
-  const { items, removeItem, updateCantidad, updateObservacion, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId } =
+export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
+  const { items, removeItem, updateCantidad, updateObservacion, cancelItem, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId } =
     useCartStore();
 
   const sub = subtotal();
@@ -54,52 +55,79 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
           items.map((item) => (
             <div
               key={`${item.tipo}-${item.id}`}
-              className="flex items-start gap-3 p-3 bg-surface-bg rounded-xl"
+              className={`flex items-start gap-3 p-3 rounded-xl transition-all ${item.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"}`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-surface-text truncate">{item.nombre}</p>
-                  {item.guardado && (
+                  <p className={`text-sm font-semibold truncate ${item.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+                    {item.nombre}
+                  </p>
+                  {item.cancelado ? (
+                    <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                      ANULADO
+                    </span>
+                  ) : item.guardado ? (
                     <span title="Enviado a cocina" className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">
                       ENVIADO
                     </span>
-                  )}
+                  ) : null}
                 </div>
-                <p className="text-xs text-brand-500 font-medium mt-0.5">
+                <p className={`text-xs font-medium mt-0.5 ${item.cancelado ? "line-through text-gray-400" : "text-brand-500"}`}>
                   {formatCurrency(item.precio * item.cantidad, simbolo)}
                 </p>
-                <input
-                  type="text"
-                  value={item.observacion ?? ""}
-                  onChange={(e) => updateObservacion(item.id, item.tipo, e.target.value)}
-                  placeholder="Nota: sin sal, poco hielo..."
-                  className="mt-1.5 w-full text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
-                />
+                {!item.cancelado && (
+                  <input
+                    type="text"
+                    value={item.observacion ?? ""}
+                    onChange={(e) => updateObservacion(item.id, item.tipo, e.target.value)}
+                    placeholder="Nota: sin sal, poco hielo..."
+                    className="mt-1.5 w-full text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
+                  />
+                )}
               </div>
 
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button
-                  onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
-                  disabled={item.guardado}
-                  className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all disabled:opacity-50"
-                >
-                  <Minus size={12} />
-                </button>
-                <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
-                <button
-                  onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
-                  disabled={item.guardado}
-                  className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all disabled:opacity-50"
-                >
-                  <Plus size={12} />
-                </button>
-                <button
-                  onClick={() => removeItem(item.id, item.tipo)}
-                  disabled={item.guardado}
-                  className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1 disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Trash2 size={12} />
-                </button>
+                {!item.guardado && !item.cancelado && (
+                  <>
+                    <button
+                      onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
+                      className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
+                    <button
+                      onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
+                      className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+                    >
+                      <Plus size={12} />
+                    </button>
+                    <button
+                      onClick={() => removeItem(item.id, item.tipo)}
+                      className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+
+                {item.guardado && canCancelItems && (
+                  <button
+                    onClick={() => cancelItem(item.id, item.tipo)}
+                    title={item.cancelado ? "Reactivar producto" : "Anular producto"}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ml-1 ${
+                      item.cancelado
+                        ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                        : "text-red-400 hover:bg-red-50"
+                    }`}
+                  >
+                    <Ban size={12} />
+                  </button>
+                )}
+
+                {item.guardado && !canCancelItems && !item.cancelado && (
+                  <span className="w-5 text-center text-sm font-bold text-surface-muted">{item.cantidad}</span>
+                )}
               </div>
             </div>
           ))
