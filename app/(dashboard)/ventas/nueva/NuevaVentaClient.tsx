@@ -9,14 +9,16 @@ import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
 import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed } from "lucide-react";
-import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+
+const CANCEL_ROLES = ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER", "SECRETARY", "WAITER"];
 
 interface Props {
   productos: ProductoCard[];
   simbolo: string;
   usuarioId: number;
+  userRol?: string;
   cajaId?: number;
   cajaNombre?: string;
   meseroNombre?: string;
@@ -28,6 +30,7 @@ export function NuevaVentaClient({
   productos,
   simbolo,
   usuarioId,
+  userRol,
   cajaId,
   cajaNombre,
   meseroNombre,
@@ -77,6 +80,14 @@ export function NuevaVentaClient({
     }
 
     setShowPrecuenta(true);
+  }
+
+  async function handleVolver() {
+    const unsaved = items.filter((i) => !i.guardado);
+    if (unsaved.length > 0) {
+      await handleOrden();
+    }
+    router.push("/mesas");
   }
 
   async function handleOrden() {
@@ -148,11 +159,12 @@ export function NuevaVentaClient({
 
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col gap-0">
+      {/* Barra superior */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-surface-border bg-white px-4 py-3">
-        <Link href="/mesas" className="btn-ghost text-sm">
+        <button onClick={handleVolver} className="btn-ghost text-sm">
           <ArrowLeft size={16} />
           <span className="hidden sm:inline">Volver</span>
-        </Link>
+        </button>
         <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
 
         {ordenMsg && (
@@ -212,7 +224,14 @@ export function NuevaVentaClient({
         </div>
 
         <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
-          <CartPanel simbolo={simbolo} onCheckout={() => setShowCheckout(true)} onOrden={handleOrden} onPrecuenta={handleOpenPrecuenta} ordenLoading={ordenLoading} />
+          <CartPanel
+            simbolo={simbolo}
+            onCheckout={() => setShowCheckout(true)}
+            onOrden={handleOrden}
+            onPrecuenta={handleOpenPrecuenta}
+            ordenLoading={ordenLoading}
+            canCancelItems={userRol ? CANCEL_ROLES.includes(userRol) : false}
+          />
         </div>
       </div>
 
@@ -248,10 +267,14 @@ export function NuevaVentaClient({
       )}
 
       {showPrecuenta && (
-        <PrecuentaModal simbolo={simbolo} meseroNombre={meseroNombre} logoUrl={logoUrl} onClose={() => setShowPrecuenta(false)} />
+        <PrecuentaModal
+          simbolo={simbolo}
+          meseroNombre={meseroNombre}
+          mesaNombre={mesaId ? `Mesa ${mesaId}` : undefined}
+          logoUrl={logoUrl}
+          onClose={() => setShowPrecuenta(false)}
+        />
       )}
     </div>
   );
 }
-
-

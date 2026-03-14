@@ -105,6 +105,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
   const userId = (session?.user as { id?: number })?.id ?? 0;
   const meseroNombre = session?.user?.name ?? "Cajero";
   const sessionLogoUrl = (session?.user as { logoUrl?: string | null })?.logoUrl ?? null;
+  const userRol = (session?.user as { rol?: string })?.rol ?? undefined;
 
   const params = await searchParams;
   const pedidoId = params.pedido ? Number(params.pedido) : undefined;
@@ -136,6 +137,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       productos={productosData}
       simbolo={simbolo}
       usuarioId={userId}
+      userRol={userRol}
       cajaId={cajaAbierta?.id}
       cajaNombre={cajaAbierta?.nombre}
       meseroNombre={meseroNombre}
