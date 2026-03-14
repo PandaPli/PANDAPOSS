@@ -12,7 +12,7 @@ async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
   return prisma.mesa.findMany({
     where,
     include: {
-      sala: { select: { nombre: true } },
+      sala: { select: { nombre: true, esQR: true } },
       pedidos: {
         // Sin take: 1 → traemos TODOS los pedidos activos para sumar total real
         where: { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } },

@@ -44,7 +44,9 @@ export function NuevaVentaClient({
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo } = useCartStore();
+
+  const [checkoutGrupo, setCheckoutGrupo] = useState<string | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
 
   useEffect(() => {
@@ -213,7 +215,8 @@ export function NuevaVentaClient({
         <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
           <CartPanel
             simbolo={simbolo}
-            onCheckout={() => setShowCheckout(true)}
+            onCheckout={() => { setCheckoutGrupo(null); setShowCheckout(true); }}
+            onCheckoutGrupo={(grupo) => { setCheckoutGrupo(grupo); setShowCheckout(true); }}
             onOrden={handleOrden}
             onPrecuenta={handleOpenPrecuenta}
             ordenLoading={ordenLoading}
@@ -248,8 +251,10 @@ export function NuevaVentaClient({
           meseroNombre={meseroNombre}
           mesaNombre={mesaId ? `Mesa ${mesaId}` : undefined}
           logoUrl={logoUrl}
-          onClose={() => setShowCheckout(false)}
+          onClose={() => { setShowCheckout(false); setCheckoutGrupo(null); }}
           onSuccess={handleSuccess}
+          grupoNombre={checkoutGrupo ?? undefined}
+          grupoItems={checkoutGrupo ? getItemsByGrupo(checkoutGrupo) : undefined}
         />
       )}
 

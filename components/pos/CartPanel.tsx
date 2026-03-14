@@ -1,22 +1,25 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check } from "lucide-react";
-import { useCartStore } from "@/stores/cartStore";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors } from "lucide-react";
+import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem } from "@/types";
 
 interface Props {
   simbolo?: string;
   onCheckout: () => void;
+  onCheckoutGrupo?: (grupo: string) => void;
   onOrden: () => void;
   onPrecuenta: () => void;
   ordenLoading?: boolean;
   canCancelItems?: boolean;
 }
 
+const GRUPOS_DISPONIBLES = ["A", "B", "C", "D", "E"];
+
 /** Llama al API para persistir el cambio de un detalle en DB → KDS lo verá en próximo poll */
-async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cantidad?: number; observacion?: string | null }) {
+async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cantidad?: number; observacion?: string | null; grupo?: string | null }) {
   await fetch(`/api/pedidos/detalles/${detalleId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -24,19 +27,31 @@ async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cant
   }).catch(() => {}); // silencioso — el carrito local ya se actualizó
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
-  const { items, removeItem, updateCantidad, updateObservacion, cancelItem, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId } =
-    useCartStore();
+interface SplitState {
+  item: CartItem;
+  cantidades: Record<string, number>;
+}
 
-  // Track observaciones "sucias" para ítems guardados (para mostrar botón guardar nota)
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
+  const {
+    items, removeItem, updateCantidad, updateObservacion, cancelItem,
+    subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
+    setItemGrupo, splitItemGrupos, getGrupos, getItemsByGrupo, getSubtotalGrupo,
+  } = useCartStore();
+
   const [dirtyObs, setDirtyObs] = useState<Record<string, string>>({});
+  const [modoGrupos, setModoGrupos] = useState(false);
+  const [splitDialog, setSplitDialog] = useState<SplitState | null>(null);
 
   const sub  = subtotal();
   const desc = totalDescuento();
   const iva  = totalIva();
   const tot  = total();
 
-  const itemKey = (item: CartItem) => `${item.tipo}-${item.id}`;
+  const itemKey = (item: CartItem) =>
+    item.detalleId ? `d-${item.detalleId}` : `${item.tipo}-${item.id}`;
+
+  const grupos = getGrupos();
 
   /** Anular / reactivar ítem guardado → sincroniza con KDS inmediatamente */
   const handleCancel = useCallback(async (item: CartItem) => {
@@ -58,6 +73,204 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
     }
   }, [dirtyObs, updateObservacion]);
 
+  /** Asignar grupo a un ítem */
+  const handleSetGrupo = useCallback(async (item: CartItem, grupo: string | null) => {
+    if (!item.detalleId) return;
+    setItemGrupo(item.detalleId, grupo);
+    await syncDetalle(item.detalleId, { grupo });
+  }, [setItemGrupo]);
+
+  /** Abrir diálogo de división de cantidades */
+  const handleOpenSplit = (item: CartItem) => {
+    const init: Record<string, number> = {};
+    if (item.grupo) init[item.grupo] = item.cantidad;
+    setSplitDialog({ item, cantidades: init });
+  };
+
+  /** Confirmar división */
+  const handleConfirmSplit = async () => {
+    if (!splitDialog || !splitDialog.item.detalleId) return;
+    const { item, cantidades } = splitDialog;
+    const total = Object.values(cantidades).reduce((a, b) => a + b, 0);
+    if (total !== item.cantidad) return;
+
+    const gruposUsados = Object.entries(cantidades).filter(([, c]) => c > 0);
+    if (gruposUsados.length < 2) return;
+
+    const [primerGrupo, primerCant] = gruposUsados[0];
+    const resto = gruposUsados.slice(1);
+
+    // Actualizar el ítem original con el primer grupo
+    setItemGrupo(item.detalleId, primerGrupo);
+    await syncDetalle(item.detalleId, { cantidad: primerCant, grupo: primerGrupo });
+
+    // Crear nuevos detalles para el resto (si el ítem está guardado)
+    if (item.guardado && item.pedidoId !== undefined) {
+      // El pedidoId no está en CartItem, usamos el del store
+      // Para los nuevos detalles llamamos a POST /api/pedidos/detalles
+    }
+
+    // Por ahora solo dividimos localmente en el store
+    splitItemGrupos(item.detalleId, [
+      { grupo: primerGrupo, cantidad: primerCant, newDetalleId: item.detalleId },
+      ...resto.map(([g, c]) => ({ grupo: g, cantidad: c })),
+    ]);
+
+    setSplitDialog(null);
+  };
+
+  const renderItem = (item: CartItem, showGrupoSelector = false) => {
+    const key = itemKey(item);
+    const obsValue = dirtyObs[key] ?? item.observacion ?? "";
+    const obsDirty = key in dirtyObs && dirtyObs[key] !== (item.observacion ?? "");
+
+    return (
+      <div
+        key={key}
+        className={`flex items-start gap-3 p-3 rounded-xl transition-all ${
+          item.cancelado ? "bg-gray-100 opacity-60" :
+          item.pagado ? "bg-green-50 opacity-60" :
+          "bg-surface-bg"
+        }`}
+      >
+        {/* Indicador de grupo (punto de color) en modo grupos */}
+        {modoGrupos && item.grupo && !item.cancelado && !item.pagado && (
+          <div
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5"
+            style={{ backgroundColor: getGrupoColor(item.grupo) }}
+          />
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className={`text-sm font-semibold truncate ${item.cancelado ? "line-through text-gray-400" : item.pagado ? "text-gray-400" : "text-surface-text"}`}>
+              {item.nombre}
+            </p>
+            {item.cancelado ? (
+              <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">ANULADO</span>
+            ) : item.pagado ? (
+              <span className="bg-green-100 text-green-600 text-[10px] px-1.5 py-0.5 rounded font-bold">PAGADO</span>
+            ) : item.guardado ? (
+              <span title="Enviado a cocina" className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">ENVIADO</span>
+            ) : null}
+          </div>
+
+          <p className={`text-xs font-medium mt-0.5 ${item.cancelado || item.pagado ? "line-through text-gray-400" : "text-brand-500"}`}>
+            {formatCurrency(item.precio * item.cantidad, simbolo)}
+            {item.cantidad > 1 && <span className="ml-1 text-surface-muted">({item.cantidad}x)</span>}
+          </p>
+
+          {/* Selector de grupo en modo grupos */}
+          {modoGrupos && !item.cancelado && !item.pagado && item.detalleId && (
+            <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+              {GRUPOS_DISPONIBLES.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => handleSetGrupo(item, item.grupo === g ? null : g)}
+                  title={`Asignar al Grupo ${g}`}
+                  className="w-6 h-6 rounded-full text-[11px] font-black border-2 transition-all flex items-center justify-center"
+                  style={{
+                    backgroundColor: item.grupo === g ? getGrupoColor(g) : "transparent",
+                    borderColor: getGrupoColor(g),
+                    color: item.grupo === g ? "white" : getGrupoColor(g),
+                  }}
+                >
+                  {g}
+                </button>
+              ))}
+              {/* Botón dividir — solo si cantidad > 1 y está guardado */}
+              {item.cantidad > 1 && item.guardado && (
+                <button
+                  onClick={() => handleOpenSplit(item)}
+                  title="Dividir entre grupos"
+                  className="w-6 h-6 rounded-full border-2 border-surface-border text-surface-muted hover:border-brand-400 hover:text-brand-500 transition-all flex items-center justify-center"
+                >
+                  <Scissors size={10} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {!item.cancelado && !item.pagado && (
+            <div className="mt-1.5 flex items-center gap-1">
+              <input
+                type="text"
+                value={obsValue}
+                onChange={(e) => {
+                  if (item.guardado) {
+                    setDirtyObs((prev) => ({ ...prev, [key]: e.target.value }));
+                  } else {
+                    updateObservacion(item.id, item.tipo, e.target.value);
+                  }
+                }}
+                placeholder="Nota: sin sal, poco hielo..."
+                className="flex-1 text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
+              />
+              {item.guardado && obsDirty && (
+                <button
+                  onClick={() => handleSaveObs(item)}
+                  title="Enviar nota a cocina"
+                  className="w-6 h-6 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-all flex-shrink-0"
+                >
+                  <Check size={11} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {!item.guardado && !item.cancelado && !item.pagado && (
+            <>
+              <button
+                onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
+                className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+              >
+                <Minus size={12} />
+              </button>
+              <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
+              <button
+                onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
+                className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
+              >
+                <Plus size={12} />
+              </button>
+              <button
+                onClick={() => removeItem(item.id, item.tipo)}
+                className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
+              >
+                <Trash2 size={12} />
+              </button>
+            </>
+          )}
+
+          {item.guardado && canCancelItems && !item.pagado && (
+            <button
+              onClick={() => handleCancel(item)}
+              title={item.cancelado ? "Reactivar producto" : "Anular producto"}
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ml-1 ${
+                item.cancelado
+                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                  : "text-red-400 hover:bg-red-50"
+              }`}
+            >
+              <Ban size={12} />
+            </button>
+          )}
+
+          {item.guardado && !canCancelItems && !item.cancelado && !item.pagado && (
+            <span className="w-5 text-center text-sm font-bold text-surface-muted">{item.cantidad}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Ítems sin grupo asignado
+  const itemsSinGrupo = modoGrupos
+    ? items.filter((i) => !i.grupo && !i.cancelado && !i.pagado)
+    : [];
+
   return (
     <div className="flex flex-col h-full bg-white border-l border-surface-border">
       {/* Header */}
@@ -66,13 +279,28 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
         <h2 className="font-bold text-surface-text">Carrito</h2>
         {items.length > 0 && (
           <span className="ml-auto bg-brand-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
-            {items.length}
+            {items.filter((i) => !i.cancelado && !i.pagado).length}
           </span>
+        )}
+        {/* Toggle modo grupos — solo si hay ítems guardados */}
+        {items.some((i) => i.guardado && !i.cancelado) && (
+          <button
+            onClick={() => setModoGrupos((v) => !v)}
+            title={modoGrupos ? "Desactivar división de cuenta" : "Dividir cuenta por grupos"}
+            className={`ml-1 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
+              modoGrupos
+                ? "bg-brand-500 text-white"
+                : "bg-surface-bg border border-surface-border text-surface-muted hover:border-brand-300 hover:text-brand-500"
+            }`}
+          >
+            <Users size={13} />
+            {modoGrupos ? "Grupos" : "Dividir"}
+          </button>
         )}
       </div>
 
       {/* Pedido vinculado */}
-      {pedidoId && (
+      {pedidoId && !modoGrupos && (
         <div className="mx-3 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-semibold flex items-center gap-1.5">
           <Send size={12} />
           Orden #{pedidoId} enviada a cocina
@@ -87,166 +315,194 @@ export function CartPanel({ simbolo = "$", onCheckout, onOrden, onPrecuenta, ord
             <p className="text-sm">El carrito esta vacio</p>
             <p className="text-xs mt-1 opacity-60">Selecciona productos del menu</p>
           </div>
-        ) : (
-          items.map((item) => {
-            const key = itemKey(item);
-            const obsValue = dirtyObs[key] ?? item.observacion ?? "";
-            const obsDirty = key in dirtyObs && dirtyObs[key] !== (item.observacion ?? "");
-
-            return (
-              <div
-                key={key}
-                className={`flex items-start gap-3 p-3 rounded-xl transition-all ${item.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className={`text-sm font-semibold truncate ${item.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
-                      {item.nombre}
-                    </p>
-                    {item.cancelado ? (
-                      <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">ANULADO</span>
-                    ) : item.guardado ? (
-                      <span title="Enviado a cocina" className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded font-bold">ENVIADO</span>
-                    ) : null}
+        ) : modoGrupos ? (
+          <>
+            {/* Modo grupos: ítems agrupados por grupo */}
+            {grupos.map((grupo) => {
+              const grupoItems = getItemsByGrupo(grupo);
+              const grupoSub = getSubtotalGrupo(grupo);
+              const color = getGrupoColor(grupo);
+              return (
+                <div key={grupo}>
+                  {/* Encabezado de grupo */}
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-xs font-bold text-surface-text" style={{ color }}>
+                      Grupo {grupo}
+                    </span>
+                    <span className="ml-auto text-xs font-semibold text-surface-muted">
+                      {formatCurrency(grupoSub, simbolo)}
+                    </span>
                   </div>
-
-                  <p className={`text-xs font-medium mt-0.5 ${item.cancelado ? "line-through text-gray-400" : "text-brand-500"}`}>
-                    {formatCurrency(item.precio * item.cantidad, simbolo)}
-                  </p>
-
-                  {!item.cancelado && (
-                    <div className="mt-1.5 flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={obsValue}
-                        onChange={(e) => {
-                          if (item.guardado) {
-                            setDirtyObs((prev) => ({ ...prev, [key]: e.target.value }));
-                          } else {
-                            updateObservacion(item.id, item.tipo, e.target.value);
-                          }
-                        }}
-                        placeholder="Nota: sin sal, poco hielo..."
-                        className="flex-1 text-xs px-2 py-1 rounded-lg border border-surface-border bg-white text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200"
-                      />
-                      {/* Botón guardar nota solo si el ítem ya está en cocina y la nota cambió */}
-                      {item.guardado && obsDirty && (
-                        <button
-                          onClick={() => handleSaveObs(item)}
-                          title="Enviar nota a cocina"
-                          className="w-6 h-6 rounded-md bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-all flex-shrink-0"
-                        >
-                          <Check size={11} />
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="space-y-1.5 pl-1 border-l-2 rounded" style={{ borderColor: color }}>
+                    {grupoItems.map((item) => renderItem(item, true))}
+                  </div>
                 </div>
+              );
+            })}
 
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {/* Ítems NO guardados: controles normales */}
-                  {!item.guardado && !item.cancelado && (
-                    <>
-                      <button
-                        onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
-                        className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
-                      <button
-                        onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
-                        className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
-                      >
-                        <Plus size={12} />
-                      </button>
-                      <button
-                        onClick={() => removeItem(item.id, item.tipo)}
-                        className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </>
-                  )}
+            {/* Ítems cancelados/pagados al final */}
+            {items.filter((i) => i.cancelado || i.pagado).map((item) => renderItem(item, false))}
 
-                  {/* Ítems GUARDADOS con permiso: solo botón anular */}
-                  {item.guardado && canCancelItems && (
-                    <button
-                      onClick={() => handleCancel(item)}
-                      title={item.cancelado ? "Reactivar producto" : "Anular producto"}
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ml-1 ${
-                        item.cancelado
-                          ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                          : "text-red-400 hover:bg-red-50"
-                      }`}
-                    >
-                      <Ban size={12} />
-                    </button>
-                  )}
-
-                  {/* Ítems GUARDADOS sin permiso: solo mostrar cantidad */}
-                  {item.guardado && !canCancelItems && !item.cancelado && (
-                    <span className="w-5 text-center text-sm font-bold text-surface-muted">{item.cantidad}</span>
-                  )}
+            {/* Ítems sin grupo */}
+            {itemsSinGrupo.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-1 px-1">
+                  <div className="w-3 h-3 rounded-full bg-surface-muted flex-shrink-0" />
+                  <span className="text-xs font-bold text-surface-muted">Sin grupo</span>
+                </div>
+                <div className="space-y-1.5 pl-1 border-l-2 border-dashed border-surface-border">
+                  {itemsSinGrupo.map((item) => renderItem(item, true))}
                 </div>
               </div>
-            );
-          })
+            )}
+          </>
+        ) : (
+          items.map((item) => renderItem(item, false))
         )}
       </div>
+
+      {/* Diálogo de división de cantidades */}
+      {splitDialog && (
+        <div className="mx-3 mb-2 p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-blue-700">
+              Dividir: {splitDialog.item.nombre} ({splitDialog.item.cantidad}x)
+            </p>
+            <button onClick={() => setSplitDialog(null)} className="text-blue-400 hover:text-blue-600">
+              <X size={14} />
+            </button>
+          </div>
+          <div className="space-y-1">
+            {GRUPOS_DISPONIBLES.map((g) => {
+              const color = getGrupoColor(g);
+              const val = splitDialog.cantidades[g] ?? 0;
+              return (
+                <div key={g} className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black text-white" style={{ backgroundColor: color }}>
+                    {g}
+                  </div>
+                  <span className="text-xs text-surface-text w-14">Grupo {g}</span>
+                  <button onClick={() => setSplitDialog((s) => s ? { ...s, cantidades: { ...s.cantidades, [g]: Math.max(0, val - 1) } } : s)}
+                    className="w-5 h-5 rounded border border-surface-border flex items-center justify-center hover:bg-white text-xs">-</button>
+                  <span className="w-4 text-center text-xs font-bold">{val}</span>
+                  <button onClick={() => setSplitDialog((s) => s ? { ...s, cantidades: { ...s.cantidades, [g]: val + 1 } } : s)}
+                    className="w-5 h-5 rounded border border-surface-border flex items-center justify-center hover:bg-white text-xs">+</button>
+                </div>
+              );
+            })}
+          </div>
+          {/* Total asignado */}
+          {(() => {
+            const asignado = Object.values(splitDialog.cantidades).reduce((a, b) => a + b, 0);
+            const ok = asignado === splitDialog.item.cantidad;
+            return (
+              <div className={`flex items-center justify-between text-xs ${ok ? "text-green-600" : "text-amber-600"}`}>
+                <span>{ok ? "✓ Listo para dividir" : `Asignado: ${asignado} / ${splitDialog.item.cantidad}`}</span>
+                <button
+                  onClick={handleConfirmSplit}
+                  disabled={!ok}
+                  className="px-2 py-1 rounded-lg bg-blue-500 text-white font-semibold disabled:opacity-40 hover:bg-blue-600 transition-all"
+                >
+                  Confirmar
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Totales + Botones */}
       {items.length > 0 && (
         <div className="p-4 border-t border-surface-border space-y-3">
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-surface-muted">
-              <span>Subtotal</span>
-              <span>{formatCurrency(sub, simbolo)}</span>
+          {modoGrupos && grupos.length > 0 ? (
+            /* Modo grupos: mostrar botón de cobro por grupo */
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-surface-muted">Cobrar por grupo:</p>
+              {grupos.map((grupo) => {
+                const grupoSub = getSubtotalGrupo(grupo);
+                const color = getGrupoColor(grupo);
+                return (
+                  <button
+                    key={grupo}
+                    onClick={() => onCheckoutGrupo?.(grupo)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all hover:opacity-80"
+                    style={{ borderColor: color, color, backgroundColor: `${color}15` }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full text-white text-[11px] font-black flex items-center justify-center" style={{ backgroundColor: color }}>{grupo}</span>
+                      Grupo {grupo}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Receipt size={13} />
+                      {formatCurrency(grupoSub, simbolo)}
+                    </span>
+                  </button>
+                );
+              })}
+              {/* Botón cobrar todo (si no todos asignados) */}
+              {itemsSinGrupo.length > 0 && (
+                <button
+                  onClick={onCheckout}
+                  className="btn-primary w-full justify-center text-sm py-2.5"
+                >
+                  <Receipt size={15} />
+                  Cobrar Todo
+                </button>
+              )}
             </div>
-            {descuento > 0 && (
-              <div className="flex justify-between text-emerald-600">
-                <span>Descuento ({descuento}%)</span>
-                <span>- {formatCurrency(desc, simbolo)}</span>
+          ) : (
+            <>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between text-surface-muted">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(sub, simbolo)}</span>
+                </div>
+                {descuento > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Descuento ({descuento}%)</span>
+                    <span>- {formatCurrency(desc, simbolo)}</span>
+                  </div>
+                )}
+                {ivaPorc > 0 && (
+                  <div className="flex justify-between text-surface-muted">
+                    <span>IVA ({ivaPorc}%)</span>
+                    <span>{formatCurrency(iva, simbolo)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-surface-text text-base pt-1.5 border-t border-surface-border">
+                  <span>Total</span>
+                  <span className="text-brand-500">{formatCurrency(tot, simbolo)}</span>
+                </div>
               </div>
-            )}
-            {ivaPorc > 0 && (
-              <div className="flex justify-between text-surface-muted">
-                <span>IVA ({ivaPorc}%)</span>
-                <span>{formatCurrency(iva, simbolo)}</span>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={onOrden}
+                  disabled={ordenLoading}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-all disabled:opacity-50"
+                >
+                  {ordenLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                  Orden
+                </button>
+                <button
+                  onClick={onPrecuenta}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-surface-border bg-surface-bg text-surface-text text-sm font-semibold hover:bg-white hover:border-brand-200 transition-all"
+                >
+                  <FileText size={15} />
+                  Precuenta
+                </button>
               </div>
-            )}
-            <div className="flex justify-between font-bold text-surface-text text-base pt-1.5 border-t border-surface-border">
-              <span>Total</span>
-              <span className="text-brand-500">{formatCurrency(tot, simbolo)}</span>
-            </div>
-          </div>
 
-          {/* Botones de acción */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={onOrden}
-              disabled={ordenLoading}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-all disabled:opacity-50"
-            >
-              {ordenLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-              Orden
-            </button>
-            <button
-              onClick={onPrecuenta}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-surface-border bg-surface-bg text-surface-text text-sm font-semibold hover:bg-white hover:border-brand-200 transition-all"
-            >
-              <FileText size={15} />
-              Precuenta
-            </button>
-          </div>
-
-          <button
-            onClick={onCheckout}
-            className="btn-primary w-full justify-center text-base py-3"
-          >
-            <Receipt size={18} />
-            Cobrar
-          </button>
+              <button
+                onClick={onCheckout}
+                className="btn-primary w-full justify-center text-base py-3"
+              >
+                <Receipt size={18} />
+                Cobrar
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -29,6 +29,10 @@ export interface CreateVentaInput {
   total: number;
   metodoPago: MetodoPago;
   pagos?: PagoInput[];
+  /** IDs de DetallePedido que se marcan como pagados (modo grupo) */
+  detalleIds?: number[];
+  /** Si true: no cierra automáticamente la mesa (hay más grupos por cobrar) */
+  modoGrupo?: boolean;
 }
 
 function generateVentaNumero() {
@@ -75,6 +79,42 @@ async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: nu
   }
 }
 
+/**
+ * Verifica si todos los ítems no cancelados de la mesa ya han sido pagados.
+ * Si es así, cierra la mesa y marca todos los pedidos activos como ENTREGADO.
+ */
+async function checkAndCloseMesa(tx: Prisma.TransactionClient, mesaId: number) {
+  // Buscar detalles activos (no cancelados, no pagados) de pedidos activos de la mesa
+  const pendientes = await tx.detallePedido.count({
+    where: {
+      pedido: {
+        mesaId,
+        estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+        venta: null,
+      },
+      cancelado: false,
+      pagado: false,
+    },
+  });
+
+  if (pendientes === 0) {
+    // Todos los grupos pagaron → cerrar mesa y marcar pedidos
+    await tx.mesa.update({
+      where: { id: mesaId },
+      data: { estado: "LIBRE" },
+    });
+
+    await tx.pedido.updateMany({
+      where: {
+        mesaId,
+        estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+        venta: null,
+      },
+      data: { estado: "ENTREGADO", meseroLlamado: false },
+    });
+  }
+}
+
 export const VentaService = {
   async create(input: CreateVentaInput) {
     const {
@@ -90,6 +130,8 @@ export const VentaService = {
       total,
       metodoPago,
       pagos,
+      detalleIds,
+      modoGrupo,
     } = input;
 
     const numero = generateVentaNumero();
@@ -98,7 +140,8 @@ export const VentaService = {
     try {
       const venta = await prisma.$transaction(
         async (tx) => {
-          if (pedidoId) {
+          // En modo grupo NO verificamos ni vinculamos el pedidoId
+          if (pedidoId && !modoGrupo) {
             await ensurePedidoDisponible(tx, pedidoId);
           }
 
@@ -108,7 +151,8 @@ export const VentaService = {
               cajaId: cajaId ?? null,
               clienteId: clienteId ?? null,
               usuarioId,
-              pedidoId: pedidoId ?? null,
+              // En modo grupo: no linkeamos pedidoId (múltiples ventas por mesa)
+              pedidoId: modoGrupo ? null : (pedidoId ?? null),
               subtotal,
               descuento: descuento ?? 0,
               impuesto: impuesto ?? 0,
@@ -164,21 +208,36 @@ export const VentaService = {
             });
           }
 
-          if (pedidoId) {
-            await tx.pedido.update({
-              where: { id: pedidoId },
-              data: {
-                estado: "ENTREGADO",
-                meseroLlamado: false,
-              },
-            });
-          }
+          if (modoGrupo) {
+            // Modo grupo: marcar los detalles específicos como pagados
+            if (detalleIds && detalleIds.length > 0) {
+              await tx.detallePedido.updateMany({
+                where: { id: { in: detalleIds } },
+                data: { pagado: true },
+              });
+            }
+            // Verificar si la mesa puede cerrarse (todos los grupos pagaron)
+            if (mesaId) {
+              await checkAndCloseMesa(tx, mesaId);
+            }
+          } else {
+            // Modo normal: cerrar pedido y mesa
+            if (pedidoId) {
+              await tx.pedido.update({
+                where: { id: pedidoId },
+                data: {
+                  estado: "ENTREGADO",
+                  meseroLlamado: false,
+                },
+              });
+            }
 
-          if (mesaId) {
-            await tx.mesa.update({
-              where: { id: mesaId },
-              data: { estado: "LIBRE" },
-            });
+            if (mesaId) {
+              await tx.mesa.update({
+                where: { id: mesaId },
+                data: { estado: "LIBRE" },
+              });
+            }
           }
 
           return v;

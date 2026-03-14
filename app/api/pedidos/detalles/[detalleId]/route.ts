@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 
 /**
  * PATCH /api/pedidos/detalles/[detalleId]
- * Actualiza un ítem individual del pedido (cancelado, cantidad, observacion).
+ * Actualiza un ítem individual del pedido (cancelado, cantidad, observacion, grupo, pagado).
  * El KDS se actualizará en el próximo polling (cada 30s).
  */
 export async function PATCH(
@@ -23,6 +23,8 @@ export async function PATCH(
     cancelado?: boolean;
     cantidad?: number;
     observacion?: string | null;
+    grupo?: string | null;
+    pagado?: boolean;
   };
 
   // Validaciones básicas
@@ -31,9 +33,11 @@ export async function PATCH(
   }
 
   const data: Record<string, unknown> = {};
-  if (body.cancelado !== undefined) data.cancelado = body.cancelado;
-  if (body.cantidad !== undefined)  data.cantidad   = body.cantidad;
+  if (body.cancelado !== undefined)   data.cancelado   = body.cancelado;
+  if (body.cantidad !== undefined)    data.cantidad    = body.cantidad;
   if (body.observacion !== undefined) data.observacion = body.observacion;
+  if (body.grupo !== undefined)       data.grupo       = body.grupo;
+  if (body.pagado !== undefined)      data.pagado      = body.pagado;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });

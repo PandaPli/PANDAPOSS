@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X } from "lucide-react";
-import { useCartStore } from "@/stores/cartStore";
+import { useState, useMemo } from "react";
+import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X, Users } from "lucide-react";
+import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
-import type { MetodoPago, PagoItem } from "@/types";
+import type { CartItem, MetodoPago, PagoItem } from "@/types";
 
 interface ReceiptItem {
   nombre: string;
@@ -23,6 +23,7 @@ interface CompletedSale {
   total: number;
   pagos: PagoItem[];
   mesaLabel?: string;
+  grupoNombre?: string;
 }
 
 interface Props {
@@ -34,6 +35,10 @@ interface Props {
   mesaNombre?: string;
   onClose: () => void;
   onSuccess: () => void;
+  /** Grupo que se está cobrando (modo división de cuenta) */
+  grupoNombre?: string;
+  /** Ítems del grupo a cobrar */
+  grupoItems?: CartItem[];
 }
 
 const metodos: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
@@ -51,13 +56,15 @@ export function CheckoutModal({
   mesaNombre,
   onClose,
   onSuccess,
+  grupoNombre,
+  grupoItems,
 }: Props) {
   const {
-    items,
-    total,
-    subtotal,
-    totalDescuento,
-    totalIva,
+    items: cartItems,
+    total: cartTotal,
+    subtotal: cartSubtotal,
+    totalDescuento: cartTotalDescuento,
+    totalIva: cartTotalIva,
     descuento,
     setDescuento,
     ivaPorc,
@@ -66,7 +73,22 @@ export function CheckoutModal({
     clienteId,
     pedidoId,
     clear,
+    markGrupoPagado,
   } = useCartStore();
+
+  // En modo grupo, usar grupoItems; si no, usar todos los ítems no cancelados/pagados
+  const modoGrupo = !!grupoNombre && !!grupoItems;
+  const items = modoGrupo ? grupoItems! : cartItems.filter((i) => !i.cancelado && !i.pagado);
+
+  // Calcular totales según modo
+  const subtotalValue = useMemo(() => {
+    if (modoGrupo) return grupoItems!.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    return cartSubtotal();
+  }, [modoGrupo, grupoItems, cartSubtotal]);
+
+  const descuentoMonto = modoGrupo ? 0 : cartTotalDescuento();
+  const impuestoMonto  = modoGrupo ? 0 : cartTotalIva();
+  const totalValue     = modoGrupo ? subtotalValue : cartTotal();
 
   const [pagos, setPagos] = useState<PagoItem[]>([]);
   const [metodoActual, setMetodoActual] = useState<MetodoPago>("EFECTIVO");
@@ -76,10 +98,9 @@ export function CheckoutModal({
   const [vueltoFinal, setVueltoFinal] = useState(0);
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
 
-  const tot = total();
   const sumaPagos = pagos.reduce((acc, p) => acc + p.monto, 0);
-  const pendiente = Math.max(0, tot - sumaPagos);
-  const sobrepago = Math.max(0, sumaPagos - tot);
+  const pendiente = Math.max(0, totalValue - sumaPagos);
+  const sobrepago = Math.max(0, sumaPagos - totalValue);
 
   function handleAgregarPago() {
     setError("");
@@ -125,114 +146,77 @@ export function CheckoutModal({
     const pagosHtml = completedSale.pagos
       .map((pago) => {
         const metodo = metodos.find((item) => item.key === pago.metodoPago)?.label ?? pago.metodoPago;
-        return `
-          <div class="row">
-            <span>${metodo}</span>
-            <span style="font-weight: bold; color: #000;">${formatCurrency(pago.monto, simbolo)}</span>
-          </div>
-        `;
+        return `<div class="row"><span>${metodo}</span><span style="font-weight:bold;color:#000;">${formatCurrency(pago.monto, simbolo)}</span></div>`;
       })
       .join("");
 
     const itemsHtml = completedSale.items
       .map(
         (item, index) => `
-          <div class="item" style="${index < completedSale.items.length - 1 ? "border-bottom: 1px dotted #eee;" : ""}">
-            <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px;">
-              <span style="flex: 1;">${item.nombre}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: #666; margin-top: 2px;">
-              <span>${item.cantidad} x ${formatCurrency(item.precio, simbolo)}</span>
-              <span style="font-weight: bold; color: #000;">${formatCurrency(item.precio * item.cantidad, simbolo)}</span>
-            </div>
+        <div class="item" style="${index < completedSale.items.length - 1 ? "border-bottom:1px dotted #eee;" : ""}">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="flex:1;">${item.nombre}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#666;margin-top:2px;">
+            <span>${item.cantidad} x ${formatCurrency(item.precio, simbolo)}</span>
+            <span style="font-weight:bold;color:#000;">${formatCurrency(item.precio * item.cantidad, simbolo)}</span>
           </div>
-        `
+        </div>`
       )
       .join("");
+
+    const grupoLabel = completedSale.grupoNombre ? `<div class="row"><span>Grupo:</span><span style="font-weight:bold;">${completedSale.grupoNombre}</span></div>` : "";
 
     const html = `
       <div class="ticket">
         <div class="logo-wrap">
-          ${printableLogoUrl ? `<img src="${printableLogoUrl}" alt="Logo sucursal" class="logo" />` : ""}
+          ${printableLogoUrl ? `<img src="${printableLogoUrl}" alt="Logo" class="logo" />` : ""}
           <p class="title">Boleta</p>
           <p class="subtitle">Comprobante de pago</p>
           <p class="subtitle">Venta #${completedSale.ventaId}</p>
         </div>
-
         <div class="divider"></div>
-
         <div class="section-block">
-          ${completedSale.mesaLabel ? `<div class="row"><span>Mesa:</span><span style="font-weight: bold;">${completedSale.mesaLabel}</span></div>` : ""}
+          ${completedSale.mesaLabel ? `<div class="row"><span>Mesa:</span><span style="font-weight:bold;">${completedSale.mesaLabel}</span></div>` : ""}
+          ${grupoLabel}
           ${meseroNombre ? `<div class="row"><span>Mesero:</span><span>${meseroNombre}</span></div>` : ""}
           <div class="row"><span>Fecha:</span><span>${fecha} ${hora}</span></div>
         </div>
-
         <div class="divider"></div>
-
-        <div>
-          ${itemsHtml}
-        </div>
-
+        <div>${itemsHtml}</div>
         <div class="divider"></div>
-
         <div class="section-block">
           <div class="row"><span>Subtotal</span><span>${formatCurrency(completedSale.subtotal, simbolo)}</span></div>
           ${completedSale.descuentoMonto > 0 ? `<div class="row row-green"><span>Descuento (${completedSale.descuentoPorcentaje}%)</span><span>- ${formatCurrency(completedSale.descuentoMonto, simbolo)}</span></div>` : ""}
           ${completedSale.impuestoMonto > 0 ? `<div class="row"><span>IVA (${completedSale.impuestoPorcentaje}%)</span><span>${formatCurrency(completedSale.impuestoMonto, simbolo)}</span></div>` : ""}
           <div class="divider divider-tight"></div>
           <div class="total-box">
-            <div class="total-row">
-              <span>TOTAL PAGADO</span>
-              <span>${formatCurrency(completedSale.total, simbolo)}</span>
-            </div>
+            <div class="total-row"><span>TOTAL PAGADO</span><span>${formatCurrency(completedSale.total, simbolo)}</span></div>
           </div>
         </div>
-
         <div class="divider"></div>
-
         <div class="section-block">
           <p class="section-title">Detalle de pago</p>
           ${pagosHtml}
-          ${vueltoFinal > 0 ? `<div class="row row-green"><span>Vuelto</span><span style="font-weight: bold;">${formatCurrency(vueltoFinal, simbolo)}</span></div>` : ""}
+          ${vueltoFinal > 0 ? `<div class="row row-green"><span>Vuelto</span><span style="font-weight:bold;">${formatCurrency(vueltoFinal, simbolo)}</span></div>` : ""}
         </div>
-
         <div class="footer-note">Gracias por tu visita</div>
         <div class="document-note">Documento no fiscal</div>
-      </div>
-    `;
+      </div>`;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Boleta</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            @page { size: 80mm auto; margin: 0; }
-            body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; padding: 10px; color: #111; background: #fff; }
-            .ticket { width: 100%; }
-            .logo-wrap { text-align: center; margin-bottom: 8px; }
-            .logo { width: 72px; height: 72px; object-fit: contain; display: block; margin: 0 auto 6px; }
-            .title { text-align: center; font-weight: bold; font-size: 14px; }
-            .subtitle { text-align: center; font-size: 11px; color: #666; }
-            .divider { border-top: 1px dashed #ccc; margin: 8px 0; }
-            .divider-tight { margin: 6px 0; }
-            .section-block { font-size: 12px; }
-            .section-title { text-align: center; font-size: 11px; font-weight: bold; color: #444; margin-bottom: 6px; text-transform: uppercase; }
-            .row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
-            .row-green { color: #059669; }
-            .item { padding: 4px 0; }
-            .total-box { margin-top: 6px; border: 1px dashed #2563eb; border-radius: 8px; padding: 8px; background: #eff6ff; }
-            .total-row { display: flex; justify-content: space-between; gap: 8px; font-size: 16px; font-weight: bold; color: #1d4ed8; }
-            .footer-note { margin-top: 12px; text-align: center; font-size: 11px; color: #374151; }
-            .document-note { margin-top: 4px; text-align: center; font-size: 10px; color: #6b7280; }
-          </style>
-        </head>
-        <body>
-          ${html}
-        </body>
-      </html>
-    `);
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      @page{size:80mm auto;margin:0;}
+      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
+      .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
+      .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
+      .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}
+      .divider{border-top:1px dashed #ccc;margin:8px 0;}.divider-tight{margin:6px 0;}
+      .section-block{font-size:12px;}.section-title{text-align:center;font-size:11px;font-weight:bold;color:#444;margin-bottom:6px;text-transform:uppercase;}
+      .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}.row-green{color:#059669;}
+      .item{padding:4px 0;}.total-box{margin-top:6px;border:1px dashed #2563eb;border-radius:8px;padding:8px;background:#eff6ff;}
+      .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
+      .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
+      .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
+    </style></head><body>${html}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
@@ -249,7 +233,7 @@ export function CheckoutModal({
       return;
     }
 
-    if (sumaPagos < tot) {
+    if (sumaPagos < totalValue) {
       setError(`Falta ${formatCurrency(pendiente, simbolo)} por cubrir`);
       return;
     }
@@ -263,21 +247,17 @@ export function CheckoutModal({
       cantidad: item.cantidad,
       precio: item.precio,
     }));
-    const subtotalValue = subtotal();
-    const descuentoMonto = totalDescuento();
-    const impuestoMonto = totalIva();
 
-    const body = {
+    const body: Record<string, unknown> = {
       cajaId,
       clienteId,
       usuarioId,
       mesaId,
-      pedidoId: pedidoId || undefined,
       metodoPago: metodoPagoFinal,
       subtotal: subtotalValue,
       descuento: descuentoMonto,
       impuesto: impuestoMonto,
-      total: tot,
+      total: totalValue,
       pagos: pagos.map((p) => ({
         metodoPago: p.metodoPago,
         monto: p.monto,
@@ -291,6 +271,17 @@ export function CheckoutModal({
         subtotal: i.precio * i.cantidad,
       })),
     };
+
+    if (modoGrupo) {
+      // Modo grupo: no vincular pedidoId, enviar detalleIds para marcarlos como pagados
+      body.modoGrupo = true;
+      body.detalleIds = grupoItems!
+        .map((i) => i.detalleId)
+        .filter((id): id is number => id !== undefined);
+    } else {
+      // Modo normal: vincular pedidoId
+      body.pedidoId = pedidoId || undefined;
+    }
 
     try {
       const res = await fetch("/api/ventas", {
@@ -324,11 +315,18 @@ export function CheckoutModal({
         descuentoPorcentaje: descuento,
         impuestoMonto,
         impuestoPorcentaje: ivaPorc,
-        total: tot,
+        total: totalValue,
         pagos: [...pagos],
         mesaLabel: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined),
+        grupoNombre,
       });
-      clear();
+
+      if (modoGrupo && grupoNombre) {
+        // Marcar ítems del grupo como pagados en el store (no limpiar todo el carrito)
+        markGrupoPagado(grupoNombre);
+      } else {
+        clear();
+      }
     } catch (submitError) {
       setError((submitError as Error).message);
     } finally {
@@ -343,7 +341,9 @@ export function CheckoutModal({
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
             <CheckCircle2 size={32} className="text-emerald-600" />
           </div>
-          <h2 className="mb-1 text-xl font-bold text-surface-text">Venta completada</h2>
+          <h2 className="mb-1 text-xl font-bold text-surface-text">
+            {modoGrupo ? `Grupo ${completedSale.grupoNombre} cobrado` : "Venta completada"}
+          </h2>
           <p className="text-sm text-surface-muted">Total cobrado: {formatCurrency(completedSale.total, simbolo)}</p>
           {vueltoFinal > 0 && (
             <div className="mt-4 rounded-xl bg-emerald-50 p-3 font-semibold text-emerald-700">
@@ -353,7 +353,7 @@ export function CheckoutModal({
 
           <div className="mt-6 rounded-2xl border border-surface-border bg-surface-bg p-4 text-left">
             <p className="text-sm font-semibold text-surface-text">Impresion de boleta</p>
-            <p className="mt-1 text-sm text-surface-muted">Deseas imprimir la boleta antes de volver a mesas?</p>
+            <p className="mt-1 text-sm text-surface-muted">Deseas imprimir la boleta antes de continuar?</p>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
@@ -370,11 +370,23 @@ export function CheckoutModal({
     );
   }
 
+  const grupoColor = grupoNombre ? getGrupoColor(grupoNombre) : undefined;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl animate-fade-in">
         <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b border-surface-border bg-white p-5">
-          <h2 className="text-lg font-bold text-surface-text">Confirmar Pago</h2>
+          <div>
+            <h2 className="text-lg font-bold text-surface-text">
+              {modoGrupo ? `Cobrar Grupo ${grupoNombre}` : "Confirmar Pago"}
+            </h2>
+            {modoGrupo && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: grupoColor }} />
+                <span className="text-xs text-surface-muted">{items.length} producto{items.length !== 1 ? "s" : ""}</span>
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="rounded-xl p-2 text-surface-muted transition-all hover:bg-surface-bg hover:text-surface-text"
@@ -384,39 +396,55 @@ export function CheckoutModal({
         </div>
 
         <div className="space-y-5 p-5">
-          <div className="space-y-2 rounded-xl bg-surface-bg p-4 text-sm">
-            <div className="flex justify-between text-surface-muted">
-              <span>Subtotal ({items.length} productos)</span>
-              <span>{formatCurrency(subtotal(), simbolo)}</span>
+          {/* Resumen de ítems en modo grupo */}
+          {modoGrupo && (
+            <div className="rounded-xl border-2 p-3 space-y-1.5" style={{ borderColor: grupoColor, backgroundColor: `${grupoColor}10` }}>
+              {items.map((item) => (
+                <div key={item.detalleId ?? `${item.tipo}-${item.id}`} className="flex justify-between text-sm">
+                  <span className="text-surface-text">{item.cantidad}x {item.nombre}</span>
+                  <span className="font-semibold" style={{ color: grupoColor }}>{formatCurrency(item.precio * item.cantidad, simbolo)}</span>
+                </div>
+              ))}
             </div>
-            {descuento > 0 && (
+          )}
+
+          <div className="space-y-2 rounded-xl bg-surface-bg p-4 text-sm">
+            {!modoGrupo && (
+              <div className="flex justify-between text-surface-muted">
+                <span>Subtotal ({items.length} productos)</span>
+                <span>{formatCurrency(subtotalValue, simbolo)}</span>
+              </div>
+            )}
+            {!modoGrupo && descuento > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <span>Descuento</span>
-                <span>- {formatCurrency(totalDescuento(), simbolo)}</span>
+                <span>- {formatCurrency(descuentoMonto, simbolo)}</span>
               </div>
             )}
-            {ivaPorc > 0 && (
+            {!modoGrupo && ivaPorc > 0 && (
               <div className="flex justify-between text-surface-muted">
                 <span>IVA ({ivaPorc}%)</span>
-                <span>{formatCurrency(totalIva(), simbolo)}</span>
+                <span>{formatCurrency(impuestoMonto, simbolo)}</span>
               </div>
             )}
-            <div className="mt-2 flex justify-between border-t border-surface-border pt-2 text-base font-bold text-surface-text">
+            <div className={`flex justify-between border-t border-surface-border pt-2 text-base font-bold text-surface-text ${modoGrupo ? "" : "mt-2"}`}>
               <span>Total</span>
-              <span className="text-brand-500">{formatCurrency(tot, simbolo)}</span>
+              <span className="text-brand-500">{formatCurrency(totalValue, simbolo)}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Descuento (%)</label>
-              <input type="number" min={0} max={100} value={descuento} onChange={(e) => setDescuento(Number(e.target.value))} className="input" />
+          {!modoGrupo && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Descuento (%)</label>
+                <input type="number" min={0} max={100} value={descuento} onChange={(e) => setDescuento(Number(e.target.value))} className="input" />
+              </div>
+              <div>
+                <label className="label">IVA (%)</label>
+                <input type="number" min={0} max={100} value={ivaPorc} onChange={(e) => setIva(Number(e.target.value))} className="input" />
+              </div>
             </div>
-            <div>
-              <label className="label">IVA (%)</label>
-              <input type="number" min={0} max={100} value={ivaPorc} onChange={(e) => setIva(Number(e.target.value))} className="input" />
-            </div>
-          </div>
+          )}
 
           {pagos.length > 0 && (
             <div>
@@ -457,7 +485,6 @@ export function CheckoutModal({
           {pendiente > 0 && (
             <div className="space-y-3">
               <label className="label">Agregar pago</label>
-
               <div className="grid grid-cols-3 gap-2">
                 {metodos.map((m) => (
                   <button
@@ -500,11 +527,12 @@ export function CheckoutModal({
 
           <button
             onClick={handleConfirmar}
-            disabled={loading || items.length === 0 || pagos.length === 0 || sumaPagos < tot}
+            disabled={loading || items.length === 0 || pagos.length === 0 || sumaPagos < totalValue}
             className="btn-primary w-full py-3 text-base"
+            style={grupoColor ? { backgroundColor: grupoColor, borderColor: grupoColor } : undefined}
           >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-            {loading ? "Registrando..." : `Cobrar ${formatCurrency(tot, simbolo)}`}
+            {loading ? <Loader2 size={18} className="animate-spin" /> : modoGrupo ? <Users size={18} /> : <CheckCircle2 size={18} />}
+            {loading ? "Registrando..." : `Cobrar ${modoGrupo ? `Grupo ${grupoNombre} ` : ""}${formatCurrency(totalValue, simbolo)}`}
           </button>
         </div>
       </div>

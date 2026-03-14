@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Clock, Users } from "lucide-react";
+import { ChevronRight, Clock, Users, QrCode } from "lucide-react";
 import { cn, timeAgo, formatCurrency } from "@/lib/utils";
 import type { EstadoMesa, MesaConEstado } from "@/types";
 
@@ -44,7 +44,16 @@ const estadoConfig: Record<EstadoMesa, { label: string; card: string; badge: str
 export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
   const [salaFiltro, setSalaFiltro] = useState<string>("todas");
 
-  const salas = Array.from(new Set(mesas.map((m) => m.sala.nombre)));
+  // Deduplicar salas manteniendo esQR
+  const salasMap = new Map<string, { nombre: string; esQR: boolean }>();
+  mesas.forEach((m) => {
+    if (!salasMap.has(m.sala.nombre)) {
+      salasMap.set(m.sala.nombre, { nombre: m.sala.nombre, esQR: m.sala.esQR });
+    }
+  });
+  const salas = Array.from(salasMap.values());
+  const salasRegulares = salas.filter((s) => !s.esQR);
+  const salasQR = salas.filter((s) => s.esQR);
 
   // Orden numérico: "Mesa 2" antes que "Mesa 10"
   const sortNumerical = (a: MesaConEstado, b: MesaConEstado) => {
@@ -62,6 +71,64 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
     OCUPADA: mesas.filter((m) => m.estado === "OCUPADA").length,
     CUENTA: mesas.filter((m) => m.estado === "CUENTA").length,
     RESERVADA: mesas.filter((m) => m.estado === "RESERVADA").length,
+  };
+
+  const mesasSalon = mesasFiltradas.filter((m) => !m.sala.esQR);
+  const mesasQRFilt = mesasFiltradas.filter((m) => m.sala.esQR);
+  const mostrarSecciones = salaFiltro === "todas" && mesasQRFilt.length > 0 && mesasSalon.length > 0;
+
+  const renderMesaCard = (mesa: MesaConEstado) => {
+    const cfg = estadoConfig[mesa.estado];
+    const pedido = mesa.pedidoActivo;
+
+    return (
+      <button
+        key={mesa.id}
+        onClick={() => onSelectMesa?.(mesa)}
+        className={cn("group rounded-[24px] border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg relative", cfg.card)}
+      >
+        {mesa.sala.esQR && (
+          <div className="absolute top-2 right-2 bg-blue-100 text-blue-600 rounded-full p-0.5" title="Mesa QR">
+            <QrCode size={11} />
+          </div>
+        )}
+
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className={cn("h-3 w-3 flex-shrink-0 rounded-full shadow-sm", cfg.dot)} />
+          <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold", cfg.badge)}>{cfg.label}</span>
+        </div>
+
+        <p className="text-base font-bold leading-tight text-surface-text">{mesa.nombre}</p>
+        <p className="mt-0.5 text-xs text-surface-muted">{mesa.sala.nombre}</p>
+
+        {pedido ? (
+          <div className="mt-2 space-y-1.5">
+            <p className="text-2xl font-black text-red-700 leading-none tracking-tight">
+              {formatCurrency(pedido.total)}
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 text-xs text-surface-muted">
+                <Users size={11} />
+                <span>{pedido._count.detalles} prod.</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-surface-muted">
+                <Clock size={11} />
+                <span>{timeAgo(pedido.creadoEn)}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-1 text-xs text-surface-muted">
+            <Users size={12} />
+            <span>Cap. {mesa.capacidad}</span>
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
+          <ChevronRight size={14} className="text-surface-muted" />
+        </div>
+      </button>
+    );
   };
 
   return (
@@ -92,71 +159,71 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
           >
             Todas
           </button>
-          {salas.map((sala) => (
+
+          {salasRegulares.map((sala) => (
             <button
-              key={sala}
-              onClick={() => setSalaFiltro(sala)}
+              key={sala.nombre}
+              onClick={() => setSalaFiltro(sala.nombre)}
               className={cn(
                 "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                salaFiltro === sala ? "bg-brand-600 text-white" : "border border-surface-border bg-white text-surface-muted hover:bg-surface-bg"
+                salaFiltro === sala.nombre ? "bg-brand-600 text-white" : "border border-surface-border bg-white text-surface-muted hover:bg-surface-bg"
               )}
             >
-              {sala}
+              {sala.nombre}
+            </button>
+          ))}
+
+          {salasRegulares.length > 0 && salasQR.length > 0 && (
+            <div className="flex items-center px-1">
+              <div className="h-5 w-px bg-surface-border" />
+            </div>
+          )}
+
+          {salasQR.map((sala) => (
+            <button
+              key={sala.nombre}
+              onClick={() => setSalaFiltro(sala.nombre)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors flex items-center gap-1.5",
+                salaFiltro === sala.nombre
+                  ? "bg-blue-600 text-white"
+                  : "border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100"
+              )}
+            >
+              <QrCode size={12} />
+              {sala.nombre}
             </button>
           ))}
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-        {mesasFiltradas.map((mesa) => {
-          const cfg = estadoConfig[mesa.estado];
-          const pedido = mesa.pedidoActivo;
+      {mostrarSecciones ? (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-bold text-surface-muted mb-3 uppercase tracking-wide">Salón</h3>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+              {mesasSalon.map(renderMesaCard)}
+            </div>
+          </div>
 
-          return (
-            <button
-              key={mesa.id}
-              onClick={() => onSelectMesa?.(mesa)}
-              className={cn("group rounded-[24px] border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg", cfg.card)}
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <span className={cn("h-3 w-3 flex-shrink-0 rounded-full shadow-sm", cfg.dot)} />
-                <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold", cfg.badge)}>{cfg.label}</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-dashed border-blue-200" />
+            <div className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+              <QrCode size={11} />
+              Mesas QR
+            </div>
+            <div className="flex-1 border-t border-dashed border-blue-200" />
+          </div>
 
-              <p className="text-base font-bold leading-tight text-surface-text">{mesa.nombre}</p>
-              <p className="mt-0.5 text-xs text-surface-muted">{mesa.sala.nombre}</p>
-
-              {pedido ? (
-                <div className="mt-2 space-y-1.5">
-                  {/* Total grande y robusto */}
-                  <p className="text-2xl font-black text-red-700 leading-none tracking-tight">
-                    {formatCurrency(pedido.total)}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-xs text-surface-muted">
-                      <Users size={11} />
-                      <span>{pedido._count.detalles} prod.</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-surface-muted">
-                      <Clock size={11} />
-                      <span>{timeAgo(pedido.creadoEn)}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 flex items-center gap-1 text-xs text-surface-muted">
-                  <Users size={12} />
-                  <span>Cap. {mesa.capacidad}</span>
-                </div>
-              )}
-
-              <div className="mt-4 flex justify-end opacity-0 transition-opacity group-hover:opacity-100">
-                <ChevronRight size={14} className="text-surface-muted" />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+            {mesasQRFilt.map(renderMesaCard)}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+          {mesasFiltradas.map(renderMesaCard)}
+        </div>
+      )}
     </div>
   );
 }

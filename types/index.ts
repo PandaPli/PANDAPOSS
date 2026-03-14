@@ -36,8 +36,18 @@ export interface CartItem {
   imagen?: string;
   guardado?: boolean;
   cancelado?: boolean;
+  pagado?: boolean;
   /** ID del DetallePedido en DB (presente cuando guardado: true) */
   detalleId?: number;
+  /** Grupo de pago asignado: "A", "B", "C", etc. */
+  grupo?: string;
+}
+
+export interface GrupoPago {
+  nombre: string;
+  items: CartItem[];
+  subtotal: number;
+  pagado: boolean;
 }
 
 export interface PagoItem {
@@ -69,7 +79,7 @@ export interface MesaConEstado {
   estado: EstadoMesa;
   capacidad: number;
   salaId: number;
-  sala: { nombre: string };
+  sala: { nombre: string; esQR: boolean };
   pedidoActivo?: {
     id: number;
     creadoEn: string;

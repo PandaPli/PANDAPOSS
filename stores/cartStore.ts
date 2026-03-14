@@ -1,6 +1,18 @@
 import { create } from "zustand";
 import type { CartItem } from "@/types";
 
+const GRUPO_COLORS: Record<string, string> = {
+  A: "#3b82f6", // blue-500
+  B: "#22c55e", // green-500
+  C: "#f97316", // orange-500
+  D: "#a855f7", // purple-500
+  E: "#ec4899", // pink-500
+};
+
+export function getGrupoColor(grupo: string): string {
+  return GRUPO_COLORS[grupo.toUpperCase()] ?? "#6b7280";
+}
+
 interface CartState {
   items: CartItem[];
   mesaId: number | null;
@@ -23,11 +35,28 @@ interface CartState {
   setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
   markAsSaved: () => void;
 
+  /** Asigna un grupo de pago a un ítem (null = sin grupo) */
+  setItemGrupo: (detalleId: number, grupo: string | null) => void;
+  /** Marca los ítems del grupo como pagados */
+  markGrupoPagado: (grupo: string) => void;
+  /** Divide un ítem (por detalleId) en múltiples grupos con sus cantidades */
+  splitItemGrupos: (
+    originalDetalleId: number,
+    splits: { grupo: string; cantidad: number; newDetalleId?: number }[]
+  ) => void;
+
   // Calculados
   subtotal: () => number;
   totalDescuento: () => number;
   totalIva: () => number;
   total: () => number;
+
+  /** Lista de grupos únicos activos (con ítems asignados no pagados) */
+  getGrupos: () => string[];
+  /** Ítems asignados a un grupo específico (no pagados) */
+  getItemsByGrupo: (grupo: string) => CartItem[];
+  /** Subtotal de un grupo */
+  getSubtotalGrupo: (grupo: string) => number;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
@@ -96,8 +125,39 @@ export const useCartStore = create<CartState>((set, get) => ({
   setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => ({ ...i, guardado: true })) })),
 
+  setItemGrupo: (detalleId, grupo) =>
+    set((s) => ({
+      items: s.items.map((i) =>
+        i.detalleId === detalleId ? { ...i, grupo: grupo ?? undefined } : i
+      ),
+    })),
+
+  markGrupoPagado: (grupo) =>
+    set((s) => ({
+      items: s.items.map((i) =>
+        i.grupo === grupo ? { ...i, pagado: true } : i
+      ),
+    })),
+
+  splitItemGrupos: (originalDetalleId, splits) =>
+    set((s) => {
+      const original = s.items.find((i) => i.detalleId === originalDetalleId);
+      if (!original) return s;
+
+      // Reemplazar el ítem original con los splits
+      const sinOriginal = s.items.filter((i) => i.detalleId !== originalDetalleId);
+      const nuevos: CartItem[] = splits.map((split) => ({
+        ...original,
+        cantidad: split.cantidad,
+        grupo: split.grupo,
+        detalleId: split.newDetalleId ?? original.detalleId,
+      }));
+
+      return { items: [...sinOriginal, ...nuevos] };
+    }),
+
   subtotal: () =>
-    get().items.reduce((acc, i) => (i.cancelado ? acc : acc + i.precio * i.cantidad), 0),
+    get().items.reduce((acc, i) => (i.cancelado || i.pagado ? acc : acc + i.precio * i.cantidad), 0),
 
   totalDescuento: () => {
     const sub = get().subtotal();
@@ -110,4 +170,20 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   total: () => get().subtotal() - get().totalDescuento() + get().totalIva(),
+
+  getGrupos: () => {
+    const grupos = new Set<string>();
+    get().items.forEach((i) => {
+      if (i.grupo && !i.cancelado && !i.pagado) grupos.add(i.grupo);
+    });
+    return Array.from(grupos).sort();
+  },
+
+  getItemsByGrupo: (grupo) =>
+    get().items.filter((i) => i.grupo === grupo && !i.cancelado && !i.pagado),
+
+  getSubtotalGrupo: (grupo) =>
+    get()
+      .getItemsByGrupo(grupo)
+      .reduce((acc, i) => acc + i.precio * i.cantidad, 0),
 }));

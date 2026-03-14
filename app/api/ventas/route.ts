@@ -52,6 +52,8 @@ export async function POST(req: NextRequest) {
       total: Number(body.total),
       metodoPago: body.metodoPago,
       pagos: body.pagos,
+      detalleIds: body.detalleIds ?? undefined,
+      modoGrupo: body.modoGrupo ?? false,
     });
     return NextResponse.json(venta, { status: 201 });
   } catch (error) {
