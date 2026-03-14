@@ -125,21 +125,29 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
 
             <div className="divider" style={{ borderTop: "1px dashed #000", margin: "6px 0" }} />
 
-            {/* Info mesa/mesero/fecha */}
-            <div style={{ fontSize: 13 }}>
-              {mesaNombre && (
-                <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-                  <span>Mesa:</span>
-                  <span style={{ fontWeight: "bold" }}>{mesaNombre}</span>
-                </div>
-              )}
-              {meseroNombre && (
-                <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
-                  <span>Mesero:</span>
-                  <span style={{ fontWeight: "bold" }}>{meseroNombre}</span>
-                </div>
-              )}
-              <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "2px 0" }}>
+            {/* Mesa y Mesero destacados */}
+            {(mesaNombre || meseroNombre) && (
+              <div style={{ border: "1px solid #000", padding: "5px 8px", marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {mesaNombre && (
+                  <div style={{ textAlign: "center", flex: 1 }}>
+                    <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1 }}>Mesa</div>
+                    <div style={{ fontSize: 20, fontWeight: "bold", lineHeight: 1.1 }}>{mesaNombre}</div>
+                  </div>
+                )}
+                {mesaNombre && meseroNombre && (
+                  <div style={{ borderLeft: "1px dashed #000", height: 36, margin: "0 8px" }} />
+                )}
+                {meseroNombre && (
+                  <div style={{ textAlign: "center", flex: 2 }}>
+                    <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1 }}>Mesero/a</div>
+                    <div style={{ fontSize: 14, fontWeight: "bold", lineHeight: 1.2 }}>{meseroNombre}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ fontSize: 12, marginBottom: 4 }}>
+              <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
                 <span>Fecha:</span>
                 <span>{fecha} {hora}</span>
               </div>
@@ -150,11 +158,14 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             {/* Items */}
             <div>
               {items.map((item, i) => (
-                <div key={i} className="item" style={{ padding: "3px 0", borderBottom: i < items.length - 1 ? "1px dotted #000" : "none" }}>
-                  <div className="item-name" style={{ fontSize: 13, fontWeight: "bold" }}>{item.nombre}</div>
-                  <div className="item-detail" style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span>{item.cantidad} x {formatCurrency(item.precio, simbolo)}</span>
-                    <span className="item-amount" style={{ fontWeight: "bold" }}>{formatCurrency(item.precio * item.cantidad, simbolo)}</span>
+                <div key={i} className="item" style={{ padding: "4px 0", borderBottom: i < items.length - 1 ? "1px dotted #000" : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ fontSize: 13, fontWeight: "bold", flex: 1 }}>{item.nombre}</span>
+                    <span style={{ fontSize: 14, fontWeight: "bold", marginLeft: 8 }}>{formatCurrency(item.precio * item.cantidad, simbolo)}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#000" }}>
+                    <span style={{ background: "#000", color: "#fff", padding: "0 4px", borderRadius: 2, fontWeight: "bold", marginRight: 4 }}>{item.cantidad}</span>
+                    <span>× {formatCurrency(item.precio, simbolo)} c/u</span>
                   </div>
                 </div>
               ))}
