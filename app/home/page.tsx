@@ -249,59 +249,127 @@ const SectionControl = () => (
   </section>
 );
 
+const BASICO_FEATURES = [
+  "VENTAS Y CAJA",
+  "GESTIÓN DE MESAS",
+  "CARTA DIGITAL (QR)",
+  "REPORTES BÁSICOS",
+  "GESTIÓN DE PRODUCTOS",
+  "USUARIOS Y PERFILES",
+];
+
+const PRO_FEATURES = [
+  "VENTAS Y CAJA",
+  "GESTIÓN DE MESAS",
+  "CARTA DIGITAL (QR)",
+  "REPORTES AVANZADOS",
+  "GESTIÓN DE PRODUCTOS",
+  "USUARIOS Y PERFILES",
+  "KDS COCINA (PANTALLA)",
+  "DELIVERY Y PEDIDOS",
+  "STOCK AVANZADO",
+  "MULTI SUCURSAL",
+];
+
 const SectionPlans = () => (
-  <section id="planes" className="py-24 bg-surface-bg">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-16">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-surface-text mb-4">
-          Plan Simple y Transparente
+  <section id="planes" className="py-24 bg-[#0a0b14] relative overflow-hidden">
+    {/* Background glow */}
+    <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+    <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-14">
+        <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+          TODO TU RESTAURANTE<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-amber-400">BAJO CONTROL</span>
         </h2>
-        <p className="text-surface-muted text-lg">Activa solo lo que necesitas para tu restaurante.</p>
+        <p className="text-gray-400 text-lg font-medium tracking-widest uppercase">Desde un solo sistema</p>
+        <div className="mt-4 flex items-center justify-center gap-6 text-sm font-bold text-gray-400">
+          <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-cyan-400" />FÁCIL</span>
+          <span className="text-gray-600">•</span>
+          <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-cyan-400" />RÁPIDO</span>
+          <span className="text-gray-600">•</span>
+          <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-cyan-400" />INTUITIVO</span>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        {/* Base Plan */}
-        <div className="bg-white rounded-3xl p-8 lg:p-10 border border-surface-border shadow-sm flex flex-col">
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-surface-text mb-2 block">Base Incluido</h3>
-            <p className="text-surface-muted">El motor fundamental para operar sin costo extra por transacción.</p>
+      <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+        {/* PLAN BÁSICO */}
+        <div className="relative rounded-3xl overflow-hidden border border-cyan-500/30 bg-[#0f1120] flex flex-col">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#0f2a3a] to-[#0a1e2e] px-8 pt-8 pb-6 border-b border-cyan-500/20">
+            <p className="text-cyan-400 text-xs font-black tracking-[0.3em] uppercase mb-1">PLAN</p>
+            <h3 className="text-4xl font-black text-cyan-400 tracking-tight mb-3">BÁSICO</h3>
+            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40">
+              <span className="text-cyan-300 text-xs font-black tracking-widest uppercase">IDEAL PARA COMENZAR</span>
+            </div>
           </div>
-          <ul className="space-y-4 mb-8 flex-1">
-            {["POS Caja", "Cocina y Barra (KDS)", "Gestión de Stock", "Multi-Sucursal", "Reportes y configuracion de Usuarios"].map((item, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <CheckCircle2 className="text-emerald-500" size={20} />
-                <span className="text-surface-text font-medium">{item}</span>
-              </li>
+
+          {/* Features */}
+          <div className="px-8 py-6 flex-1 space-y-3">
+            {BASICO_FEATURES.map((f) => (
+              <div key={f} className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 size={12} className="text-cyan-400" />
+                </div>
+                <span className="text-white font-bold text-sm tracking-wide">{f}</span>
+              </div>
             ))}
-          </ul>
-          <button className="w-full py-4 rounded-xl font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors">
-            Comenzar Gratis
-          </button>
+          </div>
+
+          {/* CTA */}
+          <div className="px-8 pb-8">
+            <Link
+              href="/login"
+              className="block w-full py-4 rounded-2xl font-black text-center text-sm tracking-widest uppercase transition-all bg-transparent border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-[#0a0b14] shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)]"
+            >
+              PRUEBA GRATIS
+            </Link>
+            <p className="text-center mt-4 text-xs text-gray-500 flex items-center justify-center gap-3 font-semibold">
+              <span>⚡ SIMPLE</span><span>•</span><span>🔒 SEGURO</span><span>•</span><span>📈 ESCALABLE</span>
+            </p>
+          </div>
         </div>
 
-        {/* Pro Plan */}
-        <div className="bg-gradient-to-b from-brand-600 to-indigo-700 rounded-3xl p-8 lg:p-10 border-4 border-brand-200 shadow-2xl flex flex-col relative transform md:-translate-y-4">
-          <div className="absolute top-0 right-8 -translate-y-1/2 bg-amber-400 text-amber-950 px-4 py-1 rounded-full font-black text-sm uppercase tracking-wider shadow-lg">
-            Recomendado
-          </div>
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-2xl font-bold text-white">Funciones PRO</h3>
-              <span className="text-brand-200">✨</span>
+        {/* PLAN PRO */}
+        <div className="relative rounded-3xl overflow-hidden border border-amber-500/40 bg-[#0f1120] flex flex-col shadow-[0_0_60px_rgba(245,158,11,0.15)]">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#2a1a00] to-[#1e1200] px-8 pt-8 pb-6 border-b border-amber-500/20">
+            <p className="text-amber-400 text-xs font-black tracking-[0.3em] uppercase mb-1">PLAN</p>
+            <div className="flex items-center gap-3 mb-3">
+              <h3 className="text-4xl font-black text-amber-400 tracking-tight">PRO</h3>
+              <span className="text-2xl">👑</span>
             </div>
-            <p className="text-brand-100">Potencia tus ventas online y atención al cliente.</p>
+            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40">
+              <span className="text-amber-300 text-xs font-black tracking-widest uppercase">CONTROL TOTAL</span>
+            </div>
           </div>
-          <ul className="space-y-4 mb-8 flex-1">
-            {["Delivery Integrado", "Integración WhatsApp", "Carta Digital QR para clientes", "Panel de métricas avanzadas"].map((item, i) => (
-              <li key={i} className="flex items-center gap-3 text-white">
-                <CheckCircle2 className="text-brand-300" size={20} />
-                <span className="font-medium">{item}</span>
-              </li>
+
+          {/* Features */}
+          <div className="px-8 py-6 flex-1 space-y-3">
+            {PRO_FEATURES.map((f) => (
+              <div key={f} className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 size={12} className="text-amber-400" />
+                </div>
+                <span className="text-white font-bold text-sm tracking-wide">{f}</span>
+              </div>
             ))}
-          </ul>
-          <button className="w-full py-4 rounded-xl font-bold bg-white text-brand-700 hover:bg-brand-50 transition-colors shadow-lg shadow-black/10">
-            Adquirir PRO
-          </button>
+          </div>
+
+          {/* CTA */}
+          <div className="px-8 pb-8">
+            <Link
+              href="https://wa.me/56912345678?text=Hola%2C%20quiero%20contratar%20PandaPoss%20PRO"
+              target="_blank"
+              className="block w-full py-4 rounded-2xl font-black text-center text-sm tracking-widest uppercase transition-all bg-gradient-to-r from-amber-500 to-amber-400 text-[#0a0b14] hover:from-amber-400 hover:to-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)]"
+            >
+              CONTRATAR AHORA
+            </Link>
+            <p className="text-center mt-4 text-xs text-gray-500 flex items-center justify-center gap-3 font-semibold">
+              <span>⚡ SIMPLE</span><span>•</span><span>🔒 SEGURO</span><span>•</span><span>📈 ESCALABLE</span>
+            </p>
+          </div>
         </div>
       </div>
     </div>
