@@ -275,6 +275,7 @@ export function NuevaVentaClient({
             onCheckoutGrupo={(grupo) => { setCheckoutGrupo(grupo); setShowCheckout(true); }}
             onOrden={handleOrden}
             onPrecuenta={handleOpenPrecuenta}
+            onVolverMesas={() => router.push("/mesas")}
             ordenLoading={ordenLoading}
             canCancelItems={userRol ? CANCEL_ROLES.includes(userRol) : false}
           />

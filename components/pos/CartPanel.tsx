@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, ArrowLeft } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem } from "@/types";
@@ -12,6 +12,7 @@ interface Props {
   onCheckoutGrupo?: (grupo: string) => void;
   onOrden: () => void;
   onPrecuenta: () => void;
+  onVolverMesas?: () => void;
   ordenLoading?: boolean;
   canCancelItems?: boolean;
 }
@@ -32,7 +33,7 @@ interface SplitState {
   cantidades: Record<string, number>;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, onVolverMesas, ordenLoading, canCancelItems = false }: Props) {
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
@@ -403,6 +404,19 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Volver a Mesas */}
+      {onVolverMesas && (
+        <div className="px-4 pt-3 pb-0">
+          <button
+            onClick={onVolverMesas}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-surface-border bg-surface-bg text-surface-muted text-sm font-semibold hover:bg-white hover:border-brand-300 hover:text-brand-600 transition-all"
+          >
+            <ArrowLeft size={15} />
+            Volver a Mesas
+          </button>
         </div>
       )}
 
