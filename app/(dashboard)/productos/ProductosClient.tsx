@@ -59,6 +59,8 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<Producto | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const filtrados = useMemo(() => {
     return productos.filter((p) => {
@@ -132,6 +134,25 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   function removeImage() {
     setForm((current) => ({ ...current, imagen: "" }));
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleDelete() {
+    if (!confirmDelete) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/productos?id=${confirmDelete.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Error al eliminar");
+      }
+      setConfirmDelete(null);
+      router.refresh();
+    } catch (deleteError) {
+      setError((deleteError as Error).message);
+      setConfirmDelete(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -273,12 +294,22 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => abrirFormEditar(p)}
-                        className="rounded-lg p-1.5 text-surface-muted transition-colors hover:bg-brand-50 hover:text-brand-600"
-                      >
-                        <Edit2 size={15} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => abrirFormEditar(p)}
+                          className="rounded-lg p-1.5 text-surface-muted transition-colors hover:bg-brand-50 hover:text-brand-600"
+                          title="Editar"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(p)}
+                          className="rounded-lg p-1.5 text-surface-muted transition-colors hover:bg-red-50 hover:text-red-600"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -287,6 +318,37 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
           </table>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+              <Trash2 size={22} className="text-red-500" />
+            </div>
+            <h3 className="text-base font-bold text-surface-text">¿Eliminar producto?</h3>
+            <p className="mt-1 text-sm text-surface-muted">
+              <span className="font-medium text-surface-text">{confirmDelete.nombre}</span> será desactivado y no aparecerá en el menú ni en ventas. El historial de ventas previas se conserva.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleteLoading}
+                className="btn-secondary flex-1 justify-center"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+              >
+                {deleteLoading ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 backdrop-blur-sm sm:items-center">
