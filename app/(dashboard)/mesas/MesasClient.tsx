@@ -74,7 +74,7 @@ export function MesasClient({ mesas }: Props) {
                     Cobrar Mesa
                   </a>
                   <a
-                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
+                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}&pedido=${mesaSeleccionada.pedidoActivo.id}`}
                     className="btn-secondary w-full justify-center"
                   >
                     <Plus size={16} />
@@ -106,3 +106,6 @@ export function MesasClient({ mesas }: Props) {
     </>
   );
 }
+
+
+

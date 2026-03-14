@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const limit = Number(searchParams.get("limit") ?? 20);
-  const page  = Number(searchParams.get("page")  ?? 1);
+  const page = Number(searchParams.get("page") ?? 1);
 
   const { ventas, total } = await VentaRepo.list({
     sucursalId,
@@ -35,25 +36,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "El carrito esta vacio" }, { status: 400 });
   }
 
+  const usuarioId = (session.user as { id: number }).id;
+
   try {
     const venta = await VentaService.create({
-      cajaId:    body.cajaId    ? Number(body.cajaId)    : null,
+      cajaId: body.cajaId ? Number(body.cajaId) : null,
       clienteId: body.clienteId ? Number(body.clienteId) : null,
-      usuarioId: Number(body.usuarioId),
-      pedidoId:  body.pedidoId  ? Number(body.pedidoId)  : null,
-      mesaId:    body.mesaId    ? Number(body.mesaId)    : null,
-      items:     body.items,
-      subtotal:  Number(body.subtotal),
+      usuarioId,
+      pedidoId: body.pedidoId ? Number(body.pedidoId) : null,
+      mesaId: body.mesaId ? Number(body.mesaId) : null,
+      items: body.items,
+      subtotal: Number(body.subtotal),
       descuento: Number(body.descuento ?? 0),
-      impuesto:  Number(body.impuesto  ?? 0),
-      total:     Number(body.total),
+      impuesto: Number(body.impuesto ?? 0),
+      total: Number(body.total),
       metodoPago: body.metodoPago,
-      pagos:     body.pagos,
+      pagos: body.pagos,
     });
     return NextResponse.json(venta, { status: 201 });
   } catch (error) {
     console.error("[POST /api/ventas]", error);
-    const message = error instanceof Error ? error.message : "Error interno al registrar la venta";
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    if (error instanceof Error) {
+      const status = error.message.includes("ya fue cobrada") ? 409 : 500;
+      return NextResponse.json({ error: error.message }, { status });
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "La orden ya fue cobrada. Recarga la mesa para continuar." }, { status: 409 });
+    }
+
+    return NextResponse.json({ error: "Error interno al registrar la venta" }, { status: 500 });
   }
 }

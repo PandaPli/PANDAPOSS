@@ -49,27 +49,25 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Busqueda */}
+    <div className="flex h-full flex-col gap-3">
       <div className="relative">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-muted" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
           type="text"
           placeholder="Buscar producto..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input pl-10"
+          className="input h-10 pl-9 text-sm"
         />
       </div>
 
-      {/* Filtro categoria */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1">
         <button
           onClick={() => setCategoriaFiltro(null)}
-          className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`flex-shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all ${
             !categoriaFiltro
               ? "bg-brand-500 text-white shadow-sm"
-              : "bg-white border border-surface-border text-surface-muted hover:bg-brand-50 hover:text-brand-600"
+              : "border border-surface-border bg-white text-surface-muted hover:bg-brand-50 hover:text-brand-600"
           }`}
         >
           Todos
@@ -78,10 +76,10 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
           <button
             key={id}
             onClick={() => setCategoriaFiltro(id)}
-            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex-shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all ${
               categoriaFiltro === id
                 ? "bg-brand-500 text-white shadow-sm"
-                : "bg-white border border-surface-border text-surface-muted hover:bg-brand-50 hover:text-brand-600"
+                : "border border-surface-border bg-white text-surface-muted hover:bg-brand-50 hover:text-brand-600"
             }`}
           >
             {nombre}
@@ -89,40 +87,37 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
         ))}
       </div>
 
-      {/* Grid productos */}
       <div className="flex-1 overflow-y-auto">
         {filtrados.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-surface-muted">
+          <div className="flex h-48 flex-col items-center justify-center text-surface-muted">
             <Package size={36} className="mb-2 opacity-40" />
             <p className="text-sm">Sin productos encontrados</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {filtrados.map((p) => (
               <button
                 key={p.id}
                 onClick={() => handleAdd(p)}
-                className="group card p-3 text-left hover:border-brand-300 hover:shadow-elevated active:scale-[0.97] transition-all"
+                className="group rounded-2xl border border-surface-border bg-white p-2 text-left transition-all hover:border-brand-300 hover:shadow-elevated active:scale-[0.98]"
               >
-                <div className="w-full aspect-square bg-surface-bg rounded-xl mb-2.5 overflow-hidden flex items-center justify-center">
+                <div className="mb-2 flex aspect-[1/0.82] w-full items-center justify-center overflow-hidden rounded-xl bg-surface-bg">
                   {p.imagen ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imagen} alt={p.nombre} className="w-full h-full object-cover" />
+                    <img src={p.imagen} alt={p.nombre} className="h-full w-full object-cover" />
                   ) : (
-                    <Package size={28} className="text-surface-muted opacity-30" />
+                    <Package size={22} className="text-surface-muted opacity-30" />
                   )}
                 </div>
 
-                <p className="text-sm font-semibold text-surface-text leading-tight line-clamp-2">
+                <p className="line-clamp-2 min-h-[2rem] text-[12px] font-semibold leading-tight text-surface-text">
                   {p.nombre}
                 </p>
-                <p className="text-xs text-surface-muted mt-0.5">{p.codigo}</p>
-                <p className="text-brand-500 font-bold text-sm mt-1.5">
-                  {formatCurrency(p.precio, simbolo)}
-                </p>
+                <p className="mt-0.5 truncate text-[10px] text-surface-muted">{p.codigo}</p>
+                <p className="mt-1 text-[12px] font-bold text-brand-500">{formatCurrency(p.precio, simbolo)}</p>
 
                 {p.stock <= 5 && p.stock > 0 && (
-                  <p className="text-amber-500 text-xs mt-0.5">Stock: {p.stock}</p>
+                  <p className="mt-0.5 text-[10px] text-amber-500">Stock: {p.stock}</p>
                 )}
               </button>
             ))}

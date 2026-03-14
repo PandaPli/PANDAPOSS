@@ -45,6 +45,52 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
   const siguiente = nextEstado[pedido.estado];
   const tiempoStr = timeAgo(pedido.creadoEn);
 
+  let customerName = "";
+  let cleanObservation = pedido.observacion || "";
+
+  if (pedido.tipo === "DELIVERY" && cleanObservation.startsWith("[DELIVERY]")) {
+    try {
+      const jsonStr = cleanObservation.replace("[DELIVERY]", "");
+      const data = JSON.parse(jsonStr);
+      if (data.clienteNombre) {
+        customerName = data.clienteNombre;
+        // Solo la primera palabra si es largo
+        customerName = customerName.split(" ")[0];
+      }
+      const notes = [];
+      if (data.direccion) notes.push(`Dir: ${data.direccion}`);
+      if (data.referencia) notes.push(`Ref: ${data.referencia}`);
+      cleanObservation = notes.join(" | ");
+    } catch (e) {}
+  } else if (cleanObservation) {
+    const match = cleanObservation.match(/Cliente:\s*([^,\n]+)/i);
+    if (match) {
+      customerName = match[1].trim();
+      cleanObservation = cleanObservation.replace(match[0], "").trim();
+      cleanObservation = cleanObservation.replace(/^[-,\s]+|[-,\s]+$/g, "");
+    }
+  }
+
+  let cardTitle = "";
+  if (pedido.mesa?.nombre) {
+    cardTitle = pedido.mesa.nombre;
+    if (customerName) {
+      const capitalized = customerName.charAt(0).toUpperCase() + customerName.slice(1);
+      cardTitle += ` / ${capitalized}`;
+    }
+  } else {
+    if (pedido.tipo === "DELIVERY" && customerName) {
+      const capitalized = customerName.charAt(0).toUpperCase() + customerName.slice(1).toLowerCase();
+      cardTitle = `Ped ${capitalized} #${pedido.numero || pedido.id}`;
+    } else {
+      cardTitle = `Pedido #${pedido.numero || pedido.id}`;
+      if (customerName) {
+        const capitalized = customerName.charAt(0).toUpperCase() + customerName.slice(1);
+        cardTitle += ` / ${capitalized}`;
+      }
+    }
+  }
+
   return (
     <div className={cn(
       "card p-0 overflow-hidden animate-fade-in",
@@ -62,7 +108,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div>
           <h4 className="font-bold text-surface-text text-base">
-            {pedido.mesa?.nombre ?? `Pedido #${pedido.numero}`}
+            {cardTitle}
           </h4>
           <div className="flex items-center gap-1.5 text-xs text-surface-muted mt-0.5">
             <UtensilsCrossed size={11} />
@@ -101,9 +147,9 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       </div>
 
       {/* Observacion general */}
-      {pedido.observacion && (
+      {cleanObservation && (
         <div className="mx-4 mb-3 text-xs text-surface-muted bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          📝 {pedido.observacion}
+          📝 {cleanObservation}
         </div>
       )}
 

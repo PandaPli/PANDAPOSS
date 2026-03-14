@@ -33,11 +33,21 @@ export function CartaQRClient({ salas }: Props) {
   async function generarQR(mesa: Mesa) {
     setLoadingId(mesa.id);
     try {
+      const baseUrl = window.location.origin;
       const res = await fetch(
-        `/api/qr/mesa?sucursal=${mesa.sala.sucursalId}&mesa=${mesa.id}&nombre=${encodeURIComponent(mesa.nombre)}`
+        `/api/qr/mesa?sucursal=${mesa.sala.sucursalId}&mesa=${mesa.id}&nombre=${encodeURIComponent(mesa.nombre)}&baseUrl=${encodeURIComponent(baseUrl)}`
       );
       const data = await res.json();
+      
+      if (!res.ok) {
+        alert(data.error || "Error al generar el QR. Verifica tu plan y permisos.");
+        return;
+      }
+      
       if (data.qr) setModal({ mesaNombre: mesa.nombre, qr: data.qr, url: data.url });
+    } catch (err) {
+      alert("Error de red al intentar generar el QR.");
+      console.error(err);
     } finally {
       setLoadingId(null);
     }

@@ -4,12 +4,13 @@
 
 @layer base {
   :root {
-    --brand-500: #6C3BFF;
-    --brand-700: #4B22B3;
-    --surface-bg: #F6F7FB;
-    --surface-border: #E6E8F0;
-    --surface-text: #1F2430;
-    --surface-muted: #6B7280;
+    --brand-500: #4f46e5;
+    --brand-600: #4338ca;
+    --brand-700: #3730a3;
+    --surface-bg: #f8fafc;
+    --surface-border: #e2e8f0;
+    --surface-text: #0f172a;
+    --surface-muted: #64748b;
   }
 
   * {
@@ -74,7 +75,7 @@
 
   /* ── Card PandaPoss ── */
   .card {
-    @apply bg-white rounded-xl border border-surface-border shadow-card;
+    @apply bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300;
   }
 
   /* ── Inputs táctiles ── */

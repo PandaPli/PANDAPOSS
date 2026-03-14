@@ -26,7 +26,7 @@ export default async function PanelPage() {
     case "ADMIN_GENERAL":
       return <AdminGeneralView />;
       
-    case "ADMIN_SUCURSAL":
+    case "RESTAURANTE":
       // Validar que tenga sucursal asignada
       if (!sucursalId) return <div className="p-8 text-center text-red-500 font-bold">Error: Admin de Sucursal sin sucursal asignada.</div>;
       return <BranchAdminPanel sucursalId={sucursalId} simbolo={simbolo} nombre={nombre} />;

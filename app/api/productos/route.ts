@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const body = await req.json();
-  const { codigo, nombre, precio, costo, stock, stockMinimo, categoriaId, ivaActivo, ivaPorc, imagen, enMenu } = body;
+  const { codigo, nombre, descripcion, precio, costo, stock, stockMinimo, categoriaId, ivaActivo, ivaPorc, imagen, enMenu, enMenuQR } = body;
 
   if (!codigo || !nombre || precio === undefined) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     data: {
       codigo: codigo.toUpperCase(),
       nombre,
+      descripcion: descripcion || null,
       precio,
       costo: costo || null,
       stock: stock || 0,
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
       ivaPorc: ivaPorc || 0,
       imagen: imagen || null,
       enMenu: enMenu ?? true,
+      enMenuQR: enMenuQR ?? true,
       // Asignar sucursal al producto (salvo ADMIN_GENERAL que puede crear globales)
       sucursalId: rol !== "ADMIN_GENERAL" ? sucursalId : (body.sucursalId ?? null),
     },

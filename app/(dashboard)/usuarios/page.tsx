@@ -1,14 +1,13 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getFreshSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { UsuariosClient } from "./UsuariosClient";
 
 export default async function UsuariosPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  const user = await getFreshSessionUser();
+  if (!user) return null;
 
-  const rol = (session.user as { rol?: string })?.rol ?? "";
-  const sucursalId = (session.user as { sucursalId?: number | null })?.sucursalId ?? null;
+  const rol = user.rol;
+  const sucursalId = user.sucursalId;
 
   const [usuarios, sucursales] = await Promise.all([
     prisma.usuario.findMany({

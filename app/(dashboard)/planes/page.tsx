@@ -9,7 +9,7 @@ export default async function PlanesPage() {
 
   const planActual = (session?.user as { plan?: string })?.plan ?? "BASICO";
   const rol        = (session?.user as { rol?: Rol })?.rol;
-  const isAdmin    = rol === "ADMIN_GENERAL" || rol === "ADMIN_SUCURSAL";
+  const isAdmin    = rol === "ADMIN_GENERAL" || rol === "RESTAURANTE";
 
   const basico = PLAN_LIMITS["BASICO"];
   const pro    = PLAN_LIMITS["PRO"];

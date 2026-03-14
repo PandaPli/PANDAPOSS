@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Pencil, Building2, Users, Wallet, CheckCircle2, XCircle, X, Loader2, ImageIcon, Upload } from "lucide-react";
+import { Plus, Building2, ImageIcon, Upload, X, Loader2 } from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from "@dnd-kit/sortable";
+import { SortableSucursalCard } from "./SortableSucursalCard";
 
 interface Sucursal {
   id: number;
@@ -126,6 +129,34 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
     }
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setSucursales((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over?.id);
+        
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        
+        // Disparar red HTTP para persistir
+        const orderIds = newArray.map((s) => s.id);
+        fetch("/api/sucursales/reorder", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderIds }),
+        }).catch((err) => console.error("Fallo reorden :(", err));
+
+        return newArray;
+      });
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -145,7 +176,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
         </button>
       </div>
 
-      {/* Grid de Sucursales */}
+      {/* Grid de Sucursales Sortable */}
       {sucursales.length === 0 ? (
         <div className="text-center py-16 text-surface-muted">
           <Building2 size={48} className="mx-auto mb-3 opacity-30" />
@@ -153,83 +184,20 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
           <p className="text-sm">Crea la primera sucursal para comenzar</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {sucursales.map((s) => (
-            <div
-              key={s.id}
-              className={`bg-white rounded-xl border shadow-card p-5 transition-all ${
-                s.activa ? "border-surface-border" : "border-surface-border opacity-60"
-              }`}
-            >
-              {/* Card header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg ${s.activa ? "bg-brand-500" : "bg-surface-muted"}`}>
-                    {s.simbolo}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-surface-text">{s.nombre}</h3>
-                    {s.activa ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                        <CheckCircle2 size={12} /> Activa
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-red-500 font-medium">
-                        <XCircle size={12} /> Inactiva
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => openEdit(s)}
-                  className="p-1.5 rounded hover:bg-surface-bg text-surface-text-muted hover:text-surface-text transition-colors"
-                  title="Editar"
-                >
-                  <Pencil size={15} />
-                </button>
-              </div>
-
-              {/* Info */}
-              <div className="space-y-1.5 text-sm text-surface-text-muted mb-4">
-                {s.direccion && <p className="truncate">📍 {s.direccion}</p>}
-                {s.telefono && <p>📞 {s.telefono}</p>}
-                {s.email && <p className="truncate">✉️ {s.email}</p>}
-                {!s.direccion && !s.telefono && !s.email && (
-                  <p className="italic text-xs">Sin información de contacto</p>
-                )}
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
-                  s.plan === "PRO"
-                    ? "bg-amber-50 text-amber-700 border-amber-300"
-                    : "bg-slate-100 text-slate-600 border-slate-300"
-                }`}>
-                  {s.plan === "PRO" ? "⭐ PRO" : "BÁSICO"}
-                </span>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-4 pt-3 border-t border-surface-border text-xs text-surface-text-muted">
-                <span className="flex items-center gap-1">
-                  <Users size={13} /> {s._count.usuarios} usuarios
-                </span>
-                <span className="flex items-center gap-1">
-                  <Wallet size={13} /> {s._count.cajas} cajas
-                </span>
-              </div>
-
-              {/* Toggle activa */}
-              <button
-                onClick={() => toggleActiva(s)}
-                className={`mt-3 w-full text-xs py-1.5 rounded-lg border transition-colors font-medium ${
-                  s.activa
-                    ? "border-red-200 text-red-500 hover:bg-red-50"
-                    : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-                }`}
-              >
-                {s.activa ? "Desactivar sucursal" : "Activar sucursal"}
-              </button>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sucursales.map(s => s.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {sucursales.map((s) => (
+                <SortableSucursalCard
+                  key={s.id}
+                  s={s}
+                  onEdit={openEdit}
+                  onToggleActiva={toggleActiva}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* Drawer lateral */}

@@ -1,20 +1,29 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getFreshSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FeatureGate } from "@/components/FeatureGate";
 import { CartaQRClient } from "./CartaQRClient";
-import type { Rol } from "@/types";
 
 export default async function CartaQRPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  const user = await getFreshSessionUser();
+  if (!user) return null;
 
-  const rol        = (session.user as { rol?: Rol })?.rol;
-  const menuQR     = (session.user as { menuQR?: boolean })?.menuQR ?? false;
-  const sucursalId = (session.user as { sucursalId?: number | null })?.sucursalId ?? null;
+  const rol = user.rol;
+  const sucursalId = user.sucursalId;
 
-  if (rol !== "ADMIN_GENERAL" && rol !== "ADMIN_SUCURSAL") redirect("/panel");
+  if (rol !== "ADMIN_GENERAL" && rol !== "RESTAURANTE") redirect("/panel");
+
+  // Fetch live sucursal data for feature gates
+  let liveMenuQR = false;
+  if (sucursalId && rol !== "ADMIN_GENERAL") {
+    const sucursal = await prisma.sucursal.findUnique({
+      where: { id: sucursalId },
+      select: { menuQR: true }
+    });
+    if (sucursal) {
+      liveMenuQR = sucursal.menuQR;
+    }
+  }
 
   // Cargar salas con sus mesas
   const salas = await prisma.sala.findMany({
@@ -49,7 +58,7 @@ export default async function CartaQRPage() {
         </p>
       </div>
 
-      <FeatureGate enabled={menuQR || rol === "ADMIN_GENERAL"} feature="Carta QR">
+      <FeatureGate enabled={liveMenuQR || rol === "ADMIN_GENERAL"} feature="Carta QR">
         <CartaQRClient salas={salaGroups} />
       </FeatureGate>
     </div>

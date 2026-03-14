@@ -10,7 +10,7 @@ datasource db {
 // ─── ENUMS ────────────────────────────────────────────────────
 enum Rol {
   ADMIN_GENERAL
-  ADMIN_SUCURSAL
+  RESTAURANTE
   SECRETARY
   CASHIER
   WAITER
@@ -23,12 +23,18 @@ enum Rol {
 enum EstadoMesa {
   LIBRE
   OCUPADA
+  CUENTA
   RESERVADA
 }
 
 enum EstadoCaja {
   ABIERTA
   CERRADA
+}
+
+enum TipoMovimientoCaja {
+  INGRESO
+  RETIRO
 }
 
 enum EstadoPedido {
@@ -77,10 +83,42 @@ enum PlanTipo {
   PRO
 }
 
+enum EstadoDelivery {
+  CREADO
+  CONFIRMADO
+  PREPARANDO
+  LISTO
+  EN_CAMINO
+  ENTREGADO
+  CANCELADO
+}
+
+enum EstadoRepartidor {
+  DISPONIBLE
+  EN_RUTA
+  INACTIVO
+}
+
 // ─── MODELOS ──────────────────────────────────────────────────
+
+model Tenant {
+  id       String   @id @default(uuid())
+  nombre   String   @db.VarChar(100)
+  plan     PlanTipo @default(BASICO)
+  creadoEn DateTime @default(now())
+
+  sucursales Sucursal[]
+  usuarios   Usuario[]
+  clientes   Cliente[]
+  pedidos    Pedido[]
+  productos  Producto[]
+
+  @@map("tenants")
+}
 
 model Sucursal {
   id           Int      @id @default(autoincrement())
+  tenantId     String?
   nombre       String   @db.VarChar(100)
   direccion    String?  @db.VarChar(200)
   telefono     String?  @db.VarChar(20)
@@ -92,37 +130,50 @@ model Sucursal {
   menuQR       Boolean  @default(false)
   correoActivo Boolean  @default(false)
   logoUrl      String?  @db.VarChar(255)
+  orden        Int      @default(0)
   creadoEn     DateTime @default(now())
 
-  usuarios     Usuario[]
-  salas        Sala[]
-  cajas        Caja[]
-  productos    Producto[]
-  ingredientes Ingrediente[]
-  clientes     Cliente[]
+  usuarios      Usuario[]
+  salas         Sala[]
+  cajas         Caja[]
+  productos     Producto[]
+  ingredientes  Ingrediente[]
+  clientes      Cliente[]
+  departamentos Departamento[]
+  empleados     Empleado[]
+  turnos        Turno[]
+  asistencias   Asistencia[]
+  permisosRrhh  PermisoRrhh[]
+  vacaciones    Vacacion[]
+  tenant        Tenant?        @relation(fields: [tenantId], references: [id])
 
   @@map("sucursales")
 }
 
 model Usuario {
-  id          Int           @id @default(autoincrement())
-  nombre      String        @db.VarChar(100)
-  usuario     String        @unique @db.VarChar(50)
-  password    String        @db.VarChar(255)
-  email       String?       @db.VarChar(100)
-  rol         Rol           @default(WAITER)
-  status      EstadoUsuario @default(ACTIVO)
-  sucursalId  Int?
-  creadoEn    DateTime      @default(now())
-  actualizadoEn DateTime    @updatedAt
+  id            Int           @id @default(autoincrement())
+  nombre        String        @db.VarChar(100)
+  usuario       String        @unique @db.VarChar(50)
+  password      String        @db.VarChar(255)
+  email         String?       @db.VarChar(100)
+  rol           Rol           @default(WAITER)
+  status        EstadoUsuario @default(ACTIVO)
+  tenantId      String?
+  sucursalId    Int?
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
 
-  sucursal    Sucursal?     @relation(fields: [sucursalId], references: [id])
-  cajas       Caja[]
-  ventas      Venta[]
-  pedidos     Pedido[]
-  pedidosRepartidor Pedido[] @relation("PedidosRepartidor")
-  arqueos     Arqueo[]
-  logs        Log[]
+  sucursal          Sucursal?        @relation(fields: [sucursalId], references: [id])
+  cajas             Caja[]
+  ventas            Venta[]
+  pedidos           Pedido[]
+  pedidosRepartidor Pedido[]         @relation("PedidosRepartidor")
+  arqueos           Arqueo[]
+  movimientosCaja   MovimientoCaja[]
+  logs              Log[]
+  empleadoRrhh      Empleado?
+  repartidor        Repartidor?
+  tenant            Tenant?          @relation(fields: [tenantId], references: [id])
 
   @@map("usuarios")
 }
@@ -134,96 +185,99 @@ model Sala {
   activa     Boolean  @default(true)
   creadoEn   DateTime @default(now())
 
-  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
-  mesas      Mesa[]
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  mesas    Mesa[]
 
   @@map("salas")
 }
 
 model Mesa {
-  id         Int        @id @default(autoincrement())
-  nombre     String     @db.VarChar(50)
-  capacidad  Int        @default(4)
-  estado     EstadoMesa @default(LIBRE)
-  salaId     Int
-  creadoEn   DateTime   @default(now())
+  id        Int        @id @default(autoincrement())
+  nombre    String     @db.VarChar(50)
+  capacidad Int        @default(4)
+  estado    EstadoMesa @default(LIBRE)
+  salaId    Int
+  creadoEn  DateTime   @default(now())
 
-  sala       Sala       @relation(fields: [salaId], references: [id])
-  pedidos    Pedido[]
+  sala    Sala     @relation(fields: [salaId], references: [id])
+  pedidos Pedido[]
 
   @@map("mesas")
 }
 
 model Categoria {
-  id       Int        @id @default(autoincrement())
-  nombre   String     @unique @db.VarChar(80)
-  icono    String?    @db.VarChar(50)
-  activa   Boolean    @default(true)
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(80)
+  icono  String? @db.VarChar(50)
+  activa Boolean @default(true)
 
-  productos  Producto[]
-  combos     Combo[]
+  productos Producto[]
+  combos    Combo[]
 
   @@map("categorias")
 }
 
 model Producto {
-  id           Int       @id @default(autoincrement())
-  codigo       String    @unique @db.VarChar(30)
-  nombre       String    @db.VarChar(120)
-  descripcion  String?   @db.Text
-  precio       Decimal   @db.Decimal(10, 2)
-  costo        Decimal?  @db.Decimal(10, 2)
-  stock        Decimal   @default(0) @db.Decimal(10, 2)
-  stockMinimo  Decimal   @default(0) @db.Decimal(10, 2)
-  imagen       String?   @db.VarChar(255)
-  ivaActivo    Boolean   @default(false)
-  ivaPorc      Decimal   @default(0) @db.Decimal(5, 2)
-  activo       Boolean   @default(true)
-  enMenu       Boolean   @default(true)
-  categoriaId  Int?
-  sucursalId   Int?
-  creadoEn     DateTime  @default(now())
+  id            Int      @id @default(autoincrement())
+  codigo        String   @unique @db.VarChar(30)
+  nombre        String   @db.VarChar(120)
+  descripcion   String?  @db.Text
+  precio        Decimal  @db.Decimal(10, 2)
+  costo         Decimal? @db.Decimal(10, 2)
+  stock         Decimal  @default(0) @db.Decimal(10, 2)
+  stockMinimo   Decimal  @default(0) @db.Decimal(10, 2)
+  imagen        String?  @db.VarChar(255)
+  ivaActivo     Boolean  @default(false)
+  ivaPorc       Decimal  @default(0) @db.Decimal(5, 2)
+  activo        Boolean  @default(true)
+  enMenu        Boolean  @default(true)
+  enMenuQR      Boolean  @default(true)
+  categoriaId   Int?
+  sucursalId    Int?
+  creadoEn      DateTime @default(now())
   actualizadoEn DateTime @updatedAt
 
-  categoria    Categoria?  @relation(fields: [categoriaId], references: [id])
-  sucursal     Sucursal?   @relation(fields: [sucursalId], references: [id])
-  detallesVenta DetalleVenta[]
+  categoria      Categoria?      @relation(fields: [categoriaId], references: [id])
+  sucursal       Sucursal?       @relation(fields: [sucursalId], references: [id])
+  detallesVenta  DetalleVenta[]
   detallesPedido DetallePedido[]
-  kardex        Kardex[]
+  kardex         Kardex[]
+  Tenant         Tenant?         @relation(fields: [tenantId], references: [id])
+  tenantId       String?
 
   @@map("productos")
 }
 
 model Ingrediente {
-  id           Int       @id @default(autoincrement())
-  codigo       String    @unique @db.VarChar(30)
-  nombre       String    @db.VarChar(120)
-  stock        Decimal   @default(0) @db.Decimal(10, 2)
-  stockMinimo  Decimal   @default(0) @db.Decimal(10, 2)
-  unidad       String    @default("und") @db.VarChar(20)
-  costo        Decimal?  @db.Decimal(10, 2)
-  sucursalId   Int?
-  activo       Boolean   @default(true)
-  creadoEn     DateTime  @default(now())
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique @db.VarChar(30)
+  nombre      String   @db.VarChar(120)
+  stock       Decimal  @default(0) @db.Decimal(10, 2)
+  stockMinimo Decimal  @default(0) @db.Decimal(10, 2)
+  unidad      String   @default("und") @db.VarChar(20)
+  costo       Decimal? @db.Decimal(10, 2)
+  sucursalId  Int?
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
 
-  sucursal     Sucursal? @relation(fields: [sucursalId], references: [id])
+  sucursal Sucursal? @relation(fields: [sucursalId], references: [id])
 
   @@map("ingredientes")
 }
 
 model Combo {
-  id           Int       @id @default(autoincrement())
-  codigo       String    @unique @db.VarChar(30)
-  nombre       String    @db.VarChar(120)
-  precio       Decimal   @db.Decimal(10, 2)
-  imagen       String?   @db.VarChar(255)
-  categoriaId  Int?
-  activo       Boolean   @default(true)
-  enMenu       Boolean   @default(true)
-  creadoEn     DateTime  @default(now())
+  id          Int      @id @default(autoincrement())
+  codigo      String   @unique @db.VarChar(30)
+  nombre      String   @db.VarChar(120)
+  precio      Decimal  @db.Decimal(10, 2)
+  imagen      String?  @db.VarChar(255)
+  categoriaId Int?
+  activo      Boolean  @default(true)
+  enMenu      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
 
-  categoria    Categoria?    @relation(fields: [categoriaId], references: [id])
-  detallesVenta DetalleVenta[]
+  categoria      Categoria?      @relation(fields: [categoriaId], references: [id])
+  detallesVenta  DetalleVenta[]
   detallesPedido DetallePedido[]
 
   @@map("combos")
@@ -237,23 +291,27 @@ model Cliente {
   telefono   String?  @db.VarChar(20)
   direccion  String?  @db.VarChar(200)
   activo     Boolean  @default(true)
+  tenantId   String?
   sucursalId Int?
   creadoEn   DateTime @default(now())
 
-  sucursal   Sucursal? @relation(fields: [sucursalId], references: [id])
-  ventas     Venta[]
+  sucursal        Sucursal?          @relation(fields: [sucursalId], references: [id])
+  ventas          Venta[]
+  direcciones     DireccionCliente[]
+  pedidosDelivery PedidoDelivery[]
+  Tenant          Tenant?            @relation(fields: [tenantId], references: [id])
 
   @@map("clientes")
 }
 
 model Proveedor {
-  id         Int      @id @default(autoincrement())
-  rut        String?  @unique @db.VarChar(20)
-  nombre     String   @db.VarChar(120)
-  email      String?  @db.VarChar(100)
-  telefono   String?  @db.VarChar(20)
-  activo     Boolean  @default(true)
-  creadoEn   DateTime @default(now())
+  id       Int      @id @default(autoincrement())
+  rut      String?  @unique @db.VarChar(20)
+  nombre   String   @db.VarChar(120)
+  email    String?  @db.VarChar(100)
+  telefono String?  @db.VarChar(20)
+  activo   Boolean  @default(true)
+  creadoEn DateTime @default(now())
 
   @@map("proveedores")
 }
@@ -269,70 +327,89 @@ model Caja {
   cerradaEn   DateTime?
   creadoEn    DateTime   @default(now())
 
-  sucursal    Sucursal   @relation(fields: [sucursalId], references: [id])
-  usuario     Usuario?   @relation(fields: [usuarioId], references: [id])
+  sucursal    Sucursal         @relation(fields: [sucursalId], references: [id])
+  usuario     Usuario?         @relation(fields: [usuarioId], references: [id])
   ventas      Venta[]
   pedidos     Pedido[]
   arqueos     Arqueo[]
+  movimientos MovimientoCaja[]
 
   @@map("cajas")
 }
 
+model MovimientoCaja {
+  id        Int                @id @default(autoincrement())
+  tipo      TipoMovimientoCaja
+  monto     Decimal            @db.Decimal(10, 2)
+  motivo    String             @db.VarChar(200)
+  cajaId    Int
+  usuarioId Int
+  creadoEn  DateTime           @default(now())
+
+  caja    Caja    @relation(fields: [cajaId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("movimientos_caja")
+}
+
 model Arqueo {
-  id          Int        @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   cajaId      Int
   usuarioId   Int
-  saldoInicio Decimal    @db.Decimal(10, 2)
-  saldoFinal  Decimal?   @db.Decimal(10, 2)
-  totalVentas Decimal?   @db.Decimal(10, 2)
-  diferencia  Decimal?   @db.Decimal(10, 2)
-  observacion String?    @db.Text
-  abiertaEn   DateTime   @default(now())
+  saldoInicio Decimal   @db.Decimal(10, 2)
+  saldoFinal  Decimal?  @db.Decimal(10, 2)
+  totalVentas Decimal?  @db.Decimal(10, 2)
+  diferencia  Decimal?  @db.Decimal(10, 2)
+  observacion String?   @db.Text
+  abiertaEn   DateTime  @default(now())
   cerradaEn   DateTime?
 
-  caja        Caja       @relation(fields: [cajaId], references: [id])
-  usuario     Usuario    @relation(fields: [usuarioId], references: [id])
+  caja    Caja    @relation(fields: [cajaId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   @@map("arqueos")
 }
 
 model Pedido {
-  id              Int          @id @default(autoincrement())
-  numero          Int          @default(0)
-  mesaId          Int?
-  cajaId          Int?
-  usuarioId       Int
-  repartidorId    Int?
-  tipo            TipoPedido   @default(COCINA)
-  estado          EstadoPedido @default(PENDIENTE)
-  observacion     String?      @db.Text
-  meseroLlamado   Boolean      @default(false)
-  direccionEntrega String?     @db.VarChar(300)
-  telefonoCliente  String?     @db.VarChar(30)
-  creadoEn        DateTime     @default(now())
-  actualizadoEn   DateTime     @updatedAt
+  id               Int          @id @default(autoincrement())
+  numero           Int          @default(0)
+  mesaId           Int?
+  cajaId           Int?
+  usuarioId        Int
+  repartidorId     Int?
+  tipo             TipoPedido   @default(COCINA)
+  estado           EstadoPedido @default(PENDIENTE)
+  observacion      String?      @db.Text
+  meseroLlamado    Boolean      @default(false)
+  direccionEntrega String?      @db.VarChar(300)
+  telefonoCliente  String?      @db.VarChar(30)
+  creadoEn         DateTime     @default(now())
+  actualizadoEn    DateTime     @updatedAt
 
-  mesa        Mesa?        @relation(fields: [mesaId], references: [id])
-  caja        Caja?        @relation(fields: [cajaId], references: [id])
-  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
-  repartidor  Usuario?     @relation("PedidosRepartidor", fields: [repartidorId], references: [id])
-  detalles    DetallePedido[]
-  venta       Venta?
+  mesa       Mesa?           @relation(fields: [mesaId], references: [id])
+  caja       Caja?           @relation(fields: [cajaId], references: [id])
+  usuario    Usuario         @relation(fields: [usuarioId], references: [id])
+  repartidor Usuario?        @relation("PedidosRepartidor", fields: [repartidorId], references: [id])
+  detalles   DetallePedido[]
+  venta      Venta?
+  delivery   PedidoDelivery?
+  Tenant     Tenant?         @relation(fields: [tenantId], references: [id])
+  tenantId   String?
 
   @@map("pedidos")
 }
 
 model DetallePedido {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   pedidoId    Int
   productoId  Int?
   comboId     Int?
-  cantidad    Int      @default(1)
-  observacion String?  @db.VarChar(200)
+  cantidad    Int     @default(1)
+  observacion String? @db.VarChar(200)
 
-  pedido      Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  producto    Producto? @relation(fields: [productoId], references: [id])
-  combo       Combo?   @relation(fields: [comboId], references: [id])
+  pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  producto Producto? @relation(fields: [productoId], references: [id])
+  combo    Combo?    @relation(fields: [comboId], references: [id])
 
   @@map("detalles_pedidos")
 }
@@ -353,85 +430,294 @@ model Venta {
   observacion String?     @db.Text
   creadoEn    DateTime    @default(now())
 
-  caja        Caja?       @relation(fields: [cajaId], references: [id])
-  cliente     Cliente?    @relation(fields: [clienteId], references: [id])
-  usuario     Usuario     @relation(fields: [usuarioId], references: [id])
-  pedido      Pedido?     @relation(fields: [pedidoId], references: [id])
-  detalles    DetalleVenta[]
-  kardex      Kardex[]
-  pagos       PagoVenta[]
+  caja     Caja?          @relation(fields: [cajaId], references: [id])
+  cliente  Cliente?       @relation(fields: [clienteId], references: [id])
+  usuario  Usuario        @relation(fields: [usuarioId], references: [id])
+  pedido   Pedido?        @relation(fields: [pedidoId], references: [id])
+  detalles DetalleVenta[]
+  kardex   Kardex[]
+  pagos    PagoVenta[]
 
   @@map("ventas")
 }
 
 model DetalleVenta {
-  id          Int      @id @default(autoincrement())
-  ventaId     Int
-  productoId  Int?
-  comboId     Int?
-  cantidad    Int      @default(1)
-  precio      Decimal  @db.Decimal(10, 2)
-  descuento   Decimal  @default(0) @db.Decimal(10, 2)
-  subtotal    Decimal  @db.Decimal(10, 2)
+  id         Int     @id @default(autoincrement())
+  ventaId    Int
+  productoId Int?
+  comboId    Int?
+  cantidad   Int     @default(1)
+  precio     Decimal @db.Decimal(10, 2)
+  descuento  Decimal @default(0) @db.Decimal(10, 2)
+  subtotal   Decimal @db.Decimal(10, 2)
 
-  venta       Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
-  producto    Producto? @relation(fields: [productoId], references: [id])
-  combo       Combo?   @relation(fields: [comboId], references: [id])
+  venta    Venta     @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  producto Producto? @relation(fields: [productoId], references: [id])
+  combo    Combo?    @relation(fields: [comboId], references: [id])
 
   @@map("detalles_ventas")
 }
 
 model Kardex {
-  id          Int        @id @default(autoincrement())
-  productoId  Int
-  tipo        TipoKardex
-  cantidad    Decimal    @db.Decimal(10, 2)
-  motivo      String     @db.VarChar(100)
-  ventaId     Int?
-  creadoEn    DateTime   @default(now())
+  id         Int        @id @default(autoincrement())
+  productoId Int
+  tipo       TipoKardex
+  cantidad   Decimal    @db.Decimal(10, 2)
+  motivo     String     @db.VarChar(100)
+  ventaId    Int?
+  creadoEn   DateTime   @default(now())
 
-  producto    Producto   @relation(fields: [productoId], references: [id])
-  venta       Venta?     @relation(fields: [ventaId], references: [id])
+  producto Producto @relation(fields: [productoId], references: [id])
+  venta    Venta?   @relation(fields: [ventaId], references: [id])
 
   @@map("kardex")
 }
 
 model PagoVenta {
-  id          Int        @id @default(autoincrement())
-  ventaId     Int
-  metodoPago  MetodoPago
-  monto       Decimal    @db.Decimal(10, 2)
-  referencia  String?    @db.VarChar(100)
-  creadoEn    DateTime   @default(now())
+  id         Int        @id @default(autoincrement())
+  ventaId    Int
+  metodoPago MetodoPago
+  monto      Decimal    @db.Decimal(10, 2)
+  referencia String?    @db.VarChar(100)
+  creadoEn   DateTime   @default(now())
 
-  venta       Venta      @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  venta Venta @relation(fields: [ventaId], references: [id], onDelete: Cascade)
 
   @@map("pagos_ventas")
 }
 
 model Log {
-  id          Int      @id @default(autoincrement())
-  usuarioId   Int?
-  accion      String   @db.VarChar(200)
-  ip          String?  @db.VarChar(50)
-  creadoEn    DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?
+  accion    String   @db.VarChar(200)
+  ip        String?  @db.VarChar(50)
+  creadoEn  DateTime @default(now())
 
-  usuario     Usuario? @relation(fields: [usuarioId], references: [id])
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
 
   @@map("logs")
 }
 
 model Configuracion {
-  id             Int     @id @default(1)
-  nombreEmpresa  String  @default("PandaPoss") @db.VarChar(100)
-  rut            String? @db.VarChar(20)
-  direccion      String? @db.VarChar(200)
-  telefono       String? @db.VarChar(20)
-  email          String? @db.VarChar(100)
-  logoUrl        String? @db.VarChar(255)
-  moneda         String  @default("CLP") @db.VarChar(10)
-  simbolo        String  @default("$") @db.VarChar(5)
-  ivaPorc        Decimal @default(19) @db.Decimal(5, 2)
+  id            Int     @id @default(1)
+  nombreEmpresa String  @default("PandaPoss") @db.VarChar(100)
+  rut           String? @db.VarChar(20)
+  direccion     String? @db.VarChar(200)
+  telefono      String? @db.VarChar(20)
+  email         String? @db.VarChar(100)
+  logoUrl       String? @db.VarChar(255)
+  moneda        String  @default("CLP") @db.VarChar(10)
+  simbolo       String  @default("$") @db.VarChar(5)
+  ivaPorc       Decimal @default(19) @db.Decimal(5, 2)
 
   @@map("configuracion")
+}
+
+model Departamento {
+  id            Int      @id @default(autoincrement())
+  sucursalId    Int
+  nombre        String   @db.VarChar(100)
+  descripcion   String?  @db.VarChar(255)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  sucursal  Sucursal   @relation(fields: [sucursalId], references: [id])
+  empleados Empleado[]
+
+  @@unique([sucursalId, nombre])
+  @@map("departamentos")
+}
+
+model Cargo {
+  id            Int      @id @default(autoincrement())
+  nombre        String   @unique @db.VarChar(100)
+  descripcion   String?  @db.VarChar(255)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  empleados Empleado[]
+
+  @@map("cargos")
+}
+
+model Empleado {
+  id             Int       @id @default(autoincrement())
+  sucursalId     Int
+  usuarioId      Int?      @unique
+  departamentoId Int?
+  cargoId        Int?
+  nombres        String    @db.VarChar(100)
+  apellidos      String    @db.VarChar(100)
+  documento      String?   @unique @db.VarChar(30)
+  email          String?   @unique @db.VarChar(100)
+  telefono       String?   @db.VarChar(20)
+  fechaIngreso   DateTime?
+  salarioBase    Decimal?  @db.Decimal(10, 2)
+  activo         Boolean   @default(true)
+  creadoEn       DateTime  @default(now())
+  actualizadoEn  DateTime  @updatedAt
+
+  sucursal     Sucursal      @relation(fields: [sucursalId], references: [id])
+  usuario      Usuario?      @relation(fields: [usuarioId], references: [id])
+  departamento Departamento? @relation(fields: [departamentoId], references: [id])
+  cargo        Cargo?        @relation(fields: [cargoId], references: [id])
+  asistencias  Asistencia[]
+  turnos       Turno[]
+  permisos     PermisoRrhh[]
+  vacaciones   Vacacion[]
+
+  @@index([sucursalId])
+  @@index([usuarioId])
+  @@index([departamentoId])
+  @@index([cargoId])
+  @@map("empleados")
+}
+
+model Turno {
+  id            Int      @id @default(autoincrement())
+  sucursalId    Int
+  empleadoId    Int?
+  nombre        String   @db.VarChar(100)
+  horaEntrada   String   @db.VarChar(10)
+  horaSalida    String   @db.VarChar(10)
+  diasSemana    String   @db.VarChar(80)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  sucursal Sucursal  @relation(fields: [sucursalId], references: [id])
+  empleado Empleado? @relation(fields: [empleadoId], references: [id])
+
+  @@index([sucursalId])
+  @@index([empleadoId])
+  @@map("turnos")
+}
+
+model Asistencia {
+  id            Int       @id @default(autoincrement())
+  sucursalId    Int
+  empleadoId    Int
+  fecha         DateTime
+  horaEntrada   DateTime?
+  horaSalida    DateTime?
+  estado        String    @db.VarChar(30)
+  observacion   String?   @db.VarChar(255)
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  empleado Empleado @relation(fields: [empleadoId], references: [id])
+
+  @@unique([empleadoId, fecha])
+  @@index([sucursalId])
+  @@index([empleadoId])
+  @@map("asistencias")
+}
+
+model PermisoRrhh {
+  id            Int      @id @default(autoincrement())
+  sucursalId    Int
+  empleadoId    Int
+  tipo          String   @db.VarChar(50)
+  fechaInicio   DateTime
+  fechaFin      DateTime
+  motivo        String?  @db.VarChar(255)
+  estado        String   @default("PENDIENTE") @db.VarChar(30)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  empleado Empleado @relation(fields: [empleadoId], references: [id])
+
+  @@index([sucursalId])
+  @@index([empleadoId])
+  @@map("permisos_rrhh")
+}
+
+model Vacacion {
+  id            Int      @id @default(autoincrement())
+  sucursalId    Int
+  empleadoId    Int
+  fechaInicio   DateTime
+  fechaFin      DateTime
+  dias          Int
+  estado        String   @default("PENDIENTE") @db.VarChar(30)
+  observacion   String?  @db.VarChar(255)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  empleado Empleado @relation(fields: [empleadoId], references: [id])
+
+  @@index([sucursalId])
+  @@index([empleadoId])
+  @@map("vacaciones")
+}
+
+// ─── DELIVERY MODELS ──────────────────────────────────────────
+
+model PedidoDelivery {
+  id             Int            @id @default(autoincrement())
+  pedidoId       Int            @unique
+  clienteId      Int
+  repartidorId   Int?
+  direccionId    Int
+  referencia     String?        @db.VarChar(200)
+  lat            Float
+  lng            Float
+  costoEnvio     Decimal        @db.Decimal(10, 2)
+  tiempoEstimado Int // en minutos
+  estado         EstadoDelivery @default(CREADO)
+  creadoEn       DateTime       @default(now())
+
+  pedido     Pedido           @relation(fields: [pedidoId], references: [id])
+  cliente    Cliente          @relation(fields: [clienteId], references: [id])
+  repartidor Repartidor?      @relation(fields: [repartidorId], references: [id])
+  direccion  DireccionCliente @relation(fields: [direccionId], references: [id])
+  eventos    EventoDelivery[]
+
+  @@map("pedidos_delivery")
+}
+
+model DireccionCliente {
+  id         Int     @id @default(autoincrement())
+  clienteId  Int
+  calle      String  @db.VarChar(200)
+  numero     String? @db.VarChar(50)
+  referencia String? @db.VarChar(200)
+  lat        Float
+  lng        Float
+
+  cliente Cliente          @relation(fields: [clienteId], references: [id])
+  pedidos PedidoDelivery[]
+
+  @@map("direcciones_cliente")
+}
+
+model Repartidor {
+  id             Int              @id @default(autoincrement())
+  usuarioId      Int              @unique
+  vehiculo       String           @db.VarChar(100)
+  estado         EstadoRepartidor @default(INACTIVO)
+  lat            Float?
+  lng            Float?
+  pedidosActivos Int              @default(0)
+
+  usuario  Usuario          @relation(fields: [usuarioId], references: [id])
+  entregas PedidoDelivery[]
+
+  @@map("repartidores")
+}
+
+model EventoDelivery {
+  id               Int            @id @default(autoincrement())
+  pedidoDeliveryId Int
+  estado           EstadoDelivery
+  creadoEn         DateTime       @default(now())
+
+  delivery PedidoDelivery @relation(fields: [pedidoDeliveryId], references: [id])
+
+  @@map("eventos_delivery")
 }

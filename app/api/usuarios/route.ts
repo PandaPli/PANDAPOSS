@@ -5,7 +5,7 @@ import type { Rol } from "@/types";
 import { UsuarioRepo } from "@/server/repositories/usuario.repo";
 import { checkLimit } from "@/core/billing/limitChecker";
 
-const ADMIN_ROLES: Rol[] = ["ADMIN_GENERAL", "ADMIN_SUCURSAL"];
+const ADMIN_ROLES: Rol[] = ["ADMIN_GENERAL", "RESTAURANTE"];
 
 export async function GET() {
   const session = await getServerSession(authOptions);

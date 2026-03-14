@@ -82,10 +82,10 @@ export const authOptions: NextAuthOptions = {
 // Mapa de roles y sus rutas permitidas
 export const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery", "/carta-qr", "/planes", "/configuracion"],
-  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones"],
+  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery", "/carta-qr", "/rrhh", "/planes", "/configuracion"],
+  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/rrhh", "/cotizaciones"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas"],
-  WAITER: ["/panel", "/mesas", "/pedidos"],
+  WAITER: ["/panel", "/mesas", "/pedidos", "/ventas"],
   // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
   CHEF: ["/pedidos"],
   BAR: ["/pedidos"],
@@ -98,3 +98,19 @@ export function canAccess(rol: Rol, path: string): boolean {
   if (allowed.includes("*")) return true;
   return allowed.some((r) => path.startsWith(r));
 }
+
+export async function getFreshSessionUser() {
+  const { getServerSession } = await import("next-auth");
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return null;
+
+  const id = (session.user as { id: number }).id;
+  if (!id) return null;
+
+  const user = await prisma.usuario.findUnique({
+    where: { id },
+  });
+
+  return user;
+}
+

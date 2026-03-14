@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 
 const prisma = new PrismaClient();
-const SUCURSAL_ID = 2;
+const SUCURSAL_ID = 3;
 const CSV_PATH = path.join(process.env.USERPROFILE || "", "Downloads", "Cat_logo_KAIROSUSHI.csv");
 
 // Productos a omitir (no son ítems de carta real)

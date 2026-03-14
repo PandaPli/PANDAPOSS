@@ -52,11 +52,19 @@ export async function POST(req: NextRequest) {
   const { allowed, error: limitError } = await checkLimit(effectiveSucursalId, "clientes");
   if (!allowed) return NextResponse.json({ error: limitError }, { status: 403 });
 
+  let cleanTelefono = telefono || null;
+  if (cleanTelefono) {
+    cleanTelefono = cleanTelefono.trim();
+    cleanTelefono = cleanTelefono.replace(/^\+?56\s*9\s*/, '');
+    cleanTelefono = cleanTelefono.replace(/^569\s*/, '');
+    cleanTelefono = cleanTelefono.trim();
+  }
+
   const cliente = await prisma.cliente.create({
     data: {
       nombre,
       email: email || null,
-      telefono: telefono || null,
+      telefono: cleanTelefono,
       direccion: direccion || null,
       sucursalId: effectiveSucursalId,
     },
@@ -71,6 +79,13 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json();
   const { id, ...data } = body;
+
+  if (data.telefono) {
+    let t = data.telefono.trim();
+    t = t.replace(/^\+?56\s*9\s*/, '');
+    t = t.replace(/^569\s*/, '');
+    data.telefono = t.trim();
+  }
 
   const cliente = await prisma.cliente.update({
     where: { id: Number(id) },

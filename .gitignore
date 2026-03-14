@@ -8,3 +8,6 @@ build/
 .DS_Store
 419f2c18-622b-4983-ad07-74f8d946cbbb.png
 *.txt
+.claude/
+.clone/
+scripts/userOutput*.json

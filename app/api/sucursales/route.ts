@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
 
 function isAdmin(rol: Rol) {
-  return rol === "ADMIN_GENERAL";
+  return rol === "ADMIN_GENERAL" || rol === "RESTAURANTE";
 }
 
 export async function GET() {
@@ -13,13 +13,17 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rol = (session.user as { rol: Rol }).rol;
-  if (!isAdmin(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  
+  // RESTAURANTE can only see their own
+  const filter = rol === "ADMIN_GENERAL" ? {} : { id: sucursalId ?? -1 };
 
   const sucursales = await prisma.sucursal.findMany({
+    where: filter,
     include: {
       _count: { select: { usuarios: true, cajas: true } },
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { orden: "asc" },
   });
 
   return NextResponse.json(sucursales);
@@ -30,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rol = (session.user as { rol: Rol }).rol;
-  if (!isAdmin(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  if (rol !== "ADMIN_GENERAL") return NextResponse.json({ error: "Solo ADMIN_GENERAL puede crear sucursales" }, { status: 403 });
 
   const body = await req.json();
   const { nombre, direccion, telefono, email, simbolo } = body;
@@ -62,4 +66,33 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(sucursal, { status: 201 });
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rol = (session.user as { rol: Rol }).rol;
+  if (!isAdmin(rol)) return NextResponse.json({ error: "Sin permisos para editar sucursales" }, { status: 403 });
+
+  const sucursalIdContext = (session.user as { sucursalId: number | null }).sucursalId;
+
+  const body = await req.json();
+  const { id, logoUrl } = body;
+
+  if (!id) return NextResponse.json({ error: "ID de sucursal es requerido" }, { status: 400 });
+
+  // Si no es ADMIN_GENERAL, asegurar que solo actualiza su propia sucursal
+  if (rol !== "ADMIN_GENERAL" && Number(id) !== sucursalIdContext) {
+     return NextResponse.json({ error: "No puedes modificar una sucursal distinta a la tuya" }, { status: 403 });
+  }
+
+  const sucursal = await prisma.sucursal.update({
+    where: { id: Number(id) },
+    data: {
+      logoUrl: logoUrl === "" ? null : logoUrl, // If empty string, set null
+    },
+  });
+
+  return NextResponse.json(sucursal, { status: 200 });
 }
