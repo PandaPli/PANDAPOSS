@@ -35,6 +35,7 @@ export interface CartItem {
   observacion?: string;
   imagen?: string;
   guardado?: boolean;
+  cancelado?: boolean;
 }
 
 export interface PagoItem {
