@@ -405,11 +405,12 @@ model DetallePedido {
   pedidoId    Int
   productoId  Int?
   comboId     Int?
-  cantidad    Int     @default(1)
-  observacion String? @db.VarChar(200)
-  cancelado   Boolean @default(false)
-  grupo       String? @db.VarChar(5)
-  pagado      Boolean @default(false)
+  cantidad    Int      @default(1)
+  precio      Decimal? @db.Decimal(10, 2)   // precio unitario al momento de la orden
+  observacion String?  @db.VarChar(200)
+  cancelado   Boolean  @default(false)
+  grupo       String?  @db.VarChar(5)
+  pagado      Boolean  @default(false)
 
   pedido   Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   producto Producto? @relation(fields: [productoId], references: [id])

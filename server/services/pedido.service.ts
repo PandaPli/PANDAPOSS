@@ -44,6 +44,22 @@ export const PedidoService = {
       repartidorId,
     } = input;
 
+    // Resolver precios actuales para guardarlos en cada detalle (precio fijo al momento de la orden)
+    const productoIds = items.filter((i) => i.productoId).map((i) => i.productoId as number);
+    const comboIds    = items.filter((i) => i.comboId).map((i) => i.comboId as number);
+
+    const [productos, combos] = await Promise.all([
+      productoIds.length > 0
+        ? prisma.producto.findMany({ where: { id: { in: productoIds } }, select: { id: true, precio: true } })
+        : [],
+      comboIds.length > 0
+        ? prisma.combo.findMany({ where: { id: { in: comboIds } }, select: { id: true, precio: true } })
+        : [],
+    ]);
+
+    const precioProducto = new Map(productos.map((p) => [p.id, p.precio]));
+    const precioCombo    = new Map(combos.map((c) => [c.id, c.precio]));
+
     const pedido = await prisma.pedido.create({
       data: {
         mesaId: mesaId ?? null,
@@ -57,10 +73,15 @@ export const PedidoService = {
         repartidorId: repartidorId ?? null,
         detalles: {
           create: items.map((item) => ({
-            productoId: item.productoId ?? null,
-            comboId: item.comboId ?? null,
-            cantidad: item.cantidad,
+            productoId:  item.productoId ?? null,
+            comboId:     item.comboId ?? null,
+            cantidad:    item.cantidad,
             observacion: item.observacion ?? null,
+            precio: item.productoId
+              ? (precioProducto.get(item.productoId) ?? null)
+              : item.comboId
+              ? (precioCombo.get(item.comboId) ?? null)
+              : null,
           })),
         },
       },

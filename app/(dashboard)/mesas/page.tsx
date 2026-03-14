@@ -20,12 +20,16 @@ async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
         select: {
           id: true,
           creadoEn: true,
-          _count: { select: { detalles: true } },
+          // Solo contar detalles activos (no cancelados ni ya pagados en grupo)
+          _count: { select: { detalles: { where: { cancelado: false, pagado: false } } } },
           detalles: {
+            // Excluir cancelados y pagados del cálculo de total
+            where: { cancelado: false, pagado: false },
             select: {
               cantidad: true,
-              producto: { select: { precio: true } },
-              combo: { select: { precio: true } },
+              precio: true,                                    // precio fijo al momento de la orden
+              producto: { select: { precio: true } },         // fallback si precio no guardado
+              combo:    { select: { precio: true } },
             },
           },
         },
@@ -63,7 +67,8 @@ export default async function MesasPage() {
           },
           total: m.pedidos.reduce((acc, p) =>
             acc + p.detalles.reduce((s, d) => {
-              const precio = Number(d.producto?.precio ?? d.combo?.precio ?? 0);
+              // Usar precio fijo guardado en el detalle; fallback al precio actual del producto
+              const precio = Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0);
               return s + precio * d.cantidad;
             }, 0), 0),
         }
