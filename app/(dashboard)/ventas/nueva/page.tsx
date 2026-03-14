@@ -4,15 +4,14 @@ import { prisma } from "@/lib/db";
 import { NuevaVentaClient } from "./NuevaVentaClient";
 import type { CartItem } from "@/types";
 
+const PEDIDOS_ACTIVOS = ["PENDIENTE", "EN_PROCESO", "LISTO"] as const;
+
 async function getProductos(sucursalId: number | null) {
   return prisma.producto.findMany({
     where: {
       activo: true,
       enMenu: true,
-      // Mostrar productos de la sucursal Y productos globales (sucursalId null)
-      ...(sucursalId
-        ? { OR: [{ sucursalId }, { sucursalId: null }] }
-        : {}),
+      ...(sucursalId ? { OR: [{ sucursalId }, { sucursalId: null }] } : {}),
     },
     include: { categoria: { select: { nombre: true } } },
     orderBy: { nombre: "asc" },
@@ -27,19 +26,53 @@ async function getCajaAbierta(sucursalId: number | null) {
   });
 }
 
-async function getPedido(pedidoId: number | undefined) {
-  if (!pedidoId || isNaN(pedidoId)) return null;
-  const pedido = await prisma.pedido.findUnique({
-    where: { id: pedidoId },
-    include: {
-      detalles: {
-        include: {
-          producto: true,
-          combo: true,
+async function getSucursalBranding(sucursalId: number | null) {
+  if (!sucursalId) return null;
+  return prisma.sucursal.findUnique({
+    where: { id: sucursalId },
+    select: { simbolo: true, logoUrl: true },
+  });
+}
+
+async function getPedido(pedidoId?: number, mesaId?: number) {
+  let pedido = null;
+
+  if (pedidoId && !isNaN(pedidoId)) {
+    pedido = await prisma.pedido.findFirst({
+      where: {
+        id: pedidoId,
+        estado: { in: [...PEDIDOS_ACTIVOS] },
+        venta: null,
+      },
+      include: {
+        detalles: {
+          include: {
+            producto: true,
+            combo: true,
+          },
         },
       },
-    },
-  });
+    });
+  }
+
+  if (!pedido && mesaId && !isNaN(mesaId)) {
+    pedido = await prisma.pedido.findFirst({
+      where: {
+        mesaId,
+        estado: { in: [...PEDIDOS_ACTIVOS] },
+        venta: null,
+      },
+      include: {
+        detalles: {
+          include: {
+            producto: true,
+            combo: true,
+          },
+        },
+      },
+      orderBy: { creadoEn: "desc" },
+    });
+  }
 
   if (!pedido) return null;
 
@@ -68,17 +101,24 @@ interface Props {
 export default async function NuevaVentaPage({ searchParams }: Props) {
   const session = await getServerSession(authOptions);
   const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
-  const simbolo = (session?.user as { simbolo?: string })?.simbolo ?? "$";
+  const sessionSimbolo = (session?.user as { simbolo?: string })?.simbolo ?? "$";
   const userId = (session?.user as { id?: number })?.id ?? 0;
   const meseroNombre = session?.user?.name ?? "Cajero";
+  const sessionLogoUrl = (session?.user as { logoUrl?: string | null })?.logoUrl ?? null;
 
-  const { pedido: pedidoIdParam } = await searchParams;
+  const params = await searchParams;
+  const pedidoId = params.pedido ? Number(params.pedido) : undefined;
+  const mesaId = params.mesa ? Number(params.mesa) : undefined;
 
-  const [productos, cajaAbierta, pedidoInfo] = await Promise.all([
+  const [productos, cajaAbierta, pedidoInfo, sucursalBranding] = await Promise.all([
     getProductos(sucursalId),
     getCajaAbierta(sucursalId),
-    getPedido(pedidoIdParam ? Number(pedidoIdParam) : undefined),
+    getPedido(pedidoId, mesaId),
+    getSucursalBranding(sucursalId),
   ]);
+
+  const simbolo = sucursalBranding?.simbolo ?? sessionSimbolo;
+  const logoUrl = sucursalBranding?.logoUrl ?? sessionLogoUrl;
 
   const productosData = productos.map((p) => ({
     id: p.id,
@@ -100,6 +140,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       cajaNombre={cajaAbierta?.nombre}
       meseroNombre={meseroNombre}
       initialOrder={pedidoInfo}
+      logoUrl={logoUrl}
     />
   );
 }

@@ -14,7 +14,7 @@ const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {
 async function getPedidos(rol: Rol | undefined, sucursalId: number | null) {
   const sucursalWhere =
     rol !== "ADMIN_GENERAL" && sucursalId
-      ? { OR: [{ caja: { sucursalId } }, { mesa: { sala: { sucursalId } } }] }
+      ? { OR: [{ caja: { sucursalId } }, { mesa: { sala: { sucursalId } } }, { usuario: { sucursalId } }] }
       : {};
 
   return prisma.pedido.findMany({

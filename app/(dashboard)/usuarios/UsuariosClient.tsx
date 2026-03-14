@@ -6,7 +6,7 @@ import { Plus, Search, Edit2, UserCog, X, Loader2, Shield } from "lucide-react";
 
 const ROLES = [
   { value: "ADMIN_GENERAL", label: "Admin General" },
-  { value: "ADMIN_SUCURSAL", label: "Admin Sucursal" },
+  { value: "RESTAURANTE", label: "Admin Sucursal" },
   { value: "SECRETARY", label: "Secretaria" },
   { value: "CASHIER", label: "Cajero/a" },
   { value: "WAITER", label: "Mesero/a" },
@@ -18,7 +18,7 @@ const ROLES = [
 
 const roleColors: Record<string, string> = {
   ADMIN_GENERAL: "bg-purple-50 text-purple-700 border-purple-200",
-  ADMIN_SUCURSAL: "bg-blue-50 text-blue-700 border-blue-200",
+  RESTAURANTE: "bg-blue-50 text-blue-700 border-blue-200",
   SECRETARY: "bg-pink-50 text-pink-700 border-pink-200",
   CASHIER: "bg-emerald-50 text-emerald-700 border-emerald-200",
   WAITER: "bg-amber-50 text-amber-700 border-amber-200",

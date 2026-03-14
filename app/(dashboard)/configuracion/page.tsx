@@ -19,11 +19,17 @@ export default async function ConfiguracionPage() {
     });
   }
 
-  // Logo actual de la sucursal (si aplica)
+  // Logo y slug actual de la sucursal (si aplica)
   let sucursalLogoUrl: string | null = null;
-  if (rol === "ADMIN_SUCURSAL" && sucursalId) {
-    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { logoUrl: true } });
-    sucursalLogoUrl = suc?.logoUrl ?? null;
+  let sucursalSlug: string | null = null;
+  
+  if (rol === "RESTAURANTE" && sucursalId) {
+    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true } });
+    if (suc) {
+      sucursalLogoUrl = suc.logoUrl;
+      const { createSlug } = await import("@/lib/slug");
+      sucursalSlug = createSlug(suc.nombre);
+    }
   }
 
   const plain = {
@@ -46,6 +52,7 @@ export default async function ConfiguracionPage() {
         rol={rol}
         sucursalId={sucursalId}
         sucursalLogoUrl={sucursalLogoUrl}
+        sucursalSlug={sucursalSlug}
       />
     </div>
   );

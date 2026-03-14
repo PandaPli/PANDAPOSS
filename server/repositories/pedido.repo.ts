@@ -16,7 +16,7 @@ export const PedidoRepo = {
           ? { estado: estado as never }
           : { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } }),
         ...(!isAdmin && sucursalId
-          ? { OR: [{ caja: { sucursalId } }, { mesa: { sala: { sucursalId } } }] }
+          ? { OR: [{ caja: { sucursalId } }, { mesa: { sala: { sucursalId } } }, { usuario: { sucursalId } }] }
           : {}),
       },
       include: {

@@ -1,8 +1,6 @@
-// ─── Tipos compartidos PandaPoss ───────────────────────────────
-
-export type Rol =
+﻿export type Rol =
   | "ADMIN_GENERAL"
-  | "ADMIN_SUCURSAL"
+  | "RESTAURANTE"
   | "SECRETARY"
   | "CASHIER"
   | "WAITER"
@@ -11,11 +9,12 @@ export type Rol =
   | "PASTRY"
   | "DELIVERY";
 
-export type EstadoMesa = "LIBRE" | "OCUPADA" | "RESERVADA";
+export type EstadoMesa = "LIBRE" | "OCUPADA" | "CUENTA" | "RESERVADA";
 export type EstadoPedido = "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO";
 export type TipoPedido = "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR";
 export type MetodoPago = "EFECTIVO" | "TARJETA" | "TRANSFERENCIA" | "CREDITO" | "MIXTO";
 export type EstadoVenta = "PENDIENTE" | "PAGADA" | "ANULADA";
+export type DeliveryTrackingStage = "CONFIRMADO" | "PREPARANDO" | "EN_CAMINO" | "ENTREGADO" | "CANCELADO";
 
 export interface SessionUser {
   id: number;
@@ -26,7 +25,6 @@ export interface SessionUser {
   simbolo: string;
 }
 
-// Carrito POS
 export interface CartItem {
   id: number;
   tipo: "producto" | "combo";
@@ -36,24 +34,21 @@ export interface CartItem {
   cantidad: number;
   observacion?: string;
   imagen?: string;
-  guardado?: boolean; // Indica si ya está en la BD
+  guardado?: boolean;
 }
 
-// Pagos
 export interface PagoItem {
   metodoPago: MetodoPago;
   monto: number;
   referencia?: string;
 }
 
-// APIs
 export interface ApiResponse<T = unknown> {
   ok: boolean;
   data?: T;
   error?: string;
 }
 
-// Productos
 export interface ProductoCard {
   id: number;
   codigo: string;
@@ -65,7 +60,6 @@ export interface ProductoCard {
   categoria?: { nombre: string };
 }
 
-// Mesas
 export interface MesaConEstado {
   id: number;
   nombre: string;
@@ -80,7 +74,6 @@ export interface MesaConEstado {
   } | null;
 }
 
-// Pedidos
 export interface PedidoConDetalles {
   id: number;
   numero: number;
@@ -104,7 +97,38 @@ export interface PedidoConDetalles {
   }[];
 }
 
-// Dashboard stats
+export interface DeliveryCustomerInput {
+  nombre: string;
+  telefono: string;
+  direccion: string;
+  referencia?: string;
+  departamento?: string;
+}
+
+export interface DeliveryPedidoPublico {
+  id: number;
+  estado: EstadoPedido;
+  trackingStage: DeliveryTrackingStage;
+  clienteNombre: string;
+  telefonoCliente: string;
+  direccionEntrega: string;
+  referencia?: string;
+  departamento?: string;
+  metodoPago: MetodoPago;
+  subtotal: number;
+  cargoEnvio: number;
+  total: number;
+  repartidorNombre?: string | null;
+  creadoEn: string;
+  estimadoMinutos: number;
+  detalles: {
+    nombre: string;
+    cantidad: number;
+    precio: number;
+    subtotal: number;
+  }[];
+}
+
 export interface DashboardStats {
   ventasHoy: number;
   totalHoy: number;
@@ -113,3 +137,4 @@ export interface DashboardStats {
   alertasStock: number;
   ventasChart: { fecha: string; total: number }[];
 }
+

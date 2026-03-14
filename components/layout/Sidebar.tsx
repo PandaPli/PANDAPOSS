@@ -25,55 +25,55 @@ const navItems: NavItem[] = [
     label: "Panel",
     href: "/panel",
     icon: <LayoutDashboard size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"],
   },
   {
     label: "Atención",
     href: "/mesas",
     icon: <UtensilsCrossed size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"],
   },
   {
     label: "Pedidos",
     href: "/pedidos",
     icon: <ClipboardList size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"],
   },
   {
     label: "Nueva Venta",
     href: "/ventas/nueva",
     icon: <ShoppingCart size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"],
   },
   {
     label: "Ventas",
     href: "/ventas",
     icon: <BarChart3 size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"],
   },
   {
     label: "Productos",
     href: "/productos",
     icon: <Package size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"],
   },
   {
     label: "Clientes",
     href: "/clientes",
     icon: <Users size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY", "CASHIER"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"],
   },
   {
     label: "Cajas",
     href: "/cajas",
     icon: <Wallet size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "CASHIER"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"],
   },
   {
     label: "Usuarios",
     href: "/usuarios",
     icon: <UserCog size={20} />,
-    roles: ["ADMIN_GENERAL", "ADMIN_SUCURSAL", "SECRETARY"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"],
   },
   {
     label: "Configuración",
@@ -85,7 +85,7 @@ const navItems: NavItem[] = [
 
 const roleIcons: Record<Rol, React.ReactNode> = {
   ADMIN_GENERAL: <Settings size={14} />,
-  ADMIN_SUCURSAL: <Settings size={14} />,
+  RESTAURANTE: <Settings size={14} />,
   SECRETARY: <Users size={14} />,
   CASHIER: <ShoppingCart size={14} />,
   WAITER: <UtensilsCrossed size={14} />,
@@ -97,7 +97,7 @@ const roleIcons: Record<Rol, React.ReactNode> = {
 
 const roleLabels: Record<Rol, string> = {
   ADMIN_GENERAL: "Admin General",
-  ADMIN_SUCURSAL: "Admin Sucursal",
+  RESTAURANTE: "Admin Sucursal",
   SECRETARY: "Secretaria",
   CASHIER: "Cajero/a",
   WAITER: "Mesero/a",

@@ -10,38 +10,38 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Outfit", "system-ui", "sans-serif"],
       },
       colors: {
-        /* ─── PandaPoss Purple System ─── */
+        /* ─── PandaPoss Indigo Premium System ─── */
         brand: {
-          50:  "#F5F1FF",
-          100: "#EDE5FF",
-          200: "#D9CCFF",
-          300: "#A98BFF",    /* hover / selección */
-          400: "#8B5CFF",
-          500: "#6C3BFF",    /* ★ principal */
-          600: "#5B2ED9",
-          700: "#4B22B3",    /* headers / sidebar dark */
-          800: "#3B1A8F",
-          900: "#2D136E",
-          950: "#1A0B42",
+          50:  "#eef2ff",
+          100: "#e0e7ff",
+          200: "#c7d2fe",
+          300: "#a5b4fc",
+          400: "#818cf8",
+          500: "#6366f1",    /* ★ principal hover */
+          600: "#4f46e5",    /* ★ principal */
+          700: "#4338ca",    
+          800: "#3730a3",
+          900: "#312e81",
+          950: "#1e1b4b",
         },
-        /* ─── Neutros – superficies ─── */
+        /* ─── Neutros – superficies Slate ─── */
         surface: {
-          bg:     "#F6F7FB",
-          card:   "#FFFFFF",
-          border: "#E6E8F0",
-          text:   "#1F2430",
-          muted:  "#6B7280",
+          bg:     "#f8fafc",
+          card:   "#ffffff",
+          border: "#e2e8f0",
+          text:   "#0f172a",
+          muted:  "#64748b",
         },
         /* ─── Estados operativos restaurante ─── */
         estado: {
-          nuevo:     "#6C3BFF",     /* morado – nuevo pedido   */
-          preparando:"#F59E0B",     /* amarillo – en preparación */
-          listo:     "#10B981",     /* verde – listo             */
-          urgente:   "#EF4444",     /* rojo – urgente            */
-          libre:     "#9CA3AF",     /* gris – mesa libre         */
+          nuevo:     "#4f46e5",     /* violeta oscuro – nuevo pedido   */
+          preparando:"#f59e0b",     /* amarillo – en preparación */
+          listo:     "#10b981",     /* verde – listo             */
+          urgente:   "#ef4444",     /* rojo – urgente            */
+          libre:     "#94a3b8",     /* gris oscuro – mesa libre         */
         },
       },
       borderRadius: {

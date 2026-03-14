@@ -2,21 +2,18 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { Rol } from "@/types";
 
-// Lógica inline para evitar importar bcryptjs en Edge Runtime
 const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  ADMIN_SUCURSAL: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/compras", "/reportes", "/configuracion", "/perfil"],
-  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cotizaciones", "/perfil"],
+  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/rrhh", "/compras", "/reportes", "/configuracion", "/perfil", "/delivery", "/carta-qr", "/planes"],
+  SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/rrhh", "/cotizaciones", "/perfil"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas", "/perfil"],
-  WAITER: ["/panel", "/mesas", "/pedidos", "/perfil"],
-  // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
+  WAITER: ["/panel", "/mesas", "/pedidos", "/ventas", "/perfil"],
   CHEF: ["/pedidos", "/perfil"],
   BAR: ["/pedidos", "/perfil"],
   PASTRY: ["/pedidos", "/perfil"],
-  DELIVERY: ["/panel", "/pedidos", "/perfil"],
+  DELIVERY: ["/panel", "/pedidos", "/perfil", "/delivery"],
 };
 
-// Página de inicio por rol (default: /panel)
 const ROLE_HOME: Partial<Record<Rol, string>> = {
   CHEF: "/pedidos",
   BAR: "/pedidos",
@@ -39,7 +36,6 @@ export default withAuth(
 
     const rol = token.rol as Rol;
 
-    // Si no tiene acceso, redirigir a su página de inicio
     if (!canAccess(rol, pathname)) {
       const home = ROLE_HOME[rol] ?? "/panel";
       return NextResponse.redirect(new URL(home, req.url));
@@ -55,9 +51,8 @@ export default withAuth(
 );
 
 export const config = {
-  // Solo proteger páginas — excluir TODAS las rutas /api/
-  // (las rutas API manejan su propia auth con getServerSession)
   matcher: [
-    "/((?!login|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    "/((?!login|menu|pedir|track|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };
+

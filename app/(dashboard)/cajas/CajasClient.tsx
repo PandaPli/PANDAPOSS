@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Wallet, DoorOpen, DoorClosed, Plus, Loader2, X,
-  TrendingUp, TrendingDown, Minus, Clock,
+  TrendingUp, TrendingDown, Minus, Clock, Banknote, CreditCard, Receipt, FileWarning, ArrowLeftRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -29,13 +29,19 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
   const router = useRouter();
   const [cajas, setCajas] = useState(initial);
   const [loading, setLoading] = useState<number | null>(null);
-  const [modal, setModal] = useState<{ type: "abrir" | "cerrar" | "nueva"; cajaId?: number } | null>(null);
+  const [modal, setModal] = useState<{ type: "abrir" | "cerrar" | "nueva" | "movimiento"; cajaId?: number } | null>(null);
+  const [resumenZ, setResumenZ] = useState<any>(null);
   const [saldoInicio, setSaldoInicio] = useState("");
   const [saldoFinal, setSaldoFinal] = useState("");
   const [observacion, setObservacion] = useState("");
   const [nombreNueva, setNombreNueva] = useState("");
   const [result, setResult] = useState<{ totalVentas: number; diferencia: number } | null>(null);
   const [error, setError] = useState("");
+
+  // Estado para movimientos
+  const [tipoMovimiento, setTipoMovimiento] = useState<"INGRESO" | "RETIRO">("RETIRO");
+  const [montoMovimiento, setMontoMovimiento] = useState("");
+  const [motivoMovimiento, setMotivoMovimiento] = useState("");
 
   async function abrirCaja() {
     if (!modal || modal.type !== "abrir" || !modal.cajaId) return;
@@ -133,11 +139,60 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
     }
   }
 
+  async function clickCerrar(cajaId: number) {
+    setError("");
+    setLoading(cajaId);
+    try {
+      const res = await fetch(`/api/cajas/${cajaId}/resumen`);
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "No se pudo obtener el reporte la caja");
+      }
+      const data = await res.json();
+      setResumenZ(data);
+      setModal({ type: "cerrar", cajaId });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function crearMovimiento() {
+    if (!modal?.cajaId || !montoMovimiento || !motivoMovimiento) return;
+    setLoading(modal.cajaId);
+    setError("");
+    try {
+      const res = await fetch(`/api/cajas/${modal.cajaId}/movimiento`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: tipoMovimiento,
+          monto: Number(montoMovimiento),
+          motivo: motivoMovimiento
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Error al registrar el movimiento");
+      }
+      cerrarModal();
+      router.refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(null);
+    }
+  }
+
   function cerrarModal() {
     setModal(null);
+    setResumenZ(null);
     setSaldoInicio("");
     setSaldoFinal("");
     setObservacion("");
+    setMontoMovimiento("");
+    setMotivoMovimiento("");
     setResult(null);
     setError("");
   }
@@ -198,10 +253,11 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
                 if (caja.estado === "CERRADA") {
                   setModal({ type: "abrir", cajaId: caja.id });
                 } else {
-                  setModal({ type: "cerrar", cajaId: caja.id });
+                  clickCerrar(caja.id);
                 }
               }}
-              className={`w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+              disabled={loading === caja.id}
+              className={`w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                 caja.estado === "CERRADA"
                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
                   : "bg-red-600 text-white hover:bg-red-700"
@@ -210,30 +266,43 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
               {caja.estado === "CERRADA" ? (
                 <><DoorOpen size={15} /> Abrir Caja</>
               ) : (
-                <><DoorClosed size={15} /> Cerrar Caja</>
+                <><DoorClosed size={15} /> Cerrar Caja / Reporte</>
               )}
             </button>
+            {caja.estado === "ABIERTA" && (
+              <button
+                onClick={() => {
+                  setError("");
+                  setModal({ type: "movimiento", cajaId: caja.id });
+                }}
+                className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium bg-surface-bg text-surface-text border border-surface-border hover:bg-surface-hover transition-colors"
+                title="Añadir o retirar dinero de esta caja"
+              >
+                <ArrowLeftRight size={14} /> Movimientos Extras
+              </button>
+            )}
           </div>
         ))}
       </div>
 
       {/* Modales */}
       {modal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-surface-border">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[95vh]">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border shrink-0">
               <h2 className="font-bold text-surface-text flex items-center gap-2">
                 <Wallet size={18} className="text-brand-600" />
                 {modal.type === "abrir" && "Abrir Caja"}
                 {modal.type === "cerrar" && (result ? "Resumen de Cierre" : "Cerrar Caja")}
                 {modal.type === "nueva" && "Nueva Caja"}
+                {modal.type === "movimiento" && "Registrar Movimiento"}
               </h2>
               <button onClick={cerrarModal} className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-lg">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto">
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
               )}
@@ -283,36 +352,156 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
                 </>
               )}
 
-              {modal.type === "cerrar" && !result && (
-                <>
+              {modal.type === "movimiento" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2 bg-surface-bg p-1 rounded-lg">
+                    <button
+                      onClick={() => setTipoMovimiento("RETIRO")}
+                      className={`py-2 text-sm font-medium rounded-md transition-all ${
+                        tipoMovimiento === "RETIRO" 
+                          ? "bg-white shadow-sm text-surface-text border border-surface-border" 
+                          : "text-surface-muted hover:text-surface-text"
+                      }`}
+                    >
+                      Sacar Dinero
+                    </button>
+                    <button
+                      onClick={() => setTipoMovimiento("INGRESO")}
+                      className={`py-2 text-sm font-medium rounded-md transition-all ${
+                        tipoMovimiento === "INGRESO" 
+                          ? "bg-white shadow-sm text-surface-text border border-surface-border" 
+                          : "text-surface-muted hover:text-surface-text"
+                      }`}
+                    >
+                      Añadir Efectivo
+                    </button>
+                  </div>
+                  
                   <div>
-                    <label className="label">Saldo Final (conteo en caja)</label>
+                    <label className="label">Monto ({simbolo})</label>
                     <input
                       type="number"
                       className="input"
-                      value={saldoFinal}
-                      onChange={(e) => setSaldoFinal(e.target.value)}
+                      value={montoMovimiento}
+                      onChange={(e) => setMontoMovimiento(e.target.value)}
                       placeholder="0"
-                      min={0}
+                      min={1}
                       step={0.01}
                     />
                   </div>
+                  
                   <div>
-                    <label className="label">Observaciones</label>
-                    <textarea
-                      className="input min-h-20"
-                      value={observacion}
-                      onChange={(e) => setObservacion(e.target.value)}
-                      placeholder="Notas sobre el cierre..."
+                    <label className="label">Motivo u Observación</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={motivoMovimiento}
+                      onChange={(e) => setMotivoMovimiento(e.target.value)}
+                      placeholder={tipoMovimiento === "RETIRO" ? "Ej: Pago de hielo, proveedor..." : "Ej: Sencillo prestado"}
                     />
                   </div>
+                  
+                  <button
+                    onClick={crearMovimiento}
+                    disabled={loading !== null || !montoMovimiento || !motivoMovimiento}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-colors disabled:opacity-60 mt-2"
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowLeftRight size={16} />}
+                    Grabar Transacción
+                  </button>
+                </div>
+              )}
+
+              {modal.type === "cerrar" && !result && resumenZ && (
+                <>
+                  <div className="bg-surface-bg p-4 rounded-xl space-y-3 mb-4 text-sm border border-surface-border">
+                     <h3 className="font-semibold text-surface-text flex items-center gap-2 border-b border-surface-border pb-2">
+                       <Receipt size={16} className="text-brand-500" /> Reporte de Turno (Z-Out)
+                     </h3>
+                     
+                     <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="p-2 bg-white rounded-lg border border-surface-border">
+                           <p className="text-xs text-surface-muted">Ventas Globales</p>
+                           <p className="font-bold text-brand-600">{formatCurrency(resumenZ.ventasTotales, simbolo)}</p>
+                           <p className="text-[10px] text-surface-muted mt-0.5">{resumenZ.transaccionesTotales} Tx</p>
+                        </div>
+                        <div className="p-2 bg-white rounded-lg border border-surface-border flex flex-col justify-between">
+                           <p className="text-xs text-surface-muted">Efectivo Ingresado</p>
+                           <p className="font-bold text-emerald-600">{formatCurrency(resumenZ.desgloseMediosDePago.EFECTIVO.dinero, simbolo)}</p>
+                        </div>
+                     </div>
+                     
+                     <div className="space-y-1.5 pt-2">
+                        <div className="flex items-center justify-between text-xs text-surface-text">
+                           <span className="flex items-center gap-1.5"><CreditCard size={13} className="text-indigo-500"/> Tarjeta / Banco</span>
+                           <span className="font-medium">{formatCurrency(resumenZ.desgloseMediosDePago.TARJETA.dinero + resumenZ.desgloseMediosDePago.TRANSFERENCIA.dinero, simbolo)}</span>
+                        </div>
+                        {resumenZ.anulaciones.cantidad > 0 && (
+                          <div className="flex items-center justify-between text-xs text-red-500">
+                             <span className="flex items-center gap-1.5"><FileWarning size={13} /> Anulaciones ({resumenZ.anulaciones.cantidad})</span>
+                             <span className="font-medium">{formatCurrency(resumenZ.anulaciones.dinero, simbolo)}</span>
+                          </div>
+                        )}
+                        {resumenZ.movimientos.retirosCantidad > 0 && (
+                          <div className="flex items-center justify-between text-xs text-red-600 font-medium">
+                             <span className="flex items-center gap-1.5"><ArrowLeftRight size={13}/> Dinero Extraído ({resumenZ.movimientos.retirosCantidad})</span>
+                             <span>- {formatCurrency(resumenZ.movimientos.retiros, simbolo)}</span>
+                          </div>
+                        )}
+                        {resumenZ.movimientos.ingresosCantidad > 0 && (
+                          <div className="flex items-center justify-between text-xs text-emerald-600 font-medium">
+                             <span className="flex items-center gap-1.5"><ArrowLeftRight size={13}/> Efectivo Agregado ({resumenZ.movimientos.ingresosCantidad})</span>
+                             <span>+ {formatCurrency(resumenZ.movimientos.ingresos, simbolo)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-xs text-surface-text pt-1.5 border-t border-surface-border">
+                           <span className="flex items-center gap-1.5 font-medium text-surface-text-muted"><Wallet size={13}/> Fondo de Apertura</span>
+                           <span className="font-medium text-surface-text">{formatCurrency(resumenZ.saldoApertura, simbolo)}</span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="bg-emerald-50 p-4 border border-emerald-200 rounded-xl mb-4">
+                     <p className="text-xs text-emerald-800 font-medium mb-1 flex items-center gap-1">
+                       <Banknote size={14} /> Efectivo Teórico en Gaveta
+                     </p>
+                     <p className="text-2xl font-black text-emerald-700 tracking-tight">
+                       {formatCurrency(resumenZ.fisicoTeorico, simbolo)}
+                     </p>
+                     <p className="text-[11px] text-emerald-600 mt-1">Este monto incluye el fondo de apertura + efectivo recibido. No incluye Tarjetas ni Transferencias.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="label text-surface-text">¿Cuánto Dinero Físico Hay?</label>
+                      <input
+                        type="number"
+                        className="input text-lg font-semibold bg-white"
+                        value={saldoFinal}
+                        onChange={(e) => setSaldoFinal(e.target.value)}
+                        placeholder="Ingresa la cantidad billetes contados..."
+                        min={0}
+                        step={0.01}
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Observaciones de Cierre</label>
+                      <textarea
+                        className="input min-h-20"
+                        value={observacion}
+                        onChange={(e) => setObservacion(e.target.value)}
+                        placeholder="Justificación de gastos, faltantes, etc..."
+                      />
+                    </div>
+                  </div>
+
                   <button
                     onClick={cerrarCaja}
-                    disabled={loading !== null}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-60"
+                    disabled={loading !== null || !saldoFinal}
+                    className="w-full flex items-center justify-center gap-2 py-3 mt-5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <DoorClosed size={16} />}
-                    Confirmar Cierre
+                    Liquidación de Turno
                   </button>
                 </>
               )}

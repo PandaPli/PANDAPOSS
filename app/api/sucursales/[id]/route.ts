@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id: idStr } = await params;
   const id = Number(idStr);
 
-  const esPropietario = rol === "ADMIN_SUCURSAL" && sessionSucursalId === id;
+  const esPropietario = rol === "RESTAURANTE" && sessionSucursalId === id;
   if (!isAdmin(rol) && !esPropietario) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const data: Record<string, unknown> = {};
 
-  // ADMIN_SUCURSAL solo puede actualizar su propio logo
+  // RESTAURANTE solo puede actualizar su propio logo
   if (esPropietario && !isAdmin(rol)) {
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
   } else {

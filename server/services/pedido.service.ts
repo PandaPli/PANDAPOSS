@@ -33,8 +33,15 @@ export interface UpdatePedidoInput {
 export const PedidoService = {
   async create(input: CreatePedidoInput) {
     const {
-      mesaId, cajaId, usuarioId, tipo, items,
-      observacion, direccionEntrega, telefonoCliente, repartidorId,
+      mesaId,
+      cajaId,
+      usuarioId,
+      tipo,
+      items,
+      observacion,
+      direccionEntrega,
+      telefonoCliente,
+      repartidorId,
     } = input;
 
     const pedido = await prisma.pedido.create({
@@ -60,7 +67,6 @@ export const PedidoService = {
       include: { detalles: true },
     });
 
-    // Marcar mesa como ocupada
     if (mesaId) {
       await prisma.mesa.update({
         where: { id: mesaId },
@@ -80,7 +86,6 @@ export const PedidoService = {
     if (repartidorId !== undefined) data.repartidorId = repartidorId ?? null;
     if (direccionEntrega !== undefined) data.direccionEntrega = direccionEntrega ?? null;
     if (telefonoCliente !== undefined) data.telefonoCliente = telefonoCliente ?? null;
-    // Al entregar, limpiar llamada al mesero
     if (estado === "ENTREGADO") data.meseroLlamado = false;
 
     if (input.nuevosItems && input.nuevosItems.length > 0) {
@@ -100,7 +105,13 @@ export const PedidoService = {
       include: { mesa: true, detalles: true },
     });
 
-    // Auto-liberar mesa cuando no quedan pedidos activos
+    if (input.nuevosItems && input.nuevosItems.length > 0 && pedido.mesaId) {
+      await prisma.mesa.update({
+        where: { id: pedido.mesaId },
+        data: { estado: "OCUPADA" },
+      });
+    }
+
     if (estado === "ENTREGADO" && pedido.mesaId) {
       const pendientes = await PedidoRepo.countActivosByMesa(pedido.mesaId);
       if (pendientes === 0) {

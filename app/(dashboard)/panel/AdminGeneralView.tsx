@@ -4,6 +4,8 @@ import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
 import { MultiSalesChart } from "@/components/dashboard/MultiSalesChart";
 import { formatCurrency } from "@/lib/utils";
 import { Building2, Users, Package, Truck, QrCode, Mail, TrendingUp, CreditCard } from "lucide-react";
+import { SucursalCard } from "./SucursalCard";
+import { FadeIn, StaggerContainer, StaggerItem } from "@/components/ui/MotionWrapper";
 
 async function getAdminData() {
   const sucursales = await prisma.sucursal.findMany({
@@ -17,7 +19,7 @@ async function getAdminData() {
         },
       },
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { orden: "asc" },
   });
 
   const hoy = startOfDay(new Date());
@@ -87,7 +89,9 @@ export async function AdminGeneralView() {
   return (
     <div className="space-y-6">
       {/* Header PANDAADMIN */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-700 rounded-2xl p-6 shadow-lg">
+      <FadeIn delay={0.1}>
+        <div className="bg-gradient-to-r from-brand-900 to-brand-800 rounded-2xl p-6 shadow-elevated relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500 rounded-full blur-3xl opacity-20 -mr-10 -mt-20"></div>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-brand-500 rounded-xl flex items-center justify-center shadow-lg shrink-0">
             <Building2 size={22} className="text-white" />
@@ -106,34 +110,81 @@ export async function AdminGeneralView() {
             </p>
           </div>
         </div>
-      </div>
+        </div>
+      </FadeIn>
+
+      {/* Sucursales grid */}
+      <FadeIn delay={0.2}>
+        <h2 className="font-bold text-surface-text mb-3 text-lg">Sucursales</h2>
+        {sucursales.length === 0 ? (
+          <div className="card p-10 text-center text-surface-muted">No hay sucursales registradas.</div>
+        ) : (
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {sucursales.map((s) => {
+              const plan = s.plan as PlanTipo;
+              const limits = PLAN_LIMITS[plan];
+              const ventasHoy = ventasHoyMap[s.id];
+              const deliveryOk = s.delivery && limits.delivery;
+              const menuQROk = s.menuQR && limits.menuQR;
+              const correoOk = s.correoActivo && limits.correo;
+
+              return (
+                <StaggerItem key={s.id}>
+                  <SucursalCard 
+                    s={s}
+                    plan={plan}
+                    limits={limits}
+                    ventasHoy={ventasHoy}
+                    deliveryOk={deliveryOk}
+                    menuQROk={menuQROk}
+                    correoOk={correoOk}
+                  />
+                </StaggerItem>
+              );
+            })}
+          </StaggerContainer>
+        )}
+      </FadeIn>
 
       {/* Stats globales */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card p-5">
-          <p className="text-xs text-surface-muted font-semibold uppercase tracking-wide">Sucursales</p>
-          <p className="text-3xl font-bold text-surface-text mt-1">{sucursales.length}</p>
-          <p className="text-xs text-surface-muted mt-1">registradas</p>
-        </div>
-        <div className="card p-5 border-l-4 border-amber-400">
-          <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Plan BASICO</p>
-          <p className="text-3xl font-bold text-surface-text mt-1">{countBasico}</p>
-          <p className="text-xs text-surface-muted mt-1">sucursales</p>
-        </div>
-        <div className="card p-5 border-l-4 border-violet-500">
-          <p className="text-xs text-violet-600 font-semibold uppercase tracking-wide">Plan PRO</p>
-          <p className="text-3xl font-bold text-surface-text mt-1">{countPro}</p>
-          <p className="text-xs text-surface-muted mt-1">sucursales</p>
-        </div>
-        <div className="card p-5 border-l-4 border-brand-500">
-          <p className="text-xs text-brand-600 font-semibold uppercase tracking-wide">Ventas Globales Hoy</p>
-          <p className="text-3xl font-bold text-surface-text mt-1">{formatCurrency(totalVentasHoy, "$")}</p>
-          <p className="text-xs text-surface-muted mt-1">todas las sucursales</p>
-        </div>
-      </div>
+      <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StaggerItem>
+          <div className="card p-5 relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-surface-border rounded-full opacity-20 blur-xl"></div>
+            <p className="text-xs text-surface-muted font-semibold uppercase tracking-wider">Sucursales</p>
+            <p className="text-3xl font-bold text-surface-text mt-1">{sucursales.length}</p>
+            <p className="text-xs text-surface-muted mt-1 font-medium">registradas</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="card p-5 border-l-4 border-amber-400 relative overflow-hidden">
+             <div className="absolute -right-4 -top-4 w-16 h-16 bg-amber-400 rounded-full opacity-10 blur-xl"></div>
+            <p className="text-xs text-amber-600 font-semibold uppercase tracking-wider">Plan BASICO</p>
+            <p className="text-3xl font-bold text-surface-text mt-1">{countBasico}</p>
+            <p className="text-xs text-surface-muted mt-1 font-medium">sucursales</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="card p-5 border-l-4 border-violet-500 relative overflow-hidden">
+             <div className="absolute -right-4 -top-4 w-16 h-16 bg-violet-500 rounded-full opacity-10 blur-xl"></div>
+            <p className="text-xs text-violet-600 font-semibold uppercase tracking-wider">Plan PRO</p>
+            <p className="text-3xl font-bold text-surface-text mt-1">{countPro}</p>
+            <p className="text-xs text-surface-muted mt-1 font-medium">sucursales</p>
+          </div>
+        </StaggerItem>
+        <StaggerItem>
+          <div className="card p-5 border-l-4 border-brand-500 relative overflow-hidden">
+             <div className="absolute -right-4 -top-4 w-20 h-20 bg-brand-500 rounded-full opacity-10 blur-xl"></div>
+            <p className="text-xs text-brand-600 font-semibold uppercase tracking-wider">Ventas Globales Hoy</p>
+            <p className="text-3xl font-bold text-surface-text mt-1 tracking-tight">{formatCurrency(totalVentasHoy, "$")}</p>
+            <p className="text-xs text-surface-muted mt-1 font-medium">todas las sucursales</p>
+          </div>
+        </StaggerItem>
+      </StaggerContainer>
 
       {/* Gráfico multi-sucursal */}
-      <div className="card p-6">
+      <FadeIn delay={0.4}>
+        <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-bold text-surface-text">Índice de Ventas por Sucursal</h2>
@@ -151,109 +202,8 @@ export async function AdminGeneralView() {
         ) : (
           <MultiSalesChart data={chartData} series={series} simbolo="$" />
         )}
-      </div>
-
-      {/* Sucursales grid */}
-      <div>
-        <h2 className="font-bold text-surface-text mb-3">Sucursales</h2>
-        {sucursales.length === 0 ? (
-          <div className="card p-10 text-center text-surface-muted">No hay sucursales registradas.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {sucursales.map((s) => {
-              const plan = s.plan as PlanTipo;
-              const limits = PLAN_LIMITS[plan];
-              const ventasHoy = ventasHoyMap[s.id];
-              const deliveryOk = s.delivery && limits.delivery;
-              const menuQROk = s.menuQR && limits.menuQR;
-              const correoOk = s.correoActivo && limits.correo;
-
-              return (
-                <div key={s.id} className="card p-5 space-y-4">
-                  {/* Nombre + plan */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-bold text-surface-text truncate">{s.nombre}</p>
-                      <p className="text-xs text-surface-muted mt-0.5">
-                        Cliente desde{" "}
-                        {new Intl.DateTimeFormat("es-CL", {
-                          day: "numeric", month: "short", year: "numeric",
-                        }).format(new Date(s.creadoEn))}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${
-                        plan === "PRO"
-                          ? "bg-violet-100 text-violet-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {plan}
-                    </span>
-                  </div>
-
-                  {/* Ventas hoy */}
-                  <div className="flex items-center justify-between bg-brand-50 rounded-xl px-3 py-2">
-                    <span className="text-xs text-brand-600 font-medium">Ventas hoy</span>
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-brand-600">
-                        {formatCurrency(ventasHoy?.total ?? 0, "$")}
-                      </span>
-                      <span className="text-xs text-brand-400 ml-1.5">
-                        ({ventasHoy?.count ?? 0} tx)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* APIs / Features */}
-                  <div>
-                    <p className="text-xs text-surface-muted font-medium mb-2">APIs habilitadas</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition-colors ${
-                        deliveryOk
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-surface-muted/15 text-surface-muted"
-                      }`}>
-                        <Truck size={10} />
-                        Delivery {deliveryOk ? "✓" : "—"}
-                      </span>
-                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${
-                        menuQROk
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-surface-muted/15 text-surface-muted"
-                      }`}>
-                        <QrCode size={10} />
-                        Menú QR {menuQROk ? "✓" : "—"}
-                      </span>
-                      <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${
-                        correoOk
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-surface-muted/15 text-surface-muted"
-                      }`}>
-                        <Mail size={10} />
-                        Correo {correoOk ? "✓" : "—"}
-                      </span>
-                      <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-slate-100 text-slate-600">
-                        <CreditCard size={10} />
-                        POS ✓
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Uso de recursos */}
-                  <div className="space-y-2 pt-1 border-t border-surface-border">
-                    <p className="text-xs text-surface-muted font-medium">Uso del plan</p>
-                    <UsageBar current={s._count.usuarios} max={limits.usuarios} label="Usuarios" icon={Users} />
-                    <UsageBar current={s._count.cajas} max={limits.cajas} label="Cajas" icon={CreditCard} />
-                    <UsageBar current={s._count.productos} max={limits.productos} label="Productos" icon={Package} />
-                    <UsageBar current={s._count.clientes} max={limits.clientes} label="Clientes" icon={Users} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+        </div>
+      </FadeIn>
     </div>
   );
 }

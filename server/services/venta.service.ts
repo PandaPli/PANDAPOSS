@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { MetodoPago } from "@/types";
 
@@ -30,103 +31,179 @@ export interface CreateVentaInput {
   pagos?: PagoInput[];
 }
 
+function generateVentaNumero() {
+  const timePart = Date.now().toString(36).toUpperCase();
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `VTA-${timePart}${randomPart}`.slice(0, 20);
+}
+
+function aggregateProductItems(items: VentaItem[]) {
+  const grouped = new Map<number, number>();
+
+  for (const item of items) {
+    if (!item.productoId) continue;
+    grouped.set(item.productoId, (grouped.get(item.productoId) ?? 0) + item.cantidad);
+  }
+
+  return Array.from(grouped.entries()).map(([productoId, cantidad]) => ({ productoId, cantidad }));
+}
+
+async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: number) {
+  const pedido = await tx.pedido.findUnique({
+    where: { id: pedidoId },
+    select: {
+      id: true,
+      estado: true,
+      venta: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!pedido) {
+    throw new Error("La orden ya no existe o fue eliminada.");
+  }
+
+  if (pedido.venta) {
+    throw new Error("La orden ya fue cobrada. Recarga la mesa para continuar.");
+  }
+
+  if (!["PENDIENTE", "EN_PROCESO", "LISTO"].includes(pedido.estado)) {
+    throw new Error("La orden ya no esta disponible para cobro.");
+  }
+}
+
 export const VentaService = {
   async create(input: CreateVentaInput) {
     const {
-      cajaId, clienteId, usuarioId, pedidoId, mesaId,
-      items, subtotal, descuento, impuesto, total, metodoPago, pagos,
+      cajaId,
+      clienteId,
+      usuarioId,
+      pedidoId,
+      mesaId,
+      items,
+      subtotal,
+      descuento,
+      impuesto,
+      total,
+      metodoPago,
+      pagos,
     } = input;
 
-    const count = await prisma.venta.count();
-    const numero = `VTA-${String(count + 1).padStart(6, "0")}`;
+    const numero = generateVentaNumero();
+    const aggregatedProductItems = aggregateProductItems(items);
 
-    const venta = await prisma.$transaction(async (tx) => {
-      // 1. Crear venta con sus detalles
-      const v = await tx.venta.create({
-        data: {
-          numero,
-          cajaId: cajaId ?? null,
-          clienteId: clienteId ?? null,
-          usuarioId,
-          pedidoId: pedidoId ?? null,
-          subtotal,
-          descuento: descuento ?? 0,
-          impuesto: impuesto ?? 0,
-          total,
-          metodoPago,
-          estado: "PAGADA",
-          detalles: {
-            create: items.map((item) => ({
-              productoId: item.productoId ?? null,
-              comboId: item.comboId ?? null,
-              cantidad: item.cantidad,
-              precio: item.precio,
-              descuento: 0,
-              subtotal: item.subtotal,
-            })),
-          },
-        },
-      });
+    try {
+      const venta = await prisma.$transaction(
+        async (tx) => {
+          if (pedidoId) {
+            await ensurePedidoDisponible(tx, pedidoId);
+          }
 
-      // 2. Registrar pagos (split-payment o retrocompatible)
-      if (pagos && pagos.length > 0) {
-        await Promise.all(
-          pagos.map((pago) =>
-            tx.pagoVenta.create({
-              data: {
+          const v = await tx.venta.create({
+            data: {
+              numero,
+              cajaId: cajaId ?? null,
+              clienteId: clienteId ?? null,
+              usuarioId,
+              pedidoId: pedidoId ?? null,
+              subtotal,
+              descuento: descuento ?? 0,
+              impuesto: impuesto ?? 0,
+              total,
+              metodoPago,
+              estado: "PAGADA",
+              detalles: {
+                create: items.map((item) => ({
+                  productoId: item.productoId ?? null,
+                  comboId: item.comboId ?? null,
+                  cantidad: item.cantidad,
+                  precio: item.precio,
+                  descuento: 0,
+                  subtotal: item.subtotal,
+                })),
+              },
+            },
+          });
+
+          if (pagos && pagos.length > 0) {
+            await tx.pagoVenta.createMany({
+              data: pagos.map((pago) => ({
                 ventaId: v.id,
                 metodoPago: pago.metodoPago,
                 monto: pago.monto,
                 referencia: pago.referencia ?? null,
-              },
-            })
-          )
-        );
-      } else {
-        await tx.pagoVenta.create({
-          data: { ventaId: v.id, metodoPago, monto: total },
-        });
-      }
+              })),
+            });
+          } else {
+            await tx.pagoVenta.create({
+              data: { ventaId: v.id, metodoPago, monto: total },
+            });
+          }
 
-      // 3. Decrementar stock + kardex por cada producto
-      const productItems = items.filter((item) => item.productoId);
-      await Promise.all(
-        productItems.map((item) =>
-          Promise.all([
-            tx.producto.update({
-              where: { id: item.productoId! },
-              data: { stock: { decrement: item.cantidad } },
-            }),
-            tx.kardex.create({
-              data: {
-                productoId: item.productoId!,
+          if (aggregatedProductItems.length > 0) {
+            await Promise.all(
+              aggregatedProductItems.map((item) =>
+                tx.producto.update({
+                  where: { id: item.productoId },
+                  data: { stock: { decrement: item.cantidad } },
+                })
+              )
+            );
+
+            await tx.kardex.createMany({
+              data: aggregatedProductItems.map((item) => ({
+                productoId: item.productoId,
                 tipo: "SALIDA",
                 cantidad: item.cantidad,
                 motivo: "Venta",
                 ventaId: v.id,
+              })),
+            });
+          }
+
+          if (pedidoId) {
+            await tx.pedido.update({
+              where: { id: pedidoId },
+              data: {
+                estado: "ENTREGADO",
+                meseroLlamado: false,
               },
-            }),
-          ])
-        )
+            });
+          }
+
+          if (mesaId) {
+            await tx.mesa.update({
+              where: { id: mesaId },
+              data: { estado: "LIBRE" },
+            });
+          }
+
+          return v;
+        },
+        { timeout: 15000 }
       );
 
-      // 4. Liberar mesa si aplica
-      if (mesaId) {
-        await tx.mesa.update({
-          where: { id: mesaId },
-          data: { estado: "LIBRE" },
-        });
+      return {
+        id: venta.id,
+        numero: venta.numero,
+        total: Number(venta.total),
+        estado: venta.estado,
+        creadoEn: venta.creadoEn,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002" &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes("pedidoId")
+      ) {
+        throw new Error("La orden ya fue cobrada. Recarga la mesa para continuar.");
       }
 
-      return v;
-    }, { timeout: 15000 });
-
-    return {
-      id: venta.id,
-      numero: venta.numero,
-      total: Number(venta.total),
-      estado: venta.estado,
-      creadoEn: venta.creadoEn,
-    };
+      throw error;
+    }
   },
 };

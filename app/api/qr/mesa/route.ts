@@ -11,8 +11,12 @@ export async function GET(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   // Verificar feature menuQR (ADMIN_GENERAL siempre puede)
-  const { allowed, error } = await checkFeature(sucursalId, "menuQR");
-  if (!allowed) return NextResponse.json({ error }, { status: 403 });
+  try {
+    const { allowed, error } = await checkFeature(sucursalId, "menuQR");
+    if (!allowed) return NextResponse.json({ error }, { status: 403 });
+  } catch (err: any) {
+    console.error("[FEATURE CHECK ERROR]:", err);
+  }
 
   const { searchParams } = new URL(req.url);
   const sucursal = searchParams.get("sucursal");
@@ -23,15 +27,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Parámetros sucursal y mesa requeridos" }, { status: 400 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const clientBaseUrl = searchParams.get("baseUrl");
+  const appUrl = clientBaseUrl || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   const menuUrl = `${appUrl}/menu?sucursal=${sucursal}&mesa=${mesa}`;
 
-  const qrDataUrl = await QRCode.toDataURL(menuUrl, {
-    width: 400,
-    margin: 2,
-    color: { dark: "#1e1b4b", light: "#ffffff" },
-    errorCorrectionLevel: "H",
-  });
+  try {
+    const qrDataUrl = await QRCode.toDataURL(menuUrl, {
+      width: 400,
+      margin: 2,
+      color: { dark: "#1e1b4b", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    });
 
-  return NextResponse.json({ qr: qrDataUrl, url: menuUrl, mesa: nombre });
+    return NextResponse.json({ qr: qrDataUrl, url: menuUrl, mesa: nombre });
+  } catch (err: any) {
+    console.error("[QR GENERATION ERROR]:", err);
+    return NextResponse.json({ error: "Fallo interno al generar el código QR", details: err?.message }, { status: 500 });
+  }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X } from "lucide-react";
+import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2 } from "lucide-react";
 import type { Rol } from "@/types";
 
 interface Config {
@@ -23,11 +23,12 @@ interface Props {
   rol: Rol;
   sucursalId: number | null;
   sucursalLogoUrl: string | null;
+  sucursalSlug?: string | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug }: Props) {
   const router = useRouter();
-  const esAdminSucursal = rol === "ADMIN_SUCURSAL";
+  const esAdminSucursal = rol === "RESTAURANTE";
 
   // --- Estado global config (solo ADMIN_GENERAL) ---
   const [form, setForm] = useState({
@@ -48,6 +49,14 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl }
   const [logoLoading, setLogoLoading] = useState(false);
   const [logoMsg, setLogoMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  
+  function copyToClipboard(url: string, id: string) {
+    navigator.clipboard.writeText(url);
+    setCopiedLink(id);
+    setTimeout(() => setCopiedLink(null), 2000);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -139,13 +148,71 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl }
     }
   }
 
-  // --- Vista ADMIN_SUCURSAL: solo card de logo ---
+  // --- Vista RESTAURANTE: solo card de logo y links ---
   if (esAdminSucursal) {
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const urlDelivery = baseUrl + `/pedir/${sucursalSlug}`;
+    const urlMenu = baseUrl + `/pedir/vercarta?sucursal=${sucursalSlug}`; // O algo generico si carta normal no usa slug
+    const urlMenuClean = baseUrl + `/pedir/vercarta`;
+
     return (
-      <div className="max-w-2xl">
-        <div className="mb-6">
+      <div className="max-w-2xl space-y-6">
+        <div>
           <h1 className="text-2xl font-bold text-surface-text">Configuración</h1>
-          <p className="text-surface-muted text-sm mt-1">Logo de tu sucursal</p>
+          <p className="text-surface-muted text-sm mt-1">Configuración online de tu sucursal</p>
+        </div>
+
+        {/* Links Públicos */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Link2 size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Enlaces Públicos</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="bg-surface-bg border border-surface-border p-4 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-surface-text">🚀 Delivery Online</span>
+                <span className="text-[11px] font-medium px-2 py-0.5 bg-brand-100 text-brand-700 rounded-full">Pedidos activos</span>
+              </div>
+              <p className="text-xs text-surface-muted mb-3">Comparte este enlace en tus redes sociales (Instagram, WhatsApp) para que tus clientes pidan a domicilio. Tus clientes verán la carta y podrán pedir directamente al Punto de Venta.</p>
+              
+              <div className="flex items-center gap-2">
+                <input readOnly value={urlDelivery} className="input text-xs font-mono py-2 bg-white flex-1" />
+                <button 
+                  onClick={() => copyToClipboard(urlDelivery, "delivery")}
+                  className="btn-secondary py-2 px-3 text-sm shrink-0"
+                >
+                  {copiedLink === "delivery" ? <CheckCircle2 size={14} className="text-emerald-500"/> : <Copy size={14} />}
+                  Copy
+                </button>
+                <a href={urlDelivery} target="_blank" className="btn-secondary py-2 px-3 text-sm shrink-0" title="Probar enlace">
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+            </div>
+
+            <div className="bg-surface-bg border border-surface-border p-4 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-surface-text">📱 Carta Digital (Solo ver)</span>
+              </div>
+              <p className="text-xs text-surface-muted mb-3">Este enlace muestra únicamente el menú, sirve para clientes que están sentados en el local y no necesitan hacer un pedido online, solo quieren leer la carta.</p>
+              
+              <div className="flex items-center gap-2">
+                <input readOnly value={urlMenuClean} className="input text-xs font-mono py-2 bg-white flex-1" />
+                <button 
+                  onClick={() => copyToClipboard(urlMenuClean, "menu")}
+                  className="btn-secondary py-2 px-3 text-sm shrink-0"
+                >
+                  {copiedLink === "menu" ? <CheckCircle2 size={14} className="text-emerald-500"/> : <Copy size={14} />}
+                  Copy
+                </button>
+                <a href={urlMenuClean} target="_blank" className="btn-secondary py-2 px-3 text-sm shrink-0" title="Probar enlace">
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="card p-6">

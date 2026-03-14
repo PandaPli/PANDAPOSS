@@ -267,7 +267,7 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
                   className="input"
                   value={form.telefono}
                   onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                  placeholder="+56 9 1234 5678"
+                  placeholder="1234 5678"
                 />
               </div>
 

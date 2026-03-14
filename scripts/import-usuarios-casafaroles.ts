@@ -9,7 +9,7 @@ const SUCURSAL_ID = 1; // CasaFaroles
 
 const usuarios = [
   { nombre: "MARBELLA PAREDES MARQUEZ",    email: "paredesmarquez@gmail.com",    rol: "SECRETARY",      usuario: "MARBELLA", password: "12345" },
-  { nombre: "CAROLINA CABRERA",            email: "secretariaebasica@gmail.com", rol: "ADMIN_SUCURSAL", usuario: "ADMIN",    password: "12345" },
+  { nombre: "CAROLINA CABRERA",            email: "secretariaebasica@gmail.com", rol: "RESTAURANTE", usuario: "ADMIN",    password: "12345" },
   { nombre: "LEIDA YARITZA RODRIGUEZ",     email: "leiday@gmail.com",            rol: "CASHIER",        usuario: "LEIDA",    password: "12345" },
   { nombre: "CARLOS JESUS GUTIERREZ",      email: "cjg@gmail.com",               rol: "WAITER",         usuario: "CARLOS",   password: "12345" },
   { nombre: "PEDRO JESUS CHIRINOS",        email: "jesusch@gmail.com",           rol: "CHEF",           usuario: "PEDRO",    password: "12345" },

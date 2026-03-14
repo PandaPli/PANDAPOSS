@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { MesasClient } from "./MesasClient";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getFreshSessionUser } from "@/lib/auth";
 import type { Rol } from "@/types";
 
 async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
@@ -30,16 +29,18 @@ async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
 }
 
 export default async function MesasPage() {
-  const session = await getServerSession(authOptions);
-  const rol = (session?.user as { rol?: Rol })?.rol;
-  const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
+  const user = await getFreshSessionUser();
+  if (!user) return null;
+
+  const rol = user.rol as Rol;
+  const sucursalId = user.sucursalId;
   const mesas = await getMesas(rol, sucursalId);
 
   // Serializar (Decimal → number)
   const mesasData = mesas.map((m) => ({
     id: m.id,
     nombre: m.nombre,
-    estado: m.estado as "LIBRE" | "OCUPADA" | "RESERVADA",
+    estado: m.estado as "LIBRE" | "OCUPADA" | "CUENTA" | "RESERVADA",
     capacidad: m.capacidad,
     salaId: m.salaId,
     sala: m.sala,
@@ -62,3 +63,4 @@ export default async function MesasPage() {
     </div>
   );
 }
+

@@ -16,7 +16,7 @@ export default async function SucursalesPage() {
     include: {
       _count: { select: { usuarios: true, cajas: true } },
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { orden: "asc" },
   });
 
   return (
