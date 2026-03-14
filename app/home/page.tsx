@@ -360,7 +360,7 @@ const SectionPlans = () => (
           {/* CTA */}
           <div className="px-8 pb-8">
             <Link
-              href="https://wa.me/56912345678?text=Hola%2C%20quiero%20contratar%20PandaPoss%20PRO"
+              href="https://wa.me/56999011141?text=Hola%2C%20quiero%20contratar%20PandaPoss%20PRO"
               target="_blank"
               className="block w-full py-4 rounded-2xl font-black text-center text-sm tracking-widest uppercase transition-all bg-gradient-to-r from-amber-500 to-amber-400 text-[#0a0b14] hover:from-amber-400 hover:to-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)]"
             >
@@ -448,7 +448,7 @@ const SectionCTA = () => (
             Comenzar Ahora
           </Link>
           <Link 
-            href="https://wa.me/1234567890" // placeholder whatsapp link
+            href="https://wa.me/56999011141?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20PandaPoss"
             target="_blank"
             className="px-10 py-5 bg-black/20 text-white font-bold rounded-2xl hover:bg-black/30 backdrop-blur-sm transition-all border border-white/20 w-full sm:w-auto text-lg"
           >
