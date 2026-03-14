@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Plus, Eye, TrendingUp, TrendingDown, ShoppingBag, Users, Trophy, Star, BarChart3 } from "lucide-react";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { Plus, TrendingUp, TrendingDown, ShoppingBag, Users, Trophy, Star, BarChart3 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import type { Rol } from "@/types";
 import { VentasCharts } from "@/components/ventas/VentasCharts";
 import type { DayData, MetodoData } from "@/components/ventas/VentasCharts";
+import { VentasTable } from "./VentasTable";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -187,16 +188,6 @@ async function getVentas(rol: Rol, sucursalId: number | null) {
 
 // ─── Static maps ──────────────────────────────────────────────────────────────
 
-const estadoBadge = {
-  PAGADA:   "bg-emerald-50 text-emerald-700 border-emerald-200",
-  PENDIENTE:"bg-amber-50 text-amber-700 border-amber-200",
-  ANULADA:  "bg-red-50 text-red-700 border-red-200",
-};
-const metodoPagoLabel: Record<string, string> = {
-  EFECTIVO: "Efectivo", TARJETA: "Tarjeta",
-  TRANSFERENCIA: "Transferencia", CREDITO: "Crédito", MIXTO: "Mixto",
-};
-
 const MEDAL = ["🥇", "🥈", "🥉"];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -372,73 +363,14 @@ export default async function VentasPage() {
       </div>
 
       {/* ── Tabla de ventas ── */}
-      <div className="card overflow-hidden">
-        <div className="px-4 pt-4 pb-2">
-          <h3 className="text-sm font-semibold text-surface-text">Últimas 50 ventas</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-surface-border bg-surface-bg">
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">N°</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Fecha</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Vendedor</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Método</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Items</th>
-                <th className="text-right px-4 py-3 font-medium text-surface-muted">Total</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-border">
-              {ventas.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-surface-muted">
-                    Sin ventas registradas
-                  </td>
-                </tr>
-              ) : (
-                ventas.map((v) => (
-                  <tr key={v.id} className="hover:bg-surface-bg transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium text-surface-text">
-                      {v.numero}
-                    </td>
-                    <td className="px-4 py-3 text-surface-muted">
-                      {formatDateTime(v.creadoEn)}
-                    </td>
-                    <td className="px-4 py-3 text-surface-text">
-                      {v.cliente?.nombre ?? "Consumidor Final"}
-                    </td>
-                    <td className="px-4 py-3 text-surface-muted">{v.usuario.nombre}</td>
-                    <td className="px-4 py-3 text-surface-muted">
-                      {metodoPagoLabel[v.metodoPago] ?? v.metodoPago}
-                    </td>
-                    <td className="px-4 py-3 text-surface-muted">{v._count.detalles}</td>
-                    <td className="px-4 py-3 text-right font-bold text-brand-500">
-                      {formatCurrency(Number(v.total), simbolo)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
-                          estadoBadge[v.estado] ?? ""
-                        }`}
-                      >
-                        {v.estado === "PAGADA" ? "Pagada" : v.estado === "ANULADA" ? "Anulada" : "Pendiente"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
-                        <Eye size={15} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <VentasTable
+        ventas={ventas.map((v) => ({
+          ...v,
+          creadoEn: v.creadoEn.toISOString(),
+          total:    Number(v.total),
+        }))}
+        simbolo={simbolo}
+      />
     </div>
   );
 }
