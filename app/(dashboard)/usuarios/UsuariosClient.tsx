@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Edit2, UserCog, X, Loader2, Shield } from "lucide-react";
+import { Plus, Search, Edit2, UserCog, X, Loader2, Shield, Store } from "lucide-react";
 
 const ROLES = [
   { value: "ADMIN_GENERAL", label: "Admin General" },
@@ -47,32 +47,129 @@ interface Sucursal {
 interface Props {
   usuarios: Usuario[];
   sucursales: Sucursal[];
+  rol: string;
 }
 
 const emptyForm = {
   nombre: "", usuario: "", password: "", email: "", rolUsuario: "WAITER", sucursalId: "", status: "ACTIVO",
 };
 
-export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
+function TablaUsuarios({ usuarios, onEditar }: { usuarios: Usuario[]; onEditar: (u: Usuario) => void }) {
+  if (usuarios.length === 0) {
+    return (
+      <div className="px-4 py-10 text-center">
+        <UserCog size={28} className="mx-auto text-surface-muted mb-2" />
+        <p className="text-surface-muted text-sm">Sin usuarios</p>
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-surface-border bg-surface-bg">
+            <th className="text-left px-4 py-3 font-medium text-surface-muted">Nombre</th>
+            <th className="text-left px-4 py-3 font-medium text-surface-muted">Usuario</th>
+            <th className="text-left px-4 py-3 font-medium text-surface-muted">Rol</th>
+            <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-surface-border">
+          {usuarios.map((u) => {
+            const roleLabel = ROLES.find((r) => r.value === u.rol)?.label ?? u.rol;
+            return (
+              <tr key={u.id} className="hover:bg-surface-bg transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      {u.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium text-surface-text">{u.nombre}</p>
+                      {u.email && <p className="text-xs text-surface-muted">{u.email}</p>}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-surface-muted">{u.usuario}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${roleColors[u.rol] ?? "bg-surface-bg text-surface-muted border-surface-border"}`}>
+                    <Shield size={11} />
+                    {roleLabel}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
+                    u.status === "ACTIVO"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-red-50 text-red-600 border-red-200"
+                  }`}>
+                    {u.status === "ACTIVO" ? "Activo" : "Inactivo"}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => onEditar(u)}
+                    className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function UsuariosClient({ usuarios: initial, sucursales, rol }: Props) {
   const router = useRouter();
   const [usuarios] = useState(initial);
   const [search, setSearch] = useState("");
+  const [filtroSucursal, setFiltroSucursal] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Usuario | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isAdminGeneral = rol === "ADMIN_GENERAL";
+
   const filtrados = useMemo(() => {
-    if (!search) return usuarios;
-    const q = search.toLowerCase();
-    return usuarios.filter(
-      (u) =>
-        u.nombre.toLowerCase().includes(q) ||
-        u.usuario.toLowerCase().includes(q) ||
-        (u.email && u.email.toLowerCase().includes(q))
-    );
-  }, [usuarios, search]);
+    let list = usuarios;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (u) =>
+          u.nombre.toLowerCase().includes(q) ||
+          u.usuario.toLowerCase().includes(q) ||
+          (u.email && u.email.toLowerCase().includes(q))
+      );
+    }
+    if (isAdminGeneral && filtroSucursal !== "all") {
+      if (filtroSucursal === "sin") {
+        list = list.filter((u) => !u.sucursalId);
+      } else {
+        list = list.filter((u) => String(u.sucursalId) === filtroSucursal);
+      }
+    }
+    return list;
+  }, [usuarios, search, filtroSucursal, isAdminGeneral]);
+
+  // Agrupar por sucursal cuando es ADMIN_GENERAL
+  const grupos = useMemo(() => {
+    if (!isAdminGeneral) return null;
+    const map = new Map<string, { nombre: string; usuarios: typeof filtrados }>();
+    for (const u of filtrados) {
+      const key = u.sucursalId ? String(u.sucursalId) : "sin";
+      const nombre = u.sucursal?.nombre ?? "Sin sucursal";
+      if (!map.has(key)) map.set(key, { nombre, usuarios: [] });
+      map.get(key)!.usuarios.push(u);
+    }
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [filtrados, isAdminGeneral]);
 
   function abrirFormNuevo() {
     setEditando(null);
@@ -144,87 +241,55 @@ export function UsuariosClient({ usuarios: initial, sucursales }: Props) {
         </button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
-        <input
-          type="text"
-          placeholder="Buscar por nombre, usuario o email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input pl-9"
-        />
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, usuario o email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input pl-9"
+          />
+        </div>
+        {isAdminGeneral && (
+          <select
+            className="input w-auto min-w-[180px]"
+            value={filtroSucursal}
+            onChange={(e) => setFiltroSucursal(e.target.value)}
+          >
+            <option value="all">Todos los restaurantes</option>
+            {sucursales.map((s) => (
+              <option key={s.id} value={String(s.id)}>{s.nombre}</option>
+            ))}
+            <option value="sin">Sin sucursal</option>
+          </select>
+        )}
       </div>
 
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-surface-border bg-surface-bg">
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Nombre</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Usuario</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Rol</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Sucursal</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-border">
-              {filtrados.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <UserCog size={32} className="mx-auto text-surface-muted mb-2" />
-                    <p className="text-surface-muted">Sin usuarios</p>
-                  </td>
-                </tr>
-              ) : (
-                filtrados.map((u) => {
-                  const roleLabel = ROLES.find((r) => r.value === u.rol)?.label ?? u.rol;
-                  return (
-                    <tr key={u.id} className="hover:bg-surface-bg transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">
-                            {u.nombre.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-surface-text">{u.nombre}</p>
-                            {u.email && <p className="text-xs text-surface-muted">{u.email}</p>}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-surface-muted">{u.usuario}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${roleColors[u.rol] ?? "bg-surface-bg text-surface-muted border-surface-border"}`}>
-                          <Shield size={11} />
-                          {roleLabel}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-surface-muted">{u.sucursal?.nombre ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${
-                          u.status === "ACTIVO"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-red-50 text-red-600 border-red-200"
-                        }`}>
-                          {u.status === "ACTIVO" ? "Activo" : "Inactivo"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => abrirFormEditar(u)}
-                          className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {isAdminGeneral && grupos ? (
+        grupos.length === 0 ? (
+          <div className="card px-4 py-12 text-center">
+            <UserCog size={32} className="mx-auto text-surface-muted mb-2" />
+            <p className="text-surface-muted">Sin usuarios</p>
+          </div>
+        ) : (
+          grupos.map((grupo) => (
+            <div key={grupo.nombre} className="card overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 bg-surface-bg border-b border-surface-border">
+                <Store size={15} className="text-brand-600" />
+                <span className="font-semibold text-surface-text">{grupo.nombre}</span>
+                <span className="ml-auto text-xs text-surface-muted">{grupo.usuarios.length} usuario{grupo.usuarios.length !== 1 ? "s" : ""}</span>
+              </div>
+              <TablaUsuarios usuarios={grupo.usuarios} onEditar={abrirFormEditar} />
+            </div>
+          ))
+        )
+      ) : (
+        <div className="card overflow-hidden">
+          <TablaUsuarios usuarios={filtrados} onEditar={abrirFormEditar} />
         </div>
-      </div>
+      )}
 
       {/* Drawer */}
       {showForm && (
