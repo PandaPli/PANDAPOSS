@@ -101,3 +101,31 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json(producto);
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rol        = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
+  const { searchParams } = new URL(req.url);
+  const id = Number(searchParams.get("id"));
+  if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+
+  // Verificar que el producto pertenece a la sucursal del usuario
+  const producto = await prisma.producto.findUnique({ where: { id } });
+  if (!producto) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+
+  if (rol !== "ADMIN_GENERAL" && producto.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Sin permiso para eliminar este producto" }, { status: 403 });
+  }
+
+  // Soft delete: desactivar en lugar de borrar para preservar historial de ventas
+  await prisma.producto.update({
+    where: { id },
+    data: { activo: false, enMenu: false, enMenuQR: false },
+  });
+
+  return NextResponse.json({ ok: true });
+}
