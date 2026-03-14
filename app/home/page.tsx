@@ -299,7 +299,12 @@ const SectionPlans = () => (
           {/* Header */}
           <div className="bg-gradient-to-r from-[#0f2a3a] to-[#0a1e2e] px-8 pt-8 pb-6 border-b border-cyan-500/20">
             <p className="text-cyan-400 text-xs font-black tracking-[0.3em] uppercase mb-1">PLAN</p>
-            <h3 className="text-4xl font-black text-cyan-400 tracking-tight mb-3">BÁSICO</h3>
+            <h3 className="text-4xl font-black text-cyan-400 tracking-tight mb-1">BÁSICO</h3>
+            {/* Precio */}
+            <div className="flex items-baseline gap-1 mb-3">
+              <span className="text-white text-3xl font-black">$7.900</span>
+              <span className="text-cyan-400/70 text-sm font-semibold">/mes</span>
+            </div>
             <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/40">
               <span className="text-cyan-300 text-xs font-black tracking-widest uppercase">IDEAL PARA COMENZAR</span>
             </div>
@@ -336,9 +341,14 @@ const SectionPlans = () => (
           {/* Header */}
           <div className="bg-gradient-to-r from-[#2a1a00] to-[#1e1200] px-8 pt-8 pb-6 border-b border-amber-500/20">
             <p className="text-amber-400 text-xs font-black tracking-[0.3em] uppercase mb-1">PLAN</p>
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-1">
               <h3 className="text-4xl font-black text-amber-400 tracking-tight">PRO</h3>
               <span className="text-2xl">👑</span>
+            </div>
+            {/* Precio */}
+            <div className="flex items-baseline gap-1 mb-3">
+              <span className="text-white text-3xl font-black">$11.900</span>
+              <span className="text-amber-400/70 text-sm font-semibold">/mes</span>
             </div>
             <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40">
               <span className="text-amber-300 text-xs font-black tracking-widest uppercase">CONTROL TOTAL</span>
