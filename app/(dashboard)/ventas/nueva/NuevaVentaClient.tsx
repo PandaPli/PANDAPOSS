@@ -8,7 +8,7 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,11 @@ export function NuevaVentaClient({
   const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo } = useCartStore();
 
   const [checkoutGrupo, setCheckoutGrupo] = useState<string | null>(null);
+  const [ticketData, setTicketData] = useState<{
+    pedidoNum: number;
+    mesa: string | null;
+    items: CartItem[];
+  } | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
 
   useEffect(() => {
@@ -135,6 +140,11 @@ export function NuevaVentaClient({
 
       setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
       setTimeout(() => setOrdenMsg(""), 4000);
+      setTicketData({
+        pedidoNum: pedido.id,
+        mesa: mesaId ? `Mesa ${mesaId}` : null,
+        items: nuevosItems,
+      });
     } catch (e) {
       setOrdenMsg((e as Error).message);
     } finally {
@@ -144,6 +154,52 @@ export function NuevaVentaClient({
 
   function handleSuccess() {
     router.push("/mesas");
+  }
+
+  function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {
+    const pw = window.open("", "_blank", "width=380,height=600");
+    if (!pw) return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const itemsHtml = data.items
+      .map(
+        (item) => `
+        <div class="item">
+          <span class="qty">${item.cantidad}x</span>
+          <div class="item-info">
+            <span class="nombre">${item.nombre}</span>
+            ${item.observacion ? `<span class="obs">* ${item.observacion}</span>` : ""}
+          </div>
+        </div>`
+      )
+      .join("");
+    pw.document.write(`<!DOCTYPE html><html><head><title>Ticket Cocina</title><style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
+      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
+      .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
+      .subtitle{font-size:13px;margin-top:3px;}
+      .meta{font-size:12px;margin:6px 0;color:#333;}
+      .items{margin:10px 0;border-bottom:1px dashed #000;padding-bottom:10px;}
+      .item{display:flex;gap:10px;margin:8px 0;align-items:flex-start;}
+      .qty{font-size:20px;font-weight:bold;min-width:30px;}
+      .item-info{flex:1;}
+      .nombre{font-size:15px;font-weight:bold;display:block;}
+      .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
+      .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
+      @media print{body{width:80mm;}}
+    </style></head><body>
+      <div class="header">
+        <div class="title">ORDEN COCINA</div>
+        <div class="subtitle">${data.mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${data.pedidoNum}</div>
+      </div>
+      <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
+      <div class="items">${itemsHtml}</div>
+      <div class="footer">— PandaPoss —</div>
+      <script>window.onload=function(){window.print();window.close();}<\/script>
+    </body></html>`);
+    pw.document.close();
   }
 
   return (
@@ -266,6 +322,52 @@ export function NuevaVentaClient({
           logoUrl={logoUrl}
           onClose={() => setShowPrecuenta(false)}
         />
+      )}
+
+      {ticketData && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center pb-10 sm:items-center bg-black/40 animate-fade-in">
+          <div className="mx-4 w-full max-w-xs rounded-2xl bg-white shadow-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                <Printer size={20} className="text-amber-600" />
+              </div>
+              <div>
+                <p className="font-bold text-surface-text">
+                  Orden #{ticketData.pedidoNum} enviada
+                  {ticketData.mesa ? ` · ${ticketData.mesa}` : ""}
+                </p>
+                <p className="mt-0.5 text-sm text-surface-muted">
+                  ¿Imprimir ticket de barra / cocina?
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs text-surface-muted border border-surface-border rounded-lg px-3 py-2 max-h-28 overflow-y-auto space-y-0.5">
+              {ticketData.items.map((item, i) => (
+                <div key={i} className="flex gap-2">
+                  <span className="font-bold w-5 text-right flex-shrink-0">{item.cantidad}x</span>
+                  <span>{item.nombre}{item.observacion ? ` — ${item.observacion}` : ""}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { printKitchenTicket(ticketData); setTicketData(null); }}
+                className="btn-primary flex-1 justify-center py-2.5 text-sm"
+              >
+                <Printer size={15} />
+                Sí, imprimir
+              </button>
+              <button
+                onClick={() => setTicketData(null)}
+                className="flex-1 rounded-xl border border-surface-border bg-white py-2.5 text-sm font-medium text-surface-muted hover:bg-surface-bg transition-colors"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

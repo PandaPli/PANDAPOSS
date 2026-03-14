@@ -101,18 +101,12 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     const resto = gruposUsados.slice(1);
 
     // Actualizar el ítem original con el primer grupo
-    setItemGrupo(item.detalleId, primerGrupo);
-    await syncDetalle(item.detalleId, { cantidad: primerCant, grupo: primerGrupo });
+    setItemGrupo(item.detalleId!, primerGrupo);
+    await syncDetalle(item.detalleId!, { cantidad: primerCant, grupo: primerGrupo });
 
-    // Crear nuevos detalles para el resto (si el ítem está guardado)
-    if (item.guardado && item.pedidoId !== undefined) {
-      // El pedidoId no está en CartItem, usamos el del store
-      // Para los nuevos detalles llamamos a POST /api/pedidos/detalles
-    }
-
-    // Por ahora solo dividimos localmente en el store
-    splitItemGrupos(item.detalleId, [
-      { grupo: primerGrupo, cantidad: primerCant, newDetalleId: item.detalleId },
+    // Dividir localmente en el store
+    splitItemGrupos(item.detalleId!, [
+      { grupo: primerGrupo, cantidad: primerCant, newDetalleId: item.detalleId! },
       ...resto.map(([g, c]) => ({ grupo: g, cantidad: c })),
     ]);
 
