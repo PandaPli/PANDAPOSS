@@ -32,7 +32,7 @@ export default async function UsuariosPage() {
 
   return (
     <div className="space-y-6">
-      <UsuariosClient usuarios={plainUsuarios} sucursales={sucursales} />
+      <UsuariosClient usuarios={plainUsuarios} sucursales={sucursales} rol={rol} />
     </div>
   );
 }
