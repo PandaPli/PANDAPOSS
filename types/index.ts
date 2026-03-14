@@ -71,6 +71,7 @@ export interface MesaConEstado {
   pedidoActivo?: {
     id: number;
     creadoEn: string;
+    total: number;
     _count: { detalles: number };
   } | null;
 }

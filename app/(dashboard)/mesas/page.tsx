@@ -21,6 +21,13 @@ async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
           id: true,
           creadoEn: true,
           _count: { select: { detalles: true } },
+          detalles: {
+            select: {
+              cantidad: true,
+              producto: { select: { precio: true } },
+              combo: { select: { precio: true } },
+            },
+          },
         },
       },
     },
@@ -36,7 +43,7 @@ export default async function MesasPage() {
   const sucursalId = user.sucursalId;
   const mesas = await getMesas(rol, sucursalId);
 
-  // Serializar (Decimal → number)
+  // Serializar (Decimal → number) y calcular total
   const mesasData = mesas.map((m) => ({
     id: m.id,
     nombre: m.nombre,
@@ -49,6 +56,10 @@ export default async function MesasPage() {
           id: m.pedidos[0].id,
           creadoEn: m.pedidos[0].creadoEn.toISOString(),
           _count: m.pedidos[0]._count,
+          total: m.pedidos[0].detalles.reduce((sum, d) => {
+            const precio = Number(d.producto?.precio ?? d.combo?.precio ?? 0);
+            return sum + precio * d.cantidad;
+          }, 0),
         }
       : null,
   }));

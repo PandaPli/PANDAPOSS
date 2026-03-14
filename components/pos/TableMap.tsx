@@ -117,14 +117,20 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
               <p className="mt-0.5 text-xs text-surface-muted">{mesa.sala.nombre}</p>
 
               {pedido ? (
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center gap-1 text-xs text-surface-muted">
-                    <Users size={12} />
-                    <span>{pedido._count.detalles} producto{pedido._count.detalles !== 1 ? "s" : ""}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-surface-muted">
-                    <Clock size={12} />
-                    <span>{timeAgo(pedido.creadoEn)}</span>
+                <div className="mt-2 space-y-1.5">
+                  {/* Total grande y robusto */}
+                  <p className="text-2xl font-black text-red-700 leading-none tracking-tight">
+                    ${pedido.total.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-xs text-surface-muted">
+                      <Users size={11} />
+                      <span>{pedido._count.detalles} prod.</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-surface-muted">
+                      <Clock size={11} />
+                      <span>{timeAgo(pedido.creadoEn)}</span>
+                    </div>
                   </div>
                 </div>
               ) : (
