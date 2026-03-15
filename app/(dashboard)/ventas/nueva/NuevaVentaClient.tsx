@@ -57,11 +57,14 @@ export function NuevaVentaClient({
   useEffect(() => {
     if (!initialOrder) return;
 
-    const shouldHydrate = pedidoId !== initialOrder.id || mesaId !== (initialOrder.mesaId ?? null) || items.length === 0;
+    // Solo re-hidratar si cambió la mesa o el carrito está vacío.
+    // NO incluir pedidoId: cada "Orden" crea un nuevo pedidoId distinto al initialOrder.id
+    // y provocaría un reset del carrito en cada envío a cocina.
+    const shouldHydrate = mesaId !== (initialOrder.mesaId ?? null) || items.length === 0;
     if (shouldHydrate) {
       setInitialState(initialOrder.items, initialOrder.id, initialOrder.mesaId);
     }
-  }, [initialOrder, items.length, mesaId, pedidoId, setInitialState]);
+  }, [initialOrder, items.length, mesaId, setInitialState]);
 
   useEffect(() => {
     if (!initialOrder && typeof window !== "undefined") {

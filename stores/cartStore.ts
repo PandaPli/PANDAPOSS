@@ -69,13 +69,15 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addItem(item) {
     set((state) => {
+      // Ignorar ítems cancelados: si el mismo producto fue anulado,
+      // se agrega como entrada nueva (no-guardado) en lugar de incrementar el cancelado
       const existing = state.items.find(
-        (i) => i.id === item.id && i.tipo === item.tipo
+        (i) => i.id === item.id && i.tipo === item.tipo && !i.cancelado
       );
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.id === item.id && i.tipo === item.tipo
+            i.id === item.id && i.tipo === item.tipo && !i.cancelado
               ? { ...i, cantidad: i.cantidad + (item.cantidad ?? 1) }
               : i
           ),
