@@ -157,7 +157,7 @@ export function NuevaVentaClient({
   }
 
   function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {
-    const pw = window.open("", "_blank", "width=380,height=600");
+    const pw = window.open("", "_blank", "width=400,height=700");
     if (!pw) return;
     const now = new Date();
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
@@ -168,31 +168,108 @@ export function NuevaVentaClient({
         <div class="item">
           <span class="qty">${item.cantidad}x</span>
           <div class="item-info">
-            <span class="nombre">${item.nombre}</span>
-            ${item.observacion ? `<span class="obs">* ${item.observacion}</span>` : ""}
+            <span class="nombre">${item.nombre.toUpperCase()}</span>
+            ${item.observacion ? `<div class="obs-box">★ NOTA: ${item.observacion.toUpperCase()}</div>` : ""}
           </div>
         </div>`
       )
-      .join("");
-    pw.document.write(`<!DOCTYPE html><html><head><title>Ticket Cocina</title><style>
+      .join('<div class="sep"></div>');
+    pw.document.write(`<!DOCTYPE html><html><head><title>Ticket Cocina</title>
+    <meta charset="UTF-8">
+    <style>
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
-      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
-      .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
-      .subtitle{font-size:13px;margin-top:3px;}
-      .meta{font-size:12px;margin:6px 0;color:#333;}
-      .items{margin:10px 0;border-bottom:1px dashed #000;padding-bottom:10px;}
-      .item{display:flex;gap:10px;margin:8px 0;align-items:flex-start;}
-      .qty{font-size:20px;font-weight:bold;min-width:30px;}
+      body{
+        font-family:'Courier New',Courier,monospace;
+        font-size:16px;
+        width:76mm;
+        max-width:76mm;
+        padding:4mm 3mm;
+        background:#fff;
+        color:#000;
+      }
+      .header{
+        text-align:center;
+        padding-bottom:6px;
+        margin-bottom:6px;
+        border-bottom:3px dashed #000;
+      }
+      .title{
+        font-size:26px;
+        font-weight:900;
+        letter-spacing:4px;
+        line-height:1.1;
+      }
+      .mesa-row{
+        font-size:20px;
+        font-weight:bold;
+        margin-top:4px;
+        letter-spacing:1px;
+      }
+      .orden-num{
+        font-size:15px;
+        margin-top:2px;
+        color:#000;
+      }
+      .meta{
+        font-size:13px;
+        margin:6px 0 8px;
+        border-bottom:1px dashed #000;
+        padding-bottom:6px;
+      }
+      .items{
+        margin:6px 0;
+        border-bottom:2px dashed #000;
+        padding-bottom:8px;
+      }
+      .item{
+        display:flex;
+        gap:8px;
+        margin:10px 0;
+        align-items:flex-start;
+      }
+      .qty{
+        font-size:28px;
+        font-weight:900;
+        min-width:38px;
+        line-height:1;
+      }
       .item-info{flex:1;}
-      .nombre{font-size:15px;font-weight:bold;display:block;}
-      .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
-      .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
-      @media print{body{width:80mm;}}
+      .nombre{
+        font-size:18px;
+        font-weight:900;
+        display:block;
+        line-height:1.2;
+        letter-spacing:0.5px;
+      }
+      .obs-box{
+        margin-top:4px;
+        font-size:14px;
+        font-weight:bold;
+        background:#000;
+        color:#fff;
+        padding:3px 6px;
+        display:inline-block;
+        letter-spacing:0.5px;
+      }
+      .sep{
+        border-top:1px dashed #aaa;
+        margin:4px 0;
+      }
+      .footer{
+        text-align:center;
+        font-size:11px;
+        margin-top:8px;
+        color:#666;
+      }
+      @media print{
+        @page{margin:0;size:80mm auto;}
+        body{width:76mm;padding:4mm 3mm;}
+      }
     </style></head><body>
       <div class="header">
         <div class="title">ORDEN COCINA</div>
-        <div class="subtitle">${data.mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${data.pedidoNum}</div>
+        <div class="mesa-row">${data.mesa ?? "SIN MESA"}</div>
+        <div class="orden-num">Orden #${data.pedidoNum}</div>
       </div>
       <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
       <div class="items">${itemsHtml}</div>
