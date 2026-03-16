@@ -104,11 +104,11 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
         setImportInstrucciones(data.instrucciones ?? false);
         return;
       }
-      // Éxito: mostrar texto en el tab "Pegar texto" para que lo revisen antes de analizar
+      // Éxito: pasar texto al tab "Pegar Texto" y mostrarlo para que lo revisen
       setImportTexto(data.texto ?? "");
       setImportTab("texto");
     } catch {
-      setImportError("Error de conexión");
+      setImportError("Error de conexión al servidor");
     } finally {
       setImportFetchLoading(false);
     }
@@ -618,14 +618,32 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                   {/* ── Tab: Desde Link ── */}
                   {importTab === "link" && (
                     <div className="space-y-4">
+                      {/* Compatibilidad de links */}
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-center">
+                          <p className="text-emerald-700 font-semibold">✅ PDF</p>
+                          <p className="text-emerald-600">Links a PDF con texto</p>
+                        </div>
+                        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-center">
+                          <p className="text-emerald-700 font-semibold">✅ Sitio Web</p>
+                          <p className="text-emerald-600">Carta en página oficial</p>
+                        </div>
+                        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-center">
+                          <p className="text-red-700 font-semibold">❌ WhatsApp</p>
+                          <p className="text-red-600">Bloqueado por Meta</p>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
-                        <label className="text-sm font-semibold text-surface-text">Link de tu carta de WhatsApp</label>
-                        <p className="text-xs text-surface-muted">PandaPoss intentará leer tu carta automáticamente desde el link.</p>
+                        <label className="text-sm font-semibold text-surface-text">Link de tu carta</label>
+                        <p className="text-xs text-surface-muted">
+                          Pega el link de tu menú en PDF o página web del restaurante.
+                        </p>
                         <input
                           type="url"
                           value={importUrl}
                           onChange={(e) => { setImportUrl(e.target.value); setImportError(""); setImportInstrucciones(false); }}
-                          placeholder="https://wa.me/c/56912345678"
+                          placeholder="https://turestaurante.com/carta.pdf"
                           className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                         />
                       </div>
@@ -636,13 +654,12 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                             <AlertCircle size={15} /> {importError}
                           </p>
                           {importInstrucciones && (
-                            <div className="space-y-2">
-                              <p className="text-xs text-red-600 font-medium">Sigue estos pasos para hacerlo manualmente:</p>
+                            <div className="space-y-2 pt-1">
+                              <p className="text-xs text-red-600 font-medium">Alternativa — copia el texto manualmente:</p>
                               <ol className="text-xs text-red-600 space-y-1 list-decimal list-inside">
-                                <li>Abre el link en tu celular o navegador</li>
-                                <li>Selecciona y copia todo el texto del menú (nombre + precio de cada producto)</li>
-                                <li>Haz clic en la pestaña <strong>"Pegar Texto"</strong> arriba</li>
-                                <li>Pégalo ahí y presiona <strong>"Analizar Carta"</strong></li>
+                                <li>Abre el link en tu celular o PC</li>
+                                <li>Selecciona y copia el texto (nombre + precio de cada producto)</li>
+                                <li>Pégalo en <strong>"Pegar Texto"</strong></li>
                               </ol>
                               <button
                                 onClick={() => setImportTab("texto")}

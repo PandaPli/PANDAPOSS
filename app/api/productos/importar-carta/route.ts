@@ -12,12 +12,18 @@ interface ProductoImportado {
   descripcion?: string;
 }
 
+const HEADERS_BROWSER = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+  "Accept-Language": "es-CL,es;q=0.9,en;q=0.8",
+};
+
 /**
  * POST /api/productos/importar-carta
  *
- * action="fetch-url" → descarga el HTML de la URL y extrae texto plano para previsualizar.
- * action="preview"   → usa Claude AI para extraer productos del texto, devuelve array sin escribir en DB.
- * action="crear"     → recibe el array confirmado y crea los productos en DB.
+ * action="fetch-url" → detecta tipo (PDF / web / WhatsApp) y extrae texto plano.
+ * action="preview"   → usa Claude AI para extraer productos del texto.
+ * action="crear"     → crea los productos confirmados en DB.
  */
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -27,58 +33,92 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { action } = body;
 
-  // ── PASO 0: FETCH URL → extraer texto plano ───────────────────────────────
+  // ── PASO 0: FETCH URL → extraer texto ─────────────────────────────────────
   if (action === "fetch-url") {
     const { url } = body as { url: string };
     if (!url?.trim()) return NextResponse.json({ error: "URL vacía" }, { status: 400 });
 
-    // Resolver redirects de wa.me → URL real
-    let targetUrl = url.trim();
+    const targetUrl = url.trim();
 
-    // wa.me/c/PHONE  →  wa.me/catalog  (catálogo Business)
-    // Intentamos acceder con un User-Agent de browser real
+    // ── Bloquear links de WhatsApp/Instagram (requieren JS) ──────────────────
+    const esRedsocial =
+      targetUrl.includes("wa.me") ||
+      targetUrl.includes("whatsapp.com") ||
+      targetUrl.includes("instagram.com") ||
+      targetUrl.includes("facebook.com");
+
+    if (esRedsocial) {
+      return NextResponse.json({
+        error: "WhatsApp e Instagram no permiten lectura automática. Copia el texto manualmente.",
+        instrucciones: true,
+        tipo: "redes",
+      }, { status: 422 });
+    }
+
     try {
       const resp = await fetch(targetUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "es-CL,es;q=0.9",
-        },
+        headers: HEADERS_BROWSER,
         redirect: "follow",
       });
 
+      if (!resp.ok) {
+        return NextResponse.json({
+          error: `La página respondió con error ${resp.status}. Verifica que el link sea público y accesible.`,
+          instrucciones: false,
+        }, { status: 422 });
+      }
+
+      const contentType = resp.headers.get("content-type") ?? "";
+
+      // ── PDF ───────────────────────────────────────────────────────────────
+      if (contentType.includes("pdf") || targetUrl.toLowerCase().endsWith(".pdf")) {
+        const buffer = await resp.arrayBuffer();
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const pdfParse = require("pdf-parse/lib/pdf-parse.js");
+          const data = await pdfParse(Buffer.from(buffer));
+          const texto = data.text?.replace(/\s{3,}/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 8000) ?? "";
+          if (!texto || texto.length < 30) {
+            return NextResponse.json({ error: "El PDF no contiene texto legible (puede ser una imagen escaneada).", instrucciones: false }, { status: 422 });
+          }
+          return NextResponse.json({ texto, tipo: "pdf" });
+        } catch {
+          return NextResponse.json({ error: "No se pudo leer el PDF. Asegúrate de que tenga texto seleccionable.", instrucciones: false }, { status: 422 });
+        }
+      }
+
+      // ── Página web HTML ───────────────────────────────────────────────────
       const html = await resp.text();
       const $ = cheerio.load(html);
+      $("script, style, nav, footer, header, noscript, iframe, svg, img, button").remove();
 
-      // Eliminar scripts, estilos, nav, footer
-      $("script, style, nav, footer, header, noscript, iframe, svg").remove();
-
-      // Extraer texto visible
       const texto = $("body").text()
-        .replace(/\s{3,}/g, "\n")
+        .replace(/\t/g, " ")
+        .replace(/ {3,}/g, " ")
         .replace(/\n{3,}/g, "\n\n")
         .trim()
         .slice(0, 8000);
 
-      // Detectar páginas de error de WhatsApp/Meta
-      const esErrorWhatsApp =
+      // Detectar páginas de error genéricas
+      const esError =
         texto.includes("Sorry, something went wrong") ||
-        texto.includes("Meta © 20") ||
-        texto.includes("Go back") && texto.includes("Meta") ||
-        texto.length < 80;
+        texto.includes("404 Not Found") ||
+        texto.includes("403 Forbidden") ||
+        (texto.includes("Meta © 20") && texto.length < 200) ||
+        texto.length < 60;
 
-      if (!texto || esErrorWhatsApp) {
+      if (esError) {
         return NextResponse.json({
-          error: "WhatsApp no permite acceso automático a sus catálogos. Debes copiar el texto manualmente.",
-          instrucciones: true,
+          error: "No se pudo leer el contenido de esa página. Verifica que el link sea público.",
+          instrucciones: false,
         }, { status: 422 });
       }
 
-      return NextResponse.json({ texto });
+      return NextResponse.json({ texto, tipo: "web" });
     } catch {
       return NextResponse.json({
-        error: "No se pudo acceder al link. Intenta copiar el texto manualmente desde WhatsApp.",
-        instrucciones: true,
+        error: "No se pudo conectar al servidor. Verifica que el link sea válido y accesible.",
+        instrucciones: false,
       }, { status: 422 });
     }
   }
@@ -121,7 +161,6 @@ ${texto}`,
     }
 
     try {
-      // Limpiar posible markdown ```json ... ``` si el modelo lo envuelve
       const clean = content.text.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
       const parsed = JSON.parse(clean);
       return NextResponse.json({ productos: parsed.productos ?? [] });
@@ -135,10 +174,7 @@ ${texto}`,
     const { productos } = body as { productos: ProductoImportado[] };
     if (!productos?.length) return NextResponse.json({ error: "Sin productos" }, { status: 400 });
 
-    // Mapa de categorías existentes (búsqueda fuzzy por nombre)
-    const categoriasExistentes = await prisma.categoria.findMany({
-      select: { id: true, nombre: true },
-    });
+    const categoriasExistentes = await prisma.categoria.findMany({ select: { id: true, nombre: true } });
     const catMap = new Map(categoriasExistentes.map((c) => [c.nombre.toLowerCase(), c.id]));
 
     function buscarCategoria(nombre?: string): number | null {
@@ -150,7 +186,6 @@ ${texto}`,
       return null;
     }
 
-    // Prefijo único basado en timestamp para los códigos
     const prefijo = `IMP${Date.now().toString().slice(-5)}`;
     let creados = 0;
     const errores: string[] = [];
@@ -158,7 +193,6 @@ ${texto}`,
     for (let i = 0; i < productos.length; i++) {
       const p = productos[i];
       const codigo = `${prefijo}-${String(i + 1).padStart(3, "0")}`;
-
       try {
         await prisma.producto.create({
           data: {
