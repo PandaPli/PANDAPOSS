@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
+import * as cheerio from "cheerio";
 
 interface ProductoImportado {
   nombre: string;
@@ -14,8 +15,9 @@ interface ProductoImportado {
 /**
  * POST /api/productos/importar-carta
  *
- * action="preview" → usa Claude AI para extraer productos del texto, devuelve array sin escribir en DB.
- * action="crear"   → recibe el array confirmado y crea los productos en DB.
+ * action="fetch-url" → descarga el HTML de la URL y extrae texto plano para previsualizar.
+ * action="preview"   → usa Claude AI para extraer productos del texto, devuelve array sin escribir en DB.
+ * action="crear"     → recibe el array confirmado y crea los productos en DB.
  */
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -24,6 +26,55 @@ export async function POST(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId?: number | null })?.sucursalId ?? null;
   const body = await req.json();
   const { action } = body;
+
+  // ── PASO 0: FETCH URL → extraer texto plano ───────────────────────────────
+  if (action === "fetch-url") {
+    const { url } = body as { url: string };
+    if (!url?.trim()) return NextResponse.json({ error: "URL vacía" }, { status: 400 });
+
+    // Resolver redirects de wa.me → URL real
+    let targetUrl = url.trim();
+
+    // wa.me/c/PHONE  →  wa.me/catalog  (catálogo Business)
+    // Intentamos acceder con un User-Agent de browser real
+    try {
+      const resp = await fetch(targetUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "es-CL,es;q=0.9",
+        },
+        redirect: "follow",
+      });
+
+      const html = await resp.text();
+      const $ = cheerio.load(html);
+
+      // Eliminar scripts, estilos, nav, footer
+      $("script, style, nav, footer, header, noscript, iframe, svg").remove();
+
+      // Extraer texto visible
+      const texto = $("body").text()
+        .replace(/\s{3,}/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+        .slice(0, 8000); // límite para no saturar
+
+      if (!texto || texto.length < 30) {
+        return NextResponse.json({
+          error: "No se pudo extraer texto de esa página. WhatsApp requiere que copies el texto manualmente.",
+          instrucciones: true,
+        }, { status: 422 });
+      }
+
+      return NextResponse.json({ texto });
+    } catch {
+      return NextResponse.json({
+        error: "No se pudo acceder al link. Intenta copiar el texto manualmente desde WhatsApp.",
+        instrucciones: true,
+      }, { status: 422 });
+    }
+  }
 
   // ── PASO 1: PREVIEW (parseo AI) ──────────────────────────────────────────
   if (action === "preview") {

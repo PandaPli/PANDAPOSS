@@ -76,12 +76,43 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
   // ── Importar Carta ────────────────────────────────────────────────────────
   const [showImportar, setShowImportar] = useState(false);
+  const [importTab, setImportTab] = useState<"link" | "texto">("link");
+  const [importUrl, setImportUrl] = useState("");
   const [importTexto, setImportTexto] = useState("");
   const [importLoading, setImportLoading] = useState(false);
+  const [importFetchLoading, setImportFetchLoading] = useState(false);
   const [importError, setImportError] = useState("");
+  const [importInstrucciones, setImportInstrucciones] = useState(false);
   const [importPreview, setImportPreview] = useState<{ nombre: string; precio: number; categoria?: string; descripcion?: string }[]>([]);
   const [importCreando, setImportCreando] = useState(false);
   const [importDone, setImportDone] = useState<{ creados: number } | null>(null);
+
+  async function handleFetchUrl() {
+    if (!importUrl.trim()) return;
+    setImportFetchLoading(true);
+    setImportError("");
+    setImportInstrucciones(false);
+    try {
+      const res = await fetch("/api/productos/importar-carta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "fetch-url", url: importUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportError(data.error ?? "No se pudo leer la página");
+        setImportInstrucciones(data.instrucciones ?? false);
+        return;
+      }
+      // Éxito: mostrar texto en el tab "Pegar texto" para que lo revisen antes de analizar
+      setImportTexto(data.texto ?? "");
+      setImportTab("texto");
+    } catch {
+      setImportError("Error de conexión");
+    } finally {
+      setImportFetchLoading(false);
+    }
+  }
 
   async function handleAnalizarCarta() {
     if (!importTexto.trim()) return;
@@ -128,9 +159,12 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
   function cerrarImportar() {
     setShowImportar(false);
+    setImportTab("link");
+    setImportUrl("");
     setImportTexto("");
     setImportPreview([]);
     setImportError("");
+    setImportInstrucciones(false);
     setImportDone(null);
   }
 
@@ -563,34 +597,120 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                   </button>
                 </>
               ) : (
-                /* Input de texto */
+                /* ── Tabs: Desde Link / Pegar Texto ── */
                 <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-surface-text">Pega aquí el texto de tu carta</label>
-                    <p className="text-xs text-surface-muted">
-                      Puedes pegar texto copiado de WhatsApp, PDF, Google Docs, o cualquier menú. PandaPoss detecta los productos y precios automáticamente.
-                    </p>
-                    <textarea
-                      value={importTexto}
-                      onChange={(e) => setImportTexto(e.target.value)}
-                      placeholder={"Ejemplo:\n🍣 Rolls\nCalifornia Roll  $5.990\nRoll Acevichado  $6.990\n\n🥤 Bebidas\nCoca Cola  $1.500\nAgua  $990"}
-                      rows={12}
-                      className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm font-mono text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 resize-none"
-                    />
+                  {/* Tab switcher */}
+                  <div className="flex rounded-xl border border-surface-border overflow-hidden text-sm font-medium">
+                    <button
+                      onClick={() => { setImportTab("link"); setImportError(""); setImportInstrucciones(false); }}
+                      className={`flex-1 py-2.5 flex items-center justify-center gap-2 transition-colors ${importTab === "link" ? "bg-violet-600 text-white" : "bg-surface-bg text-surface-muted hover:text-surface-text"}`}
+                    >
+                      🔗 Desde Link de WhatsApp
+                    </button>
+                    <button
+                      onClick={() => { setImportTab("texto"); setImportError(""); setImportInstrucciones(false); }}
+                      className={`flex-1 py-2.5 flex items-center justify-center gap-2 transition-colors ${importTab === "texto" ? "bg-violet-600 text-white" : "bg-surface-bg text-surface-muted hover:text-surface-text"}`}
+                    >
+                      📋 Pegar Texto
+                    </button>
                   </div>
-                  {importError && (
-                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
-                      <AlertCircle size={15} /> {importError}
+
+                  {/* ── Tab: Desde Link ── */}
+                  {importTab === "link" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-surface-text">Link de tu carta de WhatsApp</label>
+                        <p className="text-xs text-surface-muted">PandaPoss intentará leer tu carta automáticamente desde el link.</p>
+                        <input
+                          type="url"
+                          value={importUrl}
+                          onChange={(e) => { setImportUrl(e.target.value); setImportError(""); setImportInstrucciones(false); }}
+                          placeholder="https://wa.me/c/56912345678"
+                          className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        />
+                      </div>
+
+                      {importError && (
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-2">
+                          <p className="text-sm font-semibold text-red-700 flex items-center gap-2">
+                            <AlertCircle size={15} /> {importError}
+                          </p>
+                          {importInstrucciones && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-red-600 font-medium">Sigue estos pasos para hacerlo manualmente:</p>
+                              <ol className="text-xs text-red-600 space-y-1 list-decimal list-inside">
+                                <li>Abre el link en tu celular o navegador</li>
+                                <li>Selecciona y copia todo el texto del menú (nombre + precio de cada producto)</li>
+                                <li>Haz clic en la pestaña <strong>"Pegar Texto"</strong> arriba</li>
+                                <li>Pégalo ahí y presiona <strong>"Analizar Carta"</strong></li>
+                              </ol>
+                              <button
+                                onClick={() => setImportTab("texto")}
+                                className="text-xs text-violet-600 font-semibold underline"
+                              >
+                                → Ir a Pegar Texto
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleFetchUrl}
+                        disabled={importFetchLoading || !importUrl.trim()}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold text-sm transition-colors"
+                      >
+                        {importFetchLoading ? <Loader2 size={16} className="animate-spin" /> : <span>🔍</span>}
+                        {importFetchLoading ? "Leyendo carta..." : "Leer Carta desde Link"}
+                      </button>
                     </div>
                   )}
-                  <button
-                    onClick={handleAnalizarCarta}
-                    disabled={importLoading || !importTexto.trim()}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold text-sm transition-colors"
-                  >
-                    {importLoading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                    {importLoading ? "Analizando con IA..." : "Analizar Carta"}
-                  </button>
+
+                  {/* ── Tab: Pegar Texto ── */}
+                  {importTab === "texto" && (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-semibold text-surface-text">Pega aquí el texto de tu carta</label>
+                          <button
+                            type="button"
+                            onClick={() => setImportTexto(`🍣 ROLLS\nCalifornia Roll  5990\nRoll Acevichado  6990\nRoll Spicy Tuna  7490\n\n🍕 PIZZAS\nMargherita  8990\nPepperoni  9490\n\n🥤 BEBIDAS\nCoca Cola 350cc  1500\nAgua sin gas  990\nCerveza artesanal  3200\n\n🍖 CARNES\nLomo vetado  14990\nPollo a la plancha  9990`)}
+                            className="text-xs text-violet-600 hover:text-violet-800 font-medium underline"
+                          >
+                            📋 Ver plantilla de ejemplo
+                          </button>
+                        </div>
+                        <p className="text-xs text-surface-muted">
+                          Copia el texto de WhatsApp, PDF, Google Docs o cualquier menú. Claude AI detecta productos y precios automáticamente.
+                        </p>
+                        <textarea
+                          value={importTexto}
+                          onChange={(e) => setImportTexto(e.target.value)}
+                          placeholder={"Pega aquí tu carta...\n\nEjemplo:\n🍣 Rolls\nCalifornia Roll  5.990\nRoll Acevichado  6.990\n\n🥤 Bebidas\nCoca Cola  1.500"}
+                          rows={11}
+                          className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm font-mono text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 resize-none"
+                        />
+                        {importTexto.trim() && (
+                          <button type="button" onClick={() => setImportTexto("")} className="text-xs text-surface-muted hover:text-red-500 underline">
+                            Limpiar
+                          </button>
+                        )}
+                      </div>
+                      {importError && (
+                        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
+                          <AlertCircle size={15} /> {importError}
+                        </div>
+                      )}
+                      <button
+                        onClick={handleAnalizarCarta}
+                        disabled={importLoading || !importTexto.trim()}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold text-sm transition-colors"
+                      >
+                        {importLoading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                        {importLoading ? "Analizando con IA..." : "Analizar Carta con IA"}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
