@@ -87,28 +87,45 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     setSplitDialog({ item, cantidades: init });
   };
 
-  /** Confirmar división */
+  /** Confirmar división — crea nuevos DetallePedido en DB para cada grupo */
   const handleConfirmSplit = async () => {
     if (!splitDialog || !splitDialog.item.detalleId) return;
     const { item, cantidades } = splitDialog;
-    const total = Object.values(cantidades).reduce((a, b) => a + b, 0);
-    if (total !== item.cantidad) return;
+    const totalAsignado = Object.values(cantidades).reduce((a, b) => a + b, 0);
+    if (totalAsignado !== item.cantidad) return;
 
     const gruposUsados = Object.entries(cantidades).filter(([, c]) => c > 0);
     if (gruposUsados.length < 2) return;
 
-    const [primerGrupo, primerCant] = gruposUsados[0];
-    const resto = gruposUsados.slice(1);
+    // Llamar al endpoint para crear registros reales en DB
+    try {
+      const res = await fetch(`/api/pedidos/detalles/${item.detalleId}/split`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          splits: gruposUsados.map(([grupo, cantidad]) => ({ grupo, cantidad })),
+        }),
+      });
 
-    // Actualizar el ítem original con el primer grupo
-    setItemGrupo(item.detalleId!, primerGrupo);
-    await syncDetalle(item.detalleId!, { cantidad: primerCant, grupo: primerGrupo });
+      if (!res.ok) {
+        console.error("Error al dividir el detalle:", await res.text());
+        return;
+      }
 
-    // Dividir localmente en el store
-    splitItemGrupos(item.detalleId!, [
-      { grupo: primerGrupo, cantidad: primerCant, newDetalleId: item.detalleId! },
-      ...resto.map(([g, c]) => ({ grupo: g, cantidad: c })),
-    ]);
+      const data = await res.json() as {
+        splits: { grupo: string; cantidad: number; detalleId: number }[];
+      };
+
+      // Dividir localmente en el store usando los detalleIds reales de la DB
+      splitItemGrupos(item.detalleId!, data.splits.map((s) => ({
+        grupo: s.grupo,
+        cantidad: s.cantidad,
+        newDetalleId: s.detalleId,
+      })));
+    } catch (err) {
+      console.error("Error al dividir:", err);
+      return;
+    }
 
     setSplitDialog(null);
   };

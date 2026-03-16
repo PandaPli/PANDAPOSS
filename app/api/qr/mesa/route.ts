@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     if (!allowed) return NextResponse.json({ error }, { status: 403 });
   } catch (err: any) {
     console.error("[FEATURE CHECK ERROR]:", err);
+    return NextResponse.json({ error: "No se pudo verificar el acceso a esta función." }, { status: 503 });
   }
 
   const { searchParams } = new URL(req.url);

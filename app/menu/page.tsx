@@ -24,16 +24,25 @@ export default async function MenuPage({ searchParams }: Props) {
   const [sucursal, mesa, categorias] = await Promise.all([
     prisma.sucursal.findUnique({
       where: { id: sucursalId, activa: true },
-      select: { id: true, nombre: true, menuQR: true },
+      select: { id: true, nombre: true, menuQR: true, simbolo: true },
     }),
     !isNaN(mesaId)
-      ? prisma.mesa.findUnique({ where: { id: mesaId }, select: { id: true, nombre: true } })
+      ? prisma.mesa.findFirst({
+          where: { id: mesaId, sala: { sucursalId } }, // Validar que la mesa pertenezca a esta sucursal
+          select: { id: true, nombre: true },
+        })
       : Promise.resolve(null),
     prisma.categoria.findMany({
       where: { activa: true },
       include: {
         productos: {
-          where: { sucursalId, activo: true, stock: { gt: 0 } },
+          where: {
+            sucursalId,
+            activo: true,
+            enMenuQR: true,
+            // Mostrar productos sin stock definido (null) o con stock disponible
+            OR: [{ stock: null }, { stock: { gt: 0 } }],
+          },
           select: { id: true, nombre: true, precio: true, descripcion: true, imagen: true },
           orderBy: { nombre: "asc" },
         },
@@ -61,9 +70,10 @@ export default async function MenuPage({ searchParams }: Props) {
   }));
 
   return (
-    <MenuClient 
+    <MenuClient
       sucursalId={sucursal.id}
       sucursalNombre={sucursal.nombre}
+      simbolo={sucursal.simbolo ?? "$"}
       mesaId={mesa?.id}
       mesaNombre={mesa?.nombre}
       categorias={safeCategorias}
