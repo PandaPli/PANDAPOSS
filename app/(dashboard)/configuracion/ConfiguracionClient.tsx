@@ -151,9 +151,8 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   // --- Vista RESTAURANTE: solo card de logo y links ---
   if (esAdminSucursal) {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    const urlDelivery = baseUrl + `/pedir/${sucursalSlug}`;
-    const urlMenu = baseUrl + `/pedir/vercarta?sucursal=${sucursalSlug}`; // O algo generico si carta normal no usa slug
-    const urlMenuClean = baseUrl + `/pedir/vercarta`;
+    const urlDelivery  = baseUrl + `/pedir/${sucursalSlug}`;
+    const urlMenuClean = sucursalSlug ? baseUrl + `/pedir/vercarta/${sucursalSlug}` : baseUrl + `/pedir/vercarta`;
 
     return (
       <div className="max-w-2xl space-y-6">
