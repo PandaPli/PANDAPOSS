@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ProductGrid } from "@/components/pos/ProductGrid";
 import { CartPanel } from "@/components/pos/CartPanel";
@@ -79,17 +79,24 @@ export function NuevaVentaClient({
   } | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
 
+  // Ref para saber si ya hicimos la hidratación inicial en este montaje
+  const hydrated = useRef(false);
+
   useEffect(() => {
     if (!initialOrder) return;
 
-    // Solo re-hidratar si cambió la mesa o el carrito está vacío.
-    // NO incluir pedidoId: cada "Orden" crea un nuevo pedidoId distinto al initialOrder.id
-    // y provocaría un reset del carrito en cada envío a cocina.
-    const shouldHydrate = mesaId !== (initialOrder.mesaId ?? null) || items.length === 0;
-    if (shouldHydrate) {
+    // En el primer montaje siempre cargar desde el servidor (tiene TODOS los pedidos de la mesa)
+    if (!hydrated.current) {
+      hydrated.current = true;
+      setInitialState(initialOrder.items, initialOrder.id, initialOrder.mesaId);
+      return;
+    }
+
+    // Después del montaje: solo re-hidratar si cambió de mesa
+    if (mesaId !== (initialOrder.mesaId ?? null)) {
       setInitialState(initialOrder.items, initialOrder.id, initialOrder.mesaId);
     }
-  }, [initialOrder, items.length, mesaId, setInitialState]);
+  }, [initialOrder, mesaId, setInitialState]);
 
   useEffect(() => {
     if (!initialOrder && typeof window !== "undefined") {
