@@ -5,6 +5,7 @@ import { PedidoService } from "@/server/services/pedido.service";
 import { DispatchService } from "@/server/services/dispatch.service";
 import { NotificationService } from "@/server/services/notification.service";
 import type { DeliveryCustomerInput, EstadoPedido, MetodoPago, Rol } from "@/types";
+import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
 
 interface DeliveryItemInput {
   productoId: number;
@@ -37,10 +38,16 @@ export const DeliveryService = {
 
     const sucursal = await prisma.sucursal.findUnique({
       where: { id: sucursalId },
-      select: { id: true, activa: true, delivery: true },
+      select: { id: true, activa: true, delivery: true, plan: true },
     });
 
-    if (!sucursal || !sucursal.activa || !sucursal.delivery) {
+    if (!sucursal || !sucursal.activa) {
+      throw new Error("Esta sucursal no está disponible.");
+    }
+
+    // Verificar que el plan soporta delivery Y que está activado en la sucursal
+    const planSoportaDelivery = PLAN_LIMITS[sucursal.plan as PlanTipo]?.delivery ?? false;
+    if (!planSoportaDelivery || !sucursal.delivery) {
       throw new Error("Esta sucursal no tiene delivery habilitado.");
     }
 

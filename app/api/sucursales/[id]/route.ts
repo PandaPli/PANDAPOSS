@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
+import { PLAN_LIMITS } from "@/core/billing/planConfig";
+
+const PLANES_VALIDOS = Object.keys(PLAN_LIMITS) as string[];
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -48,7 +51,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (simbolo !== undefined) data.simbolo = (simbolo as string)?.trim() || "$";
     if (activa !== undefined) data.activa = activa;
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
-    if (plan !== undefined) data.plan = plan;
+    if (plan !== undefined) {
+      if (!PLANES_VALIDOS.includes(plan as string)) {
+        return NextResponse.json({ error: `Plan inválido. Valores permitidos: ${PLANES_VALIDOS.join(", ")}` }, { status: 400 });
+      }
+      data.plan = plan;
+    }
   }
 
   try {
