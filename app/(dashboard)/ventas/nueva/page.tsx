@@ -14,7 +14,7 @@ async function getProductos(sucursalId: number | null) {
       // Aislamiento estricto: solo productos de la sucursal del usuario
       ...(sucursalId ? { sucursalId } : {}),
     },
-    include: { categoria: { select: { nombre: true } } },
+    include: { categoria: { select: { nombre: true, estacion: true } } },
     orderBy: { nombre: "asc" },
   });
 }

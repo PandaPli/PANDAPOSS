@@ -36,12 +36,18 @@ interface Props {
 export function PedidosClient({ pedidos: initial, rol }: Props) {
   const isDelivery = rol === "DELIVERY";
   const { filter, setFilter } = useKdsUI();
-  
+
   // Set default initial list, filtered down instantly on frontend
   const [pedidos, setPedidos] = useState<PedidoConDetalles[]>(initial);
-  
-  // Default to DELIVERY tab if role is DELIVERY.
-  const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(isDelivery ? "DELIVERY" : "TODOS");
+
+  // Default tipo tab by role
+  const defaultTipo: TipoPedido | "TODOS" =
+    isDelivery       ? "DELIVERY"    :
+    rol === "CHEF"   ? "COCINA"      :
+    rol === "BAR"    ? "BAR"         :
+    rol === "PASTRY" ? "REPOSTERIA"  :
+    "TODOS";
+  const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(defaultTipo);
 
   const fetchPedidos = useCallback(async () => {
     try {

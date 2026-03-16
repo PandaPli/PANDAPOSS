@@ -2,10 +2,19 @@
 
 import { useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X } from "lucide-react";
+import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
-interface Categoria { id: number; nombre: string; }
+type Estacion = "COCINA" | "BARRA" | "CUARTO_CALIENTE" | "MOSTRADOR";
+
+const ESTACION_CONFIG: Record<Estacion, { label: string; color: string; icon: React.ReactNode }> = {
+  COCINA:          { label: "Cocina",          color: "bg-orange-100 text-orange-700",  icon: <ChefHat size={11} /> },
+  BARRA:           { label: "Barra",           color: "bg-blue-100 text-blue-700",      icon: <Wine size={11} /> },
+  CUARTO_CALIENTE: { label: "Cuarto Caliente", color: "bg-red-100 text-red-700",        icon: <Flame size={11} /> },
+  MOSTRADOR:       { label: "Mostrador",       color: "bg-purple-100 text-purple-700",  icon: <ShoppingBag size={11} /> },
+};
+
+interface Categoria { id: number; nombre: string; estacion?: Estacion; }
 interface Sucursal { id: number; nombre: string; }
 interface Producto {
   id: number;
@@ -61,6 +70,9 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<Producto | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [categoriasState, setCategoriasState] = useState(categorias);
+  const [showEstaciones, setShowEstaciones] = useState(false);
+  const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
 
   const filtrados = useMemo(() => {
     return productos.filter((p) => {
@@ -72,6 +84,22 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       return matchSearch && matchCat && matchSuc;
     });
   }, [productos, search, catFiltro, sucFiltro]);
+
+  async function cambiarEstacion(categoriaId: number, estacion: Estacion) {
+    setSavingEstacion(categoriaId);
+    try {
+      await fetch(`/api/categorias/${categoriaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estacion }),
+      });
+      setCategoriasState((prev) =>
+        prev.map((c) => c.id === categoriaId ? { ...c, estacion } : c)
+      );
+    } finally {
+      setSavingEstacion(null);
+    }
+  }
 
   function closeForm() {
     setShowForm(false);
@@ -234,6 +262,50 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
         )}
       </div>
 
+      {/* Panel de estaciones por categoría */}
+      <div className="card overflow-hidden">
+        <button
+          onClick={() => setShowEstaciones((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-surface-text hover:bg-surface-bg transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <ChefHat size={15} className="text-orange-500" />
+            Estaciones por Categoría
+          </span>
+          <ChevronDown size={15} className={`text-surface-muted transition-transform ${showEstaciones ? "rotate-180" : ""}`} />
+        </button>
+        {showEstaciones && (
+          <div className="border-t border-surface-border p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {categoriasState.map((cat) => {
+              const est = (cat.estacion ?? "COCINA") as Estacion;
+              const cfg = ESTACION_CONFIG[est];
+              return (
+                <div key={cat.id} className="flex flex-col gap-1 rounded-xl border border-surface-border p-2">
+                  <span className="text-xs font-medium text-surface-text truncate">{cat.nombre}</span>
+                  <div className="flex items-center gap-1">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
+                      {cfg.icon} {cfg.label}
+                    </span>
+                    {savingEstacion === cat.id && <Loader2 size={10} className="animate-spin text-surface-muted" />}
+                  </div>
+                  <select
+                    value={est}
+                    onChange={(e) => cambiarEstacion(cat.id, e.target.value as Estacion)}
+                    className="mt-1 rounded-lg border border-surface-border bg-white px-2 py-1 text-xs text-surface-text"
+                    disabled={savingEstacion === cat.id}
+                  >
+                    <option value="COCINA">🍳 Cocina</option>
+                    <option value="BARRA">🍹 Barra</option>
+                    <option value="CUARTO_CALIENTE">🔥 Cuarto Caliente</option>
+                    <option value="MOSTRADOR">🧁 Mostrador</option>
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -275,7 +347,21 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-surface-muted">{p.categoria?.nombre ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-surface-muted">{p.categoria?.nombre ?? "-"}</span>
+                        {p.categoria && (() => {
+                          const catData = categoriasState.find(c => c.id === p.categoriaId);
+                          const est = (catData?.estacion ?? "COCINA") as Estacion;
+                          const cfg = ESTACION_CONFIG[est];
+                          return (
+                            <span className={`inline-flex w-fit items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
+                              {cfg.icon} {cfg.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       {p.sucursal ? (
                         <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">

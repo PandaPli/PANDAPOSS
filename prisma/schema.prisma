@@ -84,6 +84,13 @@ enum PlanTipo {
   PRIME
 }
 
+enum Estacion {
+  COCINA
+  BARRA
+  CUARTO_CALIENTE
+  MOSTRADOR
+}
+
 enum EstadoDelivery {
   CREADO
   CONFIRMADO
@@ -208,10 +215,11 @@ model Mesa {
 }
 
 model Categoria {
-  id     Int     @id @default(autoincrement())
-  nombre String  @unique @db.VarChar(80)
-  icono  String? @db.VarChar(50)
-  activa Boolean @default(true)
+  id       Int      @id @default(autoincrement())
+  nombre   String   @unique @db.VarChar(80)
+  icono    String?  @db.VarChar(50)
+  activa   Boolean  @default(true)
+  estacion Estacion @default(COCINA)
 
   productos Producto[]
   combos    Combo[]

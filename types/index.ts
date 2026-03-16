@@ -70,7 +70,7 @@ export interface ProductoCard {
   imagen: string | null;
   stock: number;
   categoriaId: number | null;
-  categoria?: { nombre: string };
+  categoria?: { nombre: string; estacion?: string };
 }
 
 export interface MesaConEstado {

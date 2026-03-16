@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ProductGrid } from "@/components/pos/ProductGrid";
 import { CartPanel } from "@/components/pos/CartPanel";
@@ -13,6 +13,20 @@ import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 const CANCEL_ROLES = ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER", "SECRETARY", "WAITER"];
+
+// Qué estaciones puede ver cada rol en el POS (undefined = ve todo)
+const ROL_ESTACIONES: Record<string, string[]> = {
+  CHEF:   ["COCINA", "CUARTO_CALIENTE"],
+  BAR:    ["BARRA"],
+  PASTRY: ["MOSTRADOR"],
+};
+
+const ESTACION_LABELS: Record<string, string> = {
+  COCINA:          "🍳 Cocina",
+  BARRA:           "🍹 Barra",
+  CUARTO_CALIENTE: "🔥 Cuarto Caliente",
+  MOSTRADOR:       "🧁 Mostrador",
+};
 
 interface Props {
   productos: ProductoCard[];
@@ -45,6 +59,15 @@ export function NuevaVentaClient({
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
   const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo } = useCartStore();
+
+  // Filtrar productos según el rol del usuario
+  const productosFiltrados = useMemo(() => {
+    const estaciones = ROL_ESTACIONES[userRol ?? ""];
+    if (!estaciones) return productos;
+    return productos.filter(
+      (p) => !p.categoria?.estacion || estaciones.includes(p.categoria.estacion)
+    );
+  }, [productos, userRol]);
 
   const [checkoutGrupo, setCheckoutGrupo] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<{
@@ -159,25 +182,27 @@ export function NuevaVentaClient({
     router.push("/mesas");
   }
 
-  function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {
+  function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
     const pw = window.open("", "_blank", "width=380,height=600");
     if (!pw) return;
     const now = new Date();
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const itemsHtml = data.items
-      .map(
-        (item) => `
+    const titulo = estacion === "BARRA" ? "ORDEN BARRA"
+      : estacion === "CUARTO_CALIENTE" ? "CUARTO CALIENTE"
+      : estacion === "MOSTRADOR" ? "MOSTRADOR"
+      : "ORDEN COCINA";
+    const itemsHtml = items
+      .map((item) => `
         <div class="item">
           <span class="qty">${item.cantidad}x</span>
           <div class="item-info">
             <span class="nombre">${item.nombre}</span>
             ${item.observacion ? `<span class="obs">* ${item.observacion}</span>` : ""}
           </div>
-        </div>`
-      )
+        </div>`)
       .join("");
-    pw.document.write(`<!DOCTYPE html><html><head><title>Ticket Cocina</title><style>
+    pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
@@ -194,8 +219,8 @@ export function NuevaVentaClient({
       @media print{body{width:80mm;}}
     </style></head><body>
       <div class="header">
-        <div class="title">ORDEN COCINA</div>
-        <div class="subtitle">${data.mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${data.pedidoNum}</div>
+        <div class="title">${titulo}</div>
+        <div class="subtitle">${mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${pedidoNum}</div>
       </div>
       <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
       <div class="items">${itemsHtml}</div>
@@ -203,6 +228,26 @@ export function NuevaVentaClient({
       <script>window.onload=function(){window.print();window.close();}<\/script>
     </body></html>`);
     pw.document.close();
+  }
+
+  function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {
+    // Mapear item.id → estacion usando el array de productos del POS
+    const prodMap = new Map(productos.map((p) => [p.id, p.categoria?.estacion ?? "COCINA"]));
+
+    // Agrupar ítems por estación
+    const groups = new Map<string, CartItem[]>();
+    for (const item of data.items) {
+      const estacion = item.tipo === "producto"
+        ? (prodMap.get(item.id) ?? "COCINA")
+        : "COCINA"; // combos → cocina por defecto
+      if (!groups.has(estacion)) groups.set(estacion, []);
+      groups.get(estacion)!.push(item);
+    }
+
+    // Imprimir un ticket por cada estación con ítems
+    for (const [estacion, items] of groups.entries()) {
+      printTicketEstacion(estacion, items, data.pedidoNum, data.mesa);
+    }
   }
 
   return (
@@ -268,7 +313,7 @@ export function NuevaVentaClient({
 
       <div className="flex flex-1 overflow-hidden">
         <div className={cn("flex-1 overflow-hidden p-3 sm:p-4", mobileTab === "carrito" ? "hidden md:block" : "block")}>
-          <ProductGrid productos={productos} simbolo={simbolo} />
+          <ProductGrid productos={productosFiltrados} simbolo={simbolo} />
         </div>
 
         <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
@@ -346,13 +391,29 @@ export function NuevaVentaClient({
               </div>
             </div>
 
-            <div className="text-xs text-surface-muted border border-surface-border rounded-lg px-3 py-2 max-h-28 overflow-y-auto space-y-0.5">
-              {ticketData.items.map((item, i) => (
-                <div key={i} className="flex gap-2">
-                  <span className="font-bold w-5 text-right flex-shrink-0">{item.cantidad}x</span>
-                  <span>{item.nombre}{item.observacion ? ` — ${item.observacion}` : ""}</span>
-                </div>
-              ))}
+            <div className="text-xs border border-surface-border rounded-lg overflow-hidden max-h-52 overflow-y-auto">
+              {(() => {
+                const prodMap = new Map(productos.map((p) => [p.id, p.categoria?.estacion ?? "COCINA"]));
+                const groups = new Map<string, CartItem[]>();
+                for (const item of ticketData.items) {
+                  const est = item.tipo === "producto" ? (prodMap.get(item.id) ?? "COCINA") : "COCINA";
+                  if (!groups.has(est)) groups.set(est, []);
+                  groups.get(est)!.push(item);
+                }
+                return Array.from(groups.entries()).map(([est, its]) => (
+                  <div key={est}>
+                    <div className="bg-surface-bg px-3 py-1 font-semibold text-surface-muted text-[10px] uppercase tracking-wider">
+                      {ESTACION_LABELS[est] ?? est}
+                    </div>
+                    {its.map((item, i) => (
+                      <div key={i} className="flex gap-2 px-3 py-1.5 text-surface-text">
+                        <span className="font-bold w-5 text-right flex-shrink-0">{item.cantidad}x</span>
+                        <span>{item.nombre}{item.observacion ? ` — ${item.observacion}` : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                ));
+              })()}
             </div>
 
             <div className="flex gap-2">
