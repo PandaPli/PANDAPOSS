@@ -6,6 +6,7 @@ export type BillingFeature = "delivery" | "menuQR" | "correo" | "rrhh" | "propin
 /**
  * Verifica si una feature está disponible en el plan y activa en la sucursal.
  * ADMIN_GENERAL (sucursalId = null) siempre tiene acceso.
+ * Plan DEMO tiene acceso a todo sin restricciones.
  */
 export async function checkFeature(
   sucursalId: number | null,
@@ -21,12 +22,16 @@ export async function checkFeature(
   if (!sucursal) return { allowed: false, error: "Sucursal no encontrada" };
 
   const plan = sucursal.plan as PlanTipo;
+
+  // DEMO: acceso total sin restricciones
+  if (plan === "DEMO") return { allowed: true };
+
   const planKey = feature === "correo" ? "correo" : feature;
 
   if (!PLAN_LIMITS[plan][planKey]) {
     return {
       allowed: false,
-      error: `La función "${feature}" no está disponible en el plan ${plan}. Requiere plan PRIME.`,
+      error: `La función "${feature}" no está disponible en el plan ${plan}. Requiere plan PRO o superior.`,
     };
   }
 

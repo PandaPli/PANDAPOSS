@@ -87,6 +87,19 @@ export default async function PlanesPage() {
         </table>
       </div>
 
+      {/* Banner DEMO */}
+      {planActual === "DEMO" && (
+        <div className="card p-6 bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200 flex items-center gap-4">
+          <span className="text-3xl">🧪</span>
+          <div>
+            <p className="font-bold text-violet-700">Estás en modo DEMO</p>
+            <p className="text-surface-muted text-sm mt-0.5">
+              Tienes acceso completo a todas las funciones con límites de 99.999. Los datos se reinician cada día automáticamente.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* CTA upgrade a PRO */}
       {isAdmin && planActual === "BASICO" && (
         <div className="card p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 flex items-center justify-between gap-4">

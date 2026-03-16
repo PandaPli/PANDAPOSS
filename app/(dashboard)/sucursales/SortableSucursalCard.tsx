@@ -2,7 +2,8 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet } from "lucide-react";
+import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw } from "lucide-react";
+import { useState } from "react";
 import type { PlanTipo } from "@/core/billing/planConfig";
 
 interface Props {
@@ -11,7 +12,26 @@ interface Props {
   onToggleActiva: (s: any) => void;
 }
 
+const DEMO_SUCURSAL_ID = 5;
+
 export function SortableSucursalCard({ s, onEdit, onToggleActiva }: Props) {
+  const [resetting, setResetting] = useState(false);
+
+  async function handleResetDemo() {
+    if (!confirm("¿Resetear todos los datos de la demo? Esta acción no se puede deshacer.")) return;
+    setResetting(true);
+    try {
+      const res = await fetch("/api/demo/reset", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) alert("✅ Demo reseteada correctamente");
+      else alert("❌ Error: " + (data.error ?? "desconocido"));
+    } catch {
+      alert("❌ Error de red");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   const {
     attributes,
     listeners,
@@ -91,11 +111,14 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva }: Props) {
           <p className="italic text-xs">Sin información de contacto</p>
         )}
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
-          s.plan === "PRO"
-            ? "bg-amber-50 text-amber-700 border-amber-300"
-            : "bg-slate-100 text-slate-600 border-slate-300"
+          s.plan === "DEMO"  ? "bg-violet-100 text-violet-700 border-violet-300" :
+          s.plan === "PRIME" ? "bg-purple-50 text-purple-700 border-purple-300" :
+          s.plan === "PRO"   ? "bg-amber-50 text-amber-700 border-amber-300" :
+                               "bg-slate-100 text-slate-600 border-slate-300"
         }`}>
-          {s.plan === "PRO" ? "⭐ PRO" : "BÁSICO"}
+          {s.plan === "DEMO"  ? "🧪 DEMO" :
+           s.plan === "PRIME" ? "👑 PRIME" :
+           s.plan === "PRO"   ? "⭐ PRO" : "BÁSICO"}
         </span>
       </div>
 
@@ -120,6 +143,18 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva }: Props) {
       >
         {s.activa ? "Desactivar sucursal" : "Activar sucursal"}
       </button>
+
+      {/* Botón reset — solo para sucursal demo */}
+      {s.id === DEMO_SUCURSAL_ID && (
+        <button
+          onClick={handleResetDemo}
+          disabled={resetting}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50 transition-colors font-medium disabled:opacity-50"
+        >
+          <RotateCcw size={12} className={resetting ? "animate-spin" : ""} />
+          {resetting ? "Reseteando..." : "Resetear Demo"}
+        </button>
+      )}
     </div>
   );
 }

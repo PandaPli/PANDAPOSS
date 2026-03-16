@@ -2,7 +2,7 @@
 
 import { useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown } from "lucide-react";
+import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 type Estacion = "COCINA" | "BARRA" | "CUARTO_CALIENTE" | "MOSTRADOR";
@@ -73,6 +73,66 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [categoriasState, setCategoriasState] = useState(categorias);
   const [showEstaciones, setShowEstaciones] = useState(false);
   const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
+
+  // ── Importar Carta ────────────────────────────────────────────────────────
+  const [showImportar, setShowImportar] = useState(false);
+  const [importTexto, setImportTexto] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importPreview, setImportPreview] = useState<{ nombre: string; precio: number; categoria?: string; descripcion?: string }[]>([]);
+  const [importCreando, setImportCreando] = useState(false);
+  const [importDone, setImportDone] = useState<{ creados: number } | null>(null);
+
+  async function handleAnalizarCarta() {
+    if (!importTexto.trim()) return;
+    setImportLoading(true);
+    setImportError("");
+    setImportPreview([]);
+    setImportDone(null);
+    try {
+      const res = await fetch("/api/productos/importar-carta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "preview", texto: importTexto }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setImportError(data.error ?? "Error al analizar"); return; }
+      setImportPreview(data.productos ?? []);
+    } catch {
+      setImportError("Error de conexión");
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
+  async function handleCrearProductos() {
+    if (!importPreview.length) return;
+    setImportCreando(true);
+    setImportError("");
+    try {
+      const res = await fetch("/api/productos/importar-carta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "crear", productos: importPreview }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setImportError(data.error ?? "Error al crear"); return; }
+      setImportDone({ creados: data.creados });
+      router.refresh();
+    } catch {
+      setImportError("Error de conexión");
+    } finally {
+      setImportCreando(false);
+    }
+  }
+
+  function cerrarImportar() {
+    setShowImportar(false);
+    setImportTexto("");
+    setImportPreview([]);
+    setImportError("");
+    setImportDone(null);
+  }
 
   const filtrados = useMemo(() => {
     return productos.filter((p) => {
@@ -229,10 +289,19 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
           <h1 className="text-2xl font-bold text-surface-text">Productos</h1>
           <p className="mt-1 text-sm text-surface-muted">{filtrados.length} producto{filtrados.length !== 1 ? "s" : ""}</p>
         </div>
-        <button onClick={abrirFormNuevo} className="btn-primary">
-          <Plus size={16} />
-          Nuevo Producto
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportar(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold hover:bg-violet-100 transition-colors"
+          >
+            <Wand2 size={15} />
+            Importar Carta
+          </button>
+          <button onClick={abrirFormNuevo} className="btn-primary">
+            <Plus size={16} />
+            Nuevo Producto
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -404,6 +473,130 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
           </table>
         </div>
       </div>
+
+      {/* ── Modal Importar Carta ─────────────────────────────────────────── */}
+      {showImportar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100">
+                  <Wand2 size={18} className="text-violet-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-surface-text">Importar Carta Automáticamente</h2>
+                  <p className="text-xs text-surface-muted">Pega el texto de tu menú y PandaPoss crea los productos por ti</p>
+                </div>
+              </div>
+              <button onClick={cerrarImportar} className="p-2 rounded-xl hover:bg-surface-bg text-surface-muted hover:text-surface-text transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Éxito */}
+              {importDone ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                    <CheckCircle2 size={32} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-surface-text">¡Carta importada!</p>
+                    <p className="text-surface-muted mt-1">Se crearon <span className="font-semibold text-emerald-600">{importDone.creados} productos</span> en tu catálogo.</p>
+                  </div>
+                  <button onClick={cerrarImportar} className="btn-primary px-8">
+                    Ver Productos
+                  </button>
+                </div>
+              ) : importPreview.length > 0 ? (
+                /* Preview tabla */
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-surface-text">
+                      {importPreview.length} productos detectados
+                    </p>
+                    <button
+                      onClick={() => { setImportPreview([]); setImportDone(null); }}
+                      className="text-xs text-surface-muted hover:text-surface-text underline"
+                    >
+                      Volver a editar texto
+                    </button>
+                  </div>
+                  <div className="rounded-xl border border-surface-border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-surface-bg border-b border-surface-border">
+                          <th className="text-left px-4 py-2.5 text-surface-muted font-medium">Producto</th>
+                          <th className="text-left px-4 py-2.5 text-surface-muted font-medium">Categoría</th>
+                          <th className="text-right px-4 py-2.5 text-surface-muted font-medium">Precio</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-border">
+                        {importPreview.map((p, i) => (
+                          <tr key={i} className="hover:bg-surface-bg/50">
+                            <td className="px-4 py-2.5">
+                              <p className="font-medium text-surface-text">{p.nombre}</p>
+                              {p.descripcion && <p className="text-xs text-surface-muted truncate max-w-xs">{p.descripcion}</p>}
+                            </td>
+                            <td className="px-4 py-2.5 text-surface-muted">{p.categoria ?? "—"}</td>
+                            <td className="px-4 py-2.5 text-right font-semibold text-brand-500">
+                              {simbolo}{p.precio.toLocaleString("es-CL")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {importError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
+                      <AlertCircle size={15} /> {importError}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleCrearProductos}
+                    disabled={importCreando}
+                    className="btn-primary w-full justify-center py-3 text-base"
+                  >
+                    {importCreando ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                    {importCreando ? "Creando productos..." : `Crear ${importPreview.length} productos`}
+                  </button>
+                </>
+              ) : (
+                /* Input de texto */
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-surface-text">Pega aquí el texto de tu carta</label>
+                    <p className="text-xs text-surface-muted">
+                      Puedes pegar texto copiado de WhatsApp, PDF, Google Docs, o cualquier menú. PandaPoss detecta los productos y precios automáticamente.
+                    </p>
+                    <textarea
+                      value={importTexto}
+                      onChange={(e) => setImportTexto(e.target.value)}
+                      placeholder={"Ejemplo:\n🍣 Rolls\nCalifornia Roll  $5.990\nRoll Acevichado  $6.990\n\n🥤 Bebidas\nCoca Cola  $1.500\nAgua  $990"}
+                      rows={12}
+                      className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm font-mono text-surface-text placeholder:text-surface-muted focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 resize-none"
+                    />
+                  </div>
+                  {importError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
+                      <AlertCircle size={15} /> {importError}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleAnalizarCarta}
+                    disabled={importLoading || !importTexto.trim()}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold text-sm transition-colors"
+                  >
+                    {importLoading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                    {importLoading ? "Analizando con IA..." : "Analizar Carta"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">

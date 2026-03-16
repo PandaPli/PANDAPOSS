@@ -269,6 +269,7 @@ const PRO_FEATURES = [
   "DELIVERY Y PEDIDOS",
   "STOCK AVANZADO",
   "MULTI SUCURSAL",
+  "RRHH Y TURNOS",
 ];
 
 const SectionPlans = () => (

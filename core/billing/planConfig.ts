@@ -1,4 +1,4 @@
-export type PlanTipo = "BASICO" | "PRO" | "PRIME";
+export type PlanTipo = "BASICO" | "PRO" | "PRIME" | "DEMO";
 
 export interface PlanFeatures {
   usuarios: number;
@@ -40,6 +40,17 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     cajas: 5,
     productos: 2000,
     clientes: 1000,
+    delivery: true,
+    menuQR: true,
+    correo: true,
+    rrhh: true,
+    propinas: true,
+  },
+  DEMO: {
+    usuarios: 99999,
+    cajas: 99999,
+    productos: 99999,
+    clientes: 99999,
     delivery: true,
     menuQR: true,
     correo: true,

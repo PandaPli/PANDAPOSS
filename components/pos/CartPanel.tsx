@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, ArrowLeft } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem } from "@/types";
@@ -12,7 +12,6 @@ interface Props {
   onCheckoutGrupo?: (grupo: string) => void;
   onOrden: () => void;
   onPrecuenta: () => void;
-  onVolverMesas?: () => void;
   ordenLoading?: boolean;
   canCancelItems?: boolean;
 }
@@ -33,7 +32,7 @@ interface SplitState {
   cantidades: Record<string, number>;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, onVolverMesas, ordenLoading, canCancelItems = false }: Props) {
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
@@ -266,6 +265,11 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     ? items.filter((i) => !i.grupo && !i.cancelado && !i.pagado)
     : [];
 
+  // Separación nuevo / enviado (para vista normal, sin grupos)
+  const itemsNuevos    = items.filter((i) => !i.guardado && !i.cancelado && !i.pagado);
+  const itemsEnviados  = items.filter((i) =>  i.guardado);
+  const hayAmbos       = itemsNuevos.length > 0 && itemsEnviados.length > 0;
+
   return (
     <div className="flex flex-col h-full bg-white border-l border-surface-border">
       {/* Header */}
@@ -294,13 +298,6 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         )}
       </div>
 
-      {/* Pedido vinculado */}
-      {pedidoId && !modoGrupos && (
-        <div className="mx-3 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-semibold flex items-center gap-1.5">
-          <Send size={12} />
-          Orden #{pedidoId} enviada a cocina
-        </div>
-      )}
 
       {/* Items */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -351,6 +348,46 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                 </div>
               </div>
             )}
+          </>
+        ) : hayAmbos ? (
+          <>
+            {/* Ítems nuevos (aún no enviados) */}
+            <div>
+              <p className="text-[10px] font-bold text-surface-muted uppercase tracking-wide px-1 mb-1.5">
+                Nuevos
+              </p>
+              <div className="space-y-2">
+                {itemsNuevos.map((item) => renderItem(item, false))}
+              </div>
+            </div>
+
+            {/* Último pedido enviado */}
+            <div className="mt-3">
+              <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                <Send size={11} className="text-amber-500" />
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
+                  {pedidoId ? `Último pedido #${pedidoId}` : "Último pedido enviado"}
+                </p>
+              </div>
+              <div className="space-y-2 pl-1 border-l-2 border-amber-200 rounded">
+                {itemsEnviados.map((item) => renderItem(item, false))}
+              </div>
+            </div>
+          </>
+        ) : itemsEnviados.length > 0 && itemsNuevos.length === 0 ? (
+          <>
+            {/* Solo hay ítems enviados — mostrar encabezado del último pedido */}
+            <div>
+              <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                <Send size={11} className="text-amber-500" />
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
+                  {pedidoId ? `Último pedido #${pedidoId}` : "Último pedido enviado"}
+                </p>
+              </div>
+              <div className="space-y-2 pl-1 border-l-2 border-amber-200 rounded">
+                {itemsEnviados.map((item) => renderItem(item, false))}
+              </div>
+            </div>
           </>
         ) : (
           items.map((item) => renderItem(item, false))
@@ -407,18 +444,6 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         </div>
       )}
 
-      {/* Volver a Mesas */}
-      {onVolverMesas && (
-        <div className="px-4 pt-3 pb-0">
-          <button
-            onClick={onVolverMesas}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-surface-border bg-surface-bg text-surface-muted text-sm font-semibold hover:bg-white hover:border-brand-300 hover:text-brand-600 transition-all"
-          >
-            <ArrowLeft size={15} />
-            Volver a Mesas
-          </button>
-        </div>
-      )}
 
       {/* Totales + Botones */}
       {items.length > 0 && (

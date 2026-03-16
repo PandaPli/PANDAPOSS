@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/pos/TableMap";
 import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
-import { X, ShoppingCart, Plus, Maximize, Minimize, LogIn, Trash2, AlertTriangle } from "lucide-react";
+import { X, Maximize, Minimize, LogIn, Trash2, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 interface Props {
@@ -136,23 +136,6 @@ export function MesasClient({ mesas }: Props) {
                     Entrar a la Mesa
                   </a>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <a
-                      href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
-                      className="btn-primary justify-center text-sm py-2.5"
-                    >
-                      <ShoppingCart size={15} />
-                      Cobrar
-                    </a>
-                    <a
-                      href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
-                      className="btn-secondary justify-center text-sm py-2.5"
-                    >
-                      <Plus size={15} />
-                      Agregar
-                    </a>
-                  </div>
-
                   {/* Borrar y Liberar Mesa */}
                   <button
                     onClick={handleBorrarMesa}
@@ -172,13 +155,6 @@ export function MesasClient({ mesas }: Props) {
                   >
                     <LogIn size={17} />
                     Entrar a la Mesa
-                  </a>
-                  <a
-                    href={`/ventas/nueva?mesa=${mesaSeleccionada.id}`}
-                    className="btn-primary w-full justify-center"
-                  >
-                    <Plus size={16} />
-                    Nueva Orden
                   </a>
                   <button
                     onClick={() => cambiarEstado(mesaSeleccionada.id, "RESERVADA")}

@@ -82,6 +82,7 @@ enum PlanTipo {
   BASICO
   PRO
   PRIME
+  DEMO
 }
 
 enum Estacion {
