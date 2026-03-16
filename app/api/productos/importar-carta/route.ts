@@ -40,16 +40,17 @@ export async function POST(req: NextRequest) {
 
     const targetUrl = url.trim();
 
-    // ── Bloquear links de WhatsApp/Instagram (requieren JS) ──────────────────
+    // ── Bloquear redes sociales (requieren JS / login) ──────────────────────
     const esRedsocial =
       targetUrl.includes("wa.me") ||
       targetUrl.includes("whatsapp.com") ||
       targetUrl.includes("instagram.com") ||
-      targetUrl.includes("facebook.com");
+      targetUrl.includes("facebook.com") ||
+      targetUrl.includes("tiktok.com");
 
     if (esRedsocial) {
       return NextResponse.json({
-        error: "WhatsApp e Instagram no permiten lectura automática. Copia el texto manualmente.",
+        error: "Las redes sociales no permiten lectura automática. Usa un link de PDF o página web.",
         instrucciones: true,
         tipo: "redes",
       }, { status: 422 });

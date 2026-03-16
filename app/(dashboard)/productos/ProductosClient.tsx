@@ -605,7 +605,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                       onClick={() => { setImportTab("link"); setImportError(""); setImportInstrucciones(false); }}
                       className={`flex-1 py-2.5 flex items-center justify-center gap-2 transition-colors ${importTab === "link" ? "bg-violet-600 text-white" : "bg-surface-bg text-surface-muted hover:text-surface-text"}`}
                     >
-                      🔗 Desde Link de WhatsApp
+                      🔗 Desde Link
                     </button>
                     <button
                       onClick={() => { setImportTab("texto"); setImportError(""); setImportInstrucciones(false); }}
@@ -619,25 +619,21 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                   {importTab === "link" && (
                     <div className="space-y-4">
                       {/* Compatibilidad de links */}
-                      <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-center">
                           <p className="text-emerald-700 font-semibold">✅ PDF</p>
-                          <p className="text-emerald-600">Links a PDF con texto</p>
+                          <p className="text-emerald-600">Link directo a PDF</p>
                         </div>
                         <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-center">
                           <p className="text-emerald-700 font-semibold">✅ Sitio Web</p>
-                          <p className="text-emerald-600">Carta en página oficial</p>
-                        </div>
-                        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-center">
-                          <p className="text-red-700 font-semibold">❌ WhatsApp</p>
-                          <p className="text-red-600">Bloqueado por Meta</p>
+                          <p className="text-emerald-600">Página oficial del restaurante</p>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <label className="text-sm font-semibold text-surface-text">Link de tu carta</label>
                         <p className="text-xs text-surface-muted">
-                          Pega el link de tu menú en PDF o página web del restaurante.
+                          Pega el link de tu menú en PDF o página web.
                         </p>
                         <input
                           type="url"
@@ -698,7 +694,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                           </button>
                         </div>
                         <p className="text-xs text-surface-muted">
-                          Copia el texto de WhatsApp, PDF, Google Docs o cualquier menú. Claude AI detecta productos y precios automáticamente.
+                          Copia el texto de tu carta (PDF, Google Docs, menú digital) y Claude AI detecta productos y precios automáticamente.
                         </p>
                         <textarea
                           value={importTexto}
