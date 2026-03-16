@@ -119,11 +119,12 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
   const pedidoId = params.pedido ? Number(params.pedido) : undefined;
   const mesaId = params.mesa ? Number(params.mesa) : undefined;
 
-  const [productos, cajaAbierta, pedidoInfo, sucursalBranding] = await Promise.all([
+  const [productos, cajaAbierta, pedidoInfo, sucursalBranding, mesaInfo] = await Promise.all([
     getProductos(sucursalId),
     getCajaAbierta(sucursalId),
     getPedido(pedidoId, mesaId),
     getSucursalBranding(sucursalId),
+    mesaId ? prisma.mesa.findUnique({ where: { id: mesaId }, select: { nombre: true } }) : null,
   ]);
 
   const simbolo = sucursalBranding?.simbolo ?? sessionSimbolo;
@@ -151,6 +152,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       meseroNombre={meseroNombre}
       initialOrder={pedidoInfo}
       logoUrl={logoUrl}
+      mesaNombre={mesaInfo?.nombre ?? undefined}
     />
   );
 }

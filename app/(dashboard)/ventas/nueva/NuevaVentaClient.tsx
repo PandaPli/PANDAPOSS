@@ -38,6 +38,7 @@ interface Props {
   meseroNombre?: string;
   initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
   logoUrl?: string | null;
+  mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
 }
 
 export function NuevaVentaClient({
@@ -50,6 +51,7 @@ export function NuevaVentaClient({
   meseroNombre,
   initialOrder,
   logoUrl,
+  mesaNombre,
 }: Props) {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -168,7 +170,7 @@ export function NuevaVentaClient({
       setTimeout(() => setOrdenMsg(""), 4000);
       setTicketData({
         pedidoNum: pedido.id,
-        mesa: mesaId ? `Mesa ${mesaId}` : null,
+        mesa: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : null),
         items: nuevosItems,
       });
     } catch (e) {
@@ -353,7 +355,7 @@ export function NuevaVentaClient({
           cajaId={cajaId}
           usuarioId={usuarioId}
           meseroNombre={meseroNombre}
-          mesaNombre={mesaId ? `Mesa ${mesaId}` : undefined}
+          mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
           onClose={() => { setShowCheckout(false); setCheckoutGrupo(null); }}
           onSuccess={handleSuccess}
@@ -366,7 +368,7 @@ export function NuevaVentaClient({
         <PrecuentaModal
           simbolo={simbolo}
           meseroNombre={meseroNombre}
-          mesaNombre={mesaId ? `Mesa ${mesaId}` : undefined}
+          mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
           onClose={() => setShowPrecuenta(false)}
         />
