@@ -5,17 +5,26 @@ import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/pos/TableMap";
 import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
-import { X, ShoppingCart, Plus, Maximize, Minimize, LogIn } from "lucide-react";
+import { X, ShoppingCart, Plus, Maximize, Minimize, LogIn, Trash2, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 interface Props {
   mesas: MesaConEstado[];
 }
 
+interface ItemPreview {
+  nombre: string;
+  cantidad: number;
+}
+
 export function MesasClient({ mesas }: Props) {
   const router = useRouter();
   const [mesaSeleccionada, setMesaSeleccionada] = useState<MesaConEstado | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showConfirmar, setShowConfirmar] = useState(false);
+  const [itemsPreview, setItemsPreview] = useState<ItemPreview[]>([]);
+  const [loadingBorrar, setLoadingBorrar] = useState(false);
+  const [liberando, setLiberando] = useState(false);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -33,6 +42,32 @@ export function MesasClient({ mesas }: Props) {
     });
     router.refresh();
     setMesaSeleccionada(null);
+  }
+
+  async function handleBorrarMesa() {
+    if (!mesaSeleccionada) return;
+    setLoadingBorrar(true);
+    try {
+      const res = await fetch(`/api/mesas/${mesaSeleccionada.id}`);
+      const data = await res.json();
+      setItemsPreview(data.items ?? []);
+      setShowConfirmar(true);
+    } finally {
+      setLoadingBorrar(false);
+    }
+  }
+
+  async function confirmarLiberar() {
+    if (!mesaSeleccionada) return;
+    setLiberando(true);
+    try {
+      await fetch(`/api/mesas/${mesaSeleccionada.id}`, { method: "DELETE" });
+      setShowConfirmar(false);
+      setMesaSeleccionada(null);
+      router.refresh();
+    } finally {
+      setLiberando(false);
+    }
   }
 
   return (
@@ -117,6 +152,16 @@ export function MesasClient({ mesas }: Props) {
                       Agregar
                     </a>
                   </div>
+
+                  {/* Borrar y Liberar Mesa */}
+                  <button
+                    onClick={handleBorrarMesa}
+                    disabled={loadingBorrar}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                  >
+                    <Trash2 size={15} />
+                    {loadingBorrar ? "Cargando..." : "Borrar y Liberar Mesa"}
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -143,6 +188,64 @@ export function MesasClient({ mesas }: Props) {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de confirmación — Borrar y Liberar Mesa */}
+      {showConfirmar && mesaSeleccionada && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center gap-3 p-5 border-b border-surface-border">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-surface-text">Borrar y Liberar Mesa</h3>
+                <p className="text-sm text-surface-muted">{mesaSeleccionada.nombre}</p>
+              </div>
+            </div>
+
+            {/* Lista de productos */}
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-surface-muted">
+                Se eliminarán los siguientes productos del pedido activo:
+              </p>
+              <div className="max-h-52 overflow-y-auto rounded-xl border border-surface-border divide-y divide-surface-border">
+                {itemsPreview.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-surface-muted text-center">Sin productos</p>
+                ) : (
+                  itemsPreview.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm text-surface-text">{item.nombre}</span>
+                      <span className="text-sm font-medium text-surface-muted">×{item.cantidad}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-red-500 font-medium">
+                Esta acción no se puede deshacer. La mesa quedará libre.
+              </p>
+            </div>
+
+            {/* Botones */}
+            <div className="grid grid-cols-2 gap-3 p-5 pt-0">
+              <button
+                onClick={() => setShowConfirmar(false)}
+                disabled={liberando}
+                className="btn-secondary justify-center"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarLiberar}
+                disabled={liberando}
+                className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                <Trash2 size={15} />
+                {liberando ? "Liberando..." : "Sí, Borrar"}
+              </button>
             </div>
           </div>
         </div>
