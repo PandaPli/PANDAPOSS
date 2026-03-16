@@ -1,4 +1,4 @@
-export type PlanTipo = "BASICO" | "PRO";
+export type PlanTipo = "BASICO" | "PRO" | "PRIME";
 
 export interface PlanFeatures {
   usuarios: number;
@@ -8,6 +8,8 @@ export interface PlanFeatures {
   delivery: boolean;
   menuQR: boolean;
   correo: boolean;
+  rrhh: boolean;
+  propinas: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
@@ -19,6 +21,8 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     delivery: false,
     menuQR: false,
     correo: false,
+    rrhh: false,
+    propinas: false,
   },
   PRO: {
     usuarios: 20,
@@ -28,5 +32,18 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     delivery: true,
     menuQR: true,
     correo: true,
+    rrhh: true,
+    propinas: false,
+  },
+  PRIME: {
+    usuarios: 50,
+    cajas: 5,
+    productos: 2000,
+    clientes: 1000,
+    delivery: true,
+    menuQR: true,
+    correo: true,
+    rrhh: true,
+    propinas: true,
   },
 };

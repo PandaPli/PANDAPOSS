@@ -14,13 +14,13 @@ interface Sucursal {
   email: string | null;
   simbolo: string;
   activa: boolean;
-  plan: "BASICO" | "PRO";
+  plan: "BASICO" | "PRO" | "PRIME";
   logoUrl: string | null;
   creadoEn: string | Date;
   _count: { usuarios: number; cajas: number };
 }
 
-const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO", logoUrl: null as string | null };
+const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO" | "PRIME", logoUrl: null as string | null };
 
 export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal[] }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>(initial);
@@ -308,11 +308,12 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   <label className="label">Suscripción</label>
                   <select
                     value={form.plan}
-                    onChange={(e) => setForm({ ...form, plan: e.target.value as "BASICO" | "PRO" })}
+                    onChange={(e) => setForm({ ...form, plan: e.target.value as "BASICO" | "PRO" | "PRIME" })}
                     className="input"
                   >
                     <option value="BASICO">BÁSICO</option>
                     <option value="PRO">PRO</option>
+                    <option value="PRIME">👑 PRIME</option>
                   </select>
                 </div>
               </div>

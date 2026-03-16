@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, type PlanTipo } from "./planConfig";
 
-export type BillingFeature = "delivery" | "menuQR" | "correo";
+export type BillingFeature = "delivery" | "menuQR" | "correo" | "rrhh" | "propinas";
 
 /**
  * Verifica si una feature está disponible en el plan y activa en la sucursal.
@@ -26,9 +26,12 @@ export async function checkFeature(
   if (!PLAN_LIMITS[plan][planKey]) {
     return {
       allowed: false,
-      error: `La función "${feature}" no está disponible en el plan ${plan}. Requiere plan PRO.`,
+      error: `La función "${feature}" no está disponible en el plan ${plan}. Requiere plan PRIME.`,
     };
   }
+
+  // features gateadas solo por plan (sin toggle por sucursal)
+  if (feature === "rrhh" || feature === "propinas") return { allowed: true };
 
   const active =
     feature === "delivery"  ? sucursal.delivery :

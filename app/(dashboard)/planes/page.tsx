@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PLAN_LIMITS } from "@/core/billing/planConfig";
-import { Check, X, Zap } from "lucide-react";
+import { Check, X, Zap, Crown } from "lucide-react";
 import type { Rol } from "@/types";
 
 export default async function PlanesPage() {
@@ -13,18 +13,21 @@ export default async function PlanesPage() {
 
   const basico = PLAN_LIMITS["BASICO"];
   const pro    = PLAN_LIMITS["PRO"];
+  const prime  = PLAN_LIMITS["PRIME"];
 
-  type Feature = { label: string; basico: string | boolean; pro: string | boolean };
+  type Feature = { label: string; basico: string | boolean; pro: string | boolean; prime: string | boolean };
 
   const features: Feature[] = [
-    { label: "Usuarios",          basico: `${basico.usuarios}`,  pro: `${pro.usuarios}` },
-    { label: "Cajas",             basico: `${basico.cajas}`,     pro: `${pro.cajas}` },
-    { label: "Productos",         basico: `${basico.productos}`, pro: `${pro.productos}` },
-    { label: "Clientes",          basico: `${basico.clientes}`,  pro: `${pro.clientes}` },
-    { label: "Delivery integrado",basico: false,                 pro: true },
-    { label: "Carta Digital QR",  basico: false,                 pro: true },
-    { label: "Correo a clientes", basico: false,                 pro: true },
-    { label: "Soporte prioritario",basico: false,                pro: true },
+    { label: "Usuarios",             basico: `${basico.usuarios}`,  pro: `${pro.usuarios}`,  prime: `${prime.usuarios}` },
+    { label: "Cajas",                basico: `${basico.cajas}`,     pro: `${pro.cajas}`,     prime: `${prime.cajas}` },
+    { label: "Productos",            basico: `${basico.productos}`, pro: `${pro.productos}`, prime: `${prime.productos}` },
+    { label: "Clientes",             basico: `${basico.clientes}`,  pro: `${pro.clientes}`,  prime: `${prime.clientes}` },
+    { label: "Delivery integrado",   basico: false,                 pro: true,               prime: true },
+    { label: "Carta Digital QR",     basico: false,                 pro: true,               prime: true },
+    { label: "Correo a clientes",    basico: false,                 pro: true,               prime: true },
+    { label: "Soporte prioritario",  basico: false,                 pro: true,               prime: true },
+    { label: "RRHH y Turnos",        basico: false,                 pro: true,               prime: true },
+    { label: "Contabilidad Propinas",basico: false,                 pro: false,              prime: true },
   ];
 
   function Cell({ value }: { value: string | boolean }) {
@@ -50,16 +53,22 @@ export default async function PlanesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-surface-border">
-              <th className="text-left p-4 text-surface-muted font-medium w-1/2">Característica</th>
-              <th className="text-center p-4 w-1/4">
+              <th className="text-left p-4 text-surface-muted font-medium w-[40%]">Característica</th>
+              <th className="text-center p-4 w-[20%]">
                 <span className={planActual === "BASICO" ? "text-brand-600 font-bold" : "text-surface-text font-semibold"}>
                   BÁSICO {planActual === "BASICO" && "✓"}
                 </span>
               </th>
-              <th className="text-center p-4 w-1/4 bg-amber-50">
+              <th className="text-center p-4 w-[20%] bg-amber-50">
                 <span className={`font-bold flex items-center justify-center gap-1.5 ${planActual === "PRO" ? "text-amber-600" : "text-amber-500"}`}>
                   <Zap size={14} /> PRO {planActual === "PRO" && "✓"}
                 </span>
+              </th>
+              <th className="text-center p-4 w-[20%] bg-violet-50">
+                <span className={`font-bold flex items-center justify-center gap-1.5 ${planActual === "PRIME" ? "text-violet-700" : "text-violet-500"}`}>
+                  <Crown size={14} /> PRIME {planActual === "PRIME" && "✓"}
+                </span>
+                <span className="text-[11px] font-semibold text-violet-400 block mt-0.5">$14.900/mes</span>
               </th>
             </tr>
           </thead>
@@ -69,14 +78,17 @@ export default async function PlanesPage() {
                 <td className="p-4 text-surface-text">{f.label}</td>
                 <td className="p-4 text-center text-surface-text"><Cell value={f.basico} /></td>
                 <td className="p-4 text-center text-surface-text bg-amber-50/50"><Cell value={f.pro} /></td>
+                <td className={`p-4 text-center text-surface-text bg-violet-50/50 ${f.label === "Contabilidad Propinas" ? "font-semibold text-violet-600" : ""}`}>
+                  <Cell value={f.prime} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* CTA upgrade */}
-      {isAdmin && planActual !== "PRO" && (
+      {/* CTA upgrade a PRO */}
+      {isAdmin && planActual === "BASICO" && (
         <div className="card p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 flex items-center justify-between gap-4">
           <div>
             <p className="font-bold text-surface-text">Actualiza a PRO</p>
@@ -89,6 +101,28 @@ export default async function PlanesPage() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-colors shadow-sm whitespace-nowrap"
           >
             <Zap size={16} />
+            Contactar
+          </a>
+        </div>
+      )}
+
+      {/* CTA upgrade a PRIME */}
+      {isAdmin && planActual !== "PRIME" && (
+        <div className="card p-6 bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-bold text-surface-text flex items-center gap-2">
+              <Crown size={16} className="text-violet-500" />
+              Actualiza a PRIME — $14.900/mes
+            </p>
+            <p className="text-surface-muted text-sm mt-0.5">
+              Incluye todo PRO + Contabilidad de Propinas para tu equipo.
+            </p>
+          </div>
+          <a
+            href="mailto:contacto@zapzappfood.com?subject=Upgrade%20a%20PRIME"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm transition-colors shadow-sm whitespace-nowrap"
+          >
+            <Crown size={16} />
             Contactar
           </a>
         </div>
