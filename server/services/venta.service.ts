@@ -221,21 +221,26 @@ export const VentaService = {
               await checkAndCloseMesa(tx, mesaId);
             }
           } else {
-            // Modo normal: cerrar pedido y mesa
-            if (pedidoId) {
-              await tx.pedido.update({
-                where: { id: pedidoId },
-                data: {
-                  estado: "ENTREGADO",
-                  meseroLlamado: false,
-                },
-              });
-            }
-
+            // Modo normal: cerrar TODOS los pedidos activos de la mesa (no solo el último)
             if (mesaId) {
+              // Marcar todos los pedidos activos de la mesa como ENTREGADO
+              await tx.pedido.updateMany({
+                where: {
+                  mesaId,
+                  estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+                },
+                data: { estado: "ENTREGADO", meseroLlamado: false },
+              });
+
               await tx.mesa.update({
                 where: { id: mesaId },
                 data: { estado: "LIBRE" },
+              });
+            } else if (pedidoId) {
+              // Sin mesa: solo cerrar el pedido específico
+              await tx.pedido.update({
+                where: { id: pedidoId },
+                data: { estado: "ENTREGADO", meseroLlamado: false },
               });
             }
           }
