@@ -58,11 +58,18 @@ export async function POST(req: NextRequest) {
         .replace(/\s{3,}/g, "\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim()
-        .slice(0, 8000); // límite para no saturar
+        .slice(0, 8000);
 
-      if (!texto || texto.length < 30) {
+      // Detectar páginas de error de WhatsApp/Meta
+      const esErrorWhatsApp =
+        texto.includes("Sorry, something went wrong") ||
+        texto.includes("Meta © 20") ||
+        texto.includes("Go back") && texto.includes("Meta") ||
+        texto.length < 80;
+
+      if (!texto || esErrorWhatsApp) {
         return NextResponse.json({
-          error: "No se pudo extraer texto de esa página. WhatsApp requiere que copies el texto manualmente.",
+          error: "WhatsApp no permite acceso automático a sus catálogos. Debes copiar el texto manualmente.",
           instrucciones: true,
         }, { status: 422 });
       }
