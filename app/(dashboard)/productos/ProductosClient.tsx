@@ -437,175 +437,223 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 backdrop-blur-sm sm:items-center">
-          <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-slide-in sm:h-auto sm:rounded-l-2xl">
-            <div className="flex items-center justify-between border-b border-surface-border p-5">
-              <h2 className="font-bold text-surface-text">{editando ? "Editar Producto" : "Nuevo Producto"}</h2>
-              <button onClick={closeForm} className="rounded-lg p-2 text-surface-muted transition-colors hover:bg-surface-bg hover:text-surface-text">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm">
+          <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-surface-border px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100">
+                  <Package size={18} className="text-brand-600" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-surface-text leading-tight">
+                    {editando ? "Editar Producto" : "Nuevo Producto"}
+                  </h2>
+                  {editando && (
+                    <p className="text-xs text-surface-muted font-mono">{editando.codigo}</p>
+                  )}
+                </div>
+              </div>
+              <button onClick={closeForm} className="rounded-xl p-2 text-surface-muted transition-colors hover:bg-surface-bg hover:text-surface-text">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-1 space-y-4 overflow-y-auto p-5">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+
               {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</div>
+                <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Codigo *</label>
-                  <input
-                    className="input"
-                    value={form.codigo}
-                    onChange={(e) => setForm({ ...form, codigo: e.target.value.toUpperCase() })}
-                    required
-                    placeholder="P001"
-                  />
-                </div>
-                <div>
-                  <label className="label">Categoria</label>
-                  <select className="input" value={form.categoriaId} onChange={(e) => setForm({ ...form, categoriaId: e.target.value })}>
-                    <option value="">Sin categoria</option>
-                    {categorias.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="label">Nombre *</label>
-                <input
-                  className="input"
-                  value={form.nombre}
-                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                  required
-                  placeholder="Nombre del producto"
-                />
-              </div>
-
-              <div>
-                <label className="label">Imagen del producto</label>
-                <div className="rounded-2xl border border-dashed border-surface-border bg-surface-bg/60 p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-surface-border bg-white">
-                      {form.imagen ? (
-                        <img src={form.imagen} alt="Vista previa" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="px-3 text-center text-xs text-surface-muted">
-                          Sin imagen
-                        </div>
+              {/* Imagen prominente */}
+              <div className="px-6 pt-5">
+                <label className="label mb-2">Imagen</label>
+                <div className="relative flex items-center gap-4 rounded-2xl border-2 border-dashed border-surface-border bg-surface-bg/50 p-4 transition-colors hover:border-brand-300">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-surface-border bg-white shadow-sm">
+                    {form.imagen ? (
+                      <img src={form.imagen} alt="Preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImagePlus size={22} className="text-surface-muted" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-surface-text">
+                      {form.imagen ? "Imagen cargada" : "Sin imagen"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-surface-muted">JPG, PNG o WebP. Aparece en menú y carta QR.</p>
+                    <div className="mt-2 flex gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white border border-surface-border px-3 py-1.5 text-xs font-medium text-surface-text hover:bg-surface-bg transition-colors">
+                        {uploadingImage ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                        {uploadingImage ? "Subiendo..." : form.imagen ? "Cambiar" : "Cargar foto"}
+                        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                      </label>
+                      {form.imagen && (
+                        <button type="button" onClick={removeImage} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-red-500 hover:bg-red-50 transition-colors">
+                          <Trash2 size={12} /> Quitar
+                        </button>
                       )}
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <p className="text-sm text-surface-muted">Sube una foto para que el producto se vea mejor en menu, ventas y carta QR.</p>
-                      <div className="flex flex-wrap gap-2">
-                        <label className="btn-secondary cursor-pointer">
-                          {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-                          {uploadingImage ? "Subiendo..." : form.imagen ? "Cambiar imagen" : "Cargar imagen"}
-                          <input
-                            ref={fileRef}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif"
-                            className="hidden"
-                            onChange={handleImageUpload}
-                            disabled={uploadingImage}
-                          />
-                        </label>
-                        {form.imagen && (
-                          <button type="button" onClick={removeImage} className="btn-ghost text-red-600 hover:bg-red-50 hover:text-red-700">
-                            <Trash2 size={16} />
-                            Quitar
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="label">Ingredientes / Detalles (Para Carta QR)</label>
-                <textarea
-                  className="input min-h-[80px] resize-y"
-                  value={form.descripcion}
-                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                  placeholder="Ej: Aros de cebolla con salsa BBQ..."
-                />
-              </div>
+              {/* Sección: Info básica */}
+              <div className="px-6 pt-5 space-y-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-surface-muted">Información básica</p>
 
-              {rol === "ADMIN_GENERAL" && (
-                <div>
-                  <label className="label">Sucursal</label>
-                  <select className="input" value={form.sucursalId} onChange={(e) => setForm({ ...form, sucursalId: e.target.value })}>
-                    <option value="">Global (Todas las sucursales)</option>
-                    {sucursales.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Código *</label>
+                    <input
+                      className="input font-mono"
+                      value={form.codigo}
+                      onChange={(e) => setForm({ ...form, codigo: e.target.value.toUpperCase() })}
+                      required
+                      placeholder="CF-001"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Categoría</label>
+                    <select className="input" value={form.categoriaId} onChange={(e) => setForm({ ...form, categoriaId: e.target.value })}>
+                      <option value="">Sin categoría</option>
+                      {categoriasState.map((c) => {
+                        const est = (c.estacion ?? "COCINA") as Estacion;
+                        const cfg = ESTACION_CONFIG[est];
+                        return <option key={c.id} value={c.id}>{c.nombre}</option>;
+                      })}
+                    </select>
+                    {form.categoriaId && (() => {
+                      const cat = categoriasState.find(c => c.id === Number(form.categoriaId));
+                      if (!cat) return null;
+                      const est = (cat.estacion ?? "COCINA") as Estacion;
+                      const cfg = ESTACION_CONFIG[est];
+                      return (
+                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
+                          {cfg.icon} {cfg.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
-              )}
 
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Precio Venta *</label>
+                  <label className="label">Nombre *</label>
                   <input
-                    type="number"
-                    className="input"
-                    value={form.precio}
-                    onChange={(e) => setForm({ ...form, precio: e.target.value })}
+                    className="input text-base font-medium"
+                    value={form.nombre}
+                    onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                     required
-                    min={0}
-                    step={0.01}
+                    placeholder="Nombre del producto"
                   />
                 </div>
+
                 <div>
-                  <label className="label">IVA (%)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={form.ivaPorc}
-                    onChange={(e) => setForm({ ...form, ivaPorc: e.target.value })}
-                    min={0}
-                    max={100}
+                  <label className="label">Descripción / Ingredientes <span className="text-surface-muted font-normal">(Carta QR)</span></label>
+                  <textarea
+                    className="input min-h-[72px] resize-none"
+                    value={form.descripcion}
+                    onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                    placeholder="Ej: Aros de cebolla con salsa BBQ..."
                   />
+                </div>
+
+                {rol === "ADMIN_GENERAL" && (
+                  <div>
+                    <label className="label">Sucursal</label>
+                    <select className="input" value={form.sucursalId} onChange={(e) => setForm({ ...form, sucursalId: e.target.value })}>
+                      <option value="">Global (todas las sucursales)</option>
+                      {sucursales.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Separador */}
+              <div className="mx-6 my-5 border-t border-surface-border" />
+
+              {/* Sección: Precio */}
+              <div className="px-6 space-y-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-surface-muted">Precio y tributos</p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Precio de venta *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-surface-muted">{simbolo}</span>
+                      <input
+                        type="number"
+                        className="input pl-8 text-lg font-bold"
+                        value={form.precio}
+                        onChange={(e) => setForm({ ...form, precio: e.target.value })}
+                        required min={0} step={0.01}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">IVA (%)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="input pr-8"
+                        value={form.ivaPorc}
+                        onChange={(e) => setForm({ ...form, ivaPorc: e.target.value })}
+                        min={0} max={100}
+                        disabled={!form.ivaActivo}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-surface-muted">%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-surface-text">
-                  <input
-                    type="checkbox"
-                    checked={form.enMenu}
-                    onChange={(e) => setForm({ ...form, enMenu: e.target.checked })}
-                    className="rounded"
-                  />
-                  Visible en POS/App
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-surface-text">
-                  <input
-                    type="checkbox"
-                    checked={form.enMenuQR}
-                    onChange={(e) => setForm({ ...form, enMenuQR: e.target.checked })}
-                    className="rounded"
-                  />
-                  Visible en Carta QR
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-surface-text">
-                  <input
-                    type="checkbox"
-                    checked={form.ivaActivo}
-                    onChange={(e) => setForm({ ...form, ivaActivo: e.target.checked })}
-                    className="rounded"
-                  />
-                  Aplica IVA
-                </label>
+              {/* Separador */}
+              <div className="mx-6 my-5 border-t border-surface-border" />
+
+              {/* Sección: Visibilidad — toggles */}
+              <div className="px-6 pb-6 space-y-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-surface-muted">Visibilidad</p>
+
+                {[
+                  { key: "enMenu",    label: "Visible en POS / App",  desc: "Aparece en ventas y punto de venta" },
+                  { key: "enMenuQR",  label: "Visible en Carta QR",    desc: "Aparece en el menú digital para clientes" },
+                  { key: "ivaActivo", label: "Aplica IVA",             desc: "Agrega el porcentaje de IVA al precio" },
+                ].map(({ key, label, desc }) => (
+                  <div key={key} className="flex items-center justify-between gap-4 rounded-xl border border-surface-border bg-surface-bg/40 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-surface-text">{label}</p>
+                      <p className="text-xs text-surface-muted">{desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, [key]: !form[key as keyof typeof form] })}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                        form[key as keyof typeof form] ? "bg-brand-500" : "bg-surface-border"
+                      }`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        form[key as keyof typeof form] ? "translate-x-6" : "translate-x-1"
+                      }`} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </form>
 
-            <div className="flex gap-3 border-t border-surface-border p-5">
-              <button type="button" onClick={closeForm} className="btn-secondary flex-1 justify-center">Cancelar</button>
-              <button type="button" onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={loading || uploadingImage} className="btn-primary flex-1 justify-center">
+            {/* Footer */}
+            <div className="flex gap-3 border-t border-surface-border bg-white px-6 py-4">
+              <button type="button" onClick={closeForm} className="btn-secondary flex-1 justify-center">
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit as unknown as React.MouseEventHandler}
+                disabled={loading || uploadingImage}
+                className="btn-primary flex-1 justify-center"
+              >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : null}
                 {editando ? "Guardar cambios" : "Crear producto"}
               </button>
