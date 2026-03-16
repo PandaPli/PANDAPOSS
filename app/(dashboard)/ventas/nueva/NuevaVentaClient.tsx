@@ -60,7 +60,7 @@ export function NuevaVentaClient({
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh } = useCartStore();
 
   // Filtrar productos según el rol del usuario
   const productosFiltrados = useMemo(() => {
@@ -96,7 +96,14 @@ export function NuevaVentaClient({
       const urlParams = new URLSearchParams(window.location.search);
       const mesaParam = urlParams.get("mesa");
       if (mesaParam && !isNaN(Number(mesaParam))) {
-        useCartStore.getState().setMesa(Number(mesaParam));
+        const newMesaId = Number(mesaParam);
+        const store = useCartStore.getState();
+        // Si la mesa cambió → limpiar carrito completamente (evita mezclar ítems de otras mesas)
+        if (store.mesaId !== newMesaId) {
+          store.setMesaFresh(newMesaId);
+        } else {
+          store.setMesa(newMesaId);
+        }
       }
     }
   }, [initialOrder]);

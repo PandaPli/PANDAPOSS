@@ -26,6 +26,7 @@ interface CartState {
   updateCantidad: (id: number, tipo: "producto" | "combo", cantidad: number) => void;
   updateObservacion: (id: number, tipo: "producto" | "combo", obs: string) => void;
   setMesa: (id: number | null) => void;
+  setMesaFresh: (id: number) => void; // limpia carrito y asigna nueva mesa
   setCliente: (id: number | null) => void;
   setPedido: (id: number | null) => void;
   setDescuento: (v: number) => void;
@@ -119,6 +120,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     })),
 
   setMesa: (id) => set({ mesaId: id }),
+  setMesaFresh: (id) => set({ items: [], mesaId: id, pedidoId: null, clienteId: null, descuento: 0 }),
   setCliente: (id) => set({ clienteId: id }),
   setPedido: (id) => set({ pedidoId: id }),
   setDescuento: (v) => set({ descuento: v }),
