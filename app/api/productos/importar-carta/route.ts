@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 import * as cheerio from "cheerio";
+import { checkLimit } from "@/core/billing/limitChecker";
 
 interface ProductoImportado {
   nombre: string;
@@ -175,6 +176,30 @@ ${texto}`,
     const { productos } = body as { productos: ProductoImportado[] };
     if (!productos?.length) return NextResponse.json({ error: "Sin productos" }, { status: 400 });
 
+    // Verificar cuántos productos puede importar según el plan
+    const { allowed: limitOk, error: limitError } = await checkLimit(sucursalId, "productos");
+    if (!limitOk) {
+      return NextResponse.json({ error: limitError }, { status: 403 });
+    }
+
+    // Calcular cuántos productos quedan disponibles en el plan
+    const { PLAN_LIMITS } = await import("@/core/billing/planConfig");
+    const sucursalData = sucursalId
+      ? await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { plan: true } })
+      : null;
+    const plan = sucursalData?.plan ?? "BASICO";
+    const maxPlan = (PLAN_LIMITS as Record<string, { productos: number }>)[plan]?.productos ?? 150;
+    const actuales = sucursalId
+      ? await prisma.producto.count({ where: { sucursalId, activo: true } })
+      : 0;
+    const disponibles = Math.max(0, maxPlan - actuales);
+
+    // Truncar la lista de importación al espacio disponible
+    const productosACrear = productos.slice(0, disponibles);
+    if (productosACrear.length === 0) {
+      return NextResponse.json({ error: limitError ?? "Has alcanzado el límite de productos de tu plan." }, { status: 403 });
+    }
+
     const categoriasExistentes = await prisma.categoria.findMany({ select: { id: true, nombre: true } });
     const catMap = new Map(categoriasExistentes.map((c) => [c.nombre.toLowerCase(), c.id]));
 
@@ -191,8 +216,8 @@ ${texto}`,
     let creados = 0;
     const errores: string[] = [];
 
-    for (let i = 0; i < productos.length; i++) {
-      const p = productos[i];
+    for (let i = 0; i < productosACrear.length; i++) {
+      const p = productosACrear[i];
       const codigo = `${prefijo}-${String(i + 1).padStart(3, "0")}`;
       try {
         await prisma.producto.create({
@@ -215,7 +240,13 @@ ${texto}`,
       }
     }
 
-    return NextResponse.json({ ok: true, creados, errores });
+    const omitidos = productos.length - productosACrear.length;
+    return NextResponse.json({
+      ok: true,
+      creados,
+      errores,
+      ...(omitidos > 0 ? { advertencia: `${omitidos} producto(s) no importados por límite del plan (${plan}: máx ${maxPlan}).` } : {}),
+    });
   }
 
   return NextResponse.json({ error: "Acción inválida" }, { status: 400 });

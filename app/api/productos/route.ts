@@ -91,8 +91,47 @@ export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol        = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
   const body = await req.json();
-  const { id, ...data } = body;
+  const { id, ...rawData } = body;
+
+  if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+
+  // Verificar propiedad: el producto debe pertenecer a la sucursal del usuario
+  const existing = await prisma.producto.findUnique({
+    where: { id: Number(id) },
+    select: { sucursalId: true },
+  });
+  if (!existing) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+
+  if (rol !== "ADMIN_GENERAL" && existing.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Sin permiso para editar este producto" }, { status: 403 });
+  }
+
+  // Whitelist de campos editables — previene mass-assignment de sucursalId, activo, etc.
+  const CAMPOS: (keyof typeof rawData)[] = [
+    "nombre", "descripcion", "precio", "costo", "stock", "stockMinimo",
+    "categoriaId", "ivaActivo", "ivaPorc", "imagen", "enMenu", "enMenuQR",
+  ];
+  const data: Record<string, unknown> = {};
+  for (const campo of CAMPOS) {
+    if (campo in rawData) data[campo] = rawData[campo];
+  }
+  // codigo solo editable por ADMIN_GENERAL
+  if (rol === "ADMIN_GENERAL" && "codigo" in rawData) {
+    data.codigo = String(rawData.codigo).toUpperCase();
+  }
+
+  // Validación básica de precio
+  if (data.precio !== undefined && (typeof data.precio !== "number" || (data.precio as number) < 0)) {
+    return NextResponse.json({ error: "El precio debe ser un número positivo" }, { status: 400 });
+  }
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });
+  }
 
   const producto = await prisma.producto.update({
     where: { id: Number(id) },
