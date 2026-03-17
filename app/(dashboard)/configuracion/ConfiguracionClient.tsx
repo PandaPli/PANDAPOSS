@@ -24,9 +24,10 @@ interface Props {
   sucursalId: number | null;
   sucursalLogoUrl: string | null;
   sucursalSlug?: string | null;
+  sucursalDescripcionDelivery?: string | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalDescripcionDelivery }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -51,6 +52,31 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
+  // --- Estado descripción delivery ---
+  const [descripcion, setDescripcion] = useState(sucursalDescripcionDelivery ?? "");
+  const [descripcionLoading, setDescripcionLoading] = useState(false);
+  const [descripcionMsg, setDescripcionMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  async function handleSaveDescripcion() {
+    if (!sucursalId) return;
+    setDescripcionLoading(true);
+    setDescripcionMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descripcionDelivery: descripcion || null }),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      setDescripcionMsg({ type: "ok", text: "Descripción guardada." });
+      router.refresh();
+    } catch {
+      setDescripcionMsg({ type: "error", text: "No se pudo guardar la descripción." });
+    } finally {
+      setDescripcionLoading(false);
+    }
+  }
   
   function copyToClipboard(url: string, id: string) {
     navigator.clipboard.writeText(url);
@@ -211,6 +237,41 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
                 </a>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Descripción de Delivery */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Receipt size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Descripción Delivery</h2>
+          </div>
+          <p className="text-xs text-surface-muted mb-4">Texto que aparece en la página de delivery pública. Puedes poner el horario, condiciones de envío o lo que quieras comunicar a tus clientes.</p>
+
+          {descripcionMsg && (
+            <div className={`mb-3 p-3 rounded-lg text-sm border ${descripcionMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {descripcionMsg.text}
+            </div>
+          )}
+
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="Ej: Hacemos delivery de lunes a domingo de 12:00 a 22:00. Tiempo estimado 30-45 min."
+            className="input w-full resize-none text-sm"
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[11px] text-surface-muted">{descripcion.length}/500</span>
+            <button
+              onClick={handleSaveDescripcion}
+              disabled={descripcionLoading}
+              className="btn-primary py-2 px-4 text-sm flex items-center gap-2"
+            >
+              {descripcionLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Guardar
+            </button>
           </div>
         </div>
 

@@ -32,6 +32,7 @@ interface Props {
     telefono: string | null;
     logoUrl: string | null;
     simbolo: string;
+    descripcionDelivery: string | null;
   };
   categorias: Categoria[];
   slug: string;
@@ -264,9 +265,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
                       <h1 className="mt-1 text-3xl font-black sm:text-4xl">{sucursal.nombre}</h1>
                     </div>
                   </div>
-                  <p className="mt-3 max-w-2xl text-sm text-white/75">
-                    Tu pedido entra directo al POS, cocina lo prepara y delivery lo despacha con seguimiento para el cliente.
-                  </p>
+                  {sucursal.descripcionDelivery && (
+                    <p className="mt-3 max-w-2xl text-sm text-white/75">
+                      {sucursal.descripcionDelivery}
+                    </p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-3 text-sm text-white/60">
                     {sucursal.direccion && (
                       <span className="flex items-center gap-1.5"><MapPin size={13} />{sucursal.direccion}</span>

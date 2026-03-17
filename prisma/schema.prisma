@@ -138,9 +138,10 @@ model Sucursal {
   delivery     Boolean  @default(false)
   menuQR       Boolean  @default(false)
   correoActivo Boolean  @default(false)
-  logoUrl      String?  @db.VarChar(255)
-  orden        Int      @default(0)
-  creadoEn     DateTime @default(now())
+  logoUrl              String?  @db.VarChar(255)
+  descripcionDelivery  String?  @db.VarChar(500)
+  orden                Int      @default(0)
+  creadoEn             DateTime @default(now())
 
   usuarios      Usuario[]
   salas         Sala[]

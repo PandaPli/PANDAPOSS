@@ -22,11 +22,13 @@ export default async function ConfiguracionPage() {
   // Logo y slug actual de la sucursal (si aplica)
   let sucursalLogoUrl: string | null = null;
   let sucursalSlug: string | null = null;
+  let sucursalDescripcionDelivery: string | null = null;
   
   if (rol === "RESTAURANTE" && sucursalId) {
-    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true } });
+    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true, descripcionDelivery: true } });
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
+      sucursalDescripcionDelivery = suc.descripcionDelivery;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -53,6 +55,7 @@ export default async function ConfiguracionPage() {
         sucursalId={sucursalId}
         sucursalLogoUrl={sucursalLogoUrl}
         sucursalSlug={sucursalSlug}
+        sucursalDescripcionDelivery={sucursalDescripcionDelivery}
       />
     </div>
   );

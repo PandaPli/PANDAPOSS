@@ -20,6 +20,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
       telefono: true,
       logoUrl: true,
       simbolo: true,
+      descripcionDelivery: true,
     },
   });
 

@@ -35,13 +35,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, plan } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, descripcionDelivery, plan } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
-  // RESTAURANTE solo puede actualizar su propio logo
+  // RESTAURANTE solo puede actualizar su propio logo y descripción de delivery
   if (esPropietario && !isAdmin(rol)) {
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
+    if (descripcionDelivery !== undefined) data.descripcionDelivery = (descripcionDelivery as string)?.trim() || null;
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();
@@ -51,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (simbolo !== undefined) data.simbolo = (simbolo as string)?.trim() || "$";
     if (activa !== undefined) data.activa = activa;
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
+    if (descripcionDelivery !== undefined) data.descripcionDelivery = (descripcionDelivery as string)?.trim() || null;
     if (plan !== undefined) {
       if (!PLANES_VALIDOS.includes(plan as string)) {
         return NextResponse.json({ error: `Plan inválido. Valores permitidos: ${PLANES_VALIDOS.join(", ")}` }, { status: 400 });
