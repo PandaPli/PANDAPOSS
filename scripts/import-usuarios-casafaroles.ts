@@ -14,7 +14,7 @@ const usuarios = [
   { nombre: "CARLOS JESUS GUTIERREZ",      email: "cjg@gmail.com",               rol: "WAITER",         usuario: "CARLOS",   password: "12345" },
   { nombre: "PEDRO JESUS CHIRINOS",        email: "jesusch@gmail.com",           rol: "CHEF",           usuario: "PEDRO",    password: "12345" },
   { nombre: "RAFAEL CLEMENTINO CONTRERAS", email: "clemen@gmail.com",            rol: "BAR",            usuario: "CLEMEN",   password: "12345" },
-  { nombre: "SUSANA CAROLINA MORA DURAN",  email: "carlosduran@gmail.com",       rol: "PASTRY",         usuario: "SUSANA",   password: "12345" },
+  { nombre: "SUSANA CAROLINA MORA DURAN",  email: "carlosduran@gmail.com",       rol: "WAITER",         usuario: "SUSANA",   password: "12345" },
   { nombre: "RAFAEL CHAVEZ RAMIREZ",       email: "rafaelchav@gmail.com",        rol: "DELIVERY",       usuario: "RAFA",     password: "12345" },
   { nombre: "KARLA",                       email: "karlafaroles@gmail.com",      rol: "WAITER",         usuario: "KARLA",    password: "12345" },
 ];

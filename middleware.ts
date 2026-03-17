@@ -10,14 +10,12 @@ const ROLE_ROUTES: Record<Rol, string[]> = {
   WAITER: ["/panel", "/mesas", "/pedidos", "/ventas", "/perfil"],
   CHEF: ["/pedidos", "/perfil"],
   BAR: ["/pedidos", "/perfil"],
-  PASTRY: ["/pedidos", "/perfil"],
   DELIVERY: ["/panel", "/pedidos", "/perfil", "/delivery"],
 };
 
 const ROLE_HOME: Partial<Record<Rol, string>> = {
   CHEF: "/pedidos",
   BAR: "/pedidos",
-  PASTRY: "/pedidos",
 };
 
 function canAccess(rol: Rol, path: string): boolean {
@@ -52,7 +50,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|home|menu|pedir|track|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    "/((?!login|home|menu|pedir|vercarta|track|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };
 

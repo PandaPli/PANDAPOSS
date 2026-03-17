@@ -65,7 +65,7 @@ export async function WaiterPanel() {
 
   const alertas = pedidosListos.map((p) => ({
     id: p.id,
-    tipo: p.tipo as "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR",
+    tipo: p.tipo as "COCINA" | "BAR" | "DELIVERY" | "MOSTRADOR",
     mesa: p.mesa?.nombre ?? "Mostrador",
     listoEn: p.actualizadoEn.toISOString(),
   }));

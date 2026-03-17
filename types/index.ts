@@ -6,12 +6,11 @@
   | "WAITER"
   | "CHEF"
   | "BAR"
-  | "PASTRY"
   | "DELIVERY";
 
 export type EstadoMesa = "LIBRE" | "OCUPADA" | "CUENTA" | "RESERVADA";
 export type EstadoPedido = "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO";
-export type TipoPedido = "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR";
+export type TipoPedido = "COCINA" | "BAR" | "DELIVERY" | "MOSTRADOR";
 export type MetodoPago = "EFECTIVO" | "TARJETA" | "TRANSFERENCIA" | "CREDITO" | "MIXTO";
 export type EstadoVenta = "PENDIENTE" | "PAGADA" | "ANULADA";
 export type DeliveryTrackingStage = "CONFIRMADO" | "PREPARANDO" | "EN_CAMINO" | "ENTREGADO" | "CANCELADO";

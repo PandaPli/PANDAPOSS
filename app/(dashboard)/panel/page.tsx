@@ -41,7 +41,6 @@ export default async function PanelPage() {
     // Roles operativos sin dashboard financiero (KDS / Logistics)
     case "CHEF":
     case "BAR":
-    case "PASTRY":
     case "DELIVERY":
       redirect("/pedidos");
       

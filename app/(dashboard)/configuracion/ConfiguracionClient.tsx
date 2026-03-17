@@ -152,7 +152,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   if (esAdminSucursal) {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const urlDelivery  = baseUrl + `/pedir/${sucursalSlug}`;
-    const urlMenuClean = sucursalSlug ? baseUrl + `/pedir/vercarta/${sucursalSlug}` : baseUrl + `/pedir/vercarta`;
+    const urlMenuClean = sucursalSlug ? baseUrl + `/vercarta/${sucursalSlug}` : baseUrl + `/vercarta`;
 
     return (
       <div className="max-w-2xl space-y-6">

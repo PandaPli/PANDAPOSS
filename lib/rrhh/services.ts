@@ -120,15 +120,19 @@ export async function importUsuariosAsEmpleados(prisma: any, session: RrhhSessio
         })
       : null;
 
-    if (existingByEmail && !existingByEmail.usuarioId) {
+    // Solo vincular si el empleado existente pertenece a la MISMA sucursal
+    if (existingByEmail && !existingByEmail.usuarioId && existingByEmail.sucursalId === sucursalId) {
       await prisma.empleado.update({
         where: { id: existingByEmail.id },
-        data: {
-          usuarioId: usuario.id,
-          sucursalId,
-        },
+        data: { usuarioId: usuario.id },
       });
       linked += 1;
+      continue;
+    }
+
+    // Si el email existe pero en otra sucursal → omitir (no tocar datos ajenos)
+    if (existingByEmail && existingByEmail.sucursalId !== sucursalId) {
+      skipped += 1;
       continue;
     }
 
@@ -177,9 +181,16 @@ export async function listAsistencias(prisma: any, session: RrhhSession, sucursa
   });
 }
 
+const ESTADOS_VALIDOS = ["PRESENTE", "TARDE", "AUSENTE", "PERMISO"] as const;
+
 export async function createAsistencia(prisma: any, session: RrhhSession, input: any) {
   assertPermission(session, "rrhh.asistencias.write");
   assertSucursalAccess(session, input.sucursalId);
+
+  // Validar estado contra enum permitido
+  if (!ESTADOS_VALIDOS.includes(input.estado)) {
+    throw new Error(`INVALID_ESTADO`);
+  }
 
   const empleado = await prisma.empleado.findUnique({
     where: { id: input.empleadoId },
@@ -188,6 +199,24 @@ export async function createAsistencia(prisma: any, session: RrhhSession, input:
 
   if (!empleado || empleado.sucursalId !== input.sucursalId) {
     throw new Error("EMPLEADO_INVALIDO_PARA_SUCURSAL");
+  }
+
+  // Evitar duplicados: un empleado solo puede tener una asistencia por día
+  const fechaDia = new Date(input.fecha);
+  fechaDia.setHours(0, 0, 0, 0);
+  const fechaSig = new Date(fechaDia);
+  fechaSig.setDate(fechaSig.getDate() + 1);
+
+  const existente = await prisma.asistencia.findFirst({
+    where: {
+      empleadoId: input.empleadoId,
+      fecha: { gte: fechaDia, lt: fechaSig },
+    },
+    select: { id: true },
+  });
+
+  if (existente) {
+    throw new Error("ASISTENCIA_DUPLICADA");
   }
 
   return prisma.asistencia.create({

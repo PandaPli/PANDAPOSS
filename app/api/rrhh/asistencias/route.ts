@@ -16,6 +16,9 @@ function mapError(error: unknown) {
   if (message.startsWith("INVALID_") || message === "EMPLEADO_INVALIDO_PARA_SUCURSAL") {
     return NextResponse.json({ error: message }, { status: 400 });
   }
+  if (message === "ASISTENCIA_DUPLICADA") {
+    return NextResponse.json({ error: "Ya existe una asistencia registrada para este empleado en esa fecha." }, { status: 409 });
+  }
   return NextResponse.json({ error: "Error interno" }, { status: 500 });
 }
 

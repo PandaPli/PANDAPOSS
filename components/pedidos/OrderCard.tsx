@@ -27,7 +27,6 @@ const nextLabel: Partial<Record<EstadoPedido, string>> = {
 const tipoLabel: Record<string, string> = {
   COCINA: "COCINA",
   BAR: "BAR",
-  REPOSTERIA: "REPOSTERÍA",
   DELIVERY: "DELIVERY",
   MOSTRADOR: "MOSTRADOR",
 };
@@ -242,7 +241,6 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             <span>
               {pedido.tipo === "COCINA" ? "Pedido de comida"
                 : pedido.tipo === "BAR" ? "Pedido de bebidas"
-                : pedido.tipo === "REPOSTERIA" ? "Pedido reposteria"
                 : pedido.tipo === "DELIVERY" ? "Pedido delivery"
                 : "Pedido mostrador"}
             </span>

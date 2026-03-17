@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  UtensilsCrossed, GlassWater, Cake, CheckCircle2,
+  UtensilsCrossed, GlassWater, CheckCircle2,
   Bell, Clock, Users, ChefHat, Loader2,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,7 +24,7 @@ interface MesaEspera {
 
 interface Alerta {
   id: number;
-  tipo: "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR";
+  tipo: "COCINA" | "BAR" | "DELIVERY" | "MOSTRADOR";
   mesa: string;
   listoEn: string;
 }
@@ -58,7 +58,6 @@ const TIPO_CONFIG: Record<
 > = {
   COCINA:    { label: "Cocina",    icon: <ChefHat size={16} />,      color: "text-orange-600", bg: "bg-orange-50 border-orange-200" },
   BAR:       { label: "Barra",     icon: <GlassWater size={16} />,   color: "text-blue-600",   bg: "bg-blue-50 border-blue-200" },
-  REPOSTERIA:{ label: "Repostería",icon: <Cake size={16} />,         color: "text-pink-600",   bg: "bg-pink-50 border-pink-200" },
   DELIVERY:  { label: "Delivery",  icon: <UtensilsCrossed size={16}/>,color: "text-teal-600",  bg: "bg-teal-50 border-teal-200" },
   MOSTRADOR: { label: "Mostrador", icon: <UtensilsCrossed size={16}/>,color: "text-gray-600",  bg: "bg-gray-50 border-gray-200" },
 };

@@ -43,7 +43,6 @@ const rolePermissions: Record<Rol, RrhhPermission[]> = {
   WAITER: [],
   CHEF: [],
   BAR: [],
-  PASTRY: [],
   DELIVERY: [],
 };
 

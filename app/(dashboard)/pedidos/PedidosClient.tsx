@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
-import { ChefHat, Wine, CakeSlice, Bike, UtensilsCrossed, RefreshCw, Clock, PlaySquare, CheckCircle2 } from "lucide-react";
+import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Clock, PlaySquare, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useKdsUI, KdsFilter } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
@@ -13,7 +13,6 @@ const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNod
   { key: "TODOS", label: "Todos", icon: <UtensilsCrossed size={16} /> },
   { key: "COCINA", label: "Cocina", icon: <ChefHat size={16} /> },
   { key: "BAR", label: "Bar", icon: <Wine size={16} /> },
-  { key: "REPOSTERIA", label: "Reposteria", icon: <CakeSlice size={16} /> },
   { key: "DELIVERY", label: "Delivery", icon: <Bike size={16} /> },
 ];
 
@@ -42,10 +41,9 @@ export function PedidosClient({ pedidos: initial, rol }: Props) {
 
   // Default tipo tab by role
   const defaultTipo: TipoPedido | "TODOS" =
-    isDelivery       ? "DELIVERY"    :
-    rol === "CHEF"   ? "COCINA"      :
-    rol === "BAR"    ? "BAR"         :
-    rol === "PASTRY" ? "REPOSTERIA"  :
+    isDelivery     ? "DELIVERY" :
+    rol === "CHEF" ? "COCINA"   :
+    rol === "BAR"  ? "BAR"      :
     "TODOS";
   const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(defaultTipo);
 

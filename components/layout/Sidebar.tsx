@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import {
   LayoutDashboard, UtensilsCrossed, ShoppingCart, ClipboardList,
   Package, Users, BarChart3, Settings, ChefHat, Wine,
-  CakeSlice, Bike, ChevronLeft, ChevronRight, Wallet, UserCog,
+  Bike, ChevronLeft, ChevronRight, Wallet, UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Rol } from "@/types";
@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
     label: "Pedidos",
     href: "/pedidos",
     icon: <ClipboardList size={20} />,
-    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "PASTRY", "DELIVERY"],
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"],
   },
   {
     label: "Nueva Venta",
@@ -91,7 +91,6 @@ const roleIcons: Record<Rol, React.ReactNode> = {
   WAITER: <UtensilsCrossed size={14} />,
   CHEF: <ChefHat size={14} />,
   BAR: <Wine size={14} />,
-  PASTRY: <CakeSlice size={14} />,
   DELIVERY: <Bike size={14} />,
 };
 
@@ -103,7 +102,6 @@ const roleLabels: Record<Rol, string> = {
   WAITER: "Mesero/a",
   CHEF: "Cocinero/a",
   BAR: "Bar",
-  PASTRY: "Repostería",
   DELIVERY: "Repartidor/a",
 };
 

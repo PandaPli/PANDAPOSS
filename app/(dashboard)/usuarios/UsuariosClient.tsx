@@ -12,7 +12,6 @@ const ROLES = [
   { value: "WAITER", label: "Mesero/a" },
   { value: "CHEF", label: "Cocinero/a" },
   { value: "BAR", label: "Bar" },
-  { value: "PASTRY", label: "Repostería" },
   { value: "DELIVERY", label: "Repartidor/a" },
 ];
 
@@ -24,7 +23,6 @@ const roleColors: Record<string, string> = {
   WAITER: "bg-amber-50 text-amber-700 border-amber-200",
   CHEF: "bg-orange-50 text-orange-700 border-orange-200",
   BAR: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  PASTRY: "bg-rose-50 text-rose-700 border-rose-200",
   DELIVERY: "bg-cyan-50 text-cyan-700 border-cyan-200",
 };
 

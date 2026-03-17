@@ -16,7 +16,6 @@ enum Rol {
   WAITER
   CHEF
   BAR
-  PASTRY
   DELIVERY
 }
 
@@ -48,7 +47,6 @@ enum EstadoPedido {
 enum TipoPedido {
   COCINA
   BAR
-  REPOSTERIA
   DELIVERY
   MOSTRADOR
 }

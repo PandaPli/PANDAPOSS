@@ -18,7 +18,6 @@ const CANCEL_ROLES = ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER", "SECRETARY", "W
 const ROL_ESTACIONES: Record<string, string[]> = {
   CHEF:   ["COCINA", "CUARTO_CALIENTE"],
   BAR:    ["BARRA"],
-  PASTRY: ["MOSTRADOR"],
 };
 
 const ESTACION_LABELS: Record<string, string> = {
@@ -270,9 +269,9 @@ export function NuevaVentaClient({
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col gap-0">
       {/* Barra superior */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-surface-border bg-white px-4 py-3">
-        <button onClick={handleVolver} className="btn-ghost text-sm">
-          <ArrowLeft size={16} />
-          <span className="hidden sm:inline">Volver</span>
+        <button onClick={handleVolver} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-95 transition-all">
+          <ArrowLeft size={15} />
+          <span>Volver a Mesas</span>
         </button>
         <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
 

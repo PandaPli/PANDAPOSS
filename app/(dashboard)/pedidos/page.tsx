@@ -8,7 +8,6 @@ import type { Rol } from "@/types";
 const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {
   CHEF:    { emoji: "🍳", msg: "Hoy saldran platos perfectos." },
   BAR:     { emoji: "🍹", msg: "A mezclar felicidad!" },
-  PASTRY:  { emoji: "🧁", msg: "Endulzando el dia!" },
 };
 
 async function getPedidos(rol: Rol | undefined, sucursalId: number | null) {
@@ -43,7 +42,7 @@ export default async function PedidosPage() {
   const data = pedidos.map((p) => ({
     id: p.id,
     numero: p.id,
-    tipo: p.tipo as "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR",
+    tipo: p.tipo as "COCINA" | "BAR" | "DELIVERY" | "MOSTRADOR",
     estado: p.estado as "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO",
     observacion: p.observacion,
     meseroLlamado: p.meseroLlamado,

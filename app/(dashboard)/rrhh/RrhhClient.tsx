@@ -78,6 +78,13 @@ type Props = {
 
 const attendanceStates = ["PRESENTE", "TARDE", "AUSENTE", "PERMISO"];
 
+const estadoAsistenciaBadge: Record<string, string> = {
+  PRESENTE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  TARDE:    "border-amber-200 bg-amber-50 text-amber-700",
+  AUSENTE:  "border-red-200 bg-red-50 text-red-700",
+  PERMISO:  "border-blue-200 bg-blue-50 text-blue-700",
+};
+
 const employeeFormInitial = {
   sucursalId: "",
   nombres: "",
@@ -227,7 +234,10 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
     return empleados.filter((empleado) => empleado.sucursalId === sucursalId);
   }, [attendanceForm.sucursalId, empleados, selectedSucursal, sucursalIdSesion]);
 
-  const totalPresentes = asistencias.filter((item) => item.estado === "PRESENTE").length;
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  const totalPresentes = asistencias.filter(
+    (item) => item.estado === "PRESENTE" && item.fecha.slice(0, 10) === hoyStr
+  ).length;
 
   function openEmployeeForm() {
     setEmployeeForm({
@@ -284,6 +294,10 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
 
   async function importFromUsuarios() {
     if (!selectedSucursal) return;
+    const ok = window.confirm(
+      "¿Importar los usuarios activos de esta sucursal como empleados RRHH?\n\nLos que ya existen serán omitidos automáticamente."
+    );
+    if (!ok) return;
 
     setSubmitting(true);
     setError("");
@@ -664,7 +678,7 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
                         <td className="px-4 py-3 font-semibold text-surface-text">{asistencia.empleado.nombres} {asistencia.empleado.apellidos}</td>
                         <td className="px-4 py-3 text-surface-muted">{asistencia.sucursal.nombre}</td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${estadoAsistenciaBadge[asistencia.estado] ?? "border-surface-border bg-surface-bg text-surface-muted"}`}>
                             {asistencia.estado}
                           </span>
                         </td>
@@ -806,7 +820,10 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
                         key={state}
                         type="button"
                         onClick={() => setAttendanceForm((current) => ({ ...current, estado: state }))}
-                        className={active ? "rounded-2xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700" : "rounded-2xl border border-surface-border bg-white px-3 py-2 text-sm font-medium text-surface-muted hover:border-brand-100 hover:bg-slate-50"}
+                        className={active
+                          ? `rounded-2xl border px-3 py-2 text-sm font-semibold ${estadoAsistenciaBadge[state] ?? "border-brand-200 bg-brand-50 text-brand-700"}`
+                          : "rounded-2xl border border-surface-border bg-white px-3 py-2 text-sm font-medium text-surface-muted hover:border-surface-muted hover:bg-slate-50"
+                        }
                       >
                         {state}
                       </button>
