@@ -241,7 +241,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
 
   return (
     <main className="min-h-screen bg-[#f4efe7] text-stone-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className={`mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 ${cart.length > 0 ? "pb-28 xl:pb-6" : ""}`}>
         <div className="grid gap-6 xl:grid-cols-[1.2fr_420px]">
           <section className="space-y-6">
             <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#111111] text-white shadow-[0_40px_120px_-65px_rgba(0,0,0,0.7)]">
@@ -251,16 +251,30 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
                     <ArrowLeft size={15} />
                     Volver
                   </Link>
-                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">Delivery integrado</p>
-                  <h1 className="mt-2 text-3xl font-black sm:text-4xl">Pide desde casa</h1>
+                  <div className="mt-4 flex items-center gap-3">
+                    {sucursal.logoUrl && (
+                      <img
+                        src={sucursal.logoUrl}
+                        alt={sucursal.nombre}
+                        className="h-12 w-12 rounded-2xl object-contain flex-shrink-0"
+                      />
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">Delivery integrado</p>
+                      <h1 className="mt-1 text-3xl font-black sm:text-4xl">{sucursal.nombre}</h1>
+                    </div>
+                  </div>
                   <p className="mt-3 max-w-2xl text-sm text-white/75">
                     Tu pedido entra directo al POS, cocina lo prepara y delivery lo despacha con seguimiento para el cliente.
                   </p>
-                </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 text-sm text-white/75">
-                  <p className="font-bold text-white">{sucursal.nombre}</p>
-                  {sucursal.direccion ? <p className="mt-1">{sucursal.direccion}</p> : null}
-                  {sucursal.telefono ? <p className="mt-1">{sucursal.telefono}</p> : null}
+                  <div className="mt-3 flex flex-wrap gap-3 text-sm text-white/60">
+                    {sucursal.direccion && (
+                      <span className="flex items-center gap-1.5"><MapPin size={13} />{sucursal.direccion}</span>
+                    )}
+                    {sucursal.telefono && (
+                      <span className="flex items-center gap-1.5"><Phone size={13} />{sucursal.telefono}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
