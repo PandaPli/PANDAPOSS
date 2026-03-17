@@ -53,6 +53,12 @@ export function initializeRealtimeEngine(httpServer: NetServer): SocketIOServer 
       }
     });
 
+    // Agente de impresión local por sucursal
+    socket.on("printer:register", (sucursalId: number) => {
+      socket.join(`printer_${sucursalId}`);
+      console.log(`[Printer] Agente registrado para sucursal ${sucursalId}`);
+    });
+
     socket.on("disconnect", () => {
       console.log(`[Socket] Desconectado: ${socket.id}`);
     });
@@ -60,4 +66,8 @@ export function initializeRealtimeEngine(httpServer: NetServer): SocketIOServer 
 
   globalForSocket.io = io;
   return io;
+}
+
+export function emitPrintJob(io: SocketIOServer, sucursalId: number, content: string) {
+  io.to(`printer_${sucursalId}`).emit("printer:print", { content });
 }
