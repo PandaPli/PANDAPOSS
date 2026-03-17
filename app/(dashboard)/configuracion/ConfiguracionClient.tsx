@@ -25,9 +25,13 @@ interface Props {
   sucursalLogoUrl: string | null;
   sucursalSlug?: string | null;
   sucursalDescripcionDelivery?: string | null;
+  sucursalInstagram?: string | null;
+  sucursalFacebook?: string | null;
+  sucursalWhatsapp?: string | null;
+  sucursalTiktok?: string | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalDescripcionDelivery }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalDescripcionDelivery, sucursalInstagram, sucursalFacebook, sucursalWhatsapp, sucursalTiktok }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -75,6 +79,41 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
       setDescripcionMsg({ type: "error", text: "No se pudo guardar la descripción." });
     } finally {
       setDescripcionLoading(false);
+    }
+  }
+
+  // --- Estado redes sociales ---
+  const [redes, setRedes] = useState({
+    instagram: sucursalInstagram ?? "",
+    facebook: sucursalFacebook ?? "",
+    whatsapp: sucursalWhatsapp ?? "",
+    tiktok: sucursalTiktok ?? "",
+  });
+  const [redesLoading, setRedesLoading] = useState(false);
+  const [redesMsg, setRedesMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  async function handleSaveRedes() {
+    if (!sucursalId) return;
+    setRedesLoading(true);
+    setRedesMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instagram: redes.instagram || null,
+          facebook: redes.facebook || null,
+          whatsapp: redes.whatsapp || null,
+          tiktok: redes.tiktok || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      setRedesMsg({ type: "ok", text: "Redes sociales guardadas." });
+      router.refresh();
+    } catch {
+      setRedesMsg({ type: "error", text: "No se pudo guardar las redes." });
+    } finally {
+      setRedesLoading(false);
     }
   }
   
@@ -271,6 +310,77 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
             >
               {descripcionLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Guardar
+            </button>
+          </div>
+        </div>
+
+        {/* Redes Sociales */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Link2 size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Redes Sociales</h2>
+          </div>
+          <p className="text-xs text-surface-muted mb-4">Aparecen como botones en tu página de delivery para que los clientes te sigan.</p>
+
+          {redesMsg && (
+            <div className={`mb-3 p-3 rounded-lg text-sm border ${redesMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {redesMsg.text}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-surface-muted uppercase tracking-wide">WhatsApp</label>
+              <input
+                value={redes.whatsapp}
+                onChange={(e) => setRedes(r => ({ ...r, whatsapp: e.target.value }))}
+                placeholder="569XXXXXXXX (número completo con código país)"
+                className="input w-full mt-1 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-surface-muted uppercase tracking-wide">Instagram</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-muted">@</span>
+                <input
+                  value={redes.instagram}
+                  onChange={(e) => setRedes(r => ({ ...r, instagram: e.target.value.replace("@", "") }))}
+                  placeholder="tu_usuario"
+                  className="input w-full pl-7 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-surface-muted uppercase tracking-wide">TikTok</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-surface-muted">@</span>
+                <input
+                  value={redes.tiktok}
+                  onChange={(e) => setRedes(r => ({ ...r, tiktok: e.target.value.replace("@", "") }))}
+                  placeholder="tu_usuario"
+                  className="input w-full pl-7 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-surface-muted uppercase tracking-wide">Facebook</label>
+              <input
+                value={redes.facebook}
+                onChange={(e) => setRedes(r => ({ ...r, facebook: e.target.value }))}
+                placeholder="nombre de página o URL completa"
+                className="input w-full mt-1 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={handleSaveRedes}
+              disabled={redesLoading}
+              className="btn-primary py-2 px-4 text-sm flex items-center gap-2"
+            >
+              {redesLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Guardar redes
             </button>
           </div>
         </div>

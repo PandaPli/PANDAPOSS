@@ -23,12 +23,20 @@ export default async function ConfiguracionPage() {
   let sucursalLogoUrl: string | null = null;
   let sucursalSlug: string | null = null;
   let sucursalDescripcionDelivery: string | null = null;
+  let sucursalInstagram: string | null = null;
+  let sucursalFacebook: string | null = null;
+  let sucursalWhatsapp: string | null = null;
+  let sucursalTiktok: string | null = null;
   
   if (rol === "RESTAURANTE" && sucursalId) {
-    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true, descripcionDelivery: true } });
+    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true, descripcionDelivery: true, instagram: true, facebook: true, whatsapp: true, tiktok: true } });
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
       sucursalDescripcionDelivery = suc.descripcionDelivery;
+      sucursalInstagram = suc.instagram;
+      sucursalFacebook = suc.facebook;
+      sucursalWhatsapp = suc.whatsapp;
+      sucursalTiktok = suc.tiktok;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -56,6 +64,10 @@ export default async function ConfiguracionPage() {
         sucursalLogoUrl={sucursalLogoUrl}
         sucursalSlug={sucursalSlug}
         sucursalDescripcionDelivery={sucursalDescripcionDelivery}
+        sucursalInstagram={sucursalInstagram}
+        sucursalFacebook={sucursalFacebook}
+        sucursalWhatsapp={sucursalWhatsapp}
+        sucursalTiktok={sucursalTiktok}
       />
     </div>
   );

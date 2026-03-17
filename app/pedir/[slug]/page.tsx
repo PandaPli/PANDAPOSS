@@ -21,6 +21,10 @@ export default async function PedirDeliveryPage({ params }: Props) {
       logoUrl: true,
       simbolo: true,
       descripcionDelivery: true,
+      instagram: true,
+      facebook: true,
+      whatsapp: true,
+      tiktok: true,
     },
   });
 

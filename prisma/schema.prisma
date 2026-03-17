@@ -140,6 +140,10 @@ model Sucursal {
   correoActivo Boolean  @default(false)
   logoUrl              String?  @db.VarChar(255)
   descripcionDelivery  String?  @db.VarChar(500)
+  instagram            String?  @db.VarChar(100)
+  facebook             String?  @db.VarChar(150)
+  whatsapp             String?  @db.VarChar(20)
+  tiktok               String?  @db.VarChar(100)
   orden                Int      @default(0)
   creadoEn             DateTime @default(now())
 

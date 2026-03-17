@@ -35,14 +35,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, descripcionDelivery, plan } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, descripcionDelivery, instagram, facebook, whatsapp, tiktok, plan } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
-  // RESTAURANTE solo puede actualizar su propio logo y descripción de delivery
+  // RESTAURANTE solo puede actualizar su propio logo, descripción y redes sociales
   if (esPropietario && !isAdmin(rol)) {
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
     if (descripcionDelivery !== undefined) data.descripcionDelivery = (descripcionDelivery as string)?.trim() || null;
+    if (instagram !== undefined) data.instagram = (instagram as string)?.trim() || null;
+    if (facebook !== undefined) data.facebook = (facebook as string)?.trim() || null;
+    if (whatsapp !== undefined) data.whatsapp = (whatsapp as string)?.trim() || null;
+    if (tiktok !== undefined) data.tiktok = (tiktok as string)?.trim() || null;
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();
@@ -53,6 +57,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (activa !== undefined) data.activa = activa;
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
     if (descripcionDelivery !== undefined) data.descripcionDelivery = (descripcionDelivery as string)?.trim() || null;
+    if (instagram !== undefined) data.instagram = (instagram as string)?.trim() || null;
+    if (facebook !== undefined) data.facebook = (facebook as string)?.trim() || null;
+    if (whatsapp !== undefined) data.whatsapp = (whatsapp as string)?.trim() || null;
+    if (tiktok !== undefined) data.tiktok = (tiktok as string)?.trim() || null;
     if (plan !== undefined) {
       if (!PLANES_VALIDOS.includes(plan as string)) {
         return NextResponse.json({ error: `Plan inválido. Valores permitidos: ${PLANES_VALIDOS.join(", ")}` }, { status: 400 });
