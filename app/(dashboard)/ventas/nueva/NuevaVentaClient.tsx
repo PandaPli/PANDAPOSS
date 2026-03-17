@@ -60,7 +60,7 @@ export function NuevaVentaClient({
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, markAsSavedWithDetalles, getItemsByGrupo, setMesaFresh } = useCartStore();
 
   // Filtrar productos según el rol del usuario
   const productosFiltrados = useMemo(() => {
@@ -178,7 +178,12 @@ export function NuevaVentaClient({
 
       const pedido = await res.json();
       setPedido(pedido.id);
-      markAsSaved();
+      // Asignar detalleId a cada ítem recién enviado (misma posición que el array enviado)
+      if (Array.isArray(pedido.detalles) && pedido.detalles.length > 0) {
+        markAsSavedWithDetalles(pedido.detalles);
+      } else {
+        markAsSaved();
+      }
 
       setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
       setTimeout(() => setOrdenMsg(""), 4000);

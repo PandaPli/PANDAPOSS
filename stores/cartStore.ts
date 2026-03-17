@@ -35,6 +35,8 @@ interface CartState {
   clear: () => void;
   setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
   markAsSaved: () => void;
+  /** Asigna detalleId a cada ítem no-guardado (en el mismo orden que fueron enviados al API) y los marca como guardados */
+  markAsSavedWithDetalles: (detalles: { id: number; productoId: number | null; comboId: number | null }[]) => void;
 
   /** Asigna un grupo de pago a un ítem (null = sin grupo) */
   setItemGrupo: (detalleId: number, grupo: string | null) => void;
@@ -132,6 +134,20 @@ export const useCartStore = create<CartState>((set, get) => ({
   clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0 }),
   setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => ({ ...i, guardado: true })) })),
+
+  markAsSavedWithDetalles(detalles) {
+    set((s) => {
+      let idx = 0;
+      const newItems = s.items.map((item) => {
+        if (!item.guardado && idx < detalles.length) {
+          const d = detalles[idx++];
+          return { ...item, guardado: true, detalleId: d.id };
+        }
+        return item;
+      });
+      return { items: newItems };
+    });
+  },
 
   setItemGrupo: (detalleId, grupo) =>
     set((s) => ({
