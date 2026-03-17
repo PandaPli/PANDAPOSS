@@ -30,7 +30,9 @@ export async function GET(
         },
         orderBy: { id: "asc" },
       },
-      caja: { select: { nombre: true, sucursal: { select: { nombre: true } } } },
+      caja: { select: { nombre: true, sucursal: { select: { nombre: true, simbolo: true, logoUrl: true } } } },
+      pagos: { select: { metodoPago: true, monto: true } },
+      pedido: { select: { mesa: { select: { nombre: true } } } },
     },
   });
 
