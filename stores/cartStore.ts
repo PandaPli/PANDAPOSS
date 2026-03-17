@@ -70,26 +70,29 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addItem(item) {
     set((state) => {
-      // Ignorar ítems cancelados: si el mismo producto fue anulado,
-      // se agrega como entrada nueva (no-guardado) en lugar de incrementar el cancelado
+      // Solo acumular sobre un ítem NO guardado aún en BD.
+      // Si el mismo producto ya fue enviado (guardado: true), crear una línea nueva
+      // para que la segunda ronda llegue como un ítem distinto al API.
       const existing = state.items.find(
-        (i) => i.id === item.id && i.tipo === item.tipo && !i.cancelado
+        (i) => i.id === item.id && i.tipo === item.tipo && !i.cancelado && !i.guardado
       );
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.id === item.id && i.tipo === item.tipo && !i.cancelado
+            i.id === item.id && i.tipo === item.tipo && !i.cancelado && !i.guardado
               ? { ...i, cantidad: i.cantidad + (item.cantidad ?? 1) }
               : i
           ),
         };
       }
-      return { items: [...state.items, { ...item, cantidad: item.cantidad ?? 1 }] };
+      // Ítem nuevo (o segunda ronda del mismo producto ya guardado)
+      return { items: [...state.items, { ...item, cantidad: item.cantidad ?? 1, guardado: false }] };
     });
   },
 
   removeItem(id, tipo) {
-    set((s) => ({ items: s.items.filter((i) => !(i.id === id && i.tipo === tipo)) }));
+    // Solo elimina ítems NO guardados (los guardados se cancelan desde handleCancel)
+    set((s) => ({ items: s.items.filter((i) => !(i.id === id && i.tipo === tipo && !i.guardado)) }));
   },
 
   updateCantidad(id, tipo, cantidad) {
@@ -97,9 +100,10 @@ export const useCartStore = create<CartState>((set, get) => ({
       get().removeItem(id, tipo);
       return;
     }
+    // Solo actualiza la cantidad en ítems NO guardados para no pisar los ya enviados a cocina
     set((s) => ({
       items: s.items.map((i) =>
-        i.id === id && i.tipo === tipo ? { ...i, cantidad } : i
+        i.id === id && i.tipo === tipo && !i.guardado ? { ...i, cantidad } : i
       ),
     }));
   },
