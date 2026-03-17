@@ -25,10 +25,9 @@ export default async function ConfiguracionPage() {
   let sucursalPrinterPath: string | null = null;
   
   if (rol === "RESTAURANTE" && sucursalId) {
-    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true, printerPath: true } });
+    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true } });
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
-      sucursalPrinterPath = suc.printerPath;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
