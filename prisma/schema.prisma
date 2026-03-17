@@ -138,6 +138,7 @@ model Sucursal {
   correoActivo Boolean  @default(false)
   logoUrl      String?  @db.VarChar(255)
   orden        Int      @default(0)
+  printerPath  String?  @default("/dev/usb/lp0") @db.VarChar(50)
   creadoEn     DateTime @default(now())
 
   usuarios      Usuario[]
