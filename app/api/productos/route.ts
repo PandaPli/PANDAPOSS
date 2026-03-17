@@ -111,7 +111,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Whitelist de campos editables — previene mass-assignment de sucursalId, activo, etc.
-  const CAMPOS: (keyof typeof rawData)[] = [
+  const CAMPOS: string[] = [
     "nombre", "descripcion", "precio", "costo", "stock", "stockMinimo",
     "categoriaId", "ivaActivo", "ivaPorc", "imagen", "enMenu", "enMenuQR",
   ];

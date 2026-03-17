@@ -40,8 +40,7 @@ export default async function MenuPage({ searchParams }: Props) {
             sucursalId,
             activo: true,
             enMenuQR: true,
-            // Mostrar productos sin stock definido (null) o con stock disponible
-            OR: [{ stock: null }, { stock: { gt: 0 } }],
+            stock: { gte: 0 },
           },
           select: { id: true, nombre: true, precio: true, descripcion: true, imagen: true },
           orderBy: { nombre: "asc" },
