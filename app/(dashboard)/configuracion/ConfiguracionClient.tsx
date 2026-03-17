@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer } from "lucide-react";
 import type { Rol } from "@/types";
 
 interface Config {
@@ -24,9 +24,10 @@ interface Props {
   sucursalId: number | null;
   sucursalLogoUrl: string | null;
   sucursalSlug?: string | null;
+  sucursalPrinterPath?: string | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalPrinterPath }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -50,12 +51,38 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [logoMsg, setLogoMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // --- Estado impresora ---
+  const [printerPath, setPrinterPath] = useState(sucursalPrinterPath ?? "/dev/usb/lp0");
+  const [printerLoading, setPrinterLoading] = useState(false);
+  const [printerMsg, setPrinterMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
   function copyToClipboard(url: string, id: string) {
     navigator.clipboard.writeText(url);
     setCopiedLink(id);
     setTimeout(() => setCopiedLink(null), 2000);
+  }
+
+  async function handlePrinterSave() {
+    setPrinterLoading(true);
+    setPrinterMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printerPath: printerPath || null }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Error al guardar");
+      }
+      setPrinterMsg({ type: "ok", text: "Ruta de impresora guardada" });
+    } catch (err) {
+      setPrinterMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setPrinterLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -272,6 +299,42 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Impresora */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Printer size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Impresora Local</h2>
+          </div>
+
+          {printerMsg && (
+            <div className={`mb-4 p-3 rounded-lg text-sm border ${printerMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {printerMsg.text}
+            </div>
+          )}
+
+          <p className="text-sm text-surface-muted mb-4">
+            Ruta del dispositivo de impresora en el PC local donde corre el agente. En Linux/Mac suele ser <code className="bg-surface-bg px-1 rounded">/dev/usb/lp0</code>. En Windows usa el puerto COM, ej: <code className="bg-surface-bg px-1 rounded">\\\\?\\COM3</code>.
+          </p>
+
+          <div className="flex gap-2">
+            <input
+              className="input flex-1 font-mono text-sm"
+              value={printerPath}
+              onChange={(e) => setPrinterPath(e.target.value)}
+              placeholder="/dev/usb/lp0"
+            />
+            <button
+              type="button"
+              onClick={handlePrinterSave}
+              disabled={printerLoading}
+              className="btn-primary shrink-0"
+            >
+              {printerLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Guardar
+            </button>
           </div>
         </div>
       </div>
