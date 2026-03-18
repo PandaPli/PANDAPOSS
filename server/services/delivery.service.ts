@@ -75,9 +75,7 @@ export const DeliveryService = {
       if (!producto || Number(item.cantidad) <= 0) {
         throw new Error("El pedido contiene cantidades invalidas.");
       }
-      if (Number(producto.stock) < Number(item.cantidad)) {
-        throw new Error(`Sin stock suficiente para ${producto.nombre}.`);
-      }
+      // Stock bajo: se permite la venta. El restaurante recibe notificación vía socket.
     }
 
     const usuarioSistema = await prisma.usuario.findFirst({
