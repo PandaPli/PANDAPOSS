@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer } from "lucide-react";
+import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin, Plus, Trash2 } from "lucide-react";
 import type { Rol } from "@/types";
 
 interface Config {
@@ -18,6 +18,12 @@ interface Config {
   logoUrl: string | null;
 }
 
+interface ZonaDelivery {
+  id: number;
+  nombre: string;
+  precio: number;
+}
+
 interface Props {
   config: Config;
   rol: Rol;
@@ -25,9 +31,14 @@ interface Props {
   sucursalLogoUrl: string | null;
   sucursalSlug?: string | null;
   sucursalPrinterPath?: string | null;
+  sucursalRut?: string | null;
+  sucursalGiroComercial?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalZonasDelivery?: ZonaDelivery[] | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalPrinterPath }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalPrinterPath, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -56,6 +67,25 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [printerLoading, setPrinterLoading] = useState(false);
   const [printerMsg, setPrinterMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
+  // --- Estado datos legales sucursal ---
+  const [legalForm, setLegalForm] = useState({
+    rut: sucursalRut ?? "",
+    giroComercial: sucursalGiroComercial ?? "",
+    telefono: sucursalTelefono ?? "",
+    direccion: sucursalDireccion ?? "",
+  });
+  const [legalLoading, setLegalLoading] = useState(false);
+  const [legalMsg, setLegalMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // --- Estado zonas de delivery ---
+  const [zonas, setZonas] = useState<ZonaDelivery[]>(
+    Array.isArray(sucursalZonasDelivery) ? sucursalZonasDelivery : []
+  );
+  const [newZonaNombre, setNewZonaNombre] = useState("");
+  const [newZonaPrecio, setNewZonaPrecio] = useState("");
+  const [zonasLoading, setZonasLoading] = useState(false);
+  const [zonasMsg, setZonasMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
   function copyToClipboard(url: string, id: string) {
@@ -83,6 +113,70 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
     } finally {
       setPrinterLoading(false);
     }
+  }
+
+  async function handleLegalSave() {
+    setLegalLoading(true);
+    setLegalMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rut: legalForm.rut || null,
+          giroComercial: legalForm.giroComercial || null,
+          telefono: legalForm.telefono || null,
+          direccion: legalForm.direccion || null,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Error al guardar");
+      }
+      setLegalMsg({ type: "ok", text: "Datos legales guardados" });
+    } catch (err) {
+      setLegalMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setLegalLoading(false);
+    }
+  }
+
+  async function handleZonasSave(nuevasZonas: ZonaDelivery[]) {
+    setZonasLoading(true);
+    setZonasMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ zonasDelivery: nuevasZonas }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Error al guardar");
+      }
+      setZonasMsg({ type: "ok", text: "Zonas guardadas" });
+    } catch (err) {
+      setZonasMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setZonasLoading(false);
+    }
+  }
+
+  function handleAddZona() {
+    const nombre = newZonaNombre.trim();
+    const precio = Number(newZonaPrecio);
+    if (!nombre || !precio || precio <= 0) return;
+    const nuevasZonas = [...zonas, { id: Date.now(), nombre, precio }];
+    setZonas(nuevasZonas);
+    setNewZonaNombre("");
+    setNewZonaPrecio("");
+    handleZonasSave(nuevasZonas);
+  }
+
+  function handleRemoveZona(id: number) {
+    const nuevasZonas = zonas.filter((z) => z.id !== id);
+    setZonas(nuevasZonas);
+    handleZonasSave(nuevasZonas);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -334,6 +428,102 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
             >
               {printerLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Guardar
+            </button>
+          </div>
+        </div>
+
+        {/* Datos Legales */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Building2 size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Datos Legales</h2>
+          </div>
+          <p className="text-sm text-surface-muted mb-4">Estos datos aparecen en los tickets y boletas de tu sucursal.</p>
+
+          {legalMsg && (
+            <div className={`mb-4 p-3 rounded-lg text-sm border ${legalMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {legalMsg.text}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">RUT</label>
+                <input className="input" value={legalForm.rut} onChange={(e) => setLegalForm({ ...legalForm, rut: e.target.value })} placeholder="76.000.000-0" />
+              </div>
+              <div>
+                <label className="label">Teléfono</label>
+                <input className="input" value={legalForm.telefono} onChange={(e) => setLegalForm({ ...legalForm, telefono: e.target.value })} placeholder="+56 9 1234 5678" />
+              </div>
+            </div>
+            <div>
+              <label className="label">Giro Comercial</label>
+              <input className="input" value={legalForm.giroComercial} onChange={(e) => setLegalForm({ ...legalForm, giroComercial: e.target.value })} placeholder="Restaurante y delivery" />
+            </div>
+            <div>
+              <label className="label">Dirección</label>
+              <input className="input" value={legalForm.direccion} onChange={(e) => setLegalForm({ ...legalForm, direccion: e.target.value })} placeholder="Calle 123, Ciudad" />
+            </div>
+          </div>
+
+          <button type="button" onClick={handleLegalSave} disabled={legalLoading} className="btn-primary mt-4">
+            {legalLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            Guardar Datos Legales
+          </button>
+        </div>
+
+        {/* Zonas de Delivery */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <MapPin size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Zonas de Delivery</h2>
+          </div>
+          <p className="text-sm text-surface-muted mb-4">Define las zonas de despacho y su costo. Los clientes eligen la zona al pedir online.</p>
+
+          {zonasMsg && (
+            <div className={`mb-4 p-3 rounded-lg text-sm border ${zonasMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {zonasMsg.text}
+            </div>
+          )}
+
+          <div className="space-y-2 mb-4">
+            {zonas.length === 0 && (
+              <p className="text-sm text-surface-muted italic">Sin zonas configuradas. Agrega al menos una.</p>
+            )}
+            {zonas.map((zona) => (
+              <div key={zona.id} className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-bg px-4 py-2.5">
+                <div>
+                  <span className="text-sm font-semibold text-surface-text">{zona.nombre}</span>
+                  <span className="ml-3 text-sm text-surface-muted">${zona.precio.toLocaleString("es-CL")}</span>
+                </div>
+                <button type="button" onClick={() => handleRemoveZona(zona.id)} disabled={zonasLoading} className="text-red-500 hover:text-red-700 transition-colors p-1 rounded">
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              value={newZonaNombre}
+              onChange={(e) => setNewZonaNombre(e.target.value)}
+              placeholder="Nombre zona (ej: Llolleo Centro)"
+              onKeyDown={(e) => e.key === "Enter" && handleAddZona()}
+            />
+            <input
+              className="input w-32"
+              type="number"
+              value={newZonaPrecio}
+              onChange={(e) => setNewZonaPrecio(e.target.value)}
+              placeholder="Precio"
+              min={0}
+              onKeyDown={(e) => e.key === "Enter" && handleAddZona()}
+            />
+            <button type="button" onClick={handleAddZona} disabled={zonasLoading || !newZonaNombre.trim() || !newZonaPrecio} className="btn-primary shrink-0">
+              {zonasLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              Agregar
             </button>
           </div>
         </div>

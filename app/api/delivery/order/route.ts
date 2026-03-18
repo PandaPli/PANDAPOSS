@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       cliente: (body.cliente ?? {}) as DeliveryCustomerInput,
       metodoPago: body.metodoPago as MetodoPago,
       cargoEnvio: Number(body.cargoEnvio ?? 0),
+      zonaDelivery: typeof body.zonaDelivery === "string" ? body.zonaDelivery : undefined,
     });
 
     return NextResponse.json(result, { status: 201 });

@@ -19,15 +19,30 @@ export default async function ConfiguracionPage() {
     });
   }
 
-  // Logo, slug y ruta impresora de la sucursal (si aplica)
+  // Logo, slug, ruta impresora y datos de la sucursal (si aplica)
   let sucursalLogoUrl: string | null = null;
   let sucursalSlug: string | null = null;
   let sucursalPrinterPath: string | null = null;
-  
+  let sucursalRut: string | null = null;
+  let sucursalGiroComercial: string | null = null;
+  let sucursalTelefono: string | null = null;
+  let sucursalDireccion: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let sucursalZonasDelivery: any = null;
+
   if (rol === "RESTAURANTE" && sucursalId) {
-    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true, logoUrl: true } });
+    const suc = await prisma.sucursal.findUnique({
+      where: { id: sucursalId },
+      select: { nombre: true, logoUrl: true, printerPath: true, rut: true, giroComercial: true, telefono: true, direccion: true, zonasDelivery: true },
+    });
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
+      sucursalPrinterPath = suc.printerPath;
+      sucursalRut = suc.rut;
+      sucursalGiroComercial = suc.giroComercial;
+      sucursalTelefono = suc.telefono;
+      sucursalDireccion = suc.direccion;
+      sucursalZonasDelivery = suc.zonasDelivery;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -55,6 +70,11 @@ export default async function ConfiguracionPage() {
         sucursalLogoUrl={sucursalLogoUrl}
         sucursalSlug={sucursalSlug}
         sucursalPrinterPath={sucursalPrinterPath}
+        sucursalRut={sucursalRut}
+        sucursalGiroComercial={sucursalGiroComercial}
+        sucursalTelefono={sucursalTelefono}
+        sucursalDireccion={sucursalDireccion}
+        sucursalZonasDelivery={sucursalZonasDelivery}
       />
     </div>
   );

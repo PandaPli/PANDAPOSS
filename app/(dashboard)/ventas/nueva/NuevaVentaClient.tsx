@@ -38,6 +38,11 @@ interface Props {
   initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
   logoUrl?: string | null;
   mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
 export function NuevaVentaClient({
@@ -51,6 +56,11 @@ export function NuevaVentaClient({
   initialOrder,
   logoUrl,
   mesaNombre,
+  sucursalNombre,
+  sucursalRut,
+  sucursalTelefono,
+  sucursalDireccion,
+  sucursalGiroComercial,
 }: Props) {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -217,10 +227,20 @@ export function NuevaVentaClient({
           </div>
         </div>`)
       .join("");
+    const legalLines = [
+      sucursalNombre ? `<div class="legal-name">${sucursalNombre}</div>` : "",
+      sucursalGiroComercial ? `<div class="legal-line">${sucursalGiroComercial}</div>` : "",
+      sucursalRut ? `<div class="legal-line">RUT: ${sucursalRut}</div>` : "",
+      sucursalDireccion ? `<div class="legal-line">${sucursalDireccion}</div>` : "",
+      sucursalTelefono ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
+    ].filter(Boolean).join("");
     pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
-      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
+      .branch{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
+      .legal-name{font-size:13px;font-weight:bold;}
+      .legal-line{font-size:11px;color:#444;margin-top:2px;}
+      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;margin-top:6px;}
       .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
       .subtitle{font-size:13px;margin-top:3px;}
       .meta{font-size:12px;margin:6px 0;color:#333;}
@@ -233,6 +253,7 @@ export function NuevaVentaClient({
       .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
       @media print{body{width:80mm;}}
     </style></head><body>
+      ${legalLines ? `<div class="branch">${legalLines}</div>` : ""}
       <div class="header">
         <div class="title">${titulo}</div>
         <div class="subtitle">${mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${pedidoNum}</div>

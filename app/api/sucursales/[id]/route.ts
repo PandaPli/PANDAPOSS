@@ -35,14 +35,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, plan, printerPath } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, plan, printerPath, rut, giroComercial, zonasDelivery } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
-  // RESTAURANTE solo puede actualizar su propio logo y ruta de impresora
+  // RESTAURANTE solo puede actualizar su propio logo, ruta impresora, datos legales y zonas
   if (esPropietario && !isAdmin(rol)) {
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
     if (printerPath !== undefined) data.printerPath = (printerPath as string)?.trim() || null;
+    if (rut !== undefined) data.rut = (rut as string)?.trim() || null;
+    if (giroComercial !== undefined) data.giroComercial = (giroComercial as string)?.trim() || null;
+    if (telefono !== undefined) data.telefono = (telefono as string)?.trim() || null;
+    if (direccion !== undefined) data.direccion = (direccion as string)?.trim() || null;
+    if (zonasDelivery !== undefined) data.zonasDelivery = zonasDelivery ?? null;
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();

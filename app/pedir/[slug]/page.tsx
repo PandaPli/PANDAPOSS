@@ -20,6 +20,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
       telefono: true,
       logoUrl: true,
       simbolo: true,
+      zonasDelivery: true,
     },
   });
 
@@ -67,11 +68,17 @@ export default async function PedirDeliveryPage({ params }: Props) {
       })),
     }));
 
+  // Zonas configuradas por la sucursal o fallback vacío
+  const zonasRaw = Array.isArray(branch.zonasDelivery) ? branch.zonasDelivery : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const zonas = (zonasRaw as any[]).map((z) => ({ id: z.id, nombre: String(z.nombre), precio: Number(z.precio) }));
+
   return (
     <DeliveryOrderClient
       sucursal={branch}
       categorias={safeCategorias}
       slug={slug}
+      zonas={zonas}
     />
   );
 }

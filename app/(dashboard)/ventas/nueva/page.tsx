@@ -31,7 +31,7 @@ async function getSucursalBranding(sucursalId: number | null) {
   if (!sucursalId) return null;
   return prisma.sucursal.findUnique({
     where: { id: sucursalId },
-    select: { simbolo: true, logoUrl: true },
+    select: { simbolo: true, logoUrl: true, nombre: true, rut: true, telefono: true, direccion: true, giroComercial: true },
   });
 }
 
@@ -153,6 +153,11 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       initialOrder={pedidoInfo}
       logoUrl={logoUrl}
       mesaNombre={mesaInfo?.nombre ?? undefined}
+      sucursalNombre={sucursalBranding?.nombre ?? null}
+      sucursalRut={sucursalBranding?.rut ?? null}
+      sucursalTelefono={sucursalBranding?.telefono ?? null}
+      sucursalDireccion={sucursalBranding?.direccion ?? null}
+      sucursalGiroComercial={sucursalBranding?.giroComercial ?? null}
     />
   );
 }

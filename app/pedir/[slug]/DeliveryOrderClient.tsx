@@ -24,6 +24,12 @@ interface CartItem extends Producto {
   cantidad: number;
 }
 
+interface ZonaDelivery {
+  id: number;
+  nombre: string;
+  precio: number;
+}
+
 interface Props {
   sucursal: {
     id: number;
@@ -35,13 +41,8 @@ interface Props {
   };
   categorias: Categoria[];
   slug: string;
+  zonas: ZonaDelivery[];
 }
-
-const zonas = [
-  { id: "zona1", nombre: "Zona 1", detalle: "Cercana", cargo: 1500 },
-  { id: "zona2", nombre: "Zona 2", detalle: "Intermedia", cargo: 2000 },
-  { id: "zona3", nombre: "Zona 3", detalle: "Extendida", cargo: 3000 },
-];
 
 const paymentOptions: { id: string; label: string; method: MetodoPago; detail: string }[] = [
   { id: "webpay", label: "Webpay", method: "TARJETA", detail: "Tarjeta y links de pago" },
@@ -50,7 +51,7 @@ const paymentOptions: { id: string; label: string; method: MetodoPago; detail: s
   { id: "mercadopago", label: "Mercado Pago", method: "TARJETA", detail: "Wallet y tarjetas" },
 ];
 
-export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
+export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [categoriaActiva, setCategoriaActiva] = useState<number | null>(categorias[0]?.id ?? null);
   const [nombre, setNombre] = useState("");
@@ -58,7 +59,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
   const [direccion, setDireccion] = useState("");
   const [referencia, setReferencia] = useState("");
   const [departamento, setDepartamento] = useState("");
-  const [zonaId, setZonaId] = useState(zonas[0].id);
+  const [zonaId, setZonaId] = useState<number | null>(zonas[0]?.id ?? null);
   const [paymentId, setPaymentId] = useState(paymentOptions[0].id);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
   const [clientFoundLabel, setClientFoundLabel] = useState("");
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
 
-  const zonaSeleccionada = zonas.find((zona) => zona.id === zonaId) ?? zonas[0];
+  const zonaSeleccionada = zonas.find((zona) => zona.id === zonaId) ?? zonas[0] ?? null;
   const paymentSeleccionado = paymentOptions.find((option) => option.id === paymentId) ?? paymentOptions[0];
   const categoriaVisible = categorias.find((categoria) => categoria.id === categoriaActiva) ?? categorias[0];
 
@@ -80,7 +81,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
     () => cart.reduce((acc, item) => acc + item.cantidad, 0),
     [cart]
   );
-  const total = subtotal + zonaSeleccionada.cargo;
+  const total = subtotal + (zonaSeleccionada?.precio ?? 0);
 
   function addItem(producto: Producto) {
     setCart((prev) => {
@@ -184,7 +185,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
             departamento,
           },
           metodoPago: paymentSeleccionado.method,
-          cargoEnvio: zonaSeleccionada.cargo,
+          cargoEnvio: zonaSeleccionada?.precio ?? 0,
+          zonaDelivery: zonaSeleccionada?.nombre ?? null,
           items: cart.map((item) => ({
             productoId: item.id,
             cantidad: item.cantidad,
@@ -418,28 +420,27 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
                   </div>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Zona de despacho</p>
-                  <div className="mt-4 grid gap-2">
-                    {zonas.map((zona) => (
-                      <button
-                        key={zona.id}
-                        onClick={() => setZonaId(zona.id)}
-                        className={`rounded-2xl border px-4 py-3 text-left transition ${
-                          zonaId === zona.id ? "border-amber-400 bg-white" : "border-stone-200 bg-white/70 hover:border-stone-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
+                {zonas.length > 0 && (
+                  <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Zona de despacho</p>
+                    <div className="mt-4 grid gap-2">
+                      {zonas.map((zona) => (
+                        <button
+                          key={zona.id}
+                          onClick={() => setZonaId(zona.id)}
+                          className={`rounded-2xl border px-4 py-3 text-left transition ${
+                            zonaId === zona.id ? "border-amber-400 bg-white" : "border-stone-200 bg-white/70 hover:border-stone-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
                             <p className="font-bold text-stone-900">{zona.nombre}</p>
-                            <p className="text-xs text-stone-500">{zona.detalle}</p>
+                            <p className="font-bold text-stone-900">{formatCurrency(zona.precio, sucursal.simbolo)}</p>
                           </div>
-                          <p className="font-bold text-stone-900">{formatCurrency(zona.cargo, sucursal.simbolo)}</p>
-                        </div>
-                      </button>
-                    ))}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Pago</p>
@@ -465,8 +466,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug }: Props) {
                     <span>{formatCurrency(subtotal, sucursal.simbolo)}</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between text-sm text-stone-700">
-                    <span>Despacho</span>
-                    <span>{formatCurrency(zonaSeleccionada.cargo, sucursal.simbolo)}</span>
+                    <span>Despacho{zonaSeleccionada ? ` · ${zonaSeleccionada.nombre}` : ""}</span>
+                    <span>{formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-amber-200 pt-3 text-lg font-black text-stone-950">
                     <span>Total</span>

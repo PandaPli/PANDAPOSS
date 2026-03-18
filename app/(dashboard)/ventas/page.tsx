@@ -167,16 +167,35 @@ async function getVentas(rol: Rol, sucursalId: number | null) {
       ? { caja: { sucursalId } }
       : {};
 
-  return prisma.venta.findMany({
+  const rows = await prisma.venta.findMany({
     where,
     take: 50,
     orderBy: { creadoEn: "desc" },
-    include: {
-      cliente: { select: { nombre: true } },
-      usuario: { select: { nombre: true } },
-      _count:  { select: { detalles: true } },
+    select: {
+      id:         true,
+      numero:     true,
+      creadoEn:   true,
+      estado:     true,
+      metodoPago: true,
+      total:      true,
+      cliente:    { select: { nombre: true } },
+      usuario:    { select: { nombre: true } },
+      _count:     { select: { detalles: true } },
     },
   });
+
+  // Convert Decimal → number so plain objects flow to Client Components
+  return rows.map((v) => ({
+    id:         v.id,
+    numero:     v.numero,
+    creadoEn:   v.creadoEn.toISOString(),
+    estado:     v.estado,
+    metodoPago: v.metodoPago,
+    total:      Number(v.total),
+    cliente:    v.cliente,
+    usuario:    v.usuario,
+    _count:     v._count,
+  }));
 }
 
 const MEDAL = ["🥇", "🥈", "🥉"];
@@ -383,14 +402,7 @@ export default async function VentasPage() {
       </div>
 
       {/* ── Tabla de ventas ── */}
-      <VentasTable
-        ventas={ventas.map((v) => ({
-          ...v,
-          creadoEn: v.creadoEn.toISOString(),
-          total:    Number(v.total),
-        }))}
-        simbolo={simbolo}
-      />
+      <VentasTable ventas={ventas} simbolo={simbolo} />
     </div>
   );
 }

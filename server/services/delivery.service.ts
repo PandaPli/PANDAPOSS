@@ -29,8 +29,9 @@ export const DeliveryService = {
     cliente: DeliveryCustomerInput;
     metodoPago: MetodoPago;
     cargoEnvio?: number;
+    zonaDelivery?: string;
   }) {
-    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0 } = input;
+    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0, zonaDelivery } = input;
 
     if (!allowedPayments.includes(metodoPago)) {
       throw new Error("Selecciona un metodo de pago valido.");
@@ -164,6 +165,7 @@ export const DeliveryService = {
           lat: 0,
           lng: 0,
           costoEnvio: cargoEnvio,
+          zonaDelivery: zonaDelivery ?? null,
           tiempoEstimado: estimadoMinutos,
           estado: "CREADO"
         }
