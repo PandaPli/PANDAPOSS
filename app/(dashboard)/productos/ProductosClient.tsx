@@ -1,9 +1,24 @@
 "use client";
 
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Estacion = "COCINA" | "BARRA" | "CUARTO_CALIENTE" | "MOSTRADOR";
 
@@ -14,7 +29,7 @@ const ESTACION_CONFIG: Record<Estacion, { label: string; color: string; icon: Re
   MOSTRADOR:       { label: "Mostrador",       color: "bg-purple-100 text-purple-700",  icon: <ShoppingBag size={11} /> },
 };
 
-interface Categoria { id: number; nombre: string; estacion?: Estacion; }
+interface Categoria { id: number; nombre: string; estacion?: Estacion; orden?: number; }
 interface Sucursal { id: number; nombre: string; }
 interface Producto {
   id: number;
@@ -39,6 +54,58 @@ interface Props {
   sucursales: Sucursal[];
   simbolo: string;
   rol: string;
+}
+
+// ── Sortable card para drag & drop de categorías ─────────────────────────────
+function SortableCatCard({
+  cat,
+  savingEstacion,
+  onCambiarEstacion,
+}: {
+  cat: Categoria;
+  savingEstacion: number | null;
+  onCambiarEstacion: (id: number, est: Estacion) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
+  const est = (cat.estacion ?? "COCINA") as Estacion;
+  const cfg = ESTACION_CONFIG[est];
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex flex-col gap-1 rounded-xl border border-surface-border p-2 bg-white ${isDragging ? "opacity-50 shadow-lg z-50" : ""}`}
+    >
+      <div className="flex items-center gap-1">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-surface-muted hover:text-surface-text touch-none"
+          title="Arrastrar para reordenar"
+        >
+          <GripVertical size={13} />
+        </button>
+        <span className="text-xs font-medium text-surface-text truncate flex-1">{cat.nombre}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
+          {cfg.icon} {cfg.label}
+        </span>
+        {savingEstacion === cat.id && <Loader2 size={10} className="animate-spin text-surface-muted" />}
+      </div>
+      <select
+        value={est}
+        onChange={(e) => onCambiarEstacion(cat.id, e.target.value as Estacion)}
+        className="mt-1 rounded-lg border border-surface-border bg-white px-2 py-1 text-xs text-surface-text"
+        disabled={savingEstacion === cat.id}
+      >
+        <option value="COCINA">🍳 Cocina</option>
+        <option value="BARRA">🍹 Barra</option>
+        <option value="CUARTO_CALIENTE">🔥 Cuarto Caliente</option>
+        <option value="MOSTRADOR">🧁 Mostrador</option>
+      </select>
+    </div>
+  );
 }
 
 const emptyForm = {
@@ -73,6 +140,26 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [categoriasState, setCategoriasState] = useState(categorias);
   const [showEstaciones, setShowEstaciones] = useState(false);
   const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
+
+  // ── Drag & drop de categorías ─────────────────────────────────────────────
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setCategoriasState((prev) => {
+      const oldIndex = prev.findIndex((c) => c.id === active.id);
+      const newIndex = prev.findIndex((c) => c.id === over.id);
+      const reordered = arrayMove(prev, oldIndex, newIndex);
+      // Guardar en BD en background
+      fetch("/api/categorias/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: reordered.map((c, i) => ({ id: c.id, orden: i })) }),
+      });
+      return reordered;
+    });
+  }, []);
 
   // ── Importar Carta ────────────────────────────────────────────────────────
   const [showImportar, setShowImportar] = useState(false);
@@ -378,34 +465,20 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
           <ChevronDown size={15} className={`text-surface-muted transition-transform ${showEstaciones ? "rotate-180" : ""}`} />
         </button>
         {showEstaciones && (
-          <div className="border-t border-surface-border p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {categoriasState.map((cat) => {
-              const est = (cat.estacion ?? "COCINA") as Estacion;
-              const cfg = ESTACION_CONFIG[est];
-              return (
-                <div key={cat.id} className="flex flex-col gap-1 rounded-xl border border-surface-border p-2">
-                  <span className="text-xs font-medium text-surface-text truncate">{cat.nombre}</span>
-                  <div className="flex items-center gap-1">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
-                      {cfg.icon} {cfg.label}
-                    </span>
-                    {savingEstacion === cat.id && <Loader2 size={10} className="animate-spin text-surface-muted" />}
-                  </div>
-                  <select
-                    value={est}
-                    onChange={(e) => cambiarEstacion(cat.id, e.target.value as Estacion)}
-                    className="mt-1 rounded-lg border border-surface-border bg-white px-2 py-1 text-xs text-surface-text"
-                    disabled={savingEstacion === cat.id}
-                  >
-                    <option value="COCINA">🍳 Cocina</option>
-                    <option value="BARRA">🍹 Barra</option>
-                    <option value="CUARTO_CALIENTE">🔥 Cuarto Caliente</option>
-                    <option value="MOSTRADOR">🧁 Mostrador</option>
-                  </select>
-                </div>
-              );
-            })}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={categoriasState.map((c) => c.id)} strategy={rectSortingStrategy}>
+              <div className="border-t border-surface-border p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {categoriasState.map((cat) => (
+                  <SortableCatCard
+                    key={cat.id}
+                    cat={cat}
+                    savingEstacion={savingEstacion}
+                    onCambiarEstacion={cambiarEstacion}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

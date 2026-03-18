@@ -122,6 +122,7 @@ model Categoria {
   icono     String?    @db.VarChar(50)
   activa    Boolean    @default(true)
   estacion  Estacion   @default(COCINA)
+  orden     Int        @default(0)
   combos    Combo[]
   productos Producto[]
 

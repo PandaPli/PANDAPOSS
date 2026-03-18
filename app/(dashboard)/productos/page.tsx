@@ -28,7 +28,7 @@ async function getData(rol: string, sucursalId: number | null) {
           ? { productos: { some: { sucursalId } } }
           : {}),
       },
-      orderBy: { nombre: "asc" },
+      orderBy: [{ orden: "asc" }, { nombre: "asc" }],
     }),
     prisma.sucursal.findMany({ 
       where: { activa: true, ...(rol === "ADMIN_GENERAL" ? {} : { id: sucursalId ?? -1 }) }, 
