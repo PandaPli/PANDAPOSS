@@ -11,9 +11,14 @@ interface Props {
   meseroNombre?: string;
   logoUrl?: string | null;
   onClose: () => void;
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
-export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose }: Props) {
+export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
   const { items, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc } = useCartStore();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +119,19 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
 
         <div className="max-h-[60vh] overflow-y-auto p-5">
           <div ref={printRef}>
+            {/* Datos legales */}
+            {(sucursalNombre || sucursalGiroComercial || sucursalRut || sucursalDireccion || sucursalTelefono) && (
+              <div style={{ textAlign: "center", fontSize: 11, lineHeight: 1.5, marginBottom: 6 }}>
+                {sucursalNombre && <div style={{ fontWeight: "bold", fontSize: 13 }}>{sucursalNombre}</div>}
+                {sucursalGiroComercial && <div>{sucursalGiroComercial}</div>}
+                {sucursalRut && <div>RUT: {sucursalRut}</div>}
+                {sucursalDireccion && <div>{sucursalDireccion}</div>}
+                {sucursalTelefono && <div>Tel: {sucursalTelefono}</div>}
+              </div>
+            )}
+            {(sucursalNombre || sucursalGiroComercial || sucursalRut || sucursalDireccion || sucursalTelefono) && (
+              <div className="divider" style={{ borderTop: "1px dashed #000", margin: "6px 0" }} />
+            )}
             {/* Encabezado */}
             <div className="logo-wrap" style={{ textAlign: "center", marginBottom: 6 }}>
               {logoUrl ? (

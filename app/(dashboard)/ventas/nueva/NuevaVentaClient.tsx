@@ -38,6 +38,7 @@ interface Props {
   initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
   logoUrl?: string | null;
   mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
+  sucursalId?: number | null;
   sucursalNombre?: string | null;
   sucursalRut?: string | null;
   sucursalTelefono?: string | null;
@@ -56,6 +57,7 @@ export function NuevaVentaClient({
   initialOrder,
   logoUrl,
   mesaNombre,
+  sucursalId,
   sucursalNombre,
   sucursalRut,
   sucursalTelefono,
@@ -207,9 +209,7 @@ export function NuevaVentaClient({
     router.push("/mesas");
   }
 
-  function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
-    const pw = window.open("", "_blank", "width=380,height=600");
-    if (!pw) return;
+  async function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
     const now = new Date();
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -217,47 +217,92 @@ export function NuevaVentaClient({
       : estacion === "CUARTO_CALIENTE" ? "CUARTO CALIENTE"
       : estacion === "MOSTRADOR" ? "MOSTRADOR"
       : "ORDEN COCINA";
-    const itemsHtml = items
-      .map((item) => `
+
+    // ── Generar texto plano para impresora térmica ─────────────────
+    const LINE  = "================================";
+    const center = (s: string) => s.padStart(Math.floor((32 + s.length) / 2)).padEnd(32);
+    const row    = (l: string, r: string) => l.padEnd(32 - r.length) + r;
+
+    const legalSection = [
+      sucursalNombre        ? center(sucursalNombre)         : "",
+      sucursalGiroComercial ? center(sucursalGiroComercial)  : "",
+      sucursalRut           ? center(`RUT: ${sucursalRut}`)  : "",
+      sucursalDireccion     ? center(sucursalDireccion)      : "",
+      sucursalTelefono      ? center(`Tel: ${sucursalTelefono}`) : "",
+    ].filter(Boolean).join("\n");
+
+    const itemsSection = items.map((item) => {
+      const qtyLabel = `${item.cantidad}x`;
+      const nombre   = item.nombre.toUpperCase();
+      const line1    = `${qtyLabel.padEnd(4)}${nombre}`;
+      const obs      = item.observacion ? `    * ${item.observacion}` : "";
+      return obs ? `${line1}\n${obs}` : line1;
+    }).join("\n");
+
+    const textContent = [
+      legalSection ? legalSection + "\n" + LINE : "",
+      center(titulo),
+      center(`${mesa ?? "Sin mesa"}  |  Orden #${pedidoNum}`),
+      LINE,
+      row(dateStr, timeStr),
+      LINE,
+      itemsSection,
+      LINE,
+      center("-- PandaPoss --"),
+    ].filter(Boolean).join("\n") + "\n";
+    // ──────────────────────────────────────────────────────────────
+
+    // Intentar imprimir vía agente local
+    if (sucursalId) {
+      try {
+        const res = await fetch("/api/print", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sucursalId, content: textContent }),
+        });
+        if (res.ok) return; // impreso vía agente — no abrir popup
+      } catch {
+        // sin agente → fallback
+      }
+    }
+
+    // Fallback: ventana del navegador (si el agente no está disponible)
+    const pw = window.open("", "_blank", "width=380,height=600");
+    if (!pw) return;
+    const itemsHtml = items.map((item) => `
         <div class="item">
           <span class="qty">${item.cantidad}x</span>
           <div class="item-info">
             <span class="nombre">${item.nombre}</span>
             ${item.observacion ? `<span class="obs">* ${item.observacion}</span>` : ""}
           </div>
-        </div>`)
-      .join("");
+        </div>`).join("");
     const legalLines = [
-      sucursalNombre ? `<div class="legal-name">${sucursalNombre}</div>` : "",
+      sucursalNombre        ? `<div class="legal-name">${sucursalNombre}</div>` : "",
       sucursalGiroComercial ? `<div class="legal-line">${sucursalGiroComercial}</div>` : "",
-      sucursalRut ? `<div class="legal-line">RUT: ${sucursalRut}</div>` : "",
-      sucursalDireccion ? `<div class="legal-line">${sucursalDireccion}</div>` : "",
-      sucursalTelefono ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
+      sucursalRut           ? `<div class="legal-line">RUT: ${sucursalRut}</div>` : "",
+      sucursalDireccion     ? `<div class="legal-line">${sucursalDireccion}</div>` : "",
+      sucursalTelefono      ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
     ].filter(Boolean).join("");
     pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
       .branch{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
-      .legal-name{font-size:13px;font-weight:bold;}
-      .legal-line{font-size:11px;color:#444;margin-top:2px;}
+      .legal-name{font-size:13px;font-weight:bold;}.legal-line{font-size:11px;color:#444;margin-top:2px;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;margin-top:6px;}
-      .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
-      .subtitle{font-size:13px;margin-top:3px;}
+      .title{font-size:20px;font-weight:bold;letter-spacing:3px;}.subtitle{font-size:13px;margin-top:3px;}
       .meta{font-size:12px;margin:6px 0;color:#333;}
       .items{margin:10px 0;border-bottom:1px dashed #000;padding-bottom:10px;}
       .item{display:flex;gap:10px;margin:8px 0;align-items:flex-start;}
-      .qty{font-size:20px;font-weight:bold;min-width:30px;}
-      .item-info{flex:1;}
+      .qty{font-size:20px;font-weight:bold;min-width:30px;}.item-info{flex:1;}
       .nombre{font-size:15px;font-weight:bold;display:block;}
       .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
       .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
       @media print{body{width:80mm;}}
     </style></head><body>
       ${legalLines ? `<div class="branch">${legalLines}</div>` : ""}
-      <div class="header">
-        <div class="title">${titulo}</div>
-        <div class="subtitle">${mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${pedidoNum}</div>
-      </div>
+      <div class="header"><div class="title">${titulo}</div>
+        <div class="subtitle">${mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${pedidoNum}</div></div>
       <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
       <div class="items">${itemsHtml}</div>
       <div class="footer">— PandaPoss —</div>
@@ -395,6 +440,11 @@ export function NuevaVentaClient({
           onSuccess={handleSuccess}
           grupoNombre={checkoutGrupo ?? undefined}
           grupoItems={checkoutGrupo ? getItemsByGrupo(checkoutGrupo) : undefined}
+          sucursalNombre={sucursalNombre}
+          sucursalRut={sucursalRut}
+          sucursalTelefono={sucursalTelefono}
+          sucursalDireccion={sucursalDireccion}
+          sucursalGiroComercial={sucursalGiroComercial}
         />
       )}
 
@@ -405,6 +455,11 @@ export function NuevaVentaClient({
           mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
           onClose={() => setShowPrecuenta(false)}
+          sucursalNombre={sucursalNombre}
+          sucursalRut={sucursalRut}
+          sucursalTelefono={sucursalTelefono}
+          sucursalDireccion={sucursalDireccion}
+          sucursalGiroComercial={sucursalGiroComercial}
         />
       )}
 

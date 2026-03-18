@@ -10,6 +10,11 @@ interface OrderCardProps {
   onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
   onLlamarMesero: (id: number) => Promise<void>;
   isDelivery?: boolean;
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
 const nextEstado: Partial<Record<EstadoPedido, EstadoPedido>> = {
@@ -31,7 +36,7 @@ const tipoLabel: Record<string, string> = {
   MOSTRADOR: "MOSTRADOR",
 };
 
-export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }: OrderCardProps) {
+export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
 
@@ -56,6 +61,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
     const mesaLabel = pedido.mesa?.nombre ?? `Pedido #${pedido.numero}`;
     const meseroLabel = pedido.usuario?.nombre ?? "—";
     const tipo = tipoLabel[pedido.tipo] ?? pedido.tipo;
+
+    const legalLines = [
+      sucursalNombre ? `<div style="font-weight:bold;font-size:13px;">${sucursalNombre}</div>` : "",
+      sucursalGiroComercial ? `<div>${sucursalGiroComercial}</div>` : "",
+      sucursalRut ? `<div>RUT: ${sucursalRut}</div>` : "",
+      sucursalDireccion ? `<div>${sucursalDireccion}</div>` : "",
+      sucursalTelefono ? `<div>Tel: ${sucursalTelefono}</div>` : "",
+    ].filter(Boolean).join("");
 
     const itemsHtml = pedido.detalles.map((d) => {
       const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "—";
@@ -125,6 +138,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
           </style>
         </head>
         <body>
+          ${legalLines ? `<div style="text-align:center;font-size:11px;line-height:1.5;margin-bottom:4px;">${legalLines}</div><hr class="divider" />` : ""}
           <div class="center">
             <div class="tipo-badge">${tipo}</div>
           </div>

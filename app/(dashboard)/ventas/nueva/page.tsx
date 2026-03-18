@@ -153,6 +153,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       initialOrder={pedidoInfo}
       logoUrl={logoUrl}
       mesaNombre={mesaInfo?.nombre ?? undefined}
+      sucursalId={sucursalId}
       sucursalNombre={sucursalBranding?.nombre ?? null}
       sucursalRut={sucursalBranding?.rut ?? null}
       sucursalTelefono={sucursalBranding?.telefono ?? null}

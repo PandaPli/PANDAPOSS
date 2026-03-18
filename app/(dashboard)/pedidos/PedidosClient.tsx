@@ -30,9 +30,14 @@ const estadoTabs: { key: KdsFilter; label: string; icon: React.ReactNode; colorC
 interface Props {
   pedidos: PedidoConDetalles[];
   rol?: Rol;
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
-export function PedidosClient({ pedidos: initial, rol }: Props) {
+export function PedidosClient({ pedidos: initial, rol, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
   const isDelivery = rol === "DELIVERY";
   const { filter, setFilter } = useKdsUI();
 
@@ -202,12 +207,17 @@ export function PedidosClient({ pedidos: initial, rol }: Props) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filtrados.map((pedido) => (
-              <OrderCard 
-                key={pedido.id} 
-                pedido={pedido} 
-                onUpdateEstado={handleUpdateEstado} 
-                onLlamarMesero={handleLlamarMesero} 
-                isDelivery={isDelivery} 
+              <OrderCard
+                key={pedido.id}
+                pedido={pedido}
+                onUpdateEstado={handleUpdateEstado}
+                onLlamarMesero={handleLlamarMesero}
+                isDelivery={isDelivery}
+                sucursalNombre={sucursalNombre}
+                sucursalRut={sucursalRut}
+                sucursalTelefono={sucursalTelefono}
+                sucursalDireccion={sucursalDireccion}
+                sucursalGiroComercial={sucursalGiroComercial}
               />
             ))}
           </div>

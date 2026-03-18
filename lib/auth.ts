@@ -47,8 +47,9 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
+        // Login inicial: seed del objeto user
         const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean; logoUrl: string | null };
         token.id = Number(u.id);
         token.rol = u.rol;
@@ -59,6 +60,20 @@ export const authOptions: NextAuthOptions = {
         token.delivery = u.delivery;
         token.menuQR   = u.menuQR;
         token.logoUrl  = u.logoUrl;
+      } else if (token.sucursalId) {
+        // Refresco: leer plan y toggles SIEMPRE desde la sucursal (fuente de verdad)
+        // Así un cambio de plan en la sucursal se refleja sin re-login
+        const suc = await prisma.sucursal.findUnique({
+          where: { id: token.sucursalId as number },
+          select: { plan: true, simbolo: true, delivery: true, menuQR: true, logoUrl: true },
+        });
+        if (suc) {
+          token.plan     = suc.plan;
+          token.simbolo  = suc.simbolo ?? token.simbolo;
+          token.delivery = suc.delivery;
+          token.menuQR   = suc.menuQR;
+          token.logoUrl  = suc.logoUrl;
+        }
       }
       return token;
     },

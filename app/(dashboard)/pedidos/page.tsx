@@ -37,7 +37,15 @@ export default async function PedidosPage() {
   const session = await getServerSession(authOptions);
   const rol = (session?.user as { rol?: Rol })?.rol;
   const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
-  const pedidos = await getPedidos(rol, sucursalId);
+  const [pedidos, sucursal] = await Promise.all([
+    getPedidos(rol, sucursalId),
+    sucursalId
+      ? prisma.sucursal.findUnique({
+          where: { id: sucursalId },
+          select: { nombre: true, rut: true, telefono: true, direccion: true, giroComercial: true },
+        })
+      : null,
+  ]);
 
   const data = pedidos.map((p) => ({
     id: p.id,
@@ -83,7 +91,15 @@ export default async function PedidosPage() {
         </div>
       )}
 
-      <PedidosClient pedidos={data} rol={rol} />
+      <PedidosClient
+        pedidos={data}
+        rol={rol}
+        sucursalNombre={sucursal?.nombre ?? null}
+        sucursalRut={sucursal?.rut ?? null}
+        sucursalTelefono={sucursal?.telefono ?? null}
+        sucursalDireccion={sucursal?.direccion ?? null}
+        sucursalGiroComercial={sucursal?.giroComercial ?? null}
+      />
     </div>
   );
 }

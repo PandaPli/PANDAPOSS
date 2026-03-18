@@ -39,6 +39,11 @@ interface Props {
   grupoNombre?: string;
   /** Ítems del grupo a cobrar */
   grupoItems?: CartItem[];
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
 const metodos: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
@@ -58,6 +63,11 @@ export function CheckoutModal({
   onSuccess,
   grupoNombre,
   grupoItems,
+  sucursalNombre,
+  sucursalRut,
+  sucursalTelefono,
+  sucursalDireccion,
+  sucursalGiroComercial,
 }: Props) {
   const {
     items: cartItems,
@@ -143,6 +153,14 @@ export function CheckoutModal({
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
 
+    const legalLines = [
+      sucursalNombre ? `<div style="font-weight:bold;font-size:13px;">${sucursalNombre}</div>` : "",
+      sucursalGiroComercial ? `<div>${sucursalGiroComercial}</div>` : "",
+      sucursalRut ? `<div>RUT: ${sucursalRut}</div>` : "",
+      sucursalDireccion ? `<div>${sucursalDireccion}</div>` : "",
+      sucursalTelefono ? `<div>Tel: ${sucursalTelefono}</div>` : "",
+    ].filter(Boolean).join("");
+
     const pagosHtml = completedSale.pagos
       .map((pago) => {
         const metodo = metodos.find((item) => item.key === pago.metodoPago)?.label ?? pago.metodoPago;
@@ -171,6 +189,7 @@ export function CheckoutModal({
 
     const html = `
       <div class="ticket">
+        ${legalLines ? `<div style="text-align:center;font-size:11px;margin-bottom:6px;line-height:1.5;">${legalLines}</div><div class="divider"></div>` : ""}
         <div class="logo-wrap">
           ${printableLogoUrl ? `<img src="${printableLogoUrl}" alt="Logo" class="logo" />` : ""}
           <p class="title">Boleta</p>
