@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Rol } from "@/types";
+import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
 
 type FeatureKey = "delivery" | "menuQR";
 type ModuleCategory = "operacion" | "gestion" | "configuracion";
@@ -192,6 +193,7 @@ export function PandaNavbar() {
   }
 
   return (
+    <>
     <nav className="sticky top-0 z-50 flex h-[52px] items-center border-b border-brand-800/50 bg-brand-900/90 px-3 shadow-sm backdrop-blur-md">
       <div className="relative" ref={appsRef}>
         <button
@@ -374,5 +376,7 @@ export function PandaNavbar() {
         </AnimatePresence>
       </div>
     </nav>
+    <StockAlertaBanner sucursalId={(session?.user as { sucursalId?: number })?.sucursalId ?? null} />
+    </>
   );
 }

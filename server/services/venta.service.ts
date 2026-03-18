@@ -2,6 +2,18 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { MetodoPago } from "@/types";
 
+const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+
+function emitStockBajo(sucursalId: number, alertas: { nombre: string; stock: number }[]) {
+  try {
+    globalForSocket.io
+      ?.to(`sucursal_${sucursalId}_alertas`)
+      .emit("stock:bajo", { sucursalId, alertas, ts: Date.now() });
+  } catch {
+    // No bloquear la venta si el socket falla
+  }
+}
+
 interface VentaItem {
   productoId?: number | null;
   comboId?: number | null;
@@ -20,6 +32,7 @@ export interface CreateVentaInput {
   cajaId?: number | null;
   clienteId?: number | null;
   usuarioId: number;
+  sucursalId?: number | null;
   pedidoId?: number | null;
   mesaId?: number | null;
   items: VentaItem[];
@@ -121,6 +134,7 @@ export const VentaService = {
       cajaId,
       clienteId,
       usuarioId,
+      sucursalId,
       pedidoId,
       mesaId,
       items,
@@ -206,6 +220,19 @@ export const VentaService = {
                 ventaId: v.id,
               })),
             });
+
+            // Notificar al restaurante si algún producto quedó sin stock
+            const productoIds = aggregatedProductItems.map((i) => i.productoId);
+            const sinStock = await tx.producto.findMany({
+              where: { id: { in: productoIds }, stock: { lte: 0 } },
+              select: { nombre: true, stock: true },
+            });
+            if (sinStock.length > 0 && sucursalId) {
+              emitStockBajo(
+                sucursalId,
+                sinStock.map((p) => ({ nombre: p.nombre, stock: Number(p.stock) }))
+              );
+            }
           }
 
           if (modoGrupo) {

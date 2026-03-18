@@ -59,6 +59,11 @@ export function initializeRealtimeEngine(httpServer: NetServer): SocketIOServer 
       console.log(`[Printer] Agente registrado para sucursal ${sucursalId}`);
     });
 
+    // Sala de alertas operacionales (stock bajo, etc.)
+    socket.on("alertas:join", (sucursalId: number) => {
+      socket.join(`sucursal_${sucursalId}_alertas`);
+    });
+
     socket.on("disconnect", () => {
       console.log(`[Socket] Desconectado: ${socket.id}`);
     });

@@ -6,6 +6,7 @@ import { DispatchService } from "@/server/services/dispatch.service";
 import { NotificationService } from "@/server/services/notification.service";
 import type { DeliveryCustomerInput, EstadoPedido, MetodoPago, Rol } from "@/types";
 import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
+import { effectiveFeature } from "@/lib/plan";
 
 interface DeliveryItemInput {
   productoId: number;
@@ -46,9 +47,10 @@ export const DeliveryService = {
       throw new Error("Esta sucursal no está disponible.");
     }
 
-    // Verificar que el plan soporta delivery Y que está activado en la sucursal
+    // El plan PRIME/PRO activa delivery automáticamente; otros necesitan toggle manual
     const planSoportaDelivery = PLAN_LIMITS[sucursal.plan as PlanTipo]?.delivery ?? false;
-    if (!planSoportaDelivery || !sucursal.delivery) {
+    const deliveryActivo = effectiveFeature(sucursal.plan, sucursal.delivery);
+    if (!planSoportaDelivery || !deliveryActivo) {
       throw new Error("Esta sucursal no tiene delivery habilitado.");
     }
 
