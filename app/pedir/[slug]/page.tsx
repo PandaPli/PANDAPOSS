@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { DeliveryOrderClient } from "./DeliveryOrderClient";
 import { createSlug } from "@/lib/slug";
+import { featureFilter } from "@/lib/plan";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -12,7 +13,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
 
   // We fetch all active delivery branches, then find the one whose slug matches
   const sucursales = await prisma.sucursal.findMany({
-    where: { activa: true, delivery: true },
+    where: { activa: true, ...featureFilter("delivery") },
     select: {
       id: true,
       nombre: true,

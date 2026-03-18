@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { MenuClient } from "./MenuClient";
+import { effectiveFeature } from "@/lib/plan";
 
 interface Props {
   searchParams: Promise<{ sucursal?: string; mesa?: string }>;
@@ -24,7 +25,7 @@ export default async function MenuPage({ searchParams }: Props) {
   const [sucursal, mesa, categorias] = await Promise.all([
     prisma.sucursal.findUnique({
       where: { id: sucursalId, activa: true },
-      select: { id: true, nombre: true, menuQR: true, simbolo: true },
+      select: { id: true, nombre: true, menuQR: true, plan: true, simbolo: true },
     }),
     !isNaN(mesaId)
       ? prisma.mesa.findFirst({
@@ -50,7 +51,7 @@ export default async function MenuPage({ searchParams }: Props) {
     }),
   ]);
 
-  if (!sucursal || !sucursal.menuQR) notFound();
+  if (!sucursal || !effectiveFeature(sucursal.plan, sucursal.menuQR)) notFound();
 
   // Filtrar categorías con al menos 1 producto
   const cats = categorias.filter((c) => c.productos.length > 0);

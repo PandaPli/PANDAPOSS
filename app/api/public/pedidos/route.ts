@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PedidoService } from "@/server/services/pedido.service";
+import { effectiveFeature } from "@/lib/plan";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       })
     ]);
 
-    if (!sucursal || !sucursal.activa || !sucursal.menuQR) {
+    if (!sucursal || !sucursal.activa || !effectiveFeature(sucursal.plan, sucursal.menuQR)) {
       return NextResponse.json({ error: "Esta sucursal no tiene habilitado el menú QR o no está activa." }, { status: 403 });
     }
 

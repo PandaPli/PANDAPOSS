@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
+import { effectiveFeature } from "@/lib/plan";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8 horas
@@ -39,8 +40,8 @@ export const authOptions: NextAuthOptions = {
           sucursalId: user.sucursalId,
           simbolo: user.sucursal?.simbolo ?? "$",
           plan: user.sucursal?.plan ?? "BASICO",
-          delivery: user.sucursal ? user.sucursal.delivery : true,
-          menuQR:   user.sucursal ? user.sucursal.menuQR   : true,
+          delivery: user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.delivery) : true,
+          menuQR:   user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.menuQR)   : true,
           logoUrl:  user.sucursal?.logoUrl ?? null,
         };
       },
@@ -70,8 +71,8 @@ export const authOptions: NextAuthOptions = {
         if (suc) {
           token.plan     = suc.plan;
           token.simbolo  = suc.simbolo ?? token.simbolo;
-          token.delivery = suc.delivery;
-          token.menuQR   = suc.menuQR;
+          token.delivery = effectiveFeature(suc.plan, suc.delivery);
+          token.menuQR   = effectiveFeature(suc.plan, suc.menuQR);
           token.logoUrl  = suc.logoUrl;
         }
       }
