@@ -1,41 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { featureFilter } from "@/lib/plan";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const telefono = searchParams.get("telefono");
   const sucursalId = searchParams.get("sucursalId");
 
-  if (!telefono || !sucursalId) {
+  if (!telefono || !sucursalId)
     return NextResponse.json({ error: "Faltan parametros" }, { status: 400 });
-  }
 
-  // Sanitizar teléfono para dejar solo números (opcional, pero buena práctica)
-  const limpio = telefono.replace(/\D/g, "");
-  
-  // Buscar cliente por teléfono exacto en la sucursal
+  const idNum = Number(sucursalId);
+  if (isNaN(idNum)) return NextResponse.json({ error: "sucursalId inválido" }, { status: 400 });
+
+  // C4: Solo sucursales activas con delivery habilitado (por plan o toggle)
+  // Evita que endpoints públicos expongan datos de sucursales sin delivery
+  const sucursal = await prisma.sucursal.findFirst({
+    where: { id: idNum, activa: true, ...featureFilter("delivery") },
+    select: { id: true },
+  });
+  if (!sucursal) return NextResponse.json(null, { status: 404 });
+
+  // Sanitizar: solo los últimos 8 dígitos del teléfono
+  const limpio = telefono.replace(/\D/g, "").slice(-8);
+  if (limpio.length < 7) return NextResponse.json(null, { status: 404 });
+
   const cliente = await prisma.cliente.findFirst({
     where: {
-      telefono: { endsWith: limpio.slice(-8) }, // Buscar coincidencia flexible de los ultimos 8 digitos
-      sucursalId: Number(sucursalId),
+      telefono: { endsWith: limpio },
+      sucursalId: idNum,
       activo: true,
     },
     include: {
-      direcciones: {
-        take: 1,
-        orderBy: { id: "desc" }, // Tomar la ultima direccion insertada
-      }
-    }
+      direcciones: { take: 1, orderBy: { id: "desc" } },
+    },
   });
 
-  if (!cliente) {
-    return NextResponse.json(null, { status: 404 });
-  }
+  if (!cliente) return NextResponse.json(null, { status: 404 });
 
+  // Devolver solo los campos necesarios para el formulario de delivery
   return NextResponse.json({
     nombre: cliente.nombre,
     telefono: cliente.telefono,
-    direccion: cliente.direcciones[0]?.calle || cliente.direccion || "",
-    referencia: cliente.direcciones[0]?.referencia || "",
+    direccion: cliente.direcciones[0]?.calle ?? cliente.direccion ?? "",
+    referencia: cliente.direcciones[0]?.referencia ?? "",
   });
 }

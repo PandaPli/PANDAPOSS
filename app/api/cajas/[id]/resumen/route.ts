@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { CajaService } from "@/server/services/caja.service";
+import { CajaRepo } from "@/server/repositories/caja.repo";
+import type { Rol } from "@/types";
 
 export async function GET(
   req: NextRequest,
@@ -12,6 +14,15 @@ export async function GET(
 
   const { id: idStr } = await params;
   const id = Number(idStr);
+  const rol = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
+  // C2: Validar que la caja pertenece a la sucursal del usuario
+  if (rol !== "ADMIN_GENERAL") {
+    const caja = await CajaRepo.findById(id);
+    if (!caja) return NextResponse.json({ error: "Caja no encontrada" }, { status: 404 });
+    if (caja.sucursalId !== sucursalId) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
 
   try {
     const resumen = await CajaService.getResumenTurno(id);

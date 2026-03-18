@@ -150,8 +150,8 @@ export const DeliveryService = {
           clienteId: dbCliente.id,
           calle: cliente.direccion.trim(),
           referencia: cliente.referencia,
-          lat: 0,
-          lng: 0
+          lat: null,
+          lng: null
         }
       });
 
@@ -162,8 +162,8 @@ export const DeliveryService = {
           clienteId: dbCliente.id,
           direccionId: dbDireccion.id,
           referencia: cliente.referencia,
-          lat: 0,
-          lng: 0,
+          lat: null,
+          lng: null,
           costoEnvio: cargoEnvio,
           zonaDelivery: zonaDelivery ?? null,
           tiempoEstimado: estimadoMinutos,

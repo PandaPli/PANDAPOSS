@@ -80,11 +80,31 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { id, ...data } = body;
 
+  if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
+
+  // Evitar que nombre quede vacío
+  if ("nombre" in data && (!data.nombre || !String(data.nombre).trim()))
+    return NextResponse.json({ error: "El nombre no puede estar vacío" }, { status: 400 });
+
+  const rol = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
+  // C5: Validar que el cliente pertenece a la sucursal del usuario
+  if (rol !== "ADMIN_GENERAL") {
+    const existing = await prisma.cliente.findUnique({
+      where: { id: Number(id) },
+      select: { sucursalId: true },
+    });
+    if (!existing) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+    if (existing.sucursalId !== sucursalId)
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
   if (data.telefono) {
-    let t = data.telefono.trim();
-    t = t.replace(/^\+?56\s*9\s*/, '');
-    t = t.replace(/^569\s*/, '');
-    data.telefono = t.trim();
+    let t = String(data.telefono).trim();
+    t = t.replace(/^\+?56\s*9\s*/, "");
+    t = t.replace(/^569\s*/, "");
+    data.telefono = t.trim() || null;
   }
 
   const cliente = await prisma.cliente.update({
