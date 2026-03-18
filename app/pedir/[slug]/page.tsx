@@ -39,7 +39,6 @@ export default async function PedirDeliveryPage({ params }: Props) {
       productos: {
         where: {
           activo: true,
-          stock: { gt: 0 },
           OR: [{ sucursalId }, { sucursalId: null }],
         },
         select: {
