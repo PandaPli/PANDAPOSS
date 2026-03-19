@@ -3,7 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-const DEMO_SUCURSAL_ID = 5;
+// C1: IDs configurables por env para evitar borrar datos reales si cambian en producción
+const DEMO_SUCURSAL_ID = Number(process.env.DEMO_SUCURSAL_ID ?? "5");
+const DEMO_USUARIO_ID  = Number(process.env.DEMO_USUARIO_ID  ?? "13");
 
 /**
  * POST /api/demo/reset
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
     where: {
       OR: [
         { cajaId: { in: cajaIds } },
-        { usuarioId: 13 },
+        { usuarioId: DEMO_USUARIO_ID },
       ],
     },
     select: { id: true },
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
         OR: [
           ...(cajaIds.length > 0 ? [{ cajaId: { in: cajaIds } }] : []),
           ...(mesaIds.length > 0 ? [{ mesaId: { in: mesaIds } }] : []),
-          { usuarioId: 13 },
+          { usuarioId: DEMO_USUARIO_ID },
         ],
       },
     });
