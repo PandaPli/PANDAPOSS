@@ -40,13 +40,27 @@ export async function POST(
     if (caja.estado === "CERRADA")
       return NextResponse.json({ error: "No se pueden hacer movimientos en una caja cerrada" }, { status: 400 });
 
-    const movimiento = await prisma.movimientoCaja.create({
-      data: { tipo, monto: numMonto, motivo, cajaId, usuarioId },
+    // A3: Leer estado dentro de la transacción para evitar race condition
+    // (otra request podría cerrar la caja entre el check anterior y el insert)
+    const movimiento = await prisma.$transaction(async (tx) => {
+      const cajaActual = await tx.caja.findUnique({
+        where: { id: cajaId },
+        select: { estado: true },
+      });
+      if (!cajaActual || cajaActual.estado === "CERRADA") {
+        throw new Error("No se pueden hacer movimientos en una caja cerrada");
+      }
+      return tx.movimientoCaja.create({
+        data: { tipo, monto: numMonto, motivo, cajaId, usuarioId },
+      });
     });
 
     return NextResponse.json(movimiento, { status: 201 });
   } catch (error) {
     console.error("[POST /api/cajas/:id/movimiento]", error);
+    if (error instanceof Error && error.message.includes("caja cerrada")) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ error: "Error interno al registrar el movimiento" }, { status: 500 });
   }
 }

@@ -7,6 +7,15 @@ export const CajaService = {
     if (!caja) throw new Error("Caja no encontrada");
     if (caja.estado === "ABIERTA") throw new Error("La caja ya está abierta");
 
+    // A2: Verificar que no haya otra caja ABIERTA en la misma sucursal
+    const otraAbierta = await prisma.caja.findFirst({
+      where: { sucursalId: caja.sucursalId, estado: "ABIERTA", id: { not: id } },
+      select: { nombre: true },
+    });
+    if (otraAbierta) {
+      throw new Error(`Ya hay una caja abierta en esta sucursal (${otraAbierta.nombre}). Ciérrala primero.`);
+    }
+
     const [cajaActualizada] = await prisma.$transaction([
       prisma.caja.update({
         where: { id },
