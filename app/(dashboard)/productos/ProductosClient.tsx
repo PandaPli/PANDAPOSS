@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useMemo, useCallback } from "react";
+import ImageCropModal from "@/components/ui/ImageCropModal";
 import { useRouter } from "next/navigation";
 import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
@@ -134,6 +135,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<Producto | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -316,27 +318,31 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
     setShowForm(true);
   }
 
-  async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+  // Paso 1: usuario elige archivo → abrir modal de crop
+  function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setCropSrc(objectUrl);
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
+  // Paso 2: usuario confirma crop → subir blob recortado
+  async function handleCropConfirm(blob: Blob) {
+    setCropSrc(null);
     setUploadingImage(true);
     setError("");
-
     try {
       const fd = new FormData();
-      fd.append("file", file);
-
+      fd.append("file", new File([blob], "foto.webp", { type: "image/webp" }));
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al subir imagen");
-
       setForm((current) => ({ ...current, imagen: data.url }));
     } catch (uploadError) {
       setError((uploadError as Error).message);
     } finally {
       setUploadingImage(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -405,6 +411,16 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
   return (
     <>
+      {/* Modal de recorte de imagen */}
+      {cropSrc && (
+        <ImageCropModal
+          imageSrc={cropSrc}
+          aspect={1}
+          onConfirm={handleCropConfirm}
+          onCancel={() => { setCropSrc(null); URL.revokeObjectURL(cropSrc); }}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-surface-text">Productos</h1>
