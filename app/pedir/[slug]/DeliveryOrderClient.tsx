@@ -271,7 +271,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
   return (
     <main className="min-h-screen bg-[#f4efe7] text-stone-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      {/* Padding inferior en mobile para que el bottom bar no tape el contenido */}
+      <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 xl:pb-6">
         <div className="grid gap-6 xl:grid-cols-[1.2fr_420px]">
           <section className="space-y-6">
             <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#111111] text-white shadow-[0_40px_120px_-65px_rgba(0,0,0,0.7)]">
@@ -505,10 +506,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
                 {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div> : null}
 
+                {/* Botón visible solo en desktop — en mobile va en el bottom bar */}
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || cart.length === 0}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-950 px-5 py-4 text-sm font-bold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="hidden xl:inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-950 px-5 py-4 text-sm font-bold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />}
                   {submitting ? "Enviando pedido..." : "Confirmar pedido"}
@@ -519,17 +521,35 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
         </div>
       </div>
 
-      {cart.length > 0 ? (
-        <div className="fixed bottom-4 left-4 right-4 z-40 xl:hidden">
-          <div className="mx-auto flex max-w-xl items-center justify-between rounded-[1.5rem] bg-stone-950 px-5 py-4 text-white shadow-2xl">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/45">Pedido actual</p>
-              <p className="mt-1 font-black">{totalItems} items · {formatCurrency(total, sucursal.simbolo)}</p>
+      {/* Bottom action bar — solo mobile/tablet, con botón confirmar integrado */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 xl:hidden transition-transform duration-300 ${cart.length > 0 ? "translate-y-0" : "translate-y-full"}`}>
+        <div className="border-t border-stone-800 bg-stone-950 px-4 pb-safe pt-3 shadow-[0_-8px_40px_-8px_rgba(0,0,0,0.5)]">
+          {/* Resumen compacto */}
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white/60">
+              <ShoppingBag size={15} />
+              <span className="text-xs font-semibold uppercase tracking-[0.18em]">{totalItems} {totalItems === 1 ? "item" : "items"}</span>
             </div>
-            <ShoppingBag size={20} />
+            <div className="text-right">
+              <p className="text-xs text-white/45">Total</p>
+              <p className="text-lg font-black text-white">{formatCurrency(total, sucursal.simbolo)}</p>
+            </div>
           </div>
+          {/* Error inline */}
+          {error ? (
+            <p className="mb-2 rounded-xl bg-red-500/20 px-3 py-2 text-xs font-semibold text-red-300">{error}</p>
+          ) : null}
+          {/* Botón confirmar */}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || cart.length === 0}
+            className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 py-4 text-sm font-black text-stone-900 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />}
+            {submitting ? "Enviando pedido..." : "Confirmar pedido"}
+          </button>
         </div>
-      ) : null}
+      </div>
     </main>
   );
 }
