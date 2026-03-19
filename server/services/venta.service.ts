@@ -138,7 +138,6 @@ export const VentaService = {
       pedidoId,
       mesaId,
       items,
-      subtotal,
       descuento,
       impuesto,
       total,
@@ -147,6 +146,31 @@ export const VentaService = {
       detalleIds,
       modoGrupo,
     } = input;
+
+    // ── V3: Recalcular totales en el servidor ────────────────────────────────
+    // Nunca confiar en subtotal/total enviados por el cliente
+    const serverSubtotal = items.reduce(
+      (acc, item) => acc + Number(item.precio) * Number(item.cantidad),
+      0
+    );
+    const serverTotal =
+      Math.round((serverSubtotal - Number(descuento) + Number(impuesto)) * 100) / 100;
+
+    // Tolerancia de 2 centavos para errores de punto flotante en el cliente
+    if (Math.abs(serverSubtotal - Number(input.subtotal)) > 0.02) {
+      throw new Error("El subtotal no coincide con los ítems del carrito.");
+    }
+    if (Math.abs(serverTotal - Number(total)) > 0.02) {
+      throw new Error("El total no coincide con el calculado en el servidor.");
+    }
+
+    // ── V4: Validar que la suma de pagos = total ─────────────────────────────
+    if (pagos && pagos.length > 0) {
+      const sumaPagos = pagos.reduce((acc, p) => acc + Number(p.monto), 0);
+      if (Math.abs(sumaPagos - serverTotal) > 0.02) {
+        throw new Error("La suma de los pagos no coincide con el total de la venta.");
+      }
+    }
 
     const numero = generateVentaNumero();
     const aggregatedProductItems = aggregateProductItems(items);
@@ -167,10 +191,10 @@ export const VentaService = {
               usuarioId,
               // En modo grupo: no linkeamos pedidoId (múltiples ventas por mesa)
               pedidoId: modoGrupo ? null : (pedidoId ?? null),
-              subtotal,
+              subtotal: serverSubtotal,   // V3: usar valores del servidor
               descuento: descuento ?? 0,
               impuesto: impuesto ?? 0,
-              total,
+              total: serverTotal,          // V3: usar valores del servidor
               metodoPago,
               estado: "PAGADA",
               detalles: {
@@ -180,7 +204,7 @@ export const VentaService = {
                   cantidad: item.cantidad,
                   precio: item.precio,
                   descuento: 0,
-                  subtotal: item.subtotal,
+                  subtotal: Number(item.precio) * Number(item.cantidad),
                 })),
               },
             },
@@ -197,7 +221,7 @@ export const VentaService = {
             });
           } else {
             await tx.pagoVenta.create({
-              data: { ventaId: v.id, metodoPago, monto: total },
+              data: { ventaId: v.id, metodoPago, monto: serverTotal },
             });
           }
 
@@ -236,8 +260,25 @@ export const VentaService = {
           }
 
           if (modoGrupo) {
-            // Modo grupo: marcar los detalles específicos como pagados
             if (detalleIds && detalleIds.length > 0) {
+              // V2: Validar que los detalleIds pertenecen a esta mesa
+              if (mesaId) {
+                const perteneceAMesa = await tx.detallePedido.count({
+                  where: { id: { in: detalleIds }, pedido: { mesaId } },
+                });
+                if (perteneceAMesa !== detalleIds.length) {
+                  throw new Error("Algunos ítems no pertenecen a esta mesa.");
+                }
+              }
+
+              // V1: Verificar que ningún ítem ya fue cobrado (anti doble-pago)
+              const yaPagados = await tx.detallePedido.count({
+                where: { id: { in: detalleIds }, pagado: true },
+              });
+              if (yaPagados > 0) {
+                throw new Error("Algunos ítems ya fueron cobrados. Recarga la mesa.");
+              }
+
               await tx.detallePedido.updateMany({
                 where: { id: { in: detalleIds } },
                 data: { pagado: true },
@@ -296,5 +337,66 @@ export const VentaService = {
 
       throw error;
     }
+  },
+
+  // ── A1: Anular venta y restaurar stock ──────────────────────────────────────
+  async anular(ventaId: number) {
+    const venta = await prisma.venta.findUnique({
+      where: { id: ventaId },
+      include: {
+        detalles: {
+          where: { productoId: { not: null } },
+          select: { productoId: true, cantidad: true },
+        },
+      },
+    });
+
+    if (!venta) throw new Error("Venta no encontrada.");
+    if (venta.estado === "ANULADA") throw new Error("La venta ya fue anulada.");
+    if (venta.estado !== "PAGADA") throw new Error("Solo se pueden anular ventas PAGADAS.");
+
+    // Agregar cantidades por producto (puede haber varios detalles del mismo)
+    const porProducto = new Map<number, number>();
+    for (const d of venta.detalles) {
+      if (!d.productoId) continue;
+      porProducto.set(d.productoId, (porProducto.get(d.productoId) ?? 0) + d.cantidad);
+    }
+    const productosAfectados = Array.from(porProducto.entries()).map(([productoId, cantidad]) => ({
+      productoId,
+      cantidad,
+    }));
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Restaurar stock
+      await Promise.all(
+        productosAfectados.map((p) =>
+          tx.producto.update({
+            where: { id: p.productoId },
+            data: { stock: { increment: p.cantidad } },
+          })
+        )
+      );
+
+      // 2. Kardex inverso — ENTRADA por anulación
+      if (productosAfectados.length > 0) {
+        await tx.kardex.createMany({
+          data: productosAfectados.map((p) => ({
+            productoId: p.productoId,
+            tipo: "ENTRADA",
+            cantidad: p.cantidad,
+            motivo: "Anulación de venta",
+            ventaId,
+          })),
+        });
+      }
+
+      // 3. Marcar venta como ANULADA
+      await tx.venta.update({
+        where: { id: ventaId },
+        data: { estado: "ANULADA" },
+      });
+    });
+
+    return { id: ventaId, estado: "ANULADA" };
   },
 };
