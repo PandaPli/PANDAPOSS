@@ -235,7 +235,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
       // Subir imagen
       const fd = new FormData();
       fd.append("file", file);
-      const upRes = await fetch("/api/upload", { method: "POST", body: fd });
+      const upRes = await fetch("/api/upload?tipo=logo", { method: "POST", body: fd });
       const upData = await upRes.json();
       if (!upRes.ok) throw new Error(upData.error ?? "Error al subir imagen");
 
@@ -290,7 +290,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const up = await fetch("/api/upload?tipo=fondo", { method: "POST", body: fd });
       const upData = await up.json();
       if (!up.ok) throw new Error(upData.error ?? "Error al subir fondo");
       const res = await fetch(`/api/sucursales/${sucursalId}`, {
@@ -501,9 +501,9 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
                 )}
               </div>
               <div className="flex-1 space-y-2">
-                <p className="text-xs text-surface-muted">Aparece como fondo en tu carta pública. JPG, PNG o WEBP. Máx 4 MB.</p>
+                <p className="text-xs text-surface-muted">Aparece como fondo en tu carta pública. <strong>PNG con fondo transparente ✓</strong> · JPG · WEBP. Máx 8 MB.</p>
                 <div className="flex gap-2 flex-wrap">
-                  <input ref={bgRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCartaBgUpload} />
+                  <input ref={bgRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleCartaBgUpload} />
                   <button type="button" onClick={() => bgRef.current?.click()} disabled={cartaBgLoading} className="btn-primary text-sm">
                     {cartaBgLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                     {cartaBgPreview ? "Cambiar fondo" : "Subir fondo"}
