@@ -66,29 +66,25 @@ function aggregateProductItems(items: VentaItem[]) {
 }
 
 async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: number) {
-  const pedido = await tx.pedido.findUnique({
-    where: { id: pedidoId },
-    select: {
-      id: true,
-      estado: true,
-      venta: {
-        select: {
-          id: true,
-        },
-      },
-    },
-  });
+  // M2: SELECT FOR UPDATE bloquea la fila — la segunda transacción concurrente
+  // espera a que la primera haga commit/rollback antes de leer.
+  // Así se elimina la race condition de doble cobro de mesa.
+  const rows = await tx.$queryRaw<{ id: number; estado: string; ventaId: number | null }[]>(
+    Prisma.sql`SELECT id, estado, ventaId FROM Pedido WHERE id = ${pedidoId} LIMIT 1 FOR UPDATE`
+  );
+
+  const pedido = rows[0];
 
   if (!pedido) {
     throw new Error("La orden ya no existe o fue eliminada.");
   }
 
-  if (pedido.venta) {
+  if (pedido.ventaId !== null) {
     throw new Error("La orden ya fue cobrada. Recarga la mesa para continuar.");
   }
 
   if (!["PENDIENTE", "EN_PROCESO", "LISTO"].includes(pedido.estado)) {
-    throw new Error("La orden ya no esta disponible para cobro.");
+    throw new Error("La orden ya no está disponible para cobro.");
   }
 }
 
@@ -111,9 +107,12 @@ async function checkAndCloseMesa(tx: Prisma.TransactionClient, mesaId: number) {
   });
 
   if (pendientes === 0) {
-    // Todos los grupos pagaron → cerrar mesa y marcar pedidos
-    await tx.mesa.update({
-      where: { id: mesaId },
+    // M1: updateMany con condición OCUPADA — idempotente y atómico.
+    // Si dos transacciones concurrentes llegan aquí, ambas intentan
+    // cambiar OCUPADA → LIBRE; la segunda no encuentra filas (count=0)
+    // pero no falla, evitando estados inconsistentes.
+    await tx.mesa.updateMany({
+      where: { id: mesaId, estado: "OCUPADA" },
       data: { estado: "LIBRE" },
     });
 
@@ -178,6 +177,9 @@ export const VentaService = {
     try {
       const venta = await prisma.$transaction(
         async (tx) => {
+          // S1: isolationLevel ReadCommitted evita lecturas sucias.
+          // El decrement de stock usa UPDATE SET stock = stock - N que es
+          // atómico en MySQL — no requiere lock explícito adicional.
           // En modo grupo NO verificamos ni vinculamos el pedidoId
           if (pedidoId && !modoGrupo) {
             await ensurePedidoDisponible(tx, pedidoId);
@@ -315,7 +317,7 @@ export const VentaService = {
 
           return v;
         },
-        { timeout: 15000 }
+        { timeout: 15000, isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }
       );
 
       return {

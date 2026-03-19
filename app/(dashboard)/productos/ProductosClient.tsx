@@ -327,19 +327,30 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  // Paso 2: usuario confirma crop → subir blob recortado
+  // Paso 2: usuario confirma crop → preview inmediato + subir blob recortado
   async function handleCropConfirm(blob: Blob) {
     setCropSrc(null);
     setUploadingImage(true);
     setError("");
+    // Preview local optimista mientras sube (evita pantalla en blanco)
+    const localUrl = URL.createObjectURL(blob);
+    setForm((current) => ({ ...current, imagen: localUrl }));
     try {
       const fd = new FormData();
       fd.append("file", new File([blob], "foto.webp", { type: "image/webp" }));
       const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Error al subir imagen");
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al subir imagen");
+      // Reemplazar URL local por la URL definitiva de Vercel Blob
       setForm((current) => ({ ...current, imagen: data.url }));
+      URL.revokeObjectURL(localUrl);
     } catch (uploadError) {
+      // Si falla, quitar el preview local
+      setForm((current) => ({ ...current, imagen: "" }));
+      URL.revokeObjectURL(localUrl);
       setError((uploadError as Error).message);
     } finally {
       setUploadingImage(false);
