@@ -400,79 +400,69 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
             </div>
 
             {/* ── Productos ── */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
               {(categoriaVisible?.productos ?? []).map((producto, idx) => {
                 const quantity = cart.find((item) => item.id === producto.id)?.cantidad ?? 0;
                 return (
                   <article
                     key={producto.id}
-                    className="group relative overflow-hidden rounded-[1.75rem] bg-white shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)] hover:shadow-[0_16px_48px_-12px_rgba(249,115,22,0.25)] transition-all duration-300 hover:-translate-y-1"
+                    className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.10)] transition-all duration-200 active:scale-[0.99]"
                   >
-                    {/* Imagen full-width */}
+                    {/* Miniatura cuadrada */}
                     <button
-                      className="relative block w-full overflow-hidden"
-                      style={{ aspectRatio: "4/3" }}
+                      className="relative h-[76px] w-[76px] flex-shrink-0 overflow-hidden rounded-xl"
                       onClick={() => setViewerIndex(idx)}
                     >
                       {producto.imagen ? (
                         <img
                           src={producto.imagen}
                           alt={producto.nombre}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          className="h-full w-full object-cover"
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100">
-                          <span className="text-6xl opacity-40">🍽️</span>
+                          <span className="text-3xl opacity-40">🍽️</span>
                         </div>
                       )}
-                      {/* Overlay oscuro abajo con precio */}
-                      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
-                      <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-                        <span className="text-xl font-black text-white drop-shadow-lg">
-                          {formatCurrency(producto.precio, sucursal.simbolo)}
-                        </span>
-                        {quantity > 0 && (
-                          <span className="rounded-full bg-orange-500 px-2.5 py-0.5 text-xs font-black text-white shadow">
-                            ×{quantity}
-                          </span>
-                        )}
-                      </div>
                     </button>
 
-                    {/* Info + controles */}
-                    <div className="p-4">
-                      <p className="text-base font-black leading-tight text-stone-900">{producto.nombre}</p>
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black leading-tight text-stone-900">{producto.nombre}</p>
                       {producto.descripcion && (
-                        <p className="mt-1 line-clamp-1 text-xs text-stone-400">{producto.descripcion}</p>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-stone-400">{producto.descripcion}</p>
                       )}
+                      <p className="mt-1 text-sm font-black text-orange-500">
+                        {formatCurrency(producto.precio, sucursal.simbolo)}
+                      </p>
+                    </div>
 
-                      <div className="mt-3">
-                        {quantity === 0 ? (
+                    {/* Contador */}
+                    <div className="flex-shrink-0">
+                      {quantity === 0 ? (
+                        <button
+                          onClick={() => addItem(producto)}
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-200/60 transition-all hover:from-orange-600 hover:to-amber-600 active:scale-90"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1 rounded-full bg-stone-950 px-1.5 py-1">
+                          <button
+                            onClick={() => removeItem(producto.id)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white active:scale-90"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span className="min-w-[18px] text-center text-sm font-black text-white">{quantity}</span>
                           <button
                             onClick={() => addItem(producto)}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 py-3 text-sm font-black text-white shadow-md shadow-orange-200/60 transition-all hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-300/60 active:scale-95"
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white transition hover:from-orange-600 hover:to-amber-600 active:scale-90"
                           >
-                            <Plus size={16} />
-                            Agregar
+                            <Plus size={13} />
                           </button>
-                        ) : (
-                          <div className="flex items-center justify-between rounded-xl bg-stone-950 px-2 py-1.5">
-                            <button
-                              onClick={() => removeItem(producto.id)}
-                              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white active:scale-90"
-                            >
-                              <Minus size={15} />
-                            </button>
-                            <span className="text-base font-black text-white">{quantity}</span>
-                            <button
-                              onClick={() => addItem(producto)}
-                              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 text-white transition hover:from-orange-600 hover:to-amber-600 active:scale-90"
-                            >
-                              <Plus size={15} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </article>
                 );
