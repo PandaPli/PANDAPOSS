@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { ArrowLeft, Loader2, MapPin, Minus, Phone, Plus, ReceiptText, ShoppingBag, Sparkles, UserCheck } from "lucide-react";
+import ProductoViewer from "./ProductoViewer";
 import { formatCurrency } from "@/lib/utils";
 import type { MetodoPago } from "@/types";
 
@@ -54,6 +55,7 @@ const paymentOptions: { id: string; label: string; method: MetodoPago; detail: s
 
 export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [categoriaActiva, setCategoriaActiva] = useState<number | null>(categorias[0]?.id ?? null);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -277,7 +279,22 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
     );
   }
 
+  const productosVisibles = categoriaVisible?.productos ?? [];
+
   return (
+    <>
+    {/* Visor de producto con swipe */}
+    {viewerIndex !== null && productosVisibles.length > 0 && (
+      <ProductoViewer
+        productos={productosVisibles}
+        initialIndex={viewerIndex}
+        simbolo={sucursal.simbolo}
+        getQuantity={(id) => cart.find((i) => i.id === id)?.cantidad ?? 0}
+        onAdd={addItem}
+        onRemove={removeItem}
+        onClose={() => setViewerIndex(null)}
+      />
+    )}
     <main className="min-h-screen bg-[#f4efe7] text-stone-900">
       {/* Padding inferior en mobile para que el bottom bar no tape el contenido */}
       <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 xl:pb-6">
@@ -322,15 +339,19 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
               </div>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {(categoriaVisible?.productos ?? []).map((producto) => {
+                {(categoriaVisible?.productos ?? []).map((producto, idx) => {
                   const quantity = cart.find((item) => item.id === producto.id)?.cantidad ?? 0;
                   return (
                     <article key={producto.id} className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 transition hover:border-amber-300 hover:bg-white">
-                      <div className="flex gap-4">
+                      {/* Zona clicable para abrir visor */}
+                      <button
+                        className="flex w-full gap-4 text-left"
+                        onClick={() => setViewerIndex(idx)}
+                      >
                         {producto.imagen ? (
-                          <img src={producto.imagen} alt={producto.nombre} className="h-24 w-24 rounded-2xl object-cover" />
+                          <img src={producto.imagen} alt={producto.nombre} className="h-24 w-24 shrink-0 rounded-2xl object-cover" />
                         ) : (
-                          <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-stone-200 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+                          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-stone-200 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
                             Sin foto
                           </div>
                         )}
@@ -339,7 +360,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                           <p className="mt-2 line-clamp-2 text-sm text-stone-500">{producto.descripcion ?? "Preparado al momento para delivery."}</p>
                           <p className="mt-4 text-lg font-black text-amber-600">{formatCurrency(producto.precio, sucursal.simbolo)}</p>
                         </div>
-                      </div>
+                      </button>
                       <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-3 py-2">
                         <button onClick={() => removeItem(producto.id)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-700 transition hover:bg-stone-200">
                           <Minus size={16} />
@@ -571,6 +592,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
         </div>
       </div>
     </main>
+    </>
   );
 }
 
