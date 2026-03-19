@@ -35,10 +35,12 @@ interface Props {
   sucursalGiroComercial?: string | null;
   sucursalTelefono?: string | null;
   sucursalDireccion?: string | null;
+  sucursalCartaBg?: string | null;
+  sucursalCartaSaludo?: string | null;
   sucursalZonasDelivery?: ZonaDelivery[] | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalSlug, sucursalPrinterPath, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -57,10 +59,18 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   // --- Estado logo sucursal ---
-  const [logoPreview, setLogoPreview] = useState<string | null>(sucursalLogoUrl);
+  const [logoPreview, setLogoPreview] = useState<string | null>(sucursalLogoUrl ?? null);
   const [logoLoading, setLogoLoading] = useState(false);
   const [logoMsg, setLogoMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // --- Estado personalización carta ---
+  const [cartaBgPreview, setCartaBgPreview] = useState<string | null>(sucursalCartaBg ?? null);
+  const [cartaBgLoading, setCartaBgLoading] = useState(false);
+  const [cartaSaludo, setCartaSaludo] = useState(sucursalCartaSaludo ?? "");
+  const [cartaMsg, setCartaMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [cartaLoading, setCartaLoading] = useState(false);
+  const bgRef = useRef<HTMLInputElement>(null);
 
   // --- Estado impresora ---
   const [printerPath, setPrinterPath] = useState(sucursalPrinterPath ?? "/dev/usb/lp0");
@@ -269,6 +279,73 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
     }
   }
 
+  // --- Handlers personalización carta ---
+  async function handleCartaBgUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCartaBgLoading(true);
+    setCartaMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const upData = await up.json();
+      if (!up.ok) throw new Error(upData.error ?? "Error al subir fondo");
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cartaBg: upData.url }),
+      });
+      if (!res.ok) throw new Error("Error al guardar fondo");
+      setCartaBgPreview(upData.url);
+      setCartaMsg({ type: "ok", text: "Fondo actualizado correctamente." });
+      router.refresh();
+    } catch (err) {
+      setCartaMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setCartaBgLoading(false);
+      if (bgRef.current) bgRef.current.value = "";
+    }
+  }
+
+  async function handleCartaBgRemove() {
+    setCartaBgLoading(true);
+    setCartaMsg(null);
+    try {
+      await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cartaBg: null }),
+      });
+      setCartaBgPreview(null);
+      setCartaMsg({ type: "ok", text: "Fondo eliminado." });
+      router.refresh();
+    } catch {
+      setCartaMsg({ type: "error", text: "Error al eliminar fondo." });
+    } finally {
+      setCartaBgLoading(false);
+    }
+  }
+
+  async function handleCartaSaludoSave() {
+    setCartaLoading(true);
+    setCartaMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cartaSaludo: cartaSaludo.trim() || null }),
+      });
+      if (!res.ok) throw new Error("Error al guardar texto");
+      setCartaMsg({ type: "ok", text: "Texto de carta guardado." });
+      router.refresh();
+    } catch (err) {
+      setCartaMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setCartaLoading(false);
+    }
+  }
+
   // --- Vista RESTAURANTE: solo card de logo y links ---
   if (esAdminSucursal) {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -392,6 +469,76 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Personalización de Carta */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <ImageIcon size={18} className="text-brand-600" />
+            <h2 className="font-semibold text-surface-text">Personalización de Carta</h2>
+          </div>
+          <p className="text-xs text-surface-muted mb-5">Configura cómo se ve tu carta pública y delivery. Los cambios se reflejan de inmediato.</p>
+
+          {cartaMsg && (
+            <div className={`mb-4 p-3 rounded-lg text-sm border ${cartaMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {cartaMsg.text}
+            </div>
+          )}
+
+          {/* Fondo de carta */}
+          <div className="mb-6">
+            <p className="text-sm font-medium text-surface-text mb-3">Imagen de fondo</p>
+            <div className="flex items-start gap-4">
+              <div className="w-32 h-20 rounded-xl border-2 border-dashed border-surface-border flex items-center justify-center bg-surface-bg flex-shrink-0 overflow-hidden">
+                {cartaBgPreview ? (
+                  <img src={cartaBgPreview} alt="Fondo carta" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon size={28} className="text-surface-muted opacity-30" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <p className="text-xs text-surface-muted">Aparece como fondo en tu carta pública. JPG, PNG o WEBP. Máx 4 MB.</p>
+                <div className="flex gap-2 flex-wrap">
+                  <input ref={bgRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCartaBgUpload} />
+                  <button type="button" onClick={() => bgRef.current?.click()} disabled={cartaBgLoading} className="btn-primary text-sm">
+                    {cartaBgLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {cartaBgPreview ? "Cambiar fondo" : "Subir fondo"}
+                  </button>
+                  {cartaBgPreview && (
+                    <button type="button" onClick={handleCartaBgRemove} disabled={cartaBgLoading} className="btn-secondary text-sm">
+                      <X size={14} /> Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Texto / saludo */}
+          <div>
+            <p className="text-sm font-medium text-surface-text mb-1">Texto de bienvenida</p>
+            <p className="text-xs text-surface-muted mb-3">Aparece en la parte inferior de tu carta. Puedes poner un saludo, redes sociales, horario, etc.</p>
+            <textarea
+              value={cartaSaludo}
+              onChange={(e) => setCartaSaludo(e.target.value)}
+              maxLength={300}
+              rows={3}
+              placeholder="ej: ¡Bienvenido! Síguenos en @netaa.mx 🌮 | Lunes a Domingo 12:00 - 22:00"
+              className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm text-surface-text outline-none focus:border-brand-500 resize-none"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-surface-muted">{cartaSaludo.length}/300</span>
+              <button
+                type="button"
+                onClick={handleCartaSaludoSave}
+                disabled={cartaLoading}
+                className="btn-primary text-sm"
+              >
+                {cartaLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Guardar texto
+              </button>
             </div>
           </div>
         </div>

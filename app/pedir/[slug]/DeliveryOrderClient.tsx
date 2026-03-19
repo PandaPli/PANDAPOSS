@@ -40,6 +40,8 @@ interface Props {
     direccion: string | null;
     telefono: string | null;
     logoUrl: string | null;
+    cartaBg: string | null;
+    cartaSaludo: string | null;
     simbolo: string;
   };
   categorias: Categoria[];
@@ -305,20 +307,38 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
       <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 xl:pb-6">
         <div className="grid gap-6 xl:grid-cols-[1.2fr_420px]">
           <section className="space-y-6">
-            <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#111111] text-white shadow-[0_40px_120px_-65px_rgba(0,0,0,0.7)]">
-              <div className="flex flex-wrap items-start justify-between gap-4 px-6 py-6 sm:px-8">
+            <div
+              className="overflow-hidden rounded-[2rem] border border-black/10 text-white shadow-[0_40px_120px_-65px_rgba(0,0,0,0.7)] relative"
+              style={sucursal.cartaBg ? {
+                backgroundImage: `url(${sucursal.cartaBg})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              } : { backgroundColor: "#111111" }}
+            >
+              {/* Overlay oscuro para legibilidad cuando hay fondo */}
+              {sucursal.cartaBg && <div className="absolute inset-0 bg-black/55 rounded-[2rem]" />}
+              <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 px-6 py-6 sm:px-8">
                 <div>
                   <Link href={`/pedir`} className="inline-flex items-center gap-2 text-sm font-semibold text-white/70 transition hover:text-white">
                     <ArrowLeft size={15} />
                     Volver
                   </Link>
-                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">Delivery integrado</p>
-                  <h1 className="mt-2 text-3xl font-black sm:text-4xl">Pide desde casa</h1>
-                  <p className="mt-3 max-w-2xl text-sm text-white/75">
-                    Tu pedido entra directo al POS, cocina lo prepara y delivery lo despacha con seguimiento para el cliente.
-                  </p>
+                  {/* Logo si existe */}
+                  {sucursal.logoUrl && (
+                    <img src={sucursal.logoUrl} alt={sucursal.nombre} className="mt-4 h-16 w-auto object-contain drop-shadow-lg" />
+                  )}
+                  {!sucursal.logoUrl && (
+                    <>
+                      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">Delivery integrado</p>
+                      <h1 className="mt-2 text-3xl font-black sm:text-4xl">{sucursal.nombre}</h1>
+                    </>
+                  )}
+                  {/* Saludo personalizado */}
+                  {sucursal.cartaSaludo && (
+                    <p className="mt-3 max-w-xl text-sm text-white/80">{sucursal.cartaSaludo}</p>
+                  )}
                 </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 text-sm text-white/75">
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 text-sm text-white/75 backdrop-blur-sm">
                   <p className="font-bold text-white">{sucursal.nombre}</p>
                   {sucursal.direccion ? <p className="mt-1">{sucursal.direccion}</p> : null}
                   {sucursal.telefono ? <p className="mt-1">{sucursal.telefono}</p> : null}

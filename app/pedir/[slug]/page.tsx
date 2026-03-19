@@ -20,6 +20,8 @@ export default async function PedirDeliveryPage({ params }: Props) {
       direccion: true,
       telefono: true,
       logoUrl: true,
+      cartaBg: true,
+      cartaSaludo: true,
       simbolo: true,
       zonasDelivery: true,
     },

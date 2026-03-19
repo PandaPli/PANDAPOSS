@@ -35,6 +35,8 @@ model Sucursal {
   correoActivo  Boolean        @default(false)
   creadoEn      DateTime       @default(now())
   logoUrl       String?        @db.VarChar(255)
+  cartaBg       String?        @db.VarChar(255)
+  cartaSaludo   String?        @db.VarChar(300)
   orden         Int            @default(0)
   tenantId      String?
   printerPath   String?        @default("/dev/usb/lp0") @db.VarChar(50)
