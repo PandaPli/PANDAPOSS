@@ -11,3 +11,4 @@ build/
 .claude/
 .clone/
 scripts/userOutput*.json
+.vercel

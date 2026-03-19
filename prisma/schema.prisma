@@ -36,6 +36,7 @@ model Sucursal {
   creadoEn      DateTime       @default(now())
   logoUrl       String?        @db.VarChar(255)
   cartaBg       String?        @db.VarChar(255)
+  cartaTagline  String?        @db.VarChar(150)
   cartaSaludo   String?        @db.VarChar(300)
   orden         Int            @default(0)
   tenantId      String?

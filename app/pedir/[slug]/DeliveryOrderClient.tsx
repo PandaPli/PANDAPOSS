@@ -41,6 +41,7 @@ interface Props {
     telefono: string | null;
     logoUrl: string | null;
     cartaBg: string | null;
+    cartaTagline: string | null;
     cartaSaludo: string | null;
     simbolo: string;
   };
@@ -307,41 +308,62 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
       <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 xl:pb-6">
         <div className="grid gap-6 xl:grid-cols-[1.2fr_420px]">
           <section className="space-y-6">
-            <div
-              className="overflow-hidden rounded-[2rem] border border-black/10 text-white shadow-[0_40px_120px_-65px_rgba(0,0,0,0.7)] relative"
-              style={sucursal.cartaBg ? {
-                backgroundImage: `url(${sucursal.cartaBg})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              } : { backgroundColor: "#111111" }}
-            >
-              {/* Overlay oscuro para legibilidad cuando hay fondo */}
-              {sucursal.cartaBg && <div className="absolute inset-0 bg-black/55 rounded-[2rem]" />}
-              <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 px-6 py-6 sm:px-8">
-                <div>
-                  <Link href={`/pedir`} className="inline-flex items-center gap-2 text-sm font-semibold text-white/70 transition hover:text-white">
-                    <ArrowLeft size={15} />
-                    Volver
-                  </Link>
-                  {/* Logo si existe */}
-                  {sucursal.logoUrl && (
-                    <img src={sucursal.logoUrl} alt={sucursal.nombre} className="mt-4 h-16 w-auto object-contain drop-shadow-lg" />
+            {/* ═══ HERO ═══ */}
+            <div className="relative overflow-hidden rounded-[2rem] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.55)]">
+              {/* Fondo */}
+              <div
+                className="absolute inset-0"
+                style={sucursal.cartaBg
+                  ? { backgroundImage: `url(${sucursal.cartaBg})`, backgroundSize: "cover", backgroundPosition: "center" }
+                  : { background: "linear-gradient(135deg,#1a0a00 0%,#3b0f0f 40%,#1c1003 100%)" }
+                }
+              />
+              {/* Overlay gradiente para siempre leer bien el texto */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+
+              {/* Volver */}
+              <div className="relative z-10 px-6 pt-5 sm:px-8">
+                <Link href="/pedir" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/60 transition hover:text-white">
+                  <ArrowLeft size={13} /> Volver
+                </Link>
+              </div>
+
+              {/* Logo centrado */}
+              <div className="relative z-10 flex flex-col items-center px-6 pt-4 pb-2 sm:px-8">
+                {sucursal.logoUrl ? (
+                  <img
+                    src={sucursal.logoUrl}
+                    alt={sucursal.nombre}
+                    className="h-36 w-auto max-w-[280px] object-contain drop-shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
+                  />
+                ) : (
+                  <h1 className="text-4xl font-black tracking-tight text-white drop-shadow-lg sm:text-5xl">
+                    {sucursal.nombre}
+                  </h1>
+                )}
+              </div>
+
+              {/* Bloque de información */}
+              <div className="relative z-10 mx-4 mb-6 mt-2 sm:mx-8">
+                <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-center backdrop-blur-md">
+                  {sucursal.cartaTagline && (
+                    <p className="text-lg font-black text-white drop-shadow sm:text-xl">
+                      {sucursal.cartaTagline}
+                    </p>
                   )}
-                  {!sucursal.logoUrl && (
-                    <>
-                      <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">Delivery integrado</p>
-                      <h1 className="mt-2 text-3xl font-black sm:text-4xl">{sucursal.nombre}</h1>
-                    </>
-                  )}
-                  {/* Saludo personalizado */}
                   {sucursal.cartaSaludo && (
-                    <p className="mt-3 max-w-xl text-sm text-white/80">{sucursal.cartaSaludo}</p>
+                    <p className="mt-1 text-sm text-white/75">{sucursal.cartaSaludo}</p>
                   )}
-                </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4 text-sm text-white/75 backdrop-blur-sm">
-                  <p className="font-bold text-white">{sucursal.nombre}</p>
-                  {sucursal.direccion ? <p className="mt-1">{sucursal.direccion}</p> : null}
-                  {sucursal.telefono ? <p className="mt-1">{sucursal.telefono}</p> : null}
+                  {!sucursal.cartaTagline && !sucursal.cartaSaludo && (
+                    <p className="text-sm text-white/60">Pide directo, cocina lo prepara al momento.</p>
+                  )}
+                  {/* Dirección y teléfono */}
+                  {(sucursal.direccion || sucursal.telefono) && (
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-white/50">
+                      {sucursal.direccion && <span>📍 {sucursal.direccion}</span>}
+                      {sucursal.telefono && <span>📞 {sucursal.telefono}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

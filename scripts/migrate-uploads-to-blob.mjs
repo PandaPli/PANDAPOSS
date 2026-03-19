@@ -7,7 +7,15 @@
  * Requiere BLOB_READ_WRITE_TOKEN en .env.local
  */
 
-import "dotenv/config";
+import { readFileSync } from "fs";
+// Cargar .env.local manualmente
+try {
+  const env = readFileSync(new URL("../.env.local", import.meta.url), "utf8");
+  for (const line of env.split("\n")) {
+    const m = line.match(/^([^#=]+)=(.*)$/);
+    if (m) process.env[m[1].trim()] = m[2].trim().replace(/^"|"$/g, "");
+  }
+} catch { /* no .env.local */ }
 import { put } from "@vercel/blob";
 import { PrismaClient } from "@prisma/client";
 import { readFile, readdir } from "fs/promises";

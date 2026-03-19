@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaSaludo, plan, printerPath, rut, giroComercial, zonasDelivery } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, rut, giroComercial, zonasDelivery } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -43,6 +43,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (esPropietario && !isAdmin(rol)) {
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
     if (cartaBg !== undefined) data.cartaBg = (cartaBg as string) || null;
+    if (cartaTagline !== undefined) data.cartaTagline = (cartaTagline as string)?.trim().slice(0, 150) || null;
     if (cartaSaludo !== undefined) data.cartaSaludo = (cartaSaludo as string)?.trim().slice(0, 300) || null;
     if (printerPath !== undefined) data.printerPath = (printerPath as string)?.trim() || null;
     if (rut !== undefined) data.rut = (rut as string)?.trim() || null;

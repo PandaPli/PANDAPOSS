@@ -36,11 +36,12 @@ interface Props {
   sucursalTelefono?: string | null;
   sucursalDireccion?: string | null;
   sucursalCartaBg?: string | null;
+  sucursalCartaTagline?: string | null;
   sucursalCartaSaludo?: string | null;
   sucursalZonasDelivery?: ZonaDelivery[] | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -67,6 +68,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   // --- Estado personalización carta ---
   const [cartaBgPreview, setCartaBgPreview] = useState<string | null>(sucursalCartaBg ?? null);
   const [cartaBgLoading, setCartaBgLoading] = useState(false);
+  const [cartaTagline, setCartaTagline] = useState(sucursalCartaTagline ?? "");
   const [cartaSaludo, setCartaSaludo] = useState(sucursalCartaSaludo ?? "");
   const [cartaMsg, setCartaMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const [cartaLoading, setCartaLoading] = useState(false);
@@ -334,7 +336,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
       const res = await fetch(`/api/sucursales/${sucursalId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cartaSaludo: cartaSaludo.trim() || null }),
+        body: JSON.stringify({ cartaTagline: cartaTagline.trim() || null, cartaSaludo: cartaSaludo.trim() || null }),
       });
       if (!res.ok) throw new Error("Error al guardar texto");
       setCartaMsg({ type: "ok", text: "Texto de carta guardado." });
@@ -516,16 +518,31 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
             </div>
           </div>
 
-          {/* Texto / saludo */}
+          {/* Frase principal (tagline) */}
+          <div className="mb-4">
+            <p className="text-sm font-medium text-surface-text mb-1">Frase principal</p>
+            <p className="text-xs text-surface-muted mb-2">Aparece destacada en el hero de tu carta. Ej: "Tu Fantasía Mexicana" o "Sushi de autor 🍣"</p>
+            <input
+              type="text"
+              value={cartaTagline}
+              onChange={(e) => setCartaTagline(e.target.value)}
+              maxLength={150}
+              placeholder='ej: Tu Fantasía Mexicana 🌮'
+              className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm text-surface-text outline-none focus:border-brand-500"
+            />
+            <p className="text-right text-xs text-surface-muted mt-1">{cartaTagline.length}/150</p>
+          </div>
+
+          {/* Subtexto / saludo / redes */}
           <div>
-            <p className="text-sm font-medium text-surface-text mb-1">Texto de bienvenida</p>
-            <p className="text-xs text-surface-muted mb-3">Aparece en la parte inferior de tu carta. Puedes poner un saludo, redes sociales, horario, etc.</p>
+            <p className="text-sm font-medium text-surface-text mb-1">Subtexto / redes sociales</p>
+            <p className="text-xs text-surface-muted mb-3">Segunda línea bajo la frase. Horarios, redes sociales, eslogan, etc.</p>
             <textarea
               value={cartaSaludo}
               onChange={(e) => setCartaSaludo(e.target.value)}
               maxLength={300}
-              rows={3}
-              placeholder="ej: ¡Bienvenido! Síguenos en @netaa.mx 🌮 | Lunes a Domingo 12:00 - 22:00"
+              rows={2}
+              placeholder="ej: Síguenos en @netaa.mx 🌶️ | Lunes a Domingo 12:00 - 22:00"
               className="w-full rounded-xl border border-surface-border bg-surface-bg px-4 py-3 text-sm text-surface-text outline-none focus:border-brand-500 resize-none"
             />
             <div className="flex items-center justify-between mt-2">
@@ -537,7 +554,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
                 className="btn-primary text-sm"
               >
                 {cartaLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                Guardar texto
+                Guardar textos
               </button>
             </div>
           </div>
