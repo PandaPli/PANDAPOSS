@@ -341,15 +341,15 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
               </div>
 
               {/* Logo centrado */}
-              <div className="relative z-10 flex flex-col items-center px-6 pt-4 pb-2 sm:px-8">
+              <div className="relative z-10 flex flex-col items-center px-6 pt-6 pb-3 sm:px-8">
                 {sucursal.logoUrl ? (
                   <img
                     src={sucursal.logoUrl}
                     alt={sucursal.nombre}
-                    className="h-36 w-auto max-w-[280px] object-contain drop-shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
+                    className="h-52 w-auto max-w-[340px] object-contain drop-shadow-[0_12px_48px_rgba(0,0,0,0.8)] sm:h-64"
                   />
                 ) : (
-                  <h1 className="text-4xl font-black tracking-tight text-white drop-shadow-lg sm:text-5xl">
+                  <h1 className="text-5xl font-black tracking-tight text-white drop-shadow-lg sm:text-6xl">
                     {sucursal.nombre}
                   </h1>
                 )}
