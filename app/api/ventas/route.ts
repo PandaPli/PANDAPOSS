@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import type { Rol } from "@/types";
 import { VentaRepo } from "@/server/repositories/venta.repo";
 import { VentaService } from "@/server/services/venta.service";
+import { prisma } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -37,6 +38,28 @@ export async function POST(req: NextRequest) {
   }
 
   const usuarioId = (session.user as { id: number }).id;
+  const rol = (session.user as { rol: Rol }).rol;
+
+  // C1: Caja obligatoria — verificar que existe y está ABIERTA
+  // ADMIN_GENERAL puede omitirla (ventas de backoffice/corrección)
+  if (rol !== "ADMIN_GENERAL") {
+    if (!body.cajaId) {
+      return NextResponse.json(
+        { error: "Debes abrir una caja antes de registrar una venta." },
+        { status: 400 }
+      );
+    }
+    const caja = await prisma.caja.findUnique({
+      where: { id: Number(body.cajaId) },
+      select: { estado: true },
+    });
+    if (!caja || caja.estado !== "ABIERTA") {
+      return NextResponse.json(
+        { error: "La caja seleccionada no está abierta. Abre una caja primero." },
+        { status: 400 }
+      );
+    }
+  }
 
   try {
     const venta = await VentaService.create({

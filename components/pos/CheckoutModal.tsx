@@ -264,6 +264,12 @@ export function CheckoutModal({
   async function handleConfirmar() {
     if (items.length === 0) return;
 
+    // C1: Bloquear si no hay caja abierta
+    if (!cajaId) {
+      setError("No hay caja abierta. Abre una caja antes de cobrar.");
+      return;
+    }
+
     if (pagos.length === 0) {
       setError("Agregue al menos un metodo de pago");
       return;
