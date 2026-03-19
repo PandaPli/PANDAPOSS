@@ -171,6 +171,16 @@ export const DeliveryService = {
         }
       });
 
+      // 5. Descontar stock — igual que ventas POS (puede quedar negativo, notificación vía socket)
+      await Promise.all(
+        items.map((item) =>
+          tx.producto.update({
+            where: { id: Number(item.productoId) },
+            data: { stock: { decrement: Number(item.cantidad) } },
+          })
+        )
+      );
+
       return pedido;
     });
 
@@ -179,6 +189,27 @@ export const DeliveryService = {
       customerName: cliente.nombre.trim(),
       telefono: cliente.telefono.trim(),
     });
+
+    // Notificar stock bajo (misma lógica que ventas POS)
+    const productoIds = items.map((i) => Number(i.productoId));
+    const sinStock = await prisma.producto.findMany({
+      where: { id: { in: productoIds }, stock: { lte: 0 } },
+      select: { nombre: true, stock: true },
+    });
+    if (sinStock.length > 0) {
+      const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+      try {
+        globalForSocket.io
+          ?.to(`sucursal_${sucursalId}_alertas`)
+          .emit("stock:bajo", {
+            sucursalId,
+            alertas: sinStock.map((p) => ({ nombre: p.nombre, stock: Number(p.stock) })),
+            ts: Date.now(),
+          });
+      } catch {
+        // No bloquear si el socket falla
+      }
+    }
 
     return {
       id: result.id,
