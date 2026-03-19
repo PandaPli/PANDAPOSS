@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PedidoService } from "@/server/services/pedido.service";
 import { effectiveFeature } from "@/lib/plan";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 // P1: Límites para prevenir abuso del endpoint público
 const MAX_ITEMS        = 30;   // máximo de líneas por pedido
@@ -11,6 +12,19 @@ const MAX_OBS_LEN      = 200;  // caracteres en observación por ítem
 
 export async function POST(req: NextRequest) {
   try {
+    // P2: Rate limiting — 10 pedidos por IP por minuto
+    const ip = getClientIp(req);
+    const rl = rateLimit(`public:pedidos:${ip}`, { max: 10, windowMs: 60_000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en un momento." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+        }
+      );
+    }
+
     const body = await req.json();
     const { sucursalId, mesaId, items, clienteInfo } = body;
 

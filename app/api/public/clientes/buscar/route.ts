@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { featureFilter } from "@/lib/plan";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
+  // P4: Rate limiting — 20 búsquedas por IP por minuto (anti-enumeración)
+  const ip = getClientIp(req);
+  const rl = rateLimit(`public:clientes:${ip}`, { max: 20, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intenta de nuevo en un momento." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const telefono = searchParams.get("telefono");
   const sucursalId = searchParams.get("sucursalId");
