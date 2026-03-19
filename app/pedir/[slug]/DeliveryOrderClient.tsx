@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { ArrowLeft, Loader2, MapPin, Minus, Phone, Plus, ReceiptText, ShoppingBag, Sparkles, UserCheck } from "lucide-react";
 import ProductoViewer from "./ProductoViewer";
+import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { formatCurrency } from "@/lib/utils";
 import type { MetodoPago } from "@/types";
 
@@ -60,6 +61,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [direccion, setDireccion] = useState("");
+  const [geoLat, setGeoLat] = useState<number | null>(null);
+  const [geoLng, setGeoLng] = useState<number | null>(null);
   const [referencia, setReferencia] = useState("");
   const [departamento, setDepartamento] = useState("");
   const [zonaId, setZonaId] = useState<number | null>(zonas[0]?.id ?? null);
@@ -192,6 +195,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
             direccion,
             referencia,
             departamento,
+            lat: geoLat,
+            lng: geoLng,
           },
           metodoPago: paymentSeleccionado.method,
           cargoEnvio: zonaSeleccionada?.precio ?? 0,
@@ -460,10 +465,16 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
                     <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400 mt-2" />
                     
-                    <div className="relative">
-                      <MapPin size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
-                      <input value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Direccion de entrega" className="w-full rounded-2xl border border-stone-200 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-amber-400" />
-                    </div>
+                    <AddressAutocomplete
+                      value={direccion}
+                      onChange={setDireccion}
+                      onSelect={({ direccion: d, lat, lng }) => {
+                        setDireccion(d);
+                        setGeoLat(lat);
+                        setGeoLng(lng);
+                      }}
+                      placeholder="Dirección de entrega"
+                    />
                     
                     {sugerenciaDireccion && (!direccion || direccion !== sugerenciaDireccion.calle) && (
                       <div className="mt-2 flex items-start gap-2 rounded-xl bg-emerald-50 p-2.5 px-3">
@@ -486,7 +497,6 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
                     <input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Referencia (ej: porton negro)" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
                     <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} placeholder="Departamento (opcional)" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
-                    <p className="text-[11px] text-stone-500">El autocompletado de mapas queda listo para conectarse a Google Maps API cuando quieras activarlo.</p>
                   </div>
                 </div>
 
