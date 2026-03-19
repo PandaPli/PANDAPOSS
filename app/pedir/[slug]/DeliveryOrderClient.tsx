@@ -22,6 +22,7 @@ interface Categoria {
 
 interface CartItem extends Producto {
   cantidad: number;
+  nota?: string;
 }
 
 interface ZonaDelivery {
@@ -101,6 +102,12 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
       if (existing.cantidad === 1) return prev.filter((item) => item.id !== productoId);
       return prev.map((item) => (item.id === productoId ? { ...item, cantidad: item.cantidad - 1 } : item));
     });
+  }
+
+  function updateNota(productoId: number, nota: string) {
+    setCart((prev) =>
+      prev.map((item) => (item.id === productoId ? { ...item, nota } : item))
+    );
   }
 
   useEffect(() => {
@@ -190,6 +197,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
           items: cart.map((item) => ({
             productoId: item.id,
             cantidad: item.cantidad,
+            ...(item.nota?.trim() ? { observacion: item.nota.trim() } : {}),
           })),
         }),
       });
@@ -375,6 +383,18 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                             <p className="mt-1 text-xs text-stone-500">{item.cantidad} x {formatCurrency(item.precio, sucursal.simbolo)}</p>
                           </div>
                           <p className="font-bold text-stone-900">{formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}</p>
+                        </div>
+                        {/* Nota para cocina por ítem */}
+                        <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2">
+                          <span className="shrink-0 text-[11px] font-semibold text-stone-400 uppercase tracking-wide">Nota</span>
+                          <input
+                            type="text"
+                            value={item.nota ?? ""}
+                            onChange={(e) => updateNota(item.id, e.target.value)}
+                            placeholder="ej: sin pimentón, extra salsa"
+                            maxLength={120}
+                            className="min-w-0 flex-1 bg-transparent text-xs text-stone-700 placeholder-stone-300 outline-none"
+                          />
                         </div>
                       </div>
                     ))
