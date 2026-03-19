@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin, Plus, Trash2 } from "lucide-react";
 import type { Rol } from "@/types";
+import ZonaMapEditor from "@/components/configuracion/ZonaMapEditor";
 
 interface Config {
   id: number;
@@ -22,6 +23,7 @@ interface ZonaDelivery {
   id: number;
   nombre: string;
   precio: number;
+  polygon?: { lat: number; lng: number }[];
 }
 
 interface Props {
@@ -97,6 +99,7 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [newZonaPrecio, setNewZonaPrecio] = useState("");
   const [zonasLoading, setZonasLoading] = useState(false);
   const [zonasMsg, setZonasMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [zonaModo, setZonaModo] = useState<"manual" | "mapa">("manual");
 
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
@@ -651,45 +654,82 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
             </div>
           )}
 
-          <div className="space-y-2 mb-4">
-            {zonas.length === 0 && (
-              <p className="text-sm text-surface-muted italic">Sin zonas configuradas. Agrega al menos una.</p>
-            )}
-            {zonas.map((zona) => (
-              <div key={zona.id} className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-bg px-4 py-2.5">
-                <div>
-                  <span className="text-sm font-semibold text-surface-text">{zona.nombre}</span>
-                  <span className="ml-3 text-sm text-surface-muted">${zona.precio.toLocaleString("es-CL")}</span>
-                </div>
-                <button type="button" onClick={() => handleRemoveZona(zona.id)} disabled={zonasLoading} className="text-red-500 hover:text-red-700 transition-colors p-1 rounded">
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              className="input flex-1"
-              value={newZonaNombre}
-              onChange={(e) => setNewZonaNombre(e.target.value)}
-              placeholder="Nombre zona (ej: Llolleo Centro)"
-              onKeyDown={(e) => e.key === "Enter" && handleAddZona()}
-            />
-            <input
-              className="input w-32"
-              type="number"
-              value={newZonaPrecio}
-              onChange={(e) => setNewZonaPrecio(e.target.value)}
-              placeholder="Precio"
-              min={0}
-              onKeyDown={(e) => e.key === "Enter" && handleAddZona()}
-            />
-            <button type="button" onClick={handleAddZona} disabled={zonasLoading || !newZonaNombre.trim() || !newZonaPrecio} className="btn-primary shrink-0">
-              {zonasLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-              Agregar
+          {/* Tab switcher */}
+          <div className="flex gap-1 mb-5 p-1 rounded-lg bg-surface-bg border border-surface-border w-fit">
+            <button
+              type="button"
+              onClick={() => setZonaModo("manual")}
+              className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${zonaModo === "manual" ? "bg-white shadow text-surface-text" : "text-surface-muted hover:text-surface-text"}`}
+            >
+              📝 Por nombre
+            </button>
+            <button
+              type="button"
+              onClick={() => setZonaModo("mapa")}
+              className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${zonaModo === "mapa" ? "bg-white shadow text-surface-text" : "text-surface-muted hover:text-surface-text"}`}
+            >
+              🗺️ Por mapa
             </button>
           </div>
+
+          {zonaModo === "manual" && (
+            <>
+              <div className="space-y-2 mb-4">
+                {zonas.length === 0 && (
+                  <p className="text-sm text-surface-muted italic">Sin zonas configuradas. Agrega al menos una.</p>
+                )}
+                {zonas.map((zona) => (
+                  <div key={zona.id} className="flex items-center justify-between rounded-lg border border-surface-border bg-surface-bg px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-surface-text">{zona.nombre}</span>
+                      <span className="ml-1 text-sm text-surface-muted">${zona.precio.toLocaleString("es-CL")}</span>
+                      {zona.polygon?.length ? (
+                        <span className="ml-1 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold text-brand-700">📍</span>
+                      ) : null}
+                    </div>
+                    <button type="button" onClick={() => handleRemoveZona(zona.id)} disabled={zonasLoading} className="text-red-500 hover:text-red-700 transition-colors p-1 rounded">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  value={newZonaNombre}
+                  onChange={(e) => setNewZonaNombre(e.target.value)}
+                  placeholder="Nombre zona (ej: Llolleo Centro)"
+                  onKeyDown={(e) => e.key === "Enter" && handleAddZona()}
+                />
+                <input
+                  className="input w-32"
+                  type="number"
+                  value={newZonaPrecio}
+                  onChange={(e) => setNewZonaPrecio(e.target.value)}
+                  placeholder="Precio"
+                  min={0}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddZona()}
+                />
+                <button type="button" onClick={handleAddZona} disabled={zonasLoading || !newZonaNombre.trim() || !newZonaPrecio} className="btn-primary shrink-0">
+                  {zonasLoading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  Agregar
+                </button>
+              </div>
+            </>
+          )}
+
+          {zonaModo === "mapa" && (
+            <ZonaMapEditor
+              zonas={zonas}
+              onChange={(nuevasZonas) => {
+                setZonas(nuevasZonas);
+                handleZonasSave(nuevasZonas);
+              }}
+              apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""}
+              defaultCenter={undefined}
+            />
+          )}
         </div>
       </div>
     );

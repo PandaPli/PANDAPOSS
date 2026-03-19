@@ -31,6 +31,18 @@ interface ZonaDelivery {
   id: number;
   nombre: string;
   precio: number;
+  polygon?: { lat: number; lng: number }[];
+}
+
+function pointInPolygon(lat: number, lng: number, polygon: { lat: number; lng: number }[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng, yi = polygon[i].lat;
+    const xj = polygon[j].lng, yj = polygon[j].lat;
+    const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
 }
 
 interface Props {
@@ -564,6 +576,10 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                         setDireccion(d);
                         setGeoLat(lat);
                         setGeoLng(lng);
+                        if (lat !== null && lng !== null) {
+                          const matched = zonas.find(z => z.polygon?.length && pointInPolygon(lat, lng, z.polygon));
+                          if (matched) setZonaId(matched.id);
+                        }
                       }}
                       placeholder="Dirección de entrega"
                     />
@@ -596,20 +612,30 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                   <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Zona de despacho</p>
                     <div className="mt-4 grid gap-2">
-                      {zonas.map((zona) => (
-                        <button
-                          key={zona.id}
-                          onClick={() => setZonaId(zona.id)}
-                          className={`rounded-2xl border px-4 py-3 text-left transition ${
-                            zonaId === zona.id ? "border-orange-400 bg-orange-50 shadow-sm shadow-orange-100" : "border-stone-200 bg-white/70 hover:border-orange-200"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="font-bold text-stone-900">{zona.nombre}</p>
-                            <p className="font-bold text-stone-900">{formatCurrency(zona.precio, sucursal.simbolo)}</p>
-                          </div>
-                        </button>
-                      ))}
+                      {zonas.map((zona) => {
+                        const isAutoMatched = geoLat !== null && geoLng !== null && zona.polygon?.length
+                          ? pointInPolygon(geoLat, geoLng, zona.polygon)
+                          : false;
+                        return (
+                          <button
+                            key={zona.id}
+                            onClick={() => setZonaId(zona.id)}
+                            className={`rounded-2xl border px-4 py-3 text-left transition ${
+                              zonaId === zona.id ? "border-orange-400 bg-orange-50 shadow-sm shadow-orange-100" : "border-stone-200 bg-white/70 hover:border-orange-200"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-stone-900">{zona.nombre}</p>
+                                {isAutoMatched && (
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">✓ Tu zona</span>
+                                )}
+                              </div>
+                              <p className="font-bold text-stone-900">{formatCurrency(zona.precio, sucursal.simbolo)}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
