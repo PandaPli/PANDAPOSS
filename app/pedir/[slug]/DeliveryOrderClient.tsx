@@ -368,100 +368,150 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-[0_30px_80px_-60px_rgba(0,0,0,0.4)]">
-              <div className="flex flex-wrap gap-2">
+            {/* ── Categorías ── */}
+            <div className="rounded-[2rem] border border-black/5 bg-white/80 backdrop-blur-sm p-4 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.15)]">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {categorias.map((categoria) => (
                   <button
                     key={categoria.id}
                     onClick={() => setCategoriaActiva(categoria.id)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-black transition-all duration-200 ${
                       categoriaActiva === categoria.id
-                        ? "bg-stone-900 text-white"
-                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-200 scale-105"
+                        : "bg-stone-100 text-stone-500 hover:bg-orange-50 hover:text-orange-600"
                     }`}
                   >
                     {categoria.nombre}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {(categoriaVisible?.productos ?? []).map((producto, idx) => {
-                  const quantity = cart.find((item) => item.id === producto.id)?.cantidad ?? 0;
-                  return (
-                    <article key={producto.id} className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 transition hover:border-amber-300 hover:bg-white">
-                      {/* Zona clicable para abrir visor */}
-                      <button
-                        className="flex w-full gap-4 text-left"
-                        onClick={() => setViewerIndex(idx)}
-                      >
-                        {producto.imagen ? (
-                          <img src={producto.imagen} alt={producto.nombre} className="h-24 w-24 shrink-0 rounded-2xl object-cover" />
+            {/* ── Productos ── */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(categoriaVisible?.productos ?? []).map((producto, idx) => {
+                const quantity = cart.find((item) => item.id === producto.id)?.cantidad ?? 0;
+                return (
+                  <article
+                    key={producto.id}
+                    className="group relative overflow-hidden rounded-[1.75rem] bg-white shadow-[0_4px_24px_-8px_rgba(0,0,0,0.12)] hover:shadow-[0_16px_48px_-12px_rgba(249,115,22,0.25)] transition-all duration-300 hover:-translate-y-1"
+                  >
+                    {/* Imagen full-width */}
+                    <button
+                      className="relative block w-full overflow-hidden"
+                      style={{ aspectRatio: "4/3" }}
+                      onClick={() => setViewerIndex(idx)}
+                    >
+                      {producto.imagen ? (
+                        <img
+                          src={producto.imagen}
+                          alt={producto.nombre}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100">
+                          <span className="text-6xl opacity-40">🍽️</span>
+                        </div>
+                      )}
+                      {/* Overlay oscuro abajo con precio */}
+                      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
+                      <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
+                        <span className="text-xl font-black text-white drop-shadow-lg">
+                          {formatCurrency(producto.precio, sucursal.simbolo)}
+                        </span>
+                        {quantity > 0 && (
+                          <span className="rounded-full bg-orange-500 px-2.5 py-0.5 text-xs font-black text-white shadow">
+                            ×{quantity}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Info + controles */}
+                    <div className="p-4">
+                      <p className="text-base font-black leading-tight text-stone-900">{producto.nombre}</p>
+                      {producto.descripcion && (
+                        <p className="mt-1 line-clamp-1 text-xs text-stone-400">{producto.descripcion}</p>
+                      )}
+
+                      <div className="mt-3">
+                        {quantity === 0 ? (
+                          <button
+                            onClick={() => addItem(producto)}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 py-3 text-sm font-black text-white shadow-md shadow-orange-200/60 transition-all hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-300/60 active:scale-95"
+                          >
+                            <Plus size={16} />
+                            Agregar
+                          </button>
                         ) : (
-                          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-stone-200 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-                            Sin foto
+                          <div className="flex items-center justify-between rounded-xl bg-stone-950 px-2 py-1.5">
+                            <button
+                              onClick={() => removeItem(producto.id)}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/60 transition hover:bg-white/10 hover:text-white active:scale-90"
+                            >
+                              <Minus size={15} />
+                            </button>
+                            <span className="text-base font-black text-white">{quantity}</span>
+                            <button
+                              onClick={() => addItem(producto)}
+                              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 text-white transition hover:from-orange-600 hover:to-amber-600 active:scale-90"
+                            >
+                              <Plus size={15} />
+                            </button>
                           </div>
                         )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-lg font-black leading-tight text-stone-900">{producto.nombre}</p>
-                          <p className="mt-2 line-clamp-2 text-sm text-stone-500">{producto.descripcion ?? "Preparado al momento para delivery."}</p>
-                          <p className="mt-4 text-lg font-black text-amber-600">{formatCurrency(producto.precio, sucursal.simbolo)}</p>
-                        </div>
-                      </button>
-                      <div className="mt-4 flex items-center justify-between rounded-2xl bg-white px-3 py-2">
-                        <button onClick={() => removeItem(producto.id)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-100 text-stone-700 transition hover:bg-stone-200">
-                          <Minus size={16} />
-                        </button>
-                        <span className="text-sm font-bold text-stone-900">{quantity}</span>
-                        <button onClick={() => addItem(producto)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-900 text-white transition hover:bg-stone-700">
-                          <Plus size={16} />
-                        </button>
                       </div>
-                    </article>
-                  );
-                })}
-              </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
 
           <aside className="xl:sticky xl:top-6 xl:h-fit">
             <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_35px_100px_-60px_rgba(0,0,0,0.45)]">
-              <div className="border-b border-stone-200 bg-stone-950 px-5 py-4 text-white">
+              <div className="border-b border-white/5 bg-gradient-to-r from-orange-600 to-amber-500 px-5 py-4 text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">Resumen delivery</p>
-                    <h2 className="mt-1 text-xl font-black">Tu pedido</h2>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Tu pedido</p>
+                    <h2 className="mt-0.5 text-xl font-black">🔥 ¿Qué va hoy?</h2>
                   </div>
-                  <div className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold">{totalItems} items</div>
+                  {totalItems > 0 && (
+                    <div className="rounded-full bg-white/20 px-3 py-1 text-sm font-black backdrop-blur-sm">
+                      {totalItems} {totalItems === 1 ? "item" : "items"}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-6 p-5">
                 <div className="space-y-3">
                   {cart.length === 0 ? (
-                    <div className="rounded-[1.5rem] border border-dashed border-stone-300 bg-stone-50 p-6 text-center text-sm text-stone-500">
-                      Agrega productos para empezar tu pedido delivery.
+                    <div className="rounded-[1.5rem] border-2 border-dashed border-orange-100 bg-orange-50/50 p-8 text-center">
+                      <p className="text-4xl">🛒</p>
+                      <p className="mt-2 text-sm font-bold text-stone-400">¡Todo listo para pedir!</p>
+                      <p className="mt-1 text-xs text-stone-300">Elige algo del menú 👆</p>
                     </div>
                   ) : (
                     cart.map((item) => (
-                      <div key={item.id} className="rounded-[1.25rem] border border-stone-200 bg-stone-50 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-stone-900">{item.nombre}</p>
-                            <p className="mt-1 text-xs text-stone-500">{item.cantidad} x {formatCurrency(item.precio, sucursal.simbolo)}</p>
+                      <div key={item.id} className="overflow-hidden rounded-[1.25rem] border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50">
+                        <div className="flex items-start justify-between gap-3 p-3 pb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-black text-stone-900 leading-tight">{item.nombre}</p>
+                            <p className="mt-0.5 text-xs text-stone-400">{item.cantidad} × {formatCurrency(item.precio, sucursal.simbolo)}</p>
                           </div>
-                          <p className="font-bold text-stone-900">{formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}</p>
+                          <p className="shrink-0 font-black text-orange-600">{formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}</p>
                         </div>
-                        {/* Nota para cocina por ítem */}
-                        <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2">
-                          <span className="shrink-0 text-[11px] font-semibold text-stone-400 uppercase tracking-wide">Nota</span>
+                        {/* Nota para cocina */}
+                        <div className="mx-3 mb-3 flex items-center gap-2 rounded-xl border border-orange-100 bg-white px-3 py-2">
+                          <span className="shrink-0 text-[10px] font-black text-orange-300 uppercase tracking-wider">Nota</span>
                           <input
                             type="text"
                             value={item.nota ?? ""}
                             onChange={(e) => updateNota(item.id, e.target.value)}
                             placeholder="ej: sin pimentón, extra salsa"
                             maxLength={120}
-                            className="min-w-0 flex-1 bg-transparent text-xs text-stone-700 placeholder-stone-300 outline-none"
+                            className="min-w-0 flex-1 bg-transparent text-xs text-stone-600 placeholder-stone-300 outline-none"
                           />
                         </div>
                       </div>
@@ -551,7 +601,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                           key={zona.id}
                           onClick={() => setZonaId(zona.id)}
                           className={`rounded-2xl border px-4 py-3 text-left transition ${
-                            zonaId === zona.id ? "border-amber-400 bg-white" : "border-stone-200 bg-white/70 hover:border-stone-300"
+                            zonaId === zona.id ? "border-orange-400 bg-orange-50 shadow-sm shadow-orange-100" : "border-stone-200 bg-white/70 hover:border-orange-200"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -572,7 +622,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                         key={option.id}
                         onClick={() => setPaymentId(option.id)}
                         className={`rounded-2xl border px-4 py-3 text-left transition ${
-                          paymentId === option.id ? "border-stone-900 bg-white" : "border-stone-200 bg-white/70 hover:border-stone-300"
+                          paymentId === option.id ? "border-orange-500 bg-orange-50 shadow-sm shadow-orange-100" : "border-stone-200 bg-white/70 hover:border-orange-200"
                         }`}
                       >
                         <p className="font-bold text-stone-900">{option.label}</p>
@@ -582,31 +632,37 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                   </div>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-amber-300 bg-amber-50 p-4">
-                  <div className="flex items-center justify-between text-sm text-stone-700">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(subtotal, sucursal.simbolo)}</span>
+                <div className="overflow-hidden rounded-[1.5rem] border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between text-sm text-stone-600">
+                      <span>Subtotal</span>
+                      <span className="font-semibold">{formatCurrency(subtotal, sucursal.simbolo)}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-sm text-stone-600">
+                      <span>Despacho{zonaSeleccionada ? ` · ${zonaSeleccionada.nombre}` : ""}</span>
+                      <span className="font-semibold">{formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}</span>
+                    </div>
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-sm text-stone-700">
-                    <span>Despacho{zonaSeleccionada ? ` · ${zonaSeleccionada.nombre}` : ""}</span>
-                    <span>{formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-amber-200 pt-3 text-lg font-black text-stone-950">
-                    <span>Total</span>
-                    <span>{formatCurrency(total, sucursal.simbolo)}</span>
+                  <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
+                    <span className="font-black text-white/80 uppercase tracking-wide text-sm">Total</span>
+                    <span className="text-2xl font-black text-white drop-shadow">{formatCurrency(total, sucursal.simbolo)}</span>
                   </div>
                 </div>
 
                 {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div> : null}
 
-                {/* Botón visible solo en desktop — en mobile va en el bottom bar */}
+                {/* Botón visible solo en desktop */}
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || cart.length === 0}
-                  className="hidden xl:inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-950 px-5 py-4 text-sm font-bold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`hidden xl:inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black text-white transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                    cart.length > 0
+                      ? "bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg shadow-orange-200 hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-300 active:scale-95"
+                      : "bg-stone-300"
+                  }`}
                 >
-                  {submitting ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />}
-                  {submitting ? "Enviando pedido..." : "Confirmar pedido"}
+                  {submitting ? <Loader2 size={18} className="animate-spin" /> : <span>🔥</span>}
+                  {submitting ? "Enviando pedido..." : `Confirmar · ${formatCurrency(total, sucursal.simbolo)}`}
                 </button>
               </div>
             </div>
@@ -615,30 +671,34 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
       </div>
 
       {/* Bottom action bar — solo mobile/tablet, con botón confirmar integrado */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 xl:hidden transition-transform duration-300 ${cart.length > 0 ? "translate-y-0" : "translate-y-full"}`}>
-        <div className="border-t border-stone-800 bg-stone-950 px-4 pb-safe pt-3 shadow-[0_-8px_40px_-8px_rgba(0,0,0,0.5)]">
+      {/* ── Bottom bar mobile ── */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 xl:hidden transition-all duration-300 ${cart.length > 0 ? "translate-y-0" : "translate-y-full"}`}>
+        <div className="bg-stone-950/95 backdrop-blur-md px-4 pb-safe pt-3 shadow-[0_-12px_48px_-8px_rgba(0,0,0,0.6)]">
           {/* Resumen compacto */}
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white/60">
-              <ShoppingBag size={15} />
-              <span className="text-xs font-semibold uppercase tracking-[0.18em]">{totalItems} {totalItems === 1 ? "item" : "items"}</span>
+          <div className="mb-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-sm font-black text-white shadow">
+                {totalItems}
+              </div>
+              <span className="text-xs font-semibold text-white/50">{totalItems === 1 ? "producto" : "productos"}</span>
             </div>
             <div className="text-right">
-              <p className="text-xs text-white/45">Total</p>
-              <p className="text-lg font-black text-white">{formatCurrency(total, sucursal.simbolo)}</p>
+              <p className="text-xs text-white/30">Total</p>
+              <p className="text-xl font-black text-white">{formatCurrency(total, sucursal.simbolo)}</p>
             </div>
           </div>
-          {/* Error inline */}
-          {error ? (
-            <p className="mb-2 rounded-xl bg-red-500/20 px-3 py-2 text-xs font-semibold text-red-300">{error}</p>
-          ) : null}
-          {/* Botón confirmar */}
+          {error && (
+            <p className="mb-2 rounded-xl bg-red-500/20 px-3 py-2 text-xs font-bold text-red-300">{error}</p>
+          )}
           <button
             onClick={handleSubmit}
             disabled={submitting || cart.length === 0}
-            className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 py-4 text-sm font-black text-stone-900 transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-4 text-base font-black text-white shadow-lg shadow-orange-500/30 transition-all active:scale-95 disabled:opacity-50"
           >
-            {submitting ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />}
+            {submitting
+              ? <Loader2 size={20} className="animate-spin" />
+              : <span className="text-xl">🔥</span>
+            }
             {submitting ? "Enviando pedido..." : "Confirmar pedido"}
           </button>
         </div>
