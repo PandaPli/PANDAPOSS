@@ -290,11 +290,11 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   return (
     <div className="flex flex-col h-full bg-white border-l border-surface-border">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-4 border-b border-surface-border">
-        <ShoppingCart size={18} className="text-brand-500" />
-        <h2 className="font-bold text-surface-text">Carrito</h2>
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-border">
+        <ShoppingCart size={16} className="text-brand-500" />
+        <h2 className="text-sm font-bold text-surface-text">Carrito</h2>
         {items.length > 0 && (
-          <span className="ml-auto bg-brand-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
             {items.filter((i) => !i.cancelado && !i.pagado).length}
           </span>
         )}
@@ -303,13 +303,13 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
           <button
             onClick={() => setModoGrupos((v) => !v)}
             title={modoGrupos ? "Desactivar división de cuenta" : "Dividir cuenta por grupos"}
-            className={`ml-1 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
               modoGrupos
                 ? "bg-brand-500 text-white"
                 : "bg-surface-bg border border-surface-border text-surface-muted hover:border-brand-300 hover:text-brand-500"
             }`}
           >
-            <Users size={13} />
+            <Users size={12} />
             {modoGrupos ? "Grupos" : "Dividir"}
           </button>
         )}
@@ -317,11 +317,11 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
 
 
       {/* Items */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-surface-muted">
-            <ShoppingCart size={36} className="mb-2 opacity-30" />
-            <p className="text-sm">El carrito esta vacio</p>
+            <ShoppingCart size={32} className="mb-2 opacity-20" />
+            <p className="text-sm font-medium">El carrito esta vacio</p>
             <p className="text-xs mt-1 opacity-60">Selecciona productos del menu</p>
           </div>
         ) : modoGrupos ? (
@@ -464,11 +464,10 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
 
       {/* Totales + Botones */}
       {items.length > 0 && (
-        <div className="p-4 border-t border-surface-border space-y-3">
+        <div className="border-t border-surface-border p-3 space-y-2.5">
           {modoGrupos && grupos.length > 0 ? (
-            /* Modo grupos: mostrar botón de cobro por grupo */
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-surface-muted">Cobrar por grupo:</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por grupo:</p>
               {grupos.map((grupo) => {
                 const grupoSub = getSubtotalGrupo(grupo);
                 const color = getGrupoColor(grupo);
@@ -476,7 +475,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   <button
                     key={grupo}
                     onClick={() => onCheckoutGrupo?.(grupo)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all hover:opacity-80"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl border-2 font-semibold text-sm transition-all hover:opacity-80"
                     style={{ borderColor: color, color, backgroundColor: `${color}15` }}
                   >
                     <span className="flex items-center gap-2">
@@ -484,34 +483,30 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                       Grupo {grupo}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Receipt size={13} />
+                      <Receipt size={12} />
                       {formatCurrency(grupoSub, simbolo)}
                     </span>
                   </button>
                 );
               })}
-              {/* Botón cobrar todo (si no todos asignados) */}
               {itemsSinGrupo.length > 0 && (
-                <button
-                  onClick={onCheckout}
-                  className="btn-primary w-full justify-center text-sm py-2.5"
-                >
-                  <Receipt size={15} />
-                  Cobrar Todo
+                <button onClick={onCheckout} className="btn-primary w-full justify-center text-sm py-2">
+                  <Receipt size={14} /> Cobrar Todo
                 </button>
               )}
             </div>
           ) : (
             <>
-              <div className="space-y-1.5 text-sm">
+              {/* Totales compactos */}
+              <div className="rounded-xl bg-surface-bg px-3 py-2.5 space-y-1 text-xs">
                 <div className="flex justify-between text-surface-muted">
                   <span>Subtotal</span>
-                  <span>{formatCurrency(sub, simbolo)}</span>
+                  <span className="font-medium">{formatCurrency(sub, simbolo)}</span>
                 </div>
                 {descuento > 0 && (
                   <div className="flex justify-between text-emerald-600">
                     <span>Descuento ({descuento}%)</span>
-                    <span>- {formatCurrency(desc, simbolo)}</span>
+                    <span>− {formatCurrency(desc, simbolo)}</span>
                   </div>
                 )}
                 {ivaPorc > 0 && (
@@ -520,36 +515,41 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                     <span>{formatCurrency(iva, simbolo)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-surface-text text-base pt-1.5 border-t border-surface-border">
+                <div className="flex justify-between border-t border-surface-border pt-1.5 font-black text-sm text-surface-text">
                   <span>Total</span>
                   <span className="text-brand-500">{formatCurrency(tot, simbolo)}</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              {/* Acciones secundarias */}
+              <div className="grid grid-cols-2 gap-1.5">
                 <button
                   onClick={onOrden}
                   disabled={ordenLoading}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-700 text-sm font-semibold hover:bg-amber-100 transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
                 >
-                  {ordenLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-                  Orden
+                  {ordenLoading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  Enviar cocina
                 </button>
                 <button
                   onClick={onPrecuenta}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-surface-border bg-surface-bg text-surface-text text-sm font-semibold hover:bg-white hover:border-brand-200 transition-all"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-surface-border bg-surface-bg px-3 py-2 text-xs font-semibold text-surface-text transition hover:bg-white hover:border-brand-200"
                 >
-                  <FileText size={15} />
+                  <FileText size={13} />
                   Precuenta
                 </button>
               </div>
 
+              {/* Cobrar principal */}
               <button
                 onClick={onCheckout}
-                className="btn-primary w-full justify-center text-base py-3"
+                className="flex w-full items-center justify-between rounded-xl bg-brand-600 px-4 py-3 font-bold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98]"
               >
-                <Receipt size={18} />
-                Cobrar
+                <span className="flex items-center gap-2 text-sm">
+                  <Receipt size={16} />
+                  Cobrar
+                </span>
+                <span className="text-base font-black">{formatCurrency(tot, simbolo)}</span>
               </button>
             </>
           )}

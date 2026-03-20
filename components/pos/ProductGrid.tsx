@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Package } from "lucide-react";
+import { Search, Package, Plus } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency, normalize } from "@/lib/utils";
 import type { ProductoCard } from "@/types";
@@ -52,6 +52,7 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
 
   return (
     <div className="flex h-full flex-col gap-3">
+      {/* Búsqueda */}
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
@@ -63,10 +64,11 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
         />
       </div>
 
-      <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1">
+      {/* Categorías */}
+      <div className="scrollbar-hide flex gap-1.5 overflow-x-auto pb-0.5">
         <button
           onClick={() => setCategoriaFiltro(null)}
-          className={`flex-shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all ${
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
             !categoriaFiltro
               ? "bg-brand-500 text-white shadow-sm"
               : "border border-surface-border bg-white text-surface-muted hover:bg-brand-50 hover:text-brand-600"
@@ -78,7 +80,7 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
           <button
             key={id}
             onClick={() => setCategoriaFiltro(id)}
-            className={`flex-shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
               categoriaFiltro === id
                 ? "bg-brand-500 text-white shadow-sm"
                 : "border border-surface-border bg-white text-surface-muted hover:bg-brand-50 hover:text-brand-600"
@@ -89,10 +91,11 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
         ))}
       </div>
 
+      {/* Grid */}
       <div className="flex-1 overflow-y-auto">
         {filtrados.length === 0 ? (
           <div className="flex h-48 flex-col items-center justify-center text-surface-muted">
-            <Package size={36} className="mb-2 opacity-40" />
+            <Package size={32} className="mb-2 opacity-30" />
             <p className="text-sm">Sin productos encontrados</p>
           </div>
         ) : (
@@ -101,26 +104,47 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
               <button
                 key={p.id}
                 onClick={() => handleAdd(p)}
-                className="group rounded-2xl border border-surface-border bg-white p-2 text-left transition-all hover:border-brand-300 hover:shadow-elevated active:scale-[0.98]"
+                className="group relative overflow-hidden rounded-2xl border border-surface-border bg-white text-left shadow-sm transition-all hover:border-brand-300 hover:shadow-md active:scale-[0.97]"
               >
-                <div className="mb-2 flex aspect-[1/0.82] w-full items-center justify-center overflow-hidden rounded-xl bg-surface-bg">
+                {/* Imagen */}
+                <div className="relative aspect-square w-full overflow-hidden bg-surface-bg">
                   {p.imagen ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imagen} alt={p.nombre} className="h-full w-full object-cover" />
+                    <img
+                      src={p.imagen}
+                      alt={p.nombre}
+                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
                   ) : (
-                    <Package size={22} className="text-surface-muted opacity-30" />
+                    <div className="flex h-full items-center justify-center">
+                      <Package size={24} className="text-surface-muted opacity-25" />
+                    </div>
                   )}
+
+                  {/* Badge stock bajo */}
+                  {p.stock <= 5 && p.stock > 0 && (
+                    <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      {p.stock} restantes
+                    </span>
+                  )}
+
+                  {/* Overlay + botón al hover */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-brand-600/0 transition-all group-hover:bg-brand-600/10">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-white opacity-0 shadow-lg transition-all group-hover:opacity-100 group-active:scale-90">
+                      <Plus size={16} />
+                    </div>
+                  </div>
                 </div>
 
-                <p className="line-clamp-2 min-h-[2rem] text-[12px] font-semibold leading-tight text-surface-text">
-                  {p.nombre}
-                </p>
-                <p className="mt-0.5 truncate text-[10px] text-surface-muted">{p.codigo}</p>
-                <p className="mt-1 text-[12px] font-bold text-brand-500">{formatCurrency(p.precio, simbolo)}</p>
-
-                {p.stock <= 5 && p.stock > 0 && (
-                  <p className="mt-0.5 text-[10px] text-amber-500">Stock: {p.stock}</p>
-                )}
+                {/* Info */}
+                <div className="p-2">
+                  <p className="line-clamp-2 min-h-[2.2rem] text-[11px] font-semibold leading-tight text-surface-text">
+                    {p.nombre}
+                  </p>
+                  <p className="mt-1 text-xs font-black text-brand-500">
+                    {formatCurrency(p.precio, simbolo)}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
