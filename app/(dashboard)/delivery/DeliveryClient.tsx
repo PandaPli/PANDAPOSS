@@ -286,21 +286,21 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-surface-border bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
-                activeTab === tab.key ? "bg-surface-text text-white" : "bg-surface-bg text-surface-muted hover:bg-surface-border"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-1 overflow-x-auto border-b border-surface-border pb-0 scrollbar-hide">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "shrink-0 px-4 py-3 text-sm font-semibold transition-all border-b-2 -mb-px",
+              activeTab === tab.key
+                ? "border-brand-500 text-brand-600"
+                : "border-transparent text-surface-muted hover:text-surface-text hover:border-surface-border"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === "pedidos" ? (
