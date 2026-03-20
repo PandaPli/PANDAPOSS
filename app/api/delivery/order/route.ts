@@ -3,7 +3,9 @@ import { DeliveryService } from "@/server/services/delivery.service";
 import type { DeliveryCustomerInput, MetodoPago } from "@/types";
 
 interface DeliveryItemInput {
-  productoId: number;
+  productoId?: number | null;
+  nombre?: string;
+  precio?: number;
   cantidad: number;
 }
 

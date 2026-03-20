@@ -9,7 +9,9 @@ import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
 import { effectiveFeature } from "@/lib/plan";
 
 interface DeliveryItemInput {
-  productoId: number;
+  productoId?: number | null;
+  nombre?: string;   // solo para productos libres
+  precio?: number;   // solo para productos libres
   cantidad: number;
 }
 
@@ -54,15 +56,24 @@ export const DeliveryService = {
       throw new Error("Esta sucursal no tiene delivery habilitado.");
     }
 
-    const productIds = items.map((item) => Number(item.productoId)).filter(Boolean);
-    const productos = await prisma.producto.findMany({
+    const itemsRegulares = items.filter((i) => i.productoId);
+    const itemsLibres    = items.filter((i) => !i.productoId);
+
+    // Validar productos libres
+    for (const item of itemsLibres) {
+      if (!item.nombre?.trim()) throw new Error("El producto libre debe tener un nombre.");
+      if (!item.precio || Number(item.precio) <= 0) throw new Error("El producto libre debe tener un precio válido.");
+    }
+
+    const productIds = itemsRegulares.map((item) => Number(item.productoId));
+    const productos = productIds.length > 0 ? await prisma.producto.findMany({
       where: {
         id: { in: productIds },
         activo: true,
         OR: [{ sucursalId }, { sucursalId: null }],
       },
       select: { id: true, nombre: true, precio: true, stock: true },
-    });
+    }) : [];
 
     if (productos.length !== productIds.length) {
       throw new Error("Uno o mas productos ya no estan disponibles.");
@@ -70,7 +81,7 @@ export const DeliveryService = {
 
     const productosMap = new Map(productos.map((producto) => [producto.id, producto]));
 
-    for (const item of items) {
+    for (const item of itemsRegulares) {
       const producto = productosMap.get(Number(item.productoId));
       if (!producto || Number(item.cantidad) <= 0) {
         throw new Error("El pedido contiene cantidades invalidas.");
@@ -93,8 +104,10 @@ export const DeliveryService = {
     }
 
     const subtotal = items.reduce((acc, item) => {
-      const producto = productosMap.get(Number(item.productoId));
-      return acc + Number(producto?.precio ?? 0) * Number(item.cantidad);
+      const precio = item.productoId
+        ? Number(productosMap.get(Number(item.productoId))?.precio ?? 0)
+        : Number(item.precio ?? 0);
+      return acc + precio * Number(item.cantidad);
     }, 0);
 
     const [driversActivos, pedidosActivos] = await Promise.all([
@@ -123,8 +136,12 @@ export const DeliveryService = {
           }),
           detalles: {
             create: items.map((item) => ({
-              productoId: Number(item.productoId),
+              productoId: item.productoId ? Number(item.productoId) : null,
               cantidad: Number(item.cantidad),
+              precio: item.productoId
+                ? Number(productosMap.get(Number(item.productoId))?.precio ?? 0)
+                : Number(item.precio ?? 0),
+              observacion: !item.productoId && item.nombre ? `[LIBRE] ${item.nombre.trim()}` : undefined,
             }))
           }
         }

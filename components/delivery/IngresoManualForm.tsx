@@ -30,10 +30,12 @@ interface Producto {
 }
 
 interface CartLine {
-  productoId: number;
+  tempId: string;          // clave única (para libres y regulares)
+  productoId?: number;     // solo productos de carta
   nombre: string;
   precio: number;
   cantidad: number;
+  esLibre?: boolean;
 }
 
 interface ClienteEncontrado {
@@ -77,6 +79,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
   /* ── Product cart ── */
   const [searchProd, setSearchProd] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
+
+  /* ── Producto libre ── */
+  const [libreNombre, setLibreNombre] = useState("");
+  const [librePrecio, setLibrePrecio] = useState("");;
 
   /* ── Submit ── */
   const [loading, setLoading] = useState(false);
@@ -138,14 +144,23 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
     setCart((prev) => {
       const ex = prev.find((i) => i.productoId === p.id);
       if (ex) return prev.map((i) => (i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i));
-      return [...prev, { productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }];
+      return [...prev, { tempId: `prod-${p.id}`, productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }];
     });
   }
 
-  function updateCantidad(productoId: number, delta: number) {
+  function addLibre() {
+    const nombre = libreNombre.trim();
+    const precio = parseFloat(librePrecio.replace(/[^0-9.]/g, ""));
+    if (!nombre || isNaN(precio) || precio <= 0) return;
+    setCart((prev) => [...prev, { tempId: `libre-${Date.now()}`, nombre, precio, cantidad: 1, esLibre: true }]);
+    setLibreNombre("");
+    setLibrePrecio("");
+  }
+
+  function updateCantidad(tempId: string, delta: number) {
     setCart((prev) =>
       prev
-        .map((i) => (i.productoId === productoId ? { ...i, cantidad: i.cantidad + delta } : i))
+        .map((i) => (i.tempId === tempId ? { ...i, cantidad: i.cantidad + delta } : i))
         .filter((i) => i.cantidad > 0)
     );
   }
@@ -161,7 +176,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sucursalId,
-          items: cart.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })),
+          items: cart.map((i) => i.esLibre
+            ? { productoId: null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad }
+            : { productoId: i.productoId, cantidad: i.cantidad }
+          ),
           cliente: {
             nombre: nombre.trim(),
             telefono: phone,
@@ -446,6 +464,40 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
               <p className="py-6 text-center text-sm text-stone-400">Sin resultados</p>
             )}
           </div>
+
+          {/* ── Producto Libre ── */}
+          <div className="mt-4 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-amber-700">
+              ✏️ Producto Libre
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={libreNombre}
+                onChange={(e) => setLibreNombre(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addLibre()}
+                placeholder="Nombre del producto"
+                className="min-w-0 flex-1 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={librePrecio}
+                onChange={(e) => setLibrePrecio(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addLibre()}
+                placeholder="Precio"
+                className="w-24 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+              />
+              <button
+                onClick={addLibre}
+                disabled={!libreNombre.trim() || !librePrecio}
+                className="inline-flex items-center gap-1 rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-40"
+              >
+                <Plus size={15} />
+                Agregar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -462,32 +514,40 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
             <div className="space-y-2">
               {cart.map((item) => (
                 <div
-                  key={item.productoId}
-                  className="flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5"
+                  key={item.tempId}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border px-3 py-2.5",
+                    item.esLibre ? "border-amber-200 bg-amber-50" : "border-stone-100 bg-stone-50"
+                  )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-stone-800">{item.nombre}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-semibold text-stone-800">{item.nombre}</p>
+                      {item.esLibre && (
+                        <span className="shrink-0 rounded-full bg-amber-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700">Libre</span>
+                      )}
+                    </div>
                     <p className="text-xs font-bold text-brand-600">
                       {formatCurrency(item.precio * item.cantidad, simbolo)}
                     </p>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-white px-1 py-1 border border-stone-200">
                     <button
-                      onClick={() => updateCantidad(item.productoId, -1)}
+                      onClick={() => updateCantidad(item.tempId, -1)}
                       className="flex h-6 w-6 items-center justify-center rounded-lg text-base font-bold text-stone-500 hover:bg-stone-100 transition"
                     >
                       −
                     </button>
                     <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
                     <button
-                      onClick={() => updateCantidad(item.productoId, +1)}
+                      onClick={() => updateCantidad(item.tempId, +1)}
                       className="flex h-6 w-6 items-center justify-center rounded-lg text-base font-bold text-stone-500 hover:bg-stone-100 transition"
                     >
                       +
                     </button>
                   </div>
                   <button
-                    onClick={() => setCart((prev) => prev.filter((i) => i.productoId !== item.productoId))}
+                    onClick={() => setCart((prev) => prev.filter((i) => i.tempId !== item.tempId))}
                     className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl text-stone-300 hover:bg-red-50 hover:text-red-500 transition"
                   >
                     <Trash2 size={13} />
