@@ -8,7 +8,7 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Search, User, X, Truck, Loader2, MapPin } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +71,24 @@ export function NuevaVentaClient({
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh, setCliente } = useCartStore();
+
+  /* ── Cliente (opcional, por defecto CLIENTE EN MESÓN) ── */
+  const [clienteNombreLocal, setClienteNombreLocal] = useState<string | null>(null);
+  const [showClienteSearch, setShowClienteSearch]   = useState(false);
+  const [clientePhone, setClientePhone]             = useState("");
+  const [searchingCliente, setSearchingCliente]     = useState(false);
+  const [clienteError, setClienteError]             = useState("");
+
+  /* ── Modo Delivery ── */
+  const [showDeliveryModal, setShowDeliveryModal]   = useState(false);
+  const [deliveryNombre, setDeliveryNombre]         = useState("");
+  const [deliveryPhone, setDeliveryPhone]           = useState("");
+  const [deliveryDir, setDeliveryDir]               = useState("");
+  const [deliveryRef, setDeliveryRef]               = useState("");
+  const [deliveryCosto, setDeliveryCosto]           = useState("0");
+  const [deliverySubmitting, setDeliverySubmitting] = useState(false);
+  const [deliveryError, setDeliveryError]           = useState("");
 
   // Filtrar productos según el rol del usuario
   const productosFiltrados = useMemo(() => {
@@ -142,6 +159,75 @@ export function NuevaVentaClient({
     setShowPrecuenta(true);
   }
 
+  /* ── Buscar cliente por teléfono ── */
+  async function buscarCliente() {
+    const digits = clientePhone.replace(/\D/g, "");
+    if (digits.length < 8) return;
+    setSearchingCliente(true);
+    setClienteError("");
+    try {
+      const res = await fetch(`/api/clientes?q=${encodeURIComponent(digits)}`);
+      const data = await res.json();
+      if (data.length > 0) {
+        setCliente(data[0].id);
+        setClienteNombreLocal(data[0].nombre);
+        setShowClienteSearch(false);
+        // Pre-rellenar delivery si está abierto
+        setDeliveryNombre(data[0].nombre);
+        setDeliveryPhone(`+569${digits.slice(-8)}`);
+        if (data[0].direccion) setDeliveryDir(data[0].direccion);
+      } else {
+        setClienteError("Cliente no encontrado");
+      }
+    } catch {
+      setClienteError("Error al buscar");
+    } finally {
+      setSearchingCliente(false);
+    }
+  }
+
+  function clearCliente() {
+    setCliente(null);
+    setClienteNombreLocal(null);
+    setClientePhone("");
+    setClienteError("");
+  }
+
+  /* ── Enviar a Delivery desde POS ── */
+  async function handleEnviarDelivery() {
+    if (!deliveryNombre.trim() || !deliveryDir.trim() || items.length === 0) return;
+    setDeliverySubmitting(true);
+    setDeliveryError("");
+    try {
+      const res = await fetch("/api/delivery/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sucursalId,
+          items: items.map((i) => ({
+            productoId: i.tipo === "producto" ? i.id : null,
+            cantidad: i.cantidad,
+          })),
+          cliente: {
+            nombre: deliveryNombre.trim(),
+            telefono: deliveryPhone.trim() || "+569--------",
+            direccion: deliveryDir.trim(),
+            referencia: deliveryRef.trim() || undefined,
+          },
+          metodoPago: "EFECTIVO",
+          cargoEnvio: Number(deliveryCosto) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al crear pedido delivery");
+      router.push(`/delivery`);
+    } catch (e) {
+      setDeliveryError((e as Error).message);
+    } finally {
+      setDeliverySubmitting(false);
+    }
+  }
+
   async function handleVolver() {
     const unsaved = items.filter((i) => !i.guardado);
     if (unsaved.length > 0) {
@@ -206,7 +292,7 @@ export function NuevaVentaClient({
   }
 
   function handleSuccess() {
-    router.push("/mesas");
+    router.push(mesaId ? "/mesas" : "/panel");
   }
 
   async function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
@@ -334,12 +420,22 @@ export function NuevaVentaClient({
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col gap-0">
       {/* Barra superior */}
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-surface-border bg-white px-4 py-3">
-        <button onClick={handleVolver} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-95 transition-all">
-          <ArrowLeft size={15} />
-          <span>Volver a Mesas</span>
-        </button>
-        <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-surface-border bg-white px-4 py-3">
+        {/* Volver — solo si viene de una mesa */}
+        {mesaId ? (
+          <button onClick={handleVolver} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-95 transition-all">
+            <ArrowLeft size={15} />
+            <span>Volver a Mesas</span>
+          </button>
+        ) : (
+          <button onClick={() => router.push("/panel")} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-white px-3 py-1.5 text-sm font-semibold text-surface-text hover:bg-surface-bg active:scale-95 transition-all">
+            <ArrowLeft size={15} />
+          </button>
+        )}
+
+        <h1 className="text-sm font-bold text-surface-text sm:text-base">
+          {mesaNombre ?? "Punto de Venta"}
+        </h1>
 
         {ordenMsg && (
           <span className="inline-flex animate-fade-in items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
@@ -349,7 +445,28 @@ export function NuevaVentaClient({
           </span>
         )}
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {/* Cliente */}
+          {clienteNombreLocal ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 pl-2.5 pr-1.5 py-1 text-xs font-semibold text-brand-700">
+              <User size={11} />
+              {clienteNombreLocal}
+              <button onClick={clearCliente} className="ml-0.5 rounded-full p-0.5 hover:bg-brand-100 transition">
+                <X size={11} />
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setShowClienteSearch((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-white px-2.5 py-1 text-xs font-semibold text-surface-muted hover:bg-surface-bg transition"
+            >
+              <User size={11} />
+              <span className="hidden sm:inline">Cliente en Mesón</span>
+              <span className="sm:hidden">Cliente</span>
+            </button>
+          )}
+
+          {/* Caja */}
           {cajaId ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
               <Wallet size={13} />
@@ -363,6 +480,51 @@ export function NuevaVentaClient({
           )}
         </div>
       </div>
+
+      {/* ── Búsqueda de cliente ── */}
+      {showClienteSearch && (
+        <div className="flex flex-shrink-0 items-center gap-2 border-b border-surface-border bg-surface-bg px-4 py-2.5">
+          <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-surface-border bg-white px-3 py-2 text-sm">
+            <span className="text-xs font-semibold text-surface-muted">+569</span>
+            <input
+              autoFocus
+              type="tel"
+              inputMode="numeric"
+              maxLength={8}
+              value={clientePhone}
+              onChange={(e) => { setClientePhone(e.target.value.replace(/\D/g, "")); setClienteError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
+              placeholder="12345678"
+              className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-surface-muted/50"
+            />
+          </div>
+          <button
+            onClick={buscarCliente}
+            disabled={clientePhone.length < 8 || searchingCliente}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-surface-text px-3 py-2 text-xs font-bold text-white transition hover:bg-surface-text/80 disabled:opacity-40"
+          >
+            {searchingCliente ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+            Buscar
+          </button>
+          <button onClick={() => { setShowClienteSearch(false); setClienteError(""); }} className="rounded-xl p-2 text-surface-muted hover:bg-surface-border transition">
+            <X size={14} />
+          </button>
+          {clienteError && <span className="text-xs font-semibold text-rose-600">{clienteError}</span>}
+        </div>
+      )}
+
+      {/* ── Botón Enviar a Delivery (solo si hay ítems y no hay mesa) ── */}
+      {!mesaId && items.length > 0 && (
+        <div className="flex flex-shrink-0 justify-end border-b border-surface-border bg-white px-4 py-2">
+          <button
+            onClick={() => { setShowDeliveryModal(true); if (clienteNombreLocal) setDeliveryNombre(clienteNombreLocal); }}
+            className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 transition hover:bg-violet-100"
+          >
+            <Truck size={13} />
+            Enviar a Delivery
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-shrink-0 border-b border-surface-border bg-white md:hidden">
         <button
@@ -446,6 +608,87 @@ export function NuevaVentaClient({
           sucursalDireccion={sucursalDireccion}
           sucursalGiroComercial={sucursalGiroComercial}
         />
+      )}
+
+      {/* ── Modal Delivery desde POS ── */}
+      {showDeliveryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-surface-border px-5 py-4">
+              <div className="flex items-center gap-2">
+                <Truck size={16} className="text-violet-600" />
+                <p className="font-bold text-surface-text">Enviar a Delivery</p>
+              </div>
+              <button onClick={() => { setShowDeliveryModal(false); setDeliveryError(""); }} className="rounded-xl p-1.5 text-surface-muted hover:bg-surface-bg transition">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-5">
+              <div>
+                <label className="label">Nombre del cliente *</label>
+                <input value={deliveryNombre} onChange={(e) => setDeliveryNombre(e.target.value)}
+                  placeholder="Nombre" className="input" />
+              </div>
+              <div>
+                <label className="label">Teléfono</label>
+                <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm">
+                  <span className="text-xs font-semibold text-surface-muted">+569</span>
+                  <input type="tel" inputMode="numeric" maxLength={8}
+                    value={deliveryPhone.replace(/^\+569/, "")}
+                    onChange={(e) => setDeliveryPhone(`+569${e.target.value.replace(/\D/g, "")}`)}
+                    placeholder="12345678"
+                    className="flex-1 bg-transparent font-semibold outline-none placeholder:font-normal placeholder:text-surface-muted/50"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="label">Dirección de entrega *</label>
+                <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm">
+                  <MapPin size={14} className="shrink-0 text-surface-muted" />
+                  <input value={deliveryDir} onChange={(e) => setDeliveryDir(e.target.value)}
+                    placeholder="Calle y número" className="flex-1 bg-transparent outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="label">Referencia</label>
+                <input value={deliveryRef} onChange={(e) => setDeliveryRef(e.target.value)}
+                  placeholder="Depto, portón, color de puerta..." className="input" />
+              </div>
+              <div>
+                <label className="label">Cargo de envío</label>
+                <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm">
+                  <span className="text-xs font-semibold text-surface-muted">{simbolo}</span>
+                  <input type="text" inputMode="numeric"
+                    value={deliveryCosto}
+                    onChange={(e) => setDeliveryCosto(e.target.value.replace(/\D/g, ""))}
+                    placeholder="0"
+                    className="flex-1 bg-transparent font-semibold tabular-nums outline-none"
+                  />
+                </div>
+              </div>
+
+              {deliveryError && (
+                <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600">{deliveryError}</p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setShowDeliveryModal(false); setDeliveryError(""); }}
+                  className="btn-secondary flex-1 text-sm">
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEnviarDelivery}
+                  disabled={deliverySubmitting || !deliveryNombre.trim() || !deliveryDir.trim() || items.length === 0}
+                  className="btn-primary flex-1 text-sm bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
+                >
+                  {deliverySubmitting ? <Loader2 size={15} className="animate-spin" /> : <Truck size={15} />}
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {showPrecuenta && (
