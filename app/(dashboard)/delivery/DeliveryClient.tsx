@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, Clock3, MapPin, Package2,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
-  Flame, ChefHat, Truck, LayoutList,
+  Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
@@ -70,22 +70,22 @@ interface Props {
 
 type FilterKey = "todos" | "pendiente" | "en_proceso" | "listo";
 
-const statusStyles: Record<string, string> = {
-  PENDIENTE:   "border-amber-200  bg-amber-50  text-amber-700",
-  EN_PROCESO:  "border-blue-200   bg-blue-50   text-blue-700",
-  LISTO:       "border-violet-200 bg-violet-50 text-violet-700",
-  ENTREGADO:   "border-emerald-200 bg-emerald-50 text-emerald-700",
-  CANCELADO:   "border-rose-200   bg-rose-50   text-rose-700",
-};
+const STAGE_STYLE = {
+  PENDIENTE:  { border: "border-l-amber-400",  bg: "bg-amber-50",  badge: "bg-amber-100 text-amber-700",  dot: "bg-amber-400" },
+  EN_PROCESO: { border: "border-l-blue-400",   bg: "bg-blue-50",   badge: "bg-blue-100 text-blue-700",    dot: "bg-blue-400"  },
+  LISTO:      { border: "border-l-violet-400", bg: "bg-violet-50", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-400" },
+  ENTREGADO:  { border: "border-l-emerald-400",bg: "bg-emerald-50",badge: "bg-emerald-100 text-emerald-700",dot: "bg-emerald-400"},
+  CANCELADO:  { border: "border-l-rose-400",   bg: "bg-rose-50",   badge: "bg-rose-100 text-rose-700",    dot: "bg-rose-400"  },
+} as const;
 
 export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, stats }: Props) {
-  const [pedidos, setPedidos]                     = useState(initialPedidos);
-  const [activeFilter, setActiveFilter]           = useState<FilterKey>("todos");
-  const [showIngreso, setShowIngreso]             = useState(false);
-  const [showFinalizados, setShowFinalizados]     = useState(false);
-  const [showRepartidores, setShowRepartidores]   = useState(false);
-  const [loadingPedidoId, setLoadingPedidoId]     = useState<number | null>(null);
-  const [newOrderAlert, setNewOrderAlert]         = useState<PedidoDelivery | null>(null);
+  const [pedidos, setPedidos]                   = useState(initialPedidos);
+  const [activeFilter, setActiveFilter]         = useState<FilterKey>("todos");
+  const [showIngreso, setShowIngreso]           = useState(false);
+  const [showFinalizados, setShowFinalizados]   = useState(false);
+  const [showRepartidores, setShowRepartidores] = useState(false);
+  const [loadingPedidoId, setLoadingPedidoId]   = useState<number | null>(null);
+  const [newOrderAlert, setNewOrderAlert]       = useState<PedidoDelivery | null>(null);
   const knownIdsRef = useRef(new Set(initialPedidos.map((p) => p.id)));
 
   const isAdmin = ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"].includes(rol);
@@ -93,7 +93,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
   const activos    = pedidos.filter((p) => p.estado !== "ENTREGADO" && p.estado !== "CANCELADO");
   const entregados = pedidos.filter((p) => p.estado === "ENTREGADO");
 
-  const counts = {
+  const counts: Record<FilterKey, number> = {
     todos:      activos.length,
     pendiente:  activos.filter((p) => p.estado === "PENDIENTE").length,
     en_proceso: activos.filter((p) => p.estado === "EN_PROCESO").length,
@@ -106,7 +106,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     activeFilter === "en_proceso" ? activos.filter((p) => p.estado === "EN_PROCESO") :
                                     activos.filter((p) => p.estado === "LISTO");
 
-  /* ── Polling para detectar nuevos pedidos ── */
+  /* ── Polling nuevos pedidos ── */
   const poll = useCallback(async () => {
     try {
       const res = await fetch("/api/delivery/orders");
@@ -127,28 +127,29 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     return () => clearInterval(id);
   }, [poll]);
 
-  /* ── Asignar repartidor ── */
   async function assignDriver(pedidoId: number, repartidorId: string) {
     setLoadingPedidoId(pedidoId);
     try {
       const res = await fetch("/api/delivery/assign", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pedidoId, repartidorId: repartidorId ? Number(repartidorId) : null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setPedidos((cur) => cur.map((p) => p.id === pedidoId ? { ...p, repartidorId: data.repartidorId, repartidor: data.repartidor, trackingStage: data.repartidorId && p.estado === "LISTO" ? "EN_CAMINO" : p.trackingStage } : p));
+      setPedidos((cur) => cur.map((p) => p.id === pedidoId ? {
+        ...p,
+        repartidorId: data.repartidorId,
+        repartidor: data.repartidor,
+        trackingStage: data.repartidorId && p.estado === "LISTO" ? "EN_CAMINO" : p.trackingStage,
+      } : p));
     } finally { setLoadingPedidoId(null); }
   }
 
-  /* ── Actualizar estado ── */
   async function updateStatus(pedidoId: number, estado: EstadoPedido) {
     setLoadingPedidoId(pedidoId);
     try {
       const res = await fetch("/api/delivery/status", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pedidoId, estado }),
       });
       const data = await res.json();
@@ -165,59 +166,58 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     } finally { setLoadingPedidoId(null); }
   }
 
-  /* ── Card de pedido ── */
   function renderPedidoCard(pedido: PedidoDelivery) {
     const loading = loadingPedidoId === pedido.id;
-    const stageLabel = getDeliveryStageLabel(pedido.trackingStage);
+    const style = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
+    const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
     return (
-      <article key={pedido.id} className="overflow-hidden rounded-2xl border border-surface-border bg-white shadow-sm transition hover:shadow-md">
-        {/* Cabecera coloreada por estado */}
-        <div className={cn("px-4 py-3 flex items-center justify-between gap-3", {
-          "bg-amber-50 border-b border-amber-100":  pedido.estado === "PENDIENTE",
-          "bg-blue-50  border-b border-blue-100":   pedido.estado === "EN_PROCESO",
-          "bg-violet-50 border-b border-violet-100": pedido.estado === "LISTO",
-        })}>
-          <div className="flex items-center gap-2">
+      <article key={pedido.id} className={cn(
+        "relative overflow-hidden rounded-2xl border border-surface-border bg-white shadow-sm transition hover:shadow-md border-l-4",
+        style.border
+      )}>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-surface-border/60">
+          <div className="flex items-center gap-2.5">
+            <span className={cn("h-2 w-2 rounded-full", style.dot)} />
             <span className="font-mono text-xs font-bold text-surface-muted">#{pedido.id}</span>
-            <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest", statusStyles[pedido.estado])}>
+            <span className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", style.badge)}>
               {pedido.estado.replace("_", " ")}
             </span>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-surface-muted">Total</p>
-            <p className="text-base font-black text-surface-text">{formatCurrency(pedido.total)}</p>
+          <div className="flex items-center gap-2 text-right">
+            <span className="text-xs text-surface-muted">{hora}</span>
+            <div className="rounded-xl bg-surface-bg px-3 py-1">
+              <span className="text-sm font-black text-surface-text">{formatCurrency(pedido.total)}</span>
+            </div>
           </div>
         </div>
 
         <div className="p-4 space-y-3">
-          {/* Cliente + stage */}
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-bold text-surface-text leading-tight">{pedido.clienteNombre}</p>
-              <p className="text-xs text-surface-muted mt-0.5">{stageLabel}</p>
-            </div>
-            <span className="shrink-0 text-xs text-surface-muted">{new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span>
+          {/* Cliente */}
+          <div>
+            <p className="text-base font-black text-surface-text leading-tight">{pedido.clienteNombre}</p>
+            <p className="text-xs text-surface-muted mt-0.5">{getDeliveryStageLabel(pedido.trackingStage)}</p>
           </div>
 
-          {/* Info grid */}
-          <div className="grid grid-cols-2 gap-2 text-xs text-surface-muted">
-            <div className="flex items-start gap-1.5 rounded-xl bg-surface-bg px-3 py-2">
-              <MapPin size={12} className="mt-0.5 shrink-0 text-brand-500" />
-              <span className="line-clamp-2">{pedido.direccionEntrega ?? "Sin dirección"}</span>
+          {/* Dirección + pago */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-start gap-1.5 rounded-xl bg-surface-bg px-3 py-2 text-xs text-surface-muted">
+              <MapPin size={11} className="mt-0.5 shrink-0 text-brand-400" />
+              <span className="line-clamp-2 leading-relaxed">{pedido.direccionEntrega ?? "Sin dirección"}{pedido.referencia ? ` · ${pedido.referencia}` : ""}</span>
             </div>
-            <div className="flex flex-col gap-1 rounded-xl bg-surface-bg px-3 py-2">
-              <span className="flex items-center gap-1.5"><Wallet size={12} className="text-brand-500" />{pedido.metodoPago}</span>
-              <span className="flex items-center gap-1.5"><Bike size={12} className="text-brand-500" />{pedido.repartidor?.nombre ?? "Sin repartidor"}</span>
+            <div className="flex flex-col gap-1 rounded-xl bg-surface-bg px-3 py-2 text-xs text-surface-muted">
+              <span className="flex items-center gap-1.5"><Wallet size={11} className="text-brand-400" />{pedido.metodoPago}</span>
+              <span className="flex items-center gap-1.5"><Bike size={11} className="text-brand-400" />{pedido.repartidor?.nombre ?? <span className="italic text-surface-muted/60">Sin repartidor</span>}</span>
             </div>
           </div>
 
-          {/* Detalle productos */}
+          {/* Productos */}
           {pedido.detalles.length > 0 && (
-            <div className="rounded-xl border border-surface-border px-3 py-2 text-xs text-surface-muted space-y-1">
+            <div className="rounded-xl border border-surface-border/60 px-3 py-2 text-xs space-y-0.5">
               {pedido.detalles.map((d) => (
-                <div key={d.id} className="flex gap-1.5">
-                  <span className="font-bold text-surface-text">{d.cantidad}×</span>
+                <div key={d.id} className="flex gap-1.5 text-surface-muted">
+                  <span className="font-bold text-surface-text tabular-nums">{d.cantidad}×</span>
                   <span>{d.nombre}</span>
                 </div>
               ))}
@@ -232,7 +232,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                   value={pedido.repartidorId ?? ""}
                   onChange={(e) => void assignDriver(pedido.id, e.target.value)}
                   disabled={loading}
-                  className="input w-full text-xs"
+                  className="input w-full text-xs py-2"
                 >
                   <option value="">Sin repartidor asignado</option>
                   {repartidores.map((r) => (
@@ -240,23 +240,25 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                   ))}
                 </select>
               )}
-
               <div className="flex flex-wrap gap-2">
                 {pedido.estado === "PENDIENTE" && (
-                  <button onClick={() => void updateStatus(pedido.id, "EN_PROCESO")} disabled={loading} className="btn-primary text-xs py-2 px-3 rounded-xl">
-                    {loading ? <RefreshCw size={13} className="animate-spin" /> : <ChefHat size={13} />}
+                  <button onClick={() => void updateStatus(pedido.id, "EN_PROCESO")} disabled={loading}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50">
+                    {loading ? <RefreshCw size={12} className="animate-spin" /> : <ChefHat size={12} />}
                     Pasar a cocina
                   </button>
                 )}
                 {pedido.estado === "EN_PROCESO" && (
-                  <button onClick={() => void updateStatus(pedido.id, "LISTO")} disabled={loading} className="btn-primary text-xs py-2 px-3 rounded-xl bg-violet-600 hover:bg-violet-700">
-                    {loading ? <RefreshCw size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                  <button onClick={() => void updateStatus(pedido.id, "LISTO")} disabled={loading}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-violet-700 disabled:opacity-50">
+                    {loading ? <RefreshCw size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                     Marcar listo
                   </button>
                 )}
                 {pedido.estado === "LISTO" && pedido.repartidorId && (
-                  <button onClick={() => void updateStatus(pedido.id, "ENTREGADO")} disabled={loading} className="btn-primary text-xs py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700">
-                    {loading ? <RefreshCw size={13} className="animate-spin" /> : <Route size={13} />}
+                  <button onClick={() => void updateStatus(pedido.id, "ENTREGADO")} disabled={loading}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50">
+                    {loading ? <RefreshCw size={12} className="animate-spin" /> : <Route size={12} />}
                     Confirmar entrega
                   </button>
                 )}
@@ -272,64 +274,101 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* ── Alerta nuevo pedido ── */}
       {newOrderAlert && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-2xl animate-in slide-in-from-top-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 text-white">
+        <div className="fixed top-20 right-4 z-50 flex items-center gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-2xl">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 text-white animate-pulse">
             <Bell size={18} />
           </div>
           <div>
             <p className="font-bold text-surface-text text-sm">🔔 Nuevo pedido #{newOrderAlert.id}</p>
             <p className="text-xs text-surface-muted">{newOrderAlert.clienteNombre} · {formatCurrency(newOrderAlert.total)}</p>
           </div>
-          <button onClick={() => setNewOrderAlert(null)} className="ml-2 rounded-xl p-1.5 text-surface-muted hover:bg-surface-bg">
-            <X size={15} />
+          <button onClick={() => setNewOrderAlert(null)} className="ml-1 rounded-xl p-1.5 text-surface-muted hover:bg-surface-bg transition">
+            <X size={14} />
           </button>
         </div>
       )}
 
-      {/* ── Encabezado ── */}
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {[
+          { label: "Hoy",          value: stats.pedidosHoy,                      icon: Star,       color: "text-brand-500" },
+          { label: "Activos",      value: stats.activos,                          icon: Flame,      color: "text-amber-500" },
+          { label: "En camino",    value: stats.enCamino,                         icon: Truck,      color: "text-violet-500" },
+          { label: "Tiempo prom.", value: `${stats.tiempoPromedio} min`,          icon: Timer,      color: "text-blue-500" },
+          { label: "Entregados",   value: stats.entregados,                       icon: CheckCircle2, color: "text-emerald-500" },
+          { label: "Ventas",       value: formatCurrency(stats.ventasDelivery),   icon: TrendingUp, color: "text-rose-500" },
+        ].map(({ label, value, icon: Icon, color }) => (
+          <div key={label} className="rounded-2xl border border-surface-border bg-white px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Icon size={13} className={color} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-surface-muted">{label}</p>
+            </div>
+            <p className="text-xl font-black text-surface-text">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Toolbar: filtros + ingreso manual ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-surface-text">Delivery</h1>
-          <p className="text-sm text-surface-muted">Canal público, despacho y seguimiento integrados.</p>
+        <div className="flex flex-wrap gap-1.5">
+          {([
+            { key: "todos",      label: "Todos",     icon: LayoutList, activeClass: "bg-surface-text text-white",    inactiveClass: "bg-surface-bg text-surface-muted hover:bg-surface-border" },
+            { key: "pendiente",  label: "Entrando",  icon: Flame,      activeClass: "bg-amber-500  text-white",      inactiveClass: "bg-amber-50  text-amber-700 hover:bg-amber-100"  },
+            { key: "en_proceso", label: "En Cocina", icon: ChefHat,    activeClass: "bg-blue-600   text-white",      inactiveClass: "bg-blue-50   text-blue-700  hover:bg-blue-100"   },
+            { key: "listo",      label: "En Ruta",   icon: Truck,      activeClass: "bg-violet-600 text-white",      inactiveClass: "bg-violet-50 text-violet-700 hover:bg-violet-100" },
+          ] as const).map(({ key, label, icon: Icon, activeClass, inactiveClass }) => (
+            <button
+              key={key}
+              onClick={() => setActiveFilter(key)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
+                activeFilter === key ? activeClass : inactiveClass
+              )}
+            >
+              <Icon size={12} />
+              {label}
+              <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-black leading-none tabular-nums",
+                activeFilter === key ? "bg-white/20" : "bg-black/8"
+              )}>
+                {counts[key]}
+              </span>
+            </button>
+          ))}
         </div>
+
         <button
           onClick={() => setShowIngreso((v) => !v)}
-          className={cn("btn-primary gap-2 text-sm", showIngreso && "bg-brand-700")}
+          className={cn("btn-primary text-sm gap-2", showIngreso && "bg-brand-700")}
         >
-          <Plus size={16} />
+          <Plus size={15} />
           Ingreso Manual
         </button>
       </div>
 
-      {/* ── Ingreso Manual (colapsible) ── */}
+      {/* ── Ingreso Manual ── */}
       {showIngreso && (
-        <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-surface-border bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-bold text-surface-text">Nuevo pedido manual</p>
+            <button onClick={() => setShowIngreso(false)} className="rounded-xl p-1.5 text-surface-muted hover:bg-surface-bg transition">
+              <X size={16} />
+            </button>
+          </div>
           <IngresoManualForm
             productos={productos}
             sucursalId={sucursalId}
             simbolo={simbolo}
             onOrderCreated={(pedido) => {
               const nuevo: PedidoDelivery = {
-                id: pedido.id,
-                estado: "PENDIENTE",
-                trackingStage: "CONFIRMADO",
-                clienteNombre: pedido.clienteNombre,
-                telefonoCliente: null,
-                direccionEntrega: null,
-                referencia: null,
-                departamento: null,
-                metodoPago: "EFECTIVO",
-                cargoEnvio: 0,
-                subtotal: 0,
-                total: 0,
-                repartidorId: null,
-                creadoEn: new Date().toISOString(),
-                repartidor: null,
-                detalles: [],
+                id: pedido.id, estado: "PENDIENTE", trackingStage: "CONFIRMADO",
+                clienteNombre: pedido.clienteNombre, telefonoCliente: null,
+                direccionEntrega: null, referencia: null, departamento: null,
+                metodoPago: "EFECTIVO", cargoEnvio: 0, subtotal: 0, total: 0,
+                repartidorId: null, creadoEn: new Date().toISOString(), repartidor: null, detalles: [],
               };
               knownIdsRef.current.add(pedido.id);
               setPedidos((prev) => [nuevo, ...prev]);
@@ -339,46 +378,16 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         </div>
       )}
 
-      {/* ── DELIVERY ACTIVOS ── */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-surface-muted">Delivery Activos</h2>
-          {/* Filtros por etapa */}
-          <div className="flex flex-wrap gap-2">
-            {([
-              { key: "todos",      label: "Todos",     icon: LayoutList, color: "bg-surface-text text-white", inactive: "bg-surface-bg text-surface-muted hover:bg-surface-border" },
-              { key: "pendiente",  label: "Entrando",  icon: Flame,      color: "bg-amber-500 text-white",    inactive: "bg-amber-50 text-amber-700 hover:bg-amber-100" },
-              { key: "en_proceso", label: "En Cocina", icon: ChefHat,    color: "bg-blue-600 text-white",     inactive: "bg-blue-50 text-blue-700 hover:bg-blue-100" },
-              { key: "listo",      label: "En Ruta",   icon: Truck,      color: "bg-violet-600 text-white",   inactive: "bg-violet-50 text-violet-700 hover:bg-violet-100" },
-            ] as const).map(({ key, label, icon: Icon, color, inactive }) => (
-              <button
-                key={key}
-                onClick={() => setActiveFilter(key)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
-                  activeFilter === key ? color : inactive
-                )}
-              >
-                <Icon size={12} />
-                {label}
-                <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-black leading-none", activeFilter === key ? "bg-white/20" : "bg-black/8")}>
-                  {counts[key]}
-                </span>
-              </button>
-            ))}
-          </div>
+      {/* ── Pedidos activos ── */}
+      {filteredActivos.length > 0 ? (
+        <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+          {filteredActivos.map((pedido) => renderPedidoCard(pedido))}
         </div>
-
-        {filteredActivos.length > 0 ? (
-          <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
-            {filteredActivos.map((pedido) => renderPedidoCard(pedido))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-surface-border bg-white p-10 text-center text-sm text-surface-muted">
-            No hay pedidos {activeFilter !== "todos" ? `en este estado` : "activos"} en este momento.
-          </div>
-        )}
-      </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-surface-border bg-white p-10 text-center text-sm text-surface-muted">
+          No hay pedidos {activeFilter !== "todos" ? "en este estado" : "activos"} en este momento.
+        </div>
+      )}
 
       {/* ── Repartidores (colapsible) ── */}
       {repartidores.length > 0 && (
@@ -387,25 +396,31 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             onClick={() => setShowRepartidores((v) => !v)}
             className="flex w-full items-center justify-between rounded-2xl border border-surface-border bg-white px-4 py-3 text-sm font-semibold text-surface-text shadow-sm hover:bg-surface-bg transition"
           >
-            <span className="flex items-center gap-2"><Bike size={15} className="text-brand-500" /> Repartidores ({repartidores.length})</span>
-            {showRepartidores ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            <span className="flex items-center gap-2">
+              <Bike size={15} className="text-brand-500" />
+              Repartidores
+              <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-700">{repartidores.length}</span>
+            </span>
+            {showRepartidores ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           {showRepartidores && (
-            <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {repartidores.map((r) => (
                 <article key={r.id} className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
                       <p className="font-bold text-surface-text">{r.nombre}</p>
                       <p className="text-xs text-surface-muted">@{r.usuario}</p>
                     </div>
-                    <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest", r.estado === "EN_REPARTO" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700")}>
+                    <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide",
+                      r.estado === "EN_REPARTO" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                    )}>
                       {r.estado === "EN_REPARTO" ? "En reparto" : "Disponible"}
                     </span>
                   </div>
-                  <div className="mt-3 rounded-xl bg-surface-bg px-3 py-2 text-xs text-surface-muted space-y-1">
-                    <span className="flex items-center gap-1.5"><UserRound size={12} className="text-brand-500" />{r.sucursalNombre}</span>
-                    <span className="flex items-center gap-1.5"><ShoppingBag size={12} className="text-brand-500" />{r.activos} pedidos activos</span>
+                  <div className="mt-3 flex gap-3 text-xs text-surface-muted">
+                    <span className="flex items-center gap-1"><UserRound size={11} className="text-brand-400" />{r.sucursalNombre}</span>
+                    <span className="flex items-center gap-1"><ShoppingBag size={11} className="text-brand-400" />{r.activos} activos</span>
                   </div>
                 </article>
               ))}
@@ -414,24 +429,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         </div>
       )}
 
-      {/* ── Stats ── */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-        {[
-          { label: "Pedidos hoy",     value: stats.pedidosHoy },
-          { label: "Activos",         value: stats.activos },
-          { label: "En camino",       value: stats.enCamino },
-          { label: "Tiempo prom.",    value: `${stats.tiempoPromedio} min` },
-          { label: "Entregados",      value: stats.entregados },
-          { label: "Ventas delivery", value: formatCurrency(stats.ventasDelivery) },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-surface-muted">{label}</p>
-            <p className="mt-2 text-2xl font-black text-surface-text">{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Delivery Finalizados ── */}
+      {/* ── Finalizados ── */}
       <div>
         <button
           onClick={() => setShowFinalizados((v) => !v)}
@@ -447,20 +445,20 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             Delivery Finalizados
             <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-700">{entregados.length}</span>
           </span>
-          {showFinalizados ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {showFinalizados ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
 
         {showFinalizados && (
           <div className="mt-3 space-y-2">
             {entregados.length > 0 ? entregados.map((pedido) => (
-              <article key={pedido.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-border bg-white px-4 py-3 text-sm shadow-sm">
+              <article key={pedido.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-border bg-white px-4 py-3 shadow-sm">
                 <div>
-                  <p className="font-bold text-surface-text">Pedido #{pedido.id} · {pedido.clienteNombre}</p>
-                  <p className="mt-0.5 text-xs text-surface-muted">{pedido.direccionEntrega ?? "Sin dirección"} · {pedido.repartidor?.nombre ?? "—"}</p>
+                  <p className="font-bold text-surface-text text-sm">#{pedido.id} · {pedido.clienteNombre}</p>
+                  <p className="mt-0.5 text-xs text-surface-muted">{pedido.direccionEntrega ?? "Sin dirección"}{pedido.repartidor?.nombre ? ` · ${pedido.repartidor.nombre}` : ""}</p>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-3">
                   <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">Entregado</span>
-                  <p className="mt-1 font-semibold text-surface-text">{formatCurrency(pedido.total)}</p>
+                  <span className="font-black text-surface-text">{formatCurrency(pedido.total)}</span>
                 </div>
               </article>
             )) : (
