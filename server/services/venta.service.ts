@@ -17,6 +17,7 @@ function emitStockBajo(sucursalId: number, alertas: { nombre: string; stock: num
 interface VentaItem {
   productoId?: number | null;
   comboId?: number | null;
+  nombre?: string | null;
   cantidad: number;
   precio: number;
   subtotal: number;
@@ -203,6 +204,7 @@ export const VentaService = {
                 create: items.map((item) => ({
                   productoId: item.productoId ?? null,
                   comboId: item.comboId ?? null,
+                  nombre: item.nombre ?? null,
                   cantidad: item.cantidad,
                   precio: item.precio,
                   descuento: 0,

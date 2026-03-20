@@ -406,6 +406,7 @@ model DetalleVenta {
   ventaId    Int
   productoId Int?
   comboId    Int?
+  nombre     String?   @db.VarChar(200)
   cantidad   Int       @default(1)
   precio     Decimal   @db.Decimal(10, 2)
   descuento  Decimal   @default(0.00) @db.Decimal(10, 2)

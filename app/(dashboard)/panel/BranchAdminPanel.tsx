@@ -116,7 +116,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
           </Link>
 
           <Link
-            href="/ventas/nueva"
+            href="/ventas/caja"
             className="flex items-center gap-4 p-4 rounded-xl border border-surface-border bg-surface-bg hover:bg-white hover:border-brand-200 hover:shadow-sm transition-all group"
           >
             <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
@@ -124,7 +124,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-surface-text">Punto de Venta</p>
-              <p className="text-xs text-surface-muted">Nueva venta rápida</p>
+              <p className="text-xs text-surface-muted">Caja rápida</p>
             </div>
             <ArrowRight size={16} className="text-surface-muted group-hover:text-brand-500 transition-colors flex-shrink-0" />
           </Link>
