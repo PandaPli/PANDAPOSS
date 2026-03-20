@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, rut, giroComercial, zonasDelivery } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -46,6 +46,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (cartaTagline !== undefined) data.cartaTagline = (cartaTagline as string)?.trim().slice(0, 150) || null;
     if (cartaSaludo !== undefined) data.cartaSaludo = (cartaSaludo as string)?.trim().slice(0, 300) || null;
     if (printerPath !== undefined) data.printerPath = (printerPath as string)?.trim() || null;
+    if (printerIp !== undefined) data.printerIp = (printerIp as string)?.trim() || null;
     if (rut !== undefined) data.rut = (rut as string)?.trim() || null;
     if (giroComercial !== undefined) data.giroComercial = (giroComercial as string)?.trim() || null;
     if (telefono !== undefined) data.telefono = (telefono as string)?.trim() || null;

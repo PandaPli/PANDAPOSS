@@ -33,6 +33,7 @@ interface Props {
   sucursalLogoUrl: string | null;
   sucursalSlug?: string | null;
   sucursalPrinterPath?: string | null;
+  sucursalPrinterIp?: string | null;
   sucursalRut?: string | null;
   sucursalGiroComercial?: string | null;
   sucursalTelefono?: string | null;
@@ -43,7 +44,7 @@ interface Props {
   sucursalZonasDelivery?: ZonaDelivery[] | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -78,8 +79,10 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
 
   // --- Estado impresora ---
   const [printerPath, setPrinterPath] = useState(sucursalPrinterPath ?? "/dev/usb/lp0");
+  const [printerIp, setPrinterIp] = useState(sucursalPrinterIp ?? "");
   const [printerLoading, setPrinterLoading] = useState(false);
   const [printerMsg, setPrinterMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [printerTestLoading, setPrinterTestLoading] = useState(false);
 
   // --- Estado datos legales sucursal ---
   const [legalForm, setLegalForm] = useState({
@@ -116,17 +119,40 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
       const res = await fetch(`/api/sucursales/${sucursalId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ printerPath: printerPath || null }),
+        body: JSON.stringify({ printerIp: printerIp.trim() || null }),
       });
       if (!res.ok) {
         const d = await res.json();
         throw new Error(d.error ?? "Error al guardar");
       }
-      setPrinterMsg({ type: "ok", text: "Ruta de impresora guardada" });
+      setPrinterMsg({ type: "ok", text: "IP de impresora guardada" });
     } catch (err) {
       setPrinterMsg({ type: "error", text: (err as Error).message });
     } finally {
       setPrinterLoading(false);
+    }
+  }
+
+  async function handlePrinterTest() {
+    if (!printerIp.trim()) {
+      setPrinterMsg({ type: "error", text: "Ingresa la IP primero" });
+      return;
+    }
+    setPrinterTestLoading(true);
+    setPrinterMsg(null);
+    try {
+      const res = await fetch("/api/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sucursalId, content: "** TEST PANDAPOSS **\n" }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? "Sin respuesta");
+      setPrinterMsg({ type: "ok", text: "Ticket de prueba enviado OK" });
+    } catch (err) {
+      setPrinterMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setPrinterTestLoading(false);
     }
   }
 
@@ -563,11 +589,54 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
           </div>
         </div>
 
-        {/* Impresora */}
+        {/* Cómo configurar la impresora en red */}
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-gradient-to-br from-surface-bg to-white">
+          <div className="flex items-center gap-3 border-b border-surface-border bg-white px-6 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
+              <Printer size={17} />
+            </div>
+            <div>
+              <h2 className="font-semibold text-surface-text">Impresión por Red</h2>
+              <p className="text-xs text-surface-muted">Sin agente — conexión TCP directa al puerto 9100</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-surface-muted">
+              PandaPoss se conecta directamente a la impresora por red local (LAN/WiFi) usando el protocolo RAW ESC/POS. No requiere instalar ningún software adicional.
+            </p>
+
+            <div className="rounded-xl border border-surface-border bg-surface-bg p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-surface-muted mb-3">Cómo obtener la IP de tu impresora</p>
+              <ol className="space-y-2 text-sm">
+                {[
+                  "Imprime la \"hoja de configuración\" de la impresora (mantén el botón Feed al encender).",
+                  "La IP aparece en el reporte, ej: 192.168.1.100",
+                  "Alternativamente, asignale una IP fija desde el router (recomendado).",
+                  "Asegurate de que la impresora y el servidor estén en la misma red.",
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[11px] font-black text-brand-700">
+                      {i + 1}
+                    </span>
+                    <span className="text-surface-muted">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-700">
+              <span className="font-bold shrink-0">Modelos compatibles:</span>
+              Epson TM-T20, TM-T88, TM-T82 · Star TSP100, TSP650 · Bixolon SRP-350 · y cualquier impresora con interfaz Ethernet/WiFi ESC/POS.
+            </div>
+          </div>
+        </div>
+
+        {/* Impresora en Red */}
         <div className="card p-6">
           <div className="flex items-center gap-2 mb-5">
             <Printer size={18} className="text-brand-600" />
-            <h2 className="font-semibold text-surface-text">Impresora Local</h2>
+            <h2 className="font-semibold text-surface-text">Impresora en Red</h2>
           </div>
 
           {printerMsg && (
@@ -577,15 +646,17 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
           )}
 
           <p className="text-sm text-surface-muted mb-4">
-            Ruta del dispositivo de impresora en el PC local donde corre el agente. En Linux/Mac suele ser <code className="bg-surface-bg px-1 rounded">/dev/usb/lp0</code>. En Windows usa el puerto COM, ej: <code className="bg-surface-bg px-1 rounded">\\\\?\\COM3</code>.
+            IP de la impresora térmica en tu red local. PandaPoss se conectará por TCP al puerto{" "}
+            <code className="bg-surface-bg px-1 rounded">9100</code> (estándar ESC/POS).
+            Podés especificar un puerto diferente con <code className="bg-surface-bg px-1 rounded">IP:puerto</code>.
           </p>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-3">
             <input
               className="input flex-1 font-mono text-sm"
-              value={printerPath}
-              onChange={(e) => setPrinterPath(e.target.value)}
-              placeholder="/dev/usb/lp0"
+              value={printerIp}
+              onChange={(e) => setPrinterIp(e.target.value)}
+              placeholder="192.168.1.100  ó  192.168.1.100:9100"
             />
             <button
               type="button"
@@ -597,6 +668,16 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
               Guardar
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={handlePrinterTest}
+            disabled={printerTestLoading || !printerIp.trim()}
+            className="flex items-center gap-2 rounded-xl border border-surface-border bg-surface-bg px-4 py-2 text-sm font-medium text-surface-text transition hover:border-brand-300 hover:text-brand-600 disabled:opacity-40"
+          >
+            {printerTestLoading ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+            Imprimir ticket de prueba
+          </button>
         </div>
 
         {/* Datos Legales */}

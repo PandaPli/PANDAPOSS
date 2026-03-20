@@ -47,6 +47,9 @@ export interface CreateVentaInput {
   detalleIds?: number[];
   /** Si true: no cierra automáticamente la mesa (hay más grupos por cobrar) */
   modoGrupo?: boolean;
+  /** Cupón de descuento aplicado */
+  cuponId?: number | null;
+  cuponCodigo?: string | null;
 }
 
 function generateVentaNumero() {
@@ -145,6 +148,8 @@ export const VentaService = {
       pagos,
       detalleIds,
       modoGrupo,
+      cuponId,
+      cuponCodigo,
     } = input;
 
     // ── V3: Recalcular totales en el servidor ────────────────────────────────
@@ -200,6 +205,8 @@ export const VentaService = {
               total: serverTotal,          // V3: usar valores del servidor
               metodoPago,
               estado: "PAGADA",
+              cuponId: cuponId ?? null,
+              cuponCodigo: cuponCodigo ?? null,
               detalles: {
                 create: items.map((item) => ({
                   productoId: item.productoId ?? null,
@@ -226,6 +233,14 @@ export const VentaService = {
           } else {
             await tx.pagoVenta.create({
               data: { ventaId: v.id, metodoPago, monto: serverTotal },
+            });
+          }
+
+          // Incrementar uso del cupón si aplica
+          if (cuponId) {
+            await tx.cupon.update({
+              where: { id: cuponId },
+              data: { usoActual: { increment: 1 } },
             });
           }
 

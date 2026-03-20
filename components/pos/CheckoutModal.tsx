@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X, Users } from "lucide-react";
+import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Tag, Trash2, X, Users } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem, MetodoPago, PagoItem } from "@/types";
@@ -44,6 +44,7 @@ interface Props {
   sucursalTelefono?: string | null;
   sucursalDireccion?: string | null;
   sucursalGiroComercial?: string | null;
+  sucursalId?: number | null;
 }
 
 const metodos: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
@@ -68,6 +69,7 @@ export function CheckoutModal({
   sucursalTelefono,
   sucursalDireccion,
   sucursalGiroComercial,
+  sucursalId,
 }: Props) {
   const {
     items: cartItems,
@@ -90,16 +92,7 @@ export function CheckoutModal({
   const modoGrupo = !!grupoNombre && !!grupoItems;
   const items = modoGrupo ? grupoItems! : cartItems.filter((i) => !i.cancelado && !i.pagado);
 
-  // Calcular totales según modo
-  const subtotalValue = useMemo(() => {
-    if (modoGrupo) return grupoItems!.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-    return cartSubtotal();
-  }, [modoGrupo, grupoItems, cartSubtotal]);
-
-  const descuentoMonto = modoGrupo ? 0 : cartTotalDescuento();
-  const impuestoMonto  = modoGrupo ? 0 : cartTotalIva();
-  const totalValue     = modoGrupo ? subtotalValue : cartTotal();
-
+  // --- Estado (todos los useState antes de cualquier variable derivada) ---
   const [pagos, setPagos] = useState<PagoItem[]>([]);
   const [metodoActual, setMetodoActual] = useState<MetodoPago>("EFECTIVO");
   const [montoActual, setMontoActual] = useState("");
@@ -107,6 +100,26 @@ export function CheckoutModal({
   const [error, setError] = useState("");
   const [vueltoFinal, setVueltoFinal] = useState(0);
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
+  const [cuponInput, setCuponInput] = useState("");
+  const [cuponLoading, setCuponLoading] = useState(false);
+  const [cuponError, setCuponError] = useState("");
+  const [cuponAplicado, setCuponAplicado] = useState<{
+    id: number; codigo: string; tipo: string; descuentoAplicado: number; descripcion: string | null;
+  } | null>(null);
+
+  // --- Totales derivados ---
+  const subtotalValue = useMemo(() => {
+    if (modoGrupo) return grupoItems!.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    return cartSubtotal();
+  }, [modoGrupo, grupoItems, cartSubtotal]);
+
+  const descuentoMonto = modoGrupo ? 0 : cartTotalDescuento();
+  const impuestoMonto  = modoGrupo ? 0 : cartTotalIva();
+  const cuponDescuento = cuponAplicado?.descuentoAplicado ?? 0;
+  const totalDescuentoCombinado = descuentoMonto + cuponDescuento;
+  const totalValue = modoGrupo
+    ? subtotalValue
+    : Math.max(0, cartTotal() - cuponDescuento);
 
   const sumaPagos = pagos.reduce((acc, p) => acc + p.monto, 0);
   const pendiente = Math.max(0, totalValue - sumaPagos);
@@ -132,6 +145,36 @@ export function CheckoutModal({
 
   function handleEliminarPago(index: number) {
     setPagos(pagos.filter((_, i) => i !== index));
+  }
+
+  async function handleAplicarCupon() {
+    if (!cuponInput.trim()) return;
+    setCuponLoading(true);
+    setCuponError("");
+    try {
+      const res = await fetch("/api/cupones/validar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: cuponInput.trim(), sucursalId, subtotal: subtotalValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Cupón inválido");
+      setCuponAplicado(data);
+      setCuponInput("");
+      // Limpiar pagos al cambiar el total
+      setPagos([]);
+    } catch (e) {
+      setCuponError((e as Error).message);
+    } finally {
+      setCuponLoading(false);
+    }
+  }
+
+  function quitarCupon() {
+    setCuponAplicado(null);
+    setCuponError("");
+    setCuponInput("");
+    setPagos([]);
   }
 
   function finalizeFlow() {
@@ -297,9 +340,11 @@ export function CheckoutModal({
       mesaId,
       metodoPago: metodoPagoFinal,
       subtotal: subtotalValue,
-      descuento: descuentoMonto,
+      descuento: totalDescuentoCombinado,
       impuesto: impuestoMonto,
       total: totalValue,
+      cuponId: cuponAplicado?.id ?? null,
+      cuponCodigo: cuponAplicado?.codigo ?? null,
       pagos: pagos.map((p) => ({
         metodoPago: p.metodoPago,
         monto: p.monto,
@@ -353,7 +398,7 @@ export function CheckoutModal({
         ventaId: venta.id,
         items: snapshotItems,
         subtotal: subtotalValue,
-        descuentoMonto,
+        descuentoMonto: totalDescuentoCombinado,
         descuentoPorcentaje: descuento,
         impuestoMonto,
         impuestoPorcentaje: ivaPorc,
@@ -459,8 +504,14 @@ export function CheckoutModal({
             )}
             {!modoGrupo && descuento > 0 && (
               <div className="flex justify-between text-emerald-600">
-                <span>Descuento</span>
+                <span>Descuento ({descuento}%)</span>
                 <span>- {formatCurrency(descuentoMonto, simbolo)}</span>
+              </div>
+            )}
+            {!modoGrupo && cuponAplicado && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Cupón {cuponAplicado.codigo}</span>
+                <span>- {formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}</span>
               </div>
             )}
             {!modoGrupo && ivaPorc > 0 && (
@@ -476,15 +527,64 @@ export function CheckoutModal({
           </div>
 
           {!modoGrupo && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Descuento (%)</label>
-                <input type="number" min={0} max={100} value={descuento} onChange={(e) => setDescuento(Number(e.target.value))} className="input" />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Descuento (%)</label>
+                  <input type="number" min={0} max={100} value={descuento} onChange={(e) => setDescuento(Number(e.target.value))} className="input" />
+                </div>
+                <div>
+                  <label className="label">IVA (%)</label>
+                  <input type="number" min={0} max={100} value={ivaPorc} onChange={(e) => setIva(Number(e.target.value))} className="input" />
+                </div>
               </div>
-              <div>
-                <label className="label">IVA (%)</label>
-                <input type="number" min={0} max={100} value={ivaPorc} onChange={(e) => setIva(Number(e.target.value))} className="input" />
-              </div>
+
+              {/* Cupón */}
+              {cuponAplicado ? (
+                <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Tag size={14} className="text-emerald-600" />
+                    <div>
+                      <p className="text-xs font-black text-emerald-700">{cuponAplicado.codigo}</p>
+                      {cuponAplicado.descripcion && (
+                        <p className="text-[11px] text-emerald-600">{cuponAplicado.descripcion}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-emerald-700">
+                      -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
+                    </span>
+                    <button onClick={quitarCupon} className="rounded-lg p-1 text-emerald-400 hover:bg-emerald-100">
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="label">Cupón de descuento</label>
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1 uppercase"
+                      placeholder="Código de cupón"
+                      value={cuponInput}
+                      onChange={(e) => { setCuponInput(e.target.value.toUpperCase()); setCuponError(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleAplicarCupon()}
+                    />
+                    <button
+                      onClick={handleAplicarCupon}
+                      disabled={cuponLoading || !cuponInput.trim()}
+                      className="btn-secondary shrink-0 gap-1.5 disabled:opacity-50"
+                    >
+                      {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : <Tag size={14} />}
+                      Aplicar
+                    </button>
+                  </div>
+                  {cuponError && (
+                    <p className="mt-1.5 text-xs text-red-500">{cuponError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

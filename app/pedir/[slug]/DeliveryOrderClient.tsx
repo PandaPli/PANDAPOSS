@@ -286,6 +286,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ id: number; total: number; trackingUrl: string; whatsappUrl: string | null } | null>(null);
   const [opcionesModal, setOpcionesModal] = useState<Producto | null>(null);
+  const [modoRetiro, setModoRetiro] = useState(false);
 
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [clientFoundLabel, setClientFoundLabel] = useState("");
@@ -304,7 +305,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
     () => cart.reduce((acc, item) => acc + item.cantidad, 0),
     [cart]
   );
-  const total = subtotal + (zonaSeleccionada?.precio ?? 0);
+  const total = subtotal + (modoRetiro ? 0 : (zonaSeleccionada?.precio ?? 0));
 
   function addItem(producto: Producto, selectedOpciones?: CartOpcion[]) {
     const opKey = selectedOpciones?.map(o => o.opcionId).sort().join("-") ?? "";
@@ -404,8 +405,12 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
       return;
     }
 
-    if (!nombre.trim() || !telefono.trim() || !direccion.trim()) {
-      setError("Completa nombre, telefono y direccion de despacho.");
+    if (!nombre.trim() || !telefono.trim()) {
+      setError("Completa nombre y teléfono.");
+      return;
+    }
+    if (!modoRetiro && !direccion.trim()) {
+      setError("Completa la dirección de despacho.");
       return;
     }
 
@@ -428,8 +433,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
             lng: geoLng,
           },
           metodoPago: paymentSeleccionado.method,
-          cargoEnvio: zonaSeleccionada?.precio ?? 0,
-          zonaDelivery: zonaSeleccionada?.nombre ?? null,
+          cargoEnvio: modoRetiro ? 0 : (zonaSeleccionada?.precio ?? 0),
+          zonaDelivery: modoRetiro ? "Retiro en tienda" : (zonaSeleccionada?.nombre ?? null),
           items: cart.map((item) => ({
             productoId: item.id,
             cantidad: item.cantidad,
@@ -447,9 +452,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
       // Construir mensaje WhatsApp antes de limpiar el carrito
       const cartSnapshot = [...cart];
-      const zonaSnap = zonas.find((z) => z.id === zonaId);
+      const zonaSnap = modoRetiro ? null : zonas.find((z) => z.id === zonaId);
       const subtotalSnap = cartSnapshot.reduce((a, i) => a + i.precio * i.cantidad, 0);
-      const totalSnap = subtotalSnap + (zonaSnap?.precio ?? 0);
+      const totalSnap = subtotalSnap + (modoRetiro ? 0 : (zonaSnap?.precio ?? 0));
       let waMsg = `Hola! Mi pedido es:\n`;
       cartSnapshot.forEach((item) => {
         waMsg += `• ${item.nombre} x${item.cantidad} — ${formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}`;
@@ -764,6 +769,25 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                     </div>
                   )}
                 </div>
+                {/* Modo toggle */}
+                <div className="mt-3 flex rounded-2xl bg-black/20 p-1 backdrop-blur-sm">
+                  <button
+                    onClick={() => setModoRetiro(false)}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black transition-all ${
+                      !modoRetiro ? "bg-white text-orange-600 shadow" : "text-white/70 hover:text-white"
+                    }`}
+                  >
+                    🛵 Delivery
+                  </button>
+                  <button
+                    onClick={() => setModoRetiro(true)}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black transition-all ${
+                      modoRetiro ? "bg-white text-orange-600 shadow" : "text-white/70 hover:text-white"
+                    }`}
+                  >
+                    🏪 Retiro en tienda
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3 p-3 sm:space-y-6 sm:p-5">
@@ -807,7 +831,19 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                 </div>
 
                 <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-3 sm:p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Datos de despacho</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
+                    {modoRetiro ? "Tus datos" : "Datos de despacho"}
+                  </p>
+                  {modoRetiro && sucursal.direccion && (
+                    <div className="mt-3 flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                      <span className="text-lg">📍</span>
+                      <div>
+                        <p className="text-xs font-bold text-emerald-800">Retira en:</p>
+                        <p className="text-sm font-semibold text-stone-700">{sucursal.nombre}</p>
+                        <p className="text-xs text-stone-500">{sucursal.direccion}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
                     <div className="relative">
                       <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">
@@ -844,46 +880,50 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
                     <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400 mt-2" />
 
-                    <AddressAutocomplete
-                      value={direccion}
-                      onChange={setDireccion}
-                      onSelect={({ direccion: d, lat, lng }) => {
-                        setDireccion(d);
-                        setGeoLat(lat);
-                        setGeoLng(lng);
-                        if (lat !== null && lng !== null) {
-                          const matched = zonas.find(z => z.polygon?.length && pointInPolygon(lat, lng, z.polygon));
-                          if (matched) setZonaId(matched.id);
-                        }
-                      }}
-                      placeholder="Dirección de entrega"
-                    />
+                    {!modoRetiro && (
+                      <>
+                        <AddressAutocomplete
+                          value={direccion}
+                          onChange={setDireccion}
+                          onSelect={({ direccion: d, lat, lng }) => {
+                            setDireccion(d);
+                            setGeoLat(lat);
+                            setGeoLng(lng);
+                            if (lat !== null && lng !== null) {
+                              const matched = zonas.find(z => z.polygon?.length && pointInPolygon(lat, lng, z.polygon));
+                              if (matched) setZonaId(matched.id);
+                            }
+                          }}
+                          placeholder="Dirección de entrega"
+                        />
 
-                    {sugerenciaDireccion && (!direccion || direccion !== sugerenciaDireccion.calle) && (
-                      <div className="mt-2 flex items-start gap-2 rounded-xl bg-emerald-50 p-2.5 px-3">
-                        <MapPin size={14} className="mt-0.5 text-emerald-600 shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-xs text-emerald-800">Dirección guardada: <b>{sugerenciaDireccion.calle}</b></p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDireccion(sugerenciaDireccion.calle);
-                              if(sugerenciaDireccion.referencia) setReferencia(sugerenciaDireccion.referencia);
-                            }}
-                            className="mt-1.5 inline-flex text-xs font-bold text-emerald-700 bg-emerald-100/50 hover:bg-emerald-200 rounded px-2 py-1 transition"
-                          >
-                            Usar esta dirección
-                          </button>
-                        </div>
-                      </div>
+                        {sugerenciaDireccion && (!direccion || direccion !== sugerenciaDireccion.calle) && (
+                          <div className="mt-2 flex items-start gap-2 rounded-xl bg-emerald-50 p-2.5 px-3">
+                            <MapPin size={14} className="mt-0.5 text-emerald-600 shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-emerald-800">Dirección guardada: <b>{sugerenciaDireccion.calle}</b></p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDireccion(sugerenciaDireccion.calle);
+                                  if(sugerenciaDireccion.referencia) setReferencia(sugerenciaDireccion.referencia);
+                                }}
+                                className="mt-1.5 inline-flex text-xs font-bold text-emerald-700 bg-emerald-100/50 hover:bg-emerald-200 rounded px-2 py-1 transition"
+                              >
+                                Usar esta dirección
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Referencia (ej: porton negro)" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
+                        <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} placeholder="Departamento (opcional)" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
+                      </>
                     )}
-
-                    <input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Referencia (ej: porton negro)" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
-                    <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} placeholder="Departamento (opcional)" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
                   </div>
                 </div>
 
-                {zonas.length > 0 && (
+                {!modoRetiro && zonas.length > 0 && (
                   <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-3 sm:p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Zona de despacho</p>
                     <div className="mt-3 grid gap-2 sm:mt-4">
@@ -940,8 +980,14 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                       <span className="font-semibold">{formatCurrency(subtotal, sucursal.simbolo)}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-sm text-stone-600">
-                      <span>Despacho{zonaSeleccionada ? ` · ${zonaSeleccionada.nombre}` : ""}</span>
-                      <span className="font-semibold">{formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}</span>
+                      <span>
+                        {modoRetiro
+                          ? "🏪 Retiro en tienda"
+                          : `Despacho${zonaSeleccionada ? ` · ${zonaSeleccionada.nombre}` : ""}`}
+                      </span>
+                      <span className={`font-semibold ${modoRetiro ? "text-emerald-600" : ""}`}>
+                        {modoRetiro ? "Gratis" : formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">

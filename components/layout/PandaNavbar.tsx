@@ -22,6 +22,8 @@ import {
   Search,
   Settings,
   ShoppingCart,
+  Monitor,
+  Tag,
   User,
   UserCog,
   Users,
@@ -49,19 +51,21 @@ interface AppModule {
 
 const modules: AppModule[] = [
   { label: "Panel", href: "/panel", icon: LayoutDashboard, color: "bg-brand-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Resumen y accesos clave.", featured: true },
-  { label: "Atencion", href: "/mesas", icon: UtensilsCrossed, color: "bg-orange-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"], category: "operacion", description: "Mesas, sala y servicio." },
-  { label: "Pedidos", href: "/pedidos", icon: ClipboardList, color: "bg-amber-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Flujo activo de comandas.", featured: true },
   { label: "Punto de Venta", href: "/ventas/nueva", icon: ShoppingCart, color: "bg-emerald-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "operacion", description: "Cobro rapido en caja.", featured: true },
+  { label: "Atencion", href: "/mesas", icon: UtensilsCrossed, color: "bg-orange-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"], category: "operacion", description: "Mesas, sala y servicio.", featured: true },
+  { label: "Delivery", href: "/delivery", icon: Bike, color: "bg-orange-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "DELIVERY"], category: "operacion", description: "Despachos y repartos.", featureKey: "delivery", featured: true },
+  { label: "Pedidos", href: "/pedidos", icon: ClipboardList, color: "bg-amber-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Flujo activo de comandas.", featured: true },
   { label: "Ventas", href: "/ventas", icon: BarChart3, color: "bg-teal-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Historial y rendimiento." },
   { label: "Productos", href: "/productos", icon: Package, color: "bg-indigo-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Carta, stock y precios." },
   { label: "Clientes", href: "/clientes", icon: Users, color: "bg-cyan-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Base de clientes." },
   { label: "Cajas", href: "/cajas", icon: Wallet, color: "bg-yellow-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"], category: "gestion", description: "Aperturas y arqueos." },
+  { label: "Cupones", href: "/cupones", icon: Tag, color: "bg-pink-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Descuentos y promociones." },
+  { label: "Recursos Humanos", href: "/rrhh", icon: BriefcaseBusiness, color: "bg-slate-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Personal, asistencia y sedes." },
   { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
   { label: "Sucursales", href: "/sucursales", icon: Building2, color: "bg-rose-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Sedes y orden visual." },
   { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gray-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
-  { label: "Delivery", href: "/delivery", icon: Bike, color: "bg-orange-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "DELIVERY"], category: "operacion", description: "Despachos y repartos.", featureKey: "delivery" },
+  { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-zinc-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil." },
   { label: "Carta QR", href: "/carta-qr", icon: QrCode, color: "bg-purple-600", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Menu publico y QR.", featureKey: "menuQR" },
-  { label: "Recursos Humanos", href: "/rrhh", icon: BriefcaseBusiness, color: "bg-slate-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Personal, asistencia y sedes.", featured: true },
 ];
 
 const categoryMeta: Record<ModuleCategory, { title: string; subtitle: string }> = {

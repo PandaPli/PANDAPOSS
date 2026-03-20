@@ -41,12 +41,14 @@ model Sucursal {
   orden         Int            @default(0)
   tenantId      String?
   printerPath   String?        @default("/dev/usb/lp0") @db.VarChar(50)
+  printerIp     String?        @db.VarChar(50)
   rut           String?        @db.VarChar(30)
   giroComercial String?        @db.VarChar(200)
   zonasDelivery Json?
   asistencias   Asistencia[]
   cajas         Caja[]
   clientes      Cliente[]
+  cupones       Cupon[]
   departamentos Departamento[]
   empleados     Empleado[]
   ingredientes  Ingrediente[]
@@ -386,17 +388,21 @@ model Venta {
   metodoPago  MetodoPago     @default(EFECTIVO)
   estado      EstadoVenta    @default(PAGADA)
   observacion String?        @db.Text
+  cuponId     Int?
+  cuponCodigo String?        @db.VarChar(50)
   creadoEn    DateTime       @default(now())
   detalles    DetalleVenta[]
   kardex      Kardex[]
   pagos       PagoVenta[]
   caja        Caja?          @relation(fields: [cajaId], references: [id])
   cliente     Cliente?       @relation(fields: [clienteId], references: [id])
+  cupon       Cupon?         @relation(fields: [cuponId], references: [id])
   pedido      Pedido?        @relation(fields: [pedidoId], references: [id])
   usuario     Usuario        @relation(fields: [usuarioId], references: [id])
 
   @@index([cajaId], map: "ventas_cajaId_fkey")
   @@index([clienteId], map: "ventas_clienteId_fkey")
+  @@index([cuponId], map: "ventas_cuponId_fkey")
   @@index([usuarioId], map: "ventas_usuarioId_fkey")
   @@map("ventas")
 }
@@ -775,4 +781,29 @@ enum EstadoRepartidor {
   DISPONIBLE
   EN_RUTA
   INACTIVO
+}
+
+enum TipoCupon {
+  PORCENTAJE
+  MONTO_FIJO
+}
+
+model Cupon {
+  id          Int       @id @default(autoincrement())
+  sucursalId  Int
+  codigo      String    @db.VarChar(50)
+  descripcion String?   @db.VarChar(200)
+  tipo        TipoCupon
+  valor       Decimal   @db.Decimal(10, 2)
+  usoMax      Int?
+  usoActual   Int       @default(0)
+  activo      Boolean   @default(true)
+  venceEn     DateTime?
+  creadoEn    DateTime  @default(now())
+  sucursal    Sucursal  @relation(fields: [sucursalId], references: [id])
+  ventas      Venta[]
+
+  @@unique([sucursalId, codigo])
+  @@index([sucursalId], map: "cupones_sucursalId_fkey")
+  @@map("cupones")
 }

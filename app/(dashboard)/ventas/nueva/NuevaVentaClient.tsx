@@ -607,6 +607,7 @@ export function NuevaVentaClient({
           sucursalTelefono={sucursalTelefono}
           sucursalDireccion={sucursalDireccion}
           sucursalGiroComercial={sucursalGiroComercial}
+          sucursalId={sucursalId}
         />
       )}
 

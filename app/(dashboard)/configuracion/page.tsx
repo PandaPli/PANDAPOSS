@@ -26,6 +26,7 @@ export default async function ConfiguracionPage() {
   let sucursalCartaSaludo: string | null = null;
   let sucursalSlug: string | null = null;
   let sucursalPrinterPath: string | null = null;
+  let sucursalPrinterIp: string | null = null;
   let sucursalRut: string | null = null;
   let sucursalGiroComercial: string | null = null;
   let sucursalTelefono: string | null = null;
@@ -36,7 +37,7 @@ export default async function ConfiguracionPage() {
   if (rol === "RESTAURANTE" && sucursalId) {
     const suc = await prisma.sucursal.findUnique({
       where: { id: sucursalId },
-      select: { nombre: true, logoUrl: true, cartaBg: true, cartaTagline: true, cartaSaludo: true, printerPath: true, rut: true, giroComercial: true, telefono: true, direccion: true, zonasDelivery: true },
+      select: { nombre: true, logoUrl: true, cartaBg: true, cartaTagline: true, cartaSaludo: true, printerPath: true, printerIp: true, rut: true, giroComercial: true, telefono: true, direccion: true, zonasDelivery: true },
     });
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
@@ -44,6 +45,7 @@ export default async function ConfiguracionPage() {
       sucursalCartaTagline = suc.cartaTagline;
       sucursalCartaSaludo = suc.cartaSaludo;
       sucursalPrinterPath = suc.printerPath;
+      sucursalPrinterIp = suc.printerIp;
       sucursalRut = suc.rut;
       sucursalGiroComercial = suc.giroComercial;
       sucursalTelefono = suc.telefono;
@@ -79,6 +81,7 @@ export default async function ConfiguracionPage() {
         sucursalCartaSaludo={sucursalCartaSaludo}
         sucursalSlug={sucursalSlug}
         sucursalPrinterPath={sucursalPrinterPath}
+        sucursalPrinterIp={sucursalPrinterIp}
         sucursalRut={sucursalRut}
         sucursalGiroComercial={sucursalGiroComercial}
         sucursalTelefono={sucursalTelefono}

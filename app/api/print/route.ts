@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { emitPrintJob } from "@/server/services/realtime";
-import { Server as SocketIOServer } from "socket.io";
-
-const globalForSocket = global as unknown as { io?: SocketIOServer };
+import { prisma } from "@/lib/db";
+import { buildTicketBuffer, sendToThermal } from "@/server/services/print.service";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -15,10 +13,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
   }
 
-  if (!globalForSocket.io) {
-    return NextResponse.json({ error: "Socket no inicializado" }, { status: 500 });
+  // Buscar la IP configurada para la sucursal
+  const sucursal = await prisma.sucursal.findUnique({
+    where: { id: Number(sucursalId) },
+    select: { printerIp: true },
+  });
+
+  if (!sucursal?.printerIp) {
+    return NextResponse.json({ error: "Sin impresora configurada" }, { status: 422 });
   }
 
-  emitPrintJob(globalForSocket.io, sucursalId, content);
-  return NextResponse.json({ ok: true });
+  try {
+    const buffer = buildTicketBuffer(content as string);
+    await sendToThermal(sucursal.printerIp, buffer);
+    return NextResponse.json({ ok: true });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error de impresión";
+    console.error("[Print]", msg);
+    return NextResponse.json({ error: msg }, { status: 502 });
+  }
 }

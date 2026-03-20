@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
       pagos: body.pagos,
       detalleIds: body.detalleIds ?? undefined,
       modoGrupo: body.modoGrupo ?? false,
+      cuponId: body.cuponId ? Number(body.cuponId) : null,
+      cuponCodigo: body.cuponCodigo ?? null,
     });
     return NextResponse.json(venta, { status: 201 });
   } catch (error) {
