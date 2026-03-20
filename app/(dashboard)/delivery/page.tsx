@@ -35,7 +35,9 @@ export default async function DeliveryPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [pedidos, repartidores] = await Promise.all([
+  const simbolo = (session.user as { simbolo?: string })?.simbolo ?? "$";
+
+  const [pedidos, repartidores, productos] = await Promise.all([
     prisma.pedido.findMany({
       where: pedidoWhere,
       include: {
@@ -64,6 +66,11 @@ export default async function DeliveryPage() {
         },
       },
       orderBy: { nombre: "asc" },
+    }),
+    prisma.producto.findMany({
+      where: { activo: true, enMenu: true, ...(sucursalId ? { sucursalId } : {}) },
+      include: { categoria: { select: { nombre: true } } },
+      orderBy: [{ categoria: { nombre: "asc" } }, { nombre: "asc" }],
     }),
   ]);
 
@@ -129,6 +136,16 @@ export default async function DeliveryPage() {
         pedidos={pedidosData}
         repartidores={repartidoresData}
         rol={rol ?? ""}
+        productos={productos.map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          precio: Number(p.precio),
+          imagen: p.imagen,
+          codigo: p.codigo,
+          categoria: p.categoria ? { nombre: p.categoria.nombre } : undefined,
+        }))}
+        sucursalId={sucursalId}
+        simbolo={simbolo}
         stats={{
           pedidosHoy: todayOrders.length,
           enCamino: enCamino.length,

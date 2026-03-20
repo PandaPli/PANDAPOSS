@@ -5,6 +5,7 @@ import { Bike, CheckCircle2, Clock3, MapPin, Package2, Phone, RefreshCw, Route, 
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
 import type { EstadoPedido } from "@/types";
+import { IngresoManualForm } from "@/components/delivery/IngresoManualForm";
 
 interface PedidoDetalle {
   id: number;
@@ -41,10 +42,22 @@ interface Repartidor {
   pedidos: { id: number; estado: string; direccionEntrega: string | null }[];
 }
 
+interface Producto {
+  id: number;
+  nombre: string;
+  precio: number;
+  imagen?: string | null;
+  codigo?: string | null;
+  categoria?: { nombre: string };
+}
+
 interface Props {
   pedidos: PedidoDelivery[];
   repartidores: Repartidor[];
   rol: string;
+  productos: Producto[];
+  sucursalId: number | null;
+  simbolo: string;
   stats: {
     pedidosHoy: number;
     enCamino: number;
@@ -57,6 +70,7 @@ interface Props {
 
 const tabs = [
   { key: "pedidos", label: "Pedidos Delivery" },
+  { key: "ingreso", label: "➕ Ingreso Manual" },
   { key: "repartidores", label: "Repartidores" },
   { key: "seguimiento", label: "Seguimiento" },
   { key: "historial", label: "Historial" },
@@ -70,7 +84,7 @@ const statusStyles: Record<string, string> = {
   CANCELADO: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
-export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, stats }: Props) {
+export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, stats }: Props) {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]["key"]>("pedidos");
   const [pedidos, setPedidos] = useState(initialPedidos);
   const [loadingPedidoId, setLoadingPedidoId] = useState<number | null>(null);
@@ -295,6 +309,39 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, sta
         ) : (
           <div className="rounded-[2rem] border border-dashed border-surface-border bg-white p-12 text-center text-surface-muted">No hay pedidos delivery activos.</div>
         )
+      ) : null}
+
+      {activeTab === "ingreso" ? (
+        <IngresoManualForm
+          productos={productos}
+          sucursalId={sucursalId}
+          simbolo={simbolo}
+          onOrderCreated={(pedido) => {
+            // Add a minimal entry to the active orders list so it appears immediately
+            setPedidos((prev) => [
+              {
+                id: pedido.id,
+                estado: "PENDIENTE",
+                trackingStage: "CONFIRMADO",
+                clienteNombre: pedido.clienteNombre,
+                telefonoCliente: null,
+                direccionEntrega: null,
+                referencia: null,
+                departamento: null,
+                metodoPago: "EFECTIVO",
+                cargoEnvio: 0,
+                subtotal: 0,
+                total: 0,
+                repartidorId: null,
+                creadoEn: new Date().toISOString(),
+                repartidor: null,
+                detalles: [],
+              },
+              ...prev,
+            ]);
+            setActiveTab("pedidos");
+          }}
+        />
       ) : null}
 
       {activeTab === "repartidores" ? (
