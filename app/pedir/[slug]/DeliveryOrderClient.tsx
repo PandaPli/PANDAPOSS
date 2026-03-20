@@ -579,8 +579,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
     <main className="carta-body min-h-screen bg-[#f4efe7] text-stone-900">
       {/* Padding inferior en mobile para que el bottom bar no tape el contenido */}
-      <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 xl:pb-6">
-        <div className="grid gap-6 xl:grid-cols-[1.2fr_420px]">
+      <div className="mx-auto max-w-7xl px-3 py-3 pb-28 sm:px-6 sm:py-6 lg:px-8 xl:pb-6">
+        <div className="grid gap-3 sm:gap-6 xl:grid-cols-[1.2fr_420px]">
           <section className="space-y-6">
             {/* ═══ HERO ═══ */}
             <div className="relative overflow-hidden rounded-[2rem] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.55)]">
@@ -603,37 +603,37 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
               </div>
 
               {/* Logo centrado */}
-              <div className="relative z-10 flex flex-col items-center px-6 pt-6 pb-3 sm:px-8">
+              <div className="relative z-10 flex flex-col items-center px-4 pt-3 pb-2 sm:px-8 sm:pt-6 sm:pb-3">
                 {sucursal.logoUrl ? (
                   <img
                     src={sucursal.logoUrl}
                     alt={sucursal.nombre}
-                    className="h-52 w-auto max-w-[340px] object-contain drop-shadow-[0_12px_48px_rgba(0,0,0,0.8)] sm:h-64"
+                    className="h-24 w-auto max-w-[200px] object-contain drop-shadow-[0_8px_32px_rgba(0,0,0,0.8)] sm:h-44 sm:max-w-[300px]"
                   />
                 ) : (
-                  <h1 className="text-5xl font-black tracking-tight text-white drop-shadow-lg sm:text-6xl">
+                  <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-lg sm:text-5xl">
                     {sucursal.nombre}
                   </h1>
                 )}
               </div>
 
               {/* Bloque de información */}
-              <div className="relative z-10 mx-4 mb-6 mt-2 sm:mx-8">
-                <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-center backdrop-blur-md">
+              <div className="relative z-10 mx-3 mb-3 mt-1 sm:mx-8 sm:mb-6 sm:mt-2">
+                <div className="rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-center backdrop-blur-md sm:rounded-2xl sm:px-5 sm:py-4">
                   {sucursal.cartaTagline && (
-                    <p className="text-lg font-black text-white drop-shadow sm:text-xl">
+                    <p className="text-sm font-black text-white drop-shadow sm:text-lg">
                       {sucursal.cartaTagline}
                     </p>
                   )}
                   {sucursal.cartaSaludo && (
-                    <p className="mt-1 text-sm text-white/75">{sucursal.cartaSaludo}</p>
+                    <p className="mt-0.5 text-xs text-white/75 sm:mt-1 sm:text-sm">{sucursal.cartaSaludo}</p>
                   )}
                   {!sucursal.cartaTagline && !sucursal.cartaSaludo && (
-                    <p className="text-sm text-white/60">Pide directo, cocina lo prepara al momento.</p>
+                    <p className="text-xs text-white/60 sm:text-sm">Pide directo, cocina lo prepara al momento.</p>
                   )}
                   {/* Dirección y teléfono */}
                   {(sucursal.direccion || sucursal.telefono) && (
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-white/50">
+                    <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[11px] text-white/50 sm:text-xs">
                       {sucursal.direccion && <span>📍 {sucursal.direccion}</span>}
                       {sucursal.telefono && <span>📞 {sucursal.telefono}</span>}
                     </div>
@@ -643,15 +643,15 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
             </div>
 
             {/* ── Categorías ── */}
-            <div className="rounded-[2rem] border border-black/5 bg-white/80 backdrop-blur-sm p-4 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.15)]">
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="rounded-2xl border border-black/5 bg-white/80 backdrop-blur-sm p-2.5 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.12)] sm:rounded-[2rem] sm:p-4">
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none sm:gap-2">
                 {categorias.map((categoria) => (
                   <button
                     key={categoria.id}
                     onClick={() => setCategoriaActiva(categoria.id)}
-                    className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-black transition-all duration-200 ${
+                    className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-black transition-all duration-200 sm:px-5 sm:py-2.5 sm:text-sm ${
                       categoriaActiva === categoria.id
-                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-200 scale-105"
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-200 scale-105"
                         : "bg-stone-100 text-stone-500 hover:bg-orange-50 hover:text-orange-600"
                     }`}
                   >
@@ -752,11 +752,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
           <aside className="xl:sticky xl:top-6 xl:h-fit">
             <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_35px_100px_-60px_rgba(0,0,0,0.45)]">
-              <div className="border-b border-white/5 bg-gradient-to-r from-orange-600 to-amber-500 px-5 py-4 text-white">
+              <div className="border-b border-white/5 bg-gradient-to-r from-orange-600 to-amber-500 px-4 py-3 text-white sm:px-5 sm:py-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Tu pedido</p>
-                    <h2 className="mt-0.5 text-xl font-black">🔥 ¿Qué va hoy?</h2>
+                    <h2 className="mt-0.5 text-lg font-black sm:text-xl">🔥 ¿Qué va hoy?</h2>
                   </div>
                   {totalItems > 0 && (
                     <div className="rounded-full bg-white/20 px-3 py-1 text-sm font-black backdrop-blur-sm">
@@ -766,10 +766,10 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                 </div>
               </div>
 
-              <div className="space-y-6 p-5">
+              <div className="space-y-3 p-3 sm:space-y-6 sm:p-5">
                 <div className="space-y-3">
                   {cart.length === 0 ? (
-                    <div className="rounded-[1.5rem] border-2 border-dashed border-orange-100 bg-orange-50/50 p-8 text-center">
+                    <div className="rounded-[1.5rem] border-2 border-dashed border-orange-100 bg-orange-50/50 p-5 text-center sm:p-8">
                       <p className="text-4xl">🛒</p>
                       <p className="mt-2 text-sm font-bold text-stone-400">¡Todo listo para pedir!</p>
                       <p className="mt-1 text-xs text-stone-300">Elige algo del menú 👆</p>
@@ -806,9 +806,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                   )}
                 </div>
 
-                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
+                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-3 sm:p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Datos de despacho</p>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
                     <div className="relative">
                       <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">
                         +56 9
@@ -884,9 +884,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                 </div>
 
                 {zonas.length > 0 && (
-                  <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
+                  <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-3 sm:p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Zona de despacho</p>
-                    <div className="mt-4 grid gap-2">
+                    <div className="mt-3 grid gap-2 sm:mt-4">
                       {zonas.map((zona) => {
                         const isAutoMatched = geoLat !== null && geoLng !== null && zona.polygon?.length
                           ? pointInPolygon(geoLat, geoLng, zona.polygon)
@@ -915,9 +915,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                   </div>
                 )}
 
-                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
+                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-3 sm:p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">Pago</p>
-                  <div className="mt-4 grid gap-2">
+                  <div className="mt-3 grid gap-2 sm:mt-4">
                     {paymentOptions.map((option) => (
                       <button
                         key={option.id}
