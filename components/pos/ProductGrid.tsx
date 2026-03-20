@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Search, Package } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, normalize } from "@/lib/utils";
 import type { ProductoCard } from "@/types";
 
 interface Props {
@@ -28,10 +28,12 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
 
   const filtrados = useMemo(() => {
     return productos.filter((p) => {
+      const q = normalize(search);
       const matchSearch =
         !search ||
-        p.nombre.toLowerCase().includes(search.toLowerCase()) ||
-        p.codigo.toLowerCase().includes(search.toLowerCase());
+        normalize(p.nombre).includes(q) ||
+        normalize(p.codigo).includes(q) ||
+        normalize(p.categoria?.nombre ?? "").includes(q);
       const matchCat = !categoriaFiltro || p.categoriaId === categoriaFiltro;
       return matchSearch && matchCat;
     });

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Edit2, UserCog, X, Loader2, Shield, Store } from "lucide-react";
+import { normalize } from "@/lib/utils";
 
 const ROLES = [
   { value: "ADMIN_GENERAL", label: "Admin General" },
@@ -138,12 +139,12 @@ export function UsuariosClient({ usuarios: initial, sucursales, rol }: Props) {
   const filtrados = useMemo(() => {
     let list = usuarios;
     if (search) {
-      const q = search.toLowerCase();
+      const q = normalize(search);
       list = list.filter(
         (u) =>
-          u.nombre.toLowerCase().includes(q) ||
-          u.usuario.toLowerCase().includes(q) ||
-          (u.email && u.email.toLowerCase().includes(q))
+          normalize(u.nombre).includes(q) ||
+          normalize(u.usuario).includes(q) ||
+          normalize(u.email ?? "").includes(q)
       );
     }
     if (isAdminGeneral && filtroSucursal !== "all") {

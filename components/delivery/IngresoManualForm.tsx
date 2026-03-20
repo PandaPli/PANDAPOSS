@@ -16,7 +16,7 @@ import {
   CreditCard,
   ArrowLeftRight,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
@@ -85,13 +85,13 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
 
   /* ── Computed ── */
   const productosFiltrados = useMemo(() => {
-    const q = searchProd.trim().toLowerCase();
+    const q = normalize(searchProd.trim());
     if (!q) return productos;
     return productos.filter(
       (p) =>
-        p.nombre.toLowerCase().includes(q) ||
-        p.codigo?.toLowerCase().includes(q) ||
-        p.categoria?.nombre.toLowerCase().includes(q)
+        normalize(p.nombre).includes(q) ||
+        normalize(p.codigo ?? "").includes(q) ||
+        normalize(p.categoria?.nombre ?? "").includes(q)
     );
   }, [productos, searchProd]);
 

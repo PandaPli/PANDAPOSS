@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Edit2, Users, X, Loader2, Phone, Mail, MapPin } from "lucide-react";
+import { normalize } from "@/lib/utils";
 
 interface Cliente {
   id: number;
@@ -44,10 +45,11 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
 
   const filtrados = useMemo(() => {
     return clientes.filter((c) => {
+      const q = normalize(search);
       const matchSearch = !search || (
-        c.nombre.toLowerCase().includes(search.toLowerCase()) ||
-        (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
-        (c.telefono && c.telefono.includes(search))
+        normalize(c.nombre).includes(q) ||
+        normalize(c.email ?? "").includes(q) ||
+        (c.telefono ?? "").includes(search.trim())
       );
       const matchSuc = !sucFiltro || c.sucursalId === sucFiltro;
       return matchSearch && matchSuc;

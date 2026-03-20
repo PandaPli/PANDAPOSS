@@ -50,3 +50,11 @@ export function generateNumeroVenta(id: number): string {
 export function sanitize(str: string): string {
   return str.replace(/<[^>]*>/g, "").trim();
 }
+
+/** Normaliza texto para búsquedas: sin acentos, minúsculas */
+export function normalize(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}

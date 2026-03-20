@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import type { Rol } from "@/types";
+import { normalize } from "@/lib/utils";
 
 type TabKey = "empleados" | "asistencias";
 type ToastTone = "success" | "error";
@@ -208,23 +209,25 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
     if (!term) return empleados;
 
     return empleados.filter((empleado) => {
-      const fullName = `${empleado.nombres} ${empleado.apellidos}`.toLowerCase();
-      return fullName.includes(term)
-        || (empleado.documento ?? "").toLowerCase().includes(term)
-        || (empleado.email ?? "").toLowerCase().includes(term)
-        || (empleado.telefono ?? "").toLowerCase().includes(term);
+      const fullName = normalize(`${empleado.nombres} ${empleado.apellidos}`);
+      const q = normalize(term);
+      return fullName.includes(q)
+        || normalize(empleado.documento ?? "").includes(q)
+        || normalize(empleado.email ?? "").includes(q)
+        || normalize(empleado.telefono ?? "").includes(q);
     });
   }, [empleados, search]);
 
   const filteredAsistencias = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = search.trim();
     if (!term) return asistencias;
 
     return asistencias.filter((asistencia) => {
-      const fullName = `${asistencia.empleado.nombres} ${asistencia.empleado.apellidos}`.toLowerCase();
-      return fullName.includes(term)
-        || asistencia.estado.toLowerCase().includes(term)
-        || asistencia.sucursal.nombre.toLowerCase().includes(term);
+      const fullName = normalize(`${asistencia.empleado.nombres} ${asistencia.empleado.apellidos}`);
+      const q = normalize(term);
+      return fullName.includes(q)
+        || normalize(asistencia.estado).includes(q)
+        || normalize(asistencia.sucursal.nombre).includes(q);
     });
   }, [asistencias, search]);
 

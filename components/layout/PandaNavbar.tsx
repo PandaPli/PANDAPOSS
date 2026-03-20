@@ -28,7 +28,7 @@ import {
   UtensilsCrossed,
   Wallet,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
 
@@ -101,7 +101,7 @@ export function PandaNavbar() {
   const visible = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);
   const current = modules.find((mod) => pathname === mod.href || pathname.startsWith(mod.href + "/"));
   const filtered = searchApp
-    ? visible.filter((mod) => mod.label.toLowerCase().includes(searchApp.toLowerCase()))
+    ? visible.filter((mod) => normalize(mod.label).includes(normalize(searchApp)))
     : visible;
   const featured = !searchApp ? filtered.filter((mod) => mod.featured) : [];
   const grouped = (Object.keys(categoryMeta) as ModuleCategory[]).map((category) => ({

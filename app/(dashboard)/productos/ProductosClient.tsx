@@ -4,7 +4,7 @@ import { useRef, useState, useMemo, useCallback } from "react";
 import ImageCropModal from "@/components/ui/ImageCropModal";
 import { useRouter } from "next/navigation";
 import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, normalize } from "@/lib/utils";
 import {
   DndContext,
   closestCenter,
@@ -264,9 +264,11 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
   const filtrados = useMemo(() => {
     return productos.filter((p) => {
+      const q = normalize(search);
       const matchSearch = !search
-        || p.nombre.toLowerCase().includes(search.toLowerCase())
-        || p.codigo.toLowerCase().includes(search.toLowerCase());
+        || normalize(p.nombre).includes(q)
+        || normalize(p.codigo).includes(q)
+        || normalize(p.categoria?.nombre ?? "").includes(q);
       const matchCat = !catFiltro || p.categoriaId === catFiltro;
       const matchSuc = !sucFiltro || p.sucursalId === sucFiltro;
       return matchSearch && matchCat && matchSuc;

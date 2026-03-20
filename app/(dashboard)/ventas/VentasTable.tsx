@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Eye, X, Package, Loader2, Receipt, Search } from "lucide-react";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDateTime, normalize } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -232,13 +232,13 @@ export function VentasTable({ ventas, simbolo }: Props) {
   const [query, setQuery]         = useState("");
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = normalize(query.trim());
     if (!q) return ventas;
     return ventas.filter((v) =>
-      v.numero.toLowerCase().includes(q) ||
-      (v.cliente?.nombre ?? "consumidor final").toLowerCase().includes(q) ||
-      v.usuario.nombre.toLowerCase().includes(q) ||
-      (metodoPagoLabel[v.metodoPago] ?? v.metodoPago).toLowerCase().includes(q)
+      normalize(v.numero).includes(q) ||
+      normalize(v.cliente?.nombre ?? "consumidor final").includes(q) ||
+      normalize(v.usuario.nombre).includes(q) ||
+      normalize(metodoPagoLabel[v.metodoPago] ?? v.metodoPago).includes(q)
     );
   }, [ventas, query]);
 
