@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
-import { ArrowLeft, Loader2, MapPin, Minus, Phone, Plus, ReceiptText, ShoppingBag, Sparkles, UserCheck } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Minus, Phone, Plus, ReceiptText, Share2, ShoppingBag, Sparkles, UserCheck, X } from "lucide-react";
 import ProductoViewer from "./ProductoViewer";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { formatCurrency } from "@/lib/utils";
@@ -290,6 +290,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [clientFoundLabel, setClientFoundLabel] = useState("");
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   const zonaSeleccionada = zonas.find((zona) => zona.id === zonaId) ?? zonas[0] ?? null;
   const paymentSeleccionado = paymentOptions.find((option) => option.id === paymentId) ?? paymentOptions[0];
@@ -331,6 +332,17 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   function updateNota(cartKey: string, nota: string) {
     setCart((prev) => prev.map((item) => item.cartKey === cartKey ? { ...item, nota } : item));
   }
+
+  // Detectar iOS sin standalone → mostrar banner de instalación
+  useEffect(() => {
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const dismissed = sessionStorage.getItem("installBannerDismissed");
+    if (isIos && !isStandalone && !dismissed) {
+      const t = setTimeout(() => setShowInstallBanner(true), 2500);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   useEffect(() => {
     // Si el usuario borra el telefono, limpiamos el badge
@@ -544,7 +556,28 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
         onClose={() => setViewerIndex(null)}
       />
     )}
-    <main className="min-h-screen bg-[#f4efe7] text-stone-900">
+    {/* iOS Install Banner */}
+    {showInstallBanner && (
+      <div className="fixed bottom-24 left-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-orange-200 bg-white px-4 py-3 shadow-2xl">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white">
+          <Share2 size={18} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-stone-800">Instalar como app</p>
+          <p className="text-xs text-stone-500">
+            Toca <Share2 size={10} className="inline" /> y luego <strong>«Agregar a inicio»</strong>
+          </p>
+        </div>
+        <button
+          onClick={() => { setShowInstallBanner(false); sessionStorage.setItem("installBannerDismissed", "1"); }}
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    )}
+
+    <main className="carta-body min-h-screen bg-[#f4efe7] text-stone-900">
       {/* Padding inferior en mobile para que el bottom bar no tape el contenido */}
       <div className="mx-auto max-w-7xl px-4 py-6 pb-32 sm:px-6 lg:px-8 xl:pb-6">
         <div className="grid gap-6 xl:grid-cols-[1.2fr_420px]">

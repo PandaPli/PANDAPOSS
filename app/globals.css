@@ -119,6 +119,26 @@
   }
 }
 
+/* ── PWA: carta delivery ── */
+/* Cuando se abre desde home screen (standalone) se comporta como app nativa */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    user-select: none;
+  }
+  /* Espaciado extra en iOS para el safe-area (notch / dynamic island) */
+  .pwa-safe-top    { padding-top: env(safe-area-inset-top); }
+  .pwa-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Aplica siempre en la carta (no solo standalone) */
+.carta-body {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
 /* ── Scrollbar oculto para filtros ── */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
