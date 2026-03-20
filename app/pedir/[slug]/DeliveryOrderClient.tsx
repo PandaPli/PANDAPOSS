@@ -8,12 +8,16 @@ import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { formatCurrency } from "@/lib/utils";
 import type { MetodoPago } from "@/types";
 
+interface VOpcion { id: number; nombre: string; precio: number; }
+interface VGrupo  { id: number; nombre: string; requerido: boolean; tipo: string; opciones: VOpcion[]; }
+
 interface Producto {
   id: number;
   nombre: string;
   descripcion: string | null;
   precio: number;
   imagen: string | null;
+  variantes: VGrupo[];
 }
 
 interface Categoria {
@@ -22,9 +26,17 @@ interface Categoria {
   productos: Producto[];
 }
 
-interface CartItem extends Producto {
+interface CartOpcion { grupoNombre: string; opcionId: number; opcionNombre: string; precio: number; }
+interface CartItem {
+  cartKey: string;
+  id: number;
+  nombre: string;
+  precio: number;
+  imagen: string | null;
+  variantes: VGrupo[];
   cantidad: number;
   nota?: string;
+  opciones?: CartOpcion[];
 }
 
 interface ZonaDelivery {
@@ -69,6 +81,194 @@ const paymentOptions: { id: string; label: string; method: MetodoPago; detail: s
   { id: "mercadopago", label: "Mercado Pago", method: "TARJETA", detail: "Wallet y tarjetas" },
 ];
 
+// ── Modal de opciones / variantes ────────────────────────────────────────────
+function ProductoOpcionesModal({
+  producto,
+  simbolo,
+  onConfirm,
+  onClose,
+}: {
+  producto: Producto;
+  simbolo: string;
+  onConfirm: (opciones: CartOpcion[]) => void;
+  onClose: () => void;
+}) {
+  const [selection, setSelection] = useState<Record<number, number[]>>(() => {
+    // Pre-select first option for required radio groups
+    const init: Record<number, number[]> = {};
+    for (const g of producto.variantes) {
+      if (g.requerido && g.tipo === "radio" && g.opciones.length > 0) {
+        init[g.id] = [g.opciones[0].id];
+      } else {
+        init[g.id] = [];
+      }
+    }
+    return init;
+  });
+  const [qty, setQty] = useState(1);
+
+  function toggleOption(grupo: VGrupo, opcionId: number) {
+    setSelection(prev => {
+      const current = prev[grupo.id] ?? [];
+      if (grupo.tipo === "radio") {
+        return { ...prev, [grupo.id]: [opcionId] };
+      } else {
+        return {
+          ...prev,
+          [grupo.id]: current.includes(opcionId)
+            ? current.filter(id => id !== opcionId)
+            : [...current, opcionId],
+        };
+      }
+    });
+  }
+
+  const missingRequired = producto.variantes.some(
+    g => g.requerido && (selection[g.id]?.length ?? 0) === 0
+  );
+
+  const selectedOpciones: CartOpcion[] = producto.variantes.flatMap(g =>
+    (selection[g.id] ?? []).map(opId => {
+      const op = g.opciones.find(o => o.id === opId)!;
+      return { grupoNombre: g.nombre, opcionId: op.id, opcionNombre: op.nombre, precio: op.precio };
+    })
+  );
+
+  const unitPrice = producto.precio + selectedOpciones.reduce((s, o) => s + o.precio, 0);
+  const totalPrice = unitPrice * qty;
+
+  function handleConfirm() {
+    if (missingRequired) return;
+    for (let i = 0; i < qty; i++) {
+      onConfirm(selectedOpciones);
+    }
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-lg bg-white rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Product header */}
+        {producto.imagen && (
+          <div className="relative h-44 w-full shrink-0 overflow-hidden">
+            <img src={producto.imagen} alt={producto.nombre} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <button onClick={onClose} className="absolute top-3 right-3 rounded-full bg-white/90 p-1.5 text-stone-700 shadow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        )}
+        {!producto.imagen && (
+          <div className="flex items-center justify-between px-5 pt-5 pb-2 shrink-0">
+            <h2 className="text-xl font-black text-stone-900">{producto.nombre}</h2>
+            <button onClick={onClose} className="rounded-full bg-stone-100 p-1.5 text-stone-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          {producto.imagen && (
+            <div>
+              <h2 className="text-xl font-black text-stone-900">{producto.nombre}</h2>
+              {producto.descripcion && <p className="text-sm text-stone-500 mt-0.5">{producto.descripcion}</p>}
+            </div>
+          )}
+          {!producto.imagen && producto.descripcion && (
+            <p className="text-sm text-stone-500 -mt-2">{producto.descripcion}</p>
+          )}
+
+          {producto.variantes.map(grupo => (
+            <div key={grupo.id}>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-sm font-black uppercase tracking-wide text-stone-900">{grupo.nombre}</p>
+                {grupo.requerido && (
+                  <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">Requerido</span>
+                )}
+              </div>
+              <div className="space-y-1">
+                {grupo.opciones.map(op => {
+                  const selected = (selection[grupo.id] ?? []).includes(op.id);
+                  return (
+                    <button
+                      key={op.id}
+                      type="button"
+                      onClick={() => toggleOption(grupo, op.id)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+                        selected
+                          ? "border-orange-400 bg-orange-50"
+                          : "border-stone-200 bg-white hover:border-stone-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                          selected ? "border-orange-500 bg-orange-500" : "border-stone-300"
+                        }`}>
+                          {selected && <div className="h-2 w-2 rounded-full bg-white" />}
+                        </div>
+                        <span className={`text-sm font-medium ${selected ? "text-orange-700" : "text-stone-700"}`}>
+                          {op.nombre}
+                        </span>
+                      </div>
+                      {op.precio > 0 && (
+                        <span className={`text-sm font-bold ${selected ? "text-orange-600" : "text-stone-500"}`}>
+                          +{simbolo}{op.precio.toLocaleString("es-CL")}
+                        </span>
+                      )}
+                      {op.precio === 0 && (
+                        <span className="text-xs text-stone-400">Incluido</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 border-t border-stone-100 bg-white px-5 py-4">
+          <div className="flex items-center gap-3">
+            {/* Qty counter */}
+            <div className="flex items-center gap-2 rounded-xl border border-stone-200 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setQty(q => Math.max(1, q - 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <span className="w-5 text-center text-base font-black text-stone-900">{qty}</span>
+              <button
+                type="button"
+                onClick={() => setQty(q => q + 1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-stone-900 text-white hover:bg-stone-700 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+
+            {/* Add button */}
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={missingRequired}
+              className="flex-1 flex items-center justify-between rounded-xl px-4 py-3 font-black text-white transition-all disabled:opacity-40"
+              style={{ background: missingRequired ? "#d1d5db" : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}
+            >
+              <span>Agregar</span>
+              <span>{simbolo}{totalPrice.toLocaleString("es-CL")}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -85,7 +285,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ id: number; total: number; trackingUrl: string; whatsappUrl: string | null } | null>(null);
-  
+  const [opcionesModal, setOpcionesModal] = useState<Producto | null>(null);
+
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [clientFoundLabel, setClientFoundLabel] = useState("");
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
@@ -104,30 +305,31 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   );
   const total = subtotal + (zonaSeleccionada?.precio ?? 0);
 
-  function addItem(producto: Producto) {
+  function addItem(producto: Producto, selectedOpciones?: CartOpcion[]) {
+    const opKey = selectedOpciones?.map(o => o.opcionId).sort().join("-") ?? "";
+    const cartKey = `${producto.id}-${opKey}`;
+    const computedPrice = producto.precio + (selectedOpciones?.reduce((s, o) => s + o.precio, 0) ?? 0);
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === producto.id);
+      const existing = prev.find((item) => item.cartKey === cartKey);
       if (existing) {
-        return prev.map((item) => (item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item));
+        return prev.map((item) => item.cartKey === cartKey ? { ...item, cantidad: item.cantidad + 1 } : item);
       }
-
-      return [...prev, { ...producto, cantidad: 1 }];
+      return [...prev, { cartKey, id: producto.id, nombre: producto.nombre, precio: computedPrice, imagen: producto.imagen, variantes: producto.variantes, cantidad: 1, opciones: selectedOpciones }];
     });
   }
 
-  function removeItem(productoId: number) {
+  function removeItem(cartKey: string) {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === productoId);
+      const existing = prev.find((item) => item.cartKey === cartKey);
       if (!existing) return prev;
-      if (existing.cantidad === 1) return prev.filter((item) => item.id !== productoId);
-      return prev.map((item) => (item.id === productoId ? { ...item, cantidad: item.cantidad - 1 } : item));
+      if (existing.cantidad === 1) return prev.filter((item) => item.cartKey !== cartKey);
+      return prev.map((item) => item.cartKey === cartKey ? { ...item, cantidad: item.cantidad - 1 } : item);
     });
   }
 
-  function updateNota(productoId: number, nota: string) {
-    setCart((prev) =>
-      prev.map((item) => (item.id === productoId ? { ...item, nota } : item))
-    );
+  function updateNota(cartKey: string, nota: string) {
+    setCart((prev) => prev.map((item) => item.cartKey === cartKey ? { ...item, nota } : item));
   }
 
   useEffect(() => {
@@ -139,23 +341,23 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
     // Buscamos autofill si el numero tiene exactamente 8 digitos (ej: 9XXXXXXX despues del +56 9)
     if (telefono.length === 8) {
       const controller = new AbortController();
-      
+
       const searchClient = async () => {
         setIsSearchingClient(true);
         setClientFoundLabel("");
         try {
           // El prefix ya sabemos que es +56 9, mandamos la query completa o solo los digitos
-          const phoneQuery = `569${telefono}`; 
+          const phoneQuery = `569${telefono}`;
           const res = await fetch(`/api/public/clientes/buscar?telefono=${phoneQuery}&sucursalId=${sucursal.id}`, {
             signal: controller.signal
           });
-          
+
           if (res.ok) {
             const data = await res.json();
             if (data) {
               if (data.nombre) setNombre(data.nombre);
               setClientFoundLabel(`👋 Hola, ${data.nombre.split(' ')[0]}`);
-              
+
               if (data.direccion) {
                 setSugerenciaDireccion({ calle: data.direccion, referencia: data.referencia || "" });
                 // Solo autocompletamos directo si el campo estaba vacio o tenia algo generico
@@ -219,7 +421,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
           items: cart.map((item) => ({
             productoId: item.id,
             cantidad: item.cantidad,
-            ...(item.nota?.trim() ? { observacion: item.nota.trim() } : {}),
+            precio: item.precio,
+            observacion: [
+              item.opciones?.map(o => o.opcionNombre).join(", "),
+              item.nota?.trim(),
+            ].filter(Boolean).join(" | ") || undefined,
           })),
         }),
       });
@@ -234,7 +440,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
       const totalSnap = subtotalSnap + (zonaSnap?.precio ?? 0);
       let waMsg = `Hola! Mi pedido es:\n`;
       cartSnapshot.forEach((item) => {
-        waMsg += `• ${item.nombre} x${item.cantidad} — ${formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}\n`;
+        waMsg += `• ${item.nombre} x${item.cantidad} — ${formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}`;
+        if (item.opciones && item.opciones.length > 0) {
+          waMsg += ` (${item.opciones.map(o => o.opcionNombre).join(", ")})`;
+        }
+        waMsg += "\n";
       });
       if (zonaSnap) waMsg += `\nZona: ${zonaSnap.nombre} (${formatCurrency(zonaSnap.precio, sucursal.simbolo)})\n`;
       waMsg += `\n*Total: ${formatCurrency(totalSnap, sucursal.simbolo)}*`;
@@ -303,15 +513,34 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
   return (
     <>
+    {/* Modal de opciones/variantes */}
+    {opcionesModal && (
+      <ProductoOpcionesModal
+        producto={opcionesModal}
+        simbolo={sucursal.simbolo}
+        onConfirm={(opciones) => addItem(opcionesModal, opciones)}
+        onClose={() => setOpcionesModal(null)}
+      />
+    )}
+
     {/* Visor de producto con swipe */}
     {viewerIndex !== null && productosVisibles.length > 0 && (
       <ProductoViewer
         productos={productosVisibles}
         initialIndex={viewerIndex}
         simbolo={sucursal.simbolo}
-        getQuantity={(id) => cart.find((i) => i.id === id)?.cantidad ?? 0}
-        onAdd={addItem}
-        onRemove={removeItem}
+        getQuantity={(id) => cart.filter((i) => i.id === id).reduce((s, i) => s + i.cantidad, 0)}
+        onAdd={(p) => {
+          if (p.variantes?.length > 0) {
+            setOpcionesModal(p);
+          } else {
+            addItem(p);
+          }
+        }}
+        onRemove={(id) => {
+          const items = cart.filter(i => i.id === id);
+          if (items.length > 0) removeItem(items[items.length - 1].cartKey);
+        }}
         onClose={() => setViewerIndex(null)}
       />
     )}
@@ -402,7 +631,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
             {/* ── Productos ── */}
             <div className="space-y-2">
               {(categoriaVisible?.productos ?? []).map((producto, idx) => {
-                const quantity = cart.find((item) => item.id === producto.id)?.cantidad ?? 0;
+                const quantity = cart.filter((item) => item.id === producto.id).reduce((s, i) => s + i.cantidad, 0);
                 return (
                   <article
                     key={producto.id}
@@ -434,6 +663,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                       )}
                       <p className="mt-1 text-sm font-black text-orange-500">
                         {formatCurrency(producto.precio, sucursal.simbolo)}
+                        {producto.variantes.length > 0 && (
+                          <span className="ml-1 text-[10px] font-medium text-stone-400">+opciones</span>
+                        )}
                       </p>
                     </div>
 
@@ -441,7 +673,13 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                     <div className="flex-shrink-0">
                       {quantity === 0 ? (
                         <button
-                          onClick={() => addItem(producto)}
+                          onClick={() => {
+                            if (producto.variantes?.length > 0) {
+                              setOpcionesModal(producto);
+                            } else {
+                              addItem(producto);
+                            }
+                          }}
                           className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-200/60 transition-all hover:from-orange-600 hover:to-amber-600 active:scale-90"
                         >
                           <Plus size={18} />
@@ -449,14 +687,23 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                       ) : (
                         <div className="flex items-center gap-1 rounded-full bg-stone-950 px-1.5 py-1">
                           <button
-                            onClick={() => removeItem(producto.id)}
+                            onClick={() => {
+                              const items = cart.filter(i => i.id === producto.id);
+                              if (items.length > 0) removeItem(items[items.length - 1].cartKey);
+                            }}
                             className="flex h-7 w-7 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white active:scale-90"
                           >
                             <Minus size={13} />
                           </button>
                           <span className="min-w-[18px] text-center text-sm font-black text-white">{quantity}</span>
                           <button
-                            onClick={() => addItem(producto)}
+                            onClick={() => {
+                              if (producto.variantes?.length > 0) {
+                                setOpcionesModal(producto);
+                              } else {
+                                addItem(producto);
+                              }
+                            }}
                             className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white transition hover:from-orange-600 hover:to-amber-600 active:scale-90"
                           >
                             <Plus size={13} />
@@ -496,10 +743,15 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                     </div>
                   ) : (
                     cart.map((item) => (
-                      <div key={item.id} className="overflow-hidden rounded-[1.25rem] border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50">
+                      <div key={item.cartKey} className="overflow-hidden rounded-[1.25rem] border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50">
                         <div className="flex items-start justify-between gap-3 p-3 pb-2">
                           <div className="min-w-0 flex-1">
                             <p className="font-black text-stone-900 leading-tight">{item.nombre}</p>
+                            {item.opciones && item.opciones.length > 0 && (
+                              <p className="text-xs text-orange-600/70 mt-0.5">
+                                {item.opciones.map(o => o.opcionNombre).join(", ")}
+                              </p>
+                            )}
                             <p className="mt-0.5 text-xs text-stone-400">{item.cantidad} × {formatCurrency(item.precio, sucursal.simbolo)}</p>
                           </div>
                           <p className="shrink-0 font-black text-orange-600">{formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}</p>
@@ -510,7 +762,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                           <input
                             type="text"
                             value={item.nota ?? ""}
-                            onChange={(e) => updateNota(item.id, e.target.value)}
+                            onChange={(e) => updateNota(item.cartKey, e.target.value)}
                             placeholder="ej: sin pimentón, extra salsa"
                             maxLength={120}
                             className="min-w-0 flex-1 bg-transparent text-xs text-stone-600 placeholder-stone-300 outline-none"
@@ -528,8 +780,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                       <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">
                         +56 9
                       </div>
-                      <input 
-                        value={telefono} 
+                      <input
+                        value={telefono}
                         onChange={(e) => {
                           let val = e.target.value.replace(/\D/g, "");
                           if (val.length > 8) {
@@ -539,11 +791,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                             else val = val.slice(0, 8); // fallback: cortar primeros 8
                           }
                           setTelefono(val);
-                        }} 
+                        }}
                         type="tel"
-                        placeholder="1234 5678" 
+                        placeholder="1234 5678"
                         maxLength={11}
-                        className="w-full rounded-2xl border border-stone-200 bg-white py-3 pl-[4.5rem] pr-10 text-sm outline-none transition focus:border-amber-400 font-mono tracking-wider" 
+                        className="w-full rounded-2xl border border-stone-200 bg-white py-3 pl-[4.5rem] pr-10 text-sm outline-none transition focus:border-amber-400 font-mono tracking-wider"
                       />
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
                         {isSearchingClient ? (
@@ -558,7 +810,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                     )}
 
                     <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400 mt-2" />
-                    
+
                     <AddressAutocomplete
                       value={direccion}
                       onChange={setDireccion}
@@ -573,13 +825,13 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                       }}
                       placeholder="Dirección de entrega"
                     />
-                    
+
                     {sugerenciaDireccion && (!direccion || direccion !== sugerenciaDireccion.calle) && (
                       <div className="mt-2 flex items-start gap-2 rounded-xl bg-emerald-50 p-2.5 px-3">
                         <MapPin size={14} className="mt-0.5 text-emerald-600 shrink-0" />
                         <div className="flex-1">
                           <p className="text-xs text-emerald-800">Dirección guardada: <b>{sugerenciaDireccion.calle}</b></p>
-                          <button 
+                          <button
                             type="button"
                             onClick={() => {
                               setDireccion(sugerenciaDireccion.calle);
@@ -723,4 +975,3 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
     </>
   );
 }
-

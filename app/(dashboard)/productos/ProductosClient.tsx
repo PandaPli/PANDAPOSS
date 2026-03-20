@@ -49,6 +49,9 @@ interface Producto {
   sucursal?: { id: number; nombre: string } | undefined;
 }
 
+interface VOpcion { _key: string; nombre: string; precio: string; }
+interface VGrupo  { _key: string; nombre: string; requerido: boolean; tipo: "radio"|"checkbox"; opciones: VOpcion[]; }
+
 interface Props {
   productos: Producto[];
   categorias: Categoria[];
@@ -142,6 +145,8 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [categoriasState, setCategoriasState] = useState(categorias);
   const [showEstaciones, setShowEstaciones] = useState(false);
   const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
+  const [variantesLocal, setVariantesLocal] = useState<VGrupo[]>([]);
+  const [variantesLoading, setVariantesLoading] = useState(false);
 
   // ── Drag & drop de categorías ─────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -289,6 +294,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
     setEditando(null);
     setForm(emptyForm);
     setError("");
+    setVariantesLocal([]);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -315,7 +321,27 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       enMenuQR: p.enMenuQR,
     });
     setError("");
+    setVariantesLocal([]);
+    setVariantesLoading(true);
     setShowForm(true);
+    // Load variantes async
+    fetch(`/api/productos/${p.id}/variantes`)
+      .then(r => r.json())
+      .then((grupos: { _key?: string; nombre: string; requerido: boolean; tipo: string; opciones: { _key?: string; nombre: string; precio: number }[] }[]) => {
+        setVariantesLocal(grupos.map(g => ({
+          _key: Math.random().toString(36).slice(2),
+          nombre: g.nombre,
+          requerido: g.requerido,
+          tipo: (g.tipo === "checkbox" ? "checkbox" : "radio") as "radio"|"checkbox",
+          opciones: g.opciones.map(o => ({
+            _key: Math.random().toString(36).slice(2),
+            nombre: o.nombre,
+            precio: String(o.precio),
+          })),
+        })));
+      })
+      .catch(() => {})
+      .finally(() => setVariantesLoading(false));
   }
 
   // Paso 1: usuario elige archivo → abrir modal de crop
@@ -410,6 +436,30 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error ?? "Error");
+      }
+      const savedData = await res.json();
+      // Save variantes
+      const savedId = editando?.id ?? savedData?.id;
+      if (savedId && variantesLocal.length > 0) {
+        await fetch(`/api/productos/${savedId}/variantes`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            grupos: variantesLocal.map(g => ({
+              nombre: g.nombre,
+              requerido: g.requerido,
+              tipo: g.tipo,
+              opciones: g.opciones.map(o => ({ nombre: o.nombre, precio: Number(o.precio) || 0 })),
+            })),
+          }),
+        });
+      } else if (savedId && variantesLocal.length === 0 && editando) {
+        // Clear variantes if user removed all
+        await fetch(`/api/productos/${savedId}/variantes`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ grupos: [] }),
+        });
       }
       closeForm();
       router.refresh();
@@ -1066,6 +1116,106 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                     </button>
                   </div>
                 ))}
+              </div>
+
+              {/* Separador */}
+              <div className="mx-6 my-5 border-t border-surface-border" />
+
+              {/* Sección: Variantes / Opcionales */}
+              <div className="px-6 pb-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-surface-muted">Variantes / Opcionales</p>
+                  {editando && variantesLoading && <Loader2 size={13} className="animate-spin text-surface-muted" />}
+                </div>
+                <p className="text-xs text-surface-muted -mt-1">Ej: Tamaño, Tipo de masa, Nivel de picante. El cliente elige antes de agregar al carrito.</p>
+
+                {variantesLocal.map((grupo, gi) => (
+                  <div key={grupo._key} className="rounded-xl border border-surface-border bg-surface-bg/40 p-3 space-y-2">
+                    {/* Grupo header */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        className="input flex-1 text-sm font-semibold py-1.5"
+                        placeholder="Ej: TAMAÑO, TIPO DE MASA"
+                        value={grupo.nombre}
+                        onChange={e => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, nombre: e.target.value } : g))}
+                      />
+                      <select
+                        className="input w-auto text-xs py-1.5"
+                        value={grupo.tipo}
+                        onChange={e => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, tipo: e.target.value as "radio"|"checkbox" } : g))}
+                      >
+                        <option value="radio">Una opción</option>
+                        <option value="checkbox">Varias opciones</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setVariantesLocal(prev => prev.filter((_, i) => i !== gi))}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    {/* Requerido toggle */}
+                    <label className="flex items-center gap-2 text-xs text-surface-muted cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={grupo.requerido}
+                        onChange={e => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, requerido: e.target.checked } : g))}
+                        className="rounded"
+                      />
+                      Selección requerida
+                    </label>
+
+                    {/* Opciones */}
+                    <div className="space-y-1.5 pl-1">
+                      {grupo.opciones.map((op, oi) => (
+                        <div key={op._key} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full border-2 border-surface-border shrink-0" />
+                          <input
+                            className="input flex-1 text-sm py-1"
+                            placeholder="Ej: Individual, Familiar"
+                            value={op.nombre}
+                            onChange={e => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, opciones: g.opciones.map((o, j) => j === oi ? { ...o, nombre: e.target.value } : o) } : g))}
+                          />
+                          <div className="relative w-24 shrink-0">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-surface-muted">{simbolo}</span>
+                            <input
+                              type="number"
+                              className="input pl-5 text-sm py-1 text-right"
+                              placeholder="0"
+                              min={0}
+                              value={op.precio}
+                              onChange={e => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, opciones: g.opciones.map((o, j) => j === oi ? { ...o, precio: e.target.value } : o) } : g))}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, opciones: g.opciones.filter((_, j) => j !== oi) } : g))}
+                            className="p-1 rounded text-surface-muted hover:text-red-500 transition-colors"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setVariantesLocal(prev => prev.map((g, i) => i === gi ? { ...g, opciones: [...g.opciones, { _key: Math.random().toString(36).slice(2), nombre: "", precio: "0" }] } : g))}
+                        className="flex items-center gap-1 text-xs text-brand-500 hover:text-brand-700 font-medium py-0.5"
+                      >
+                        <Plus size={12} /> Agregar opción
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setVariantesLocal(prev => [...prev, { _key: Math.random().toString(36).slice(2), nombre: "", requerido: false, tipo: "radio", opciones: [] }])}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-border py-2.5 text-sm font-medium text-surface-muted hover:border-brand-300 hover:text-brand-500 transition-colors"
+                >
+                  <Plus size={15} /> Agregar grupo de opciones
+                </button>
               </div>
             </form>
 

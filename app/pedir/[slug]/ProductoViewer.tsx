@@ -4,12 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
+interface VOpcion { id: number; nombre: string; precio: number; }
+interface VGrupo  { id: number; nombre: string; requerido: boolean; tipo: string; opciones: VOpcion[]; }
+
 interface Producto {
   id: number;
   nombre: string;
   descripcion: string | null;
   precio: number;
   imagen: string | null;
+  variantes: VGrupo[];
 }
 
 interface Props {

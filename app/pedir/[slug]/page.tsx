@@ -50,6 +50,20 @@ export default async function PedirDeliveryPage({ params }: Props) {
           descripcion: true,
           precio: true,
           imagen: true,
+          variantes: {
+            select: {
+              id: true,
+              nombre: true,
+              requerido: true,
+              tipo: true,
+              orden: true,
+              opciones: {
+                select: { id: true, nombre: true, precio: true, orden: true },
+                orderBy: { orden: "asc" },
+              },
+            },
+            orderBy: { orden: "asc" },
+          },
         },
         orderBy: { nombre: "asc" },
       },
@@ -68,6 +82,17 @@ export default async function PedirDeliveryPage({ params }: Props) {
         descripcion: producto.descripcion,
         precio: Number(producto.precio),
         imagen: producto.imagen,
+        variantes: producto.variantes.map(g => ({
+          id: g.id,
+          nombre: g.nombre,
+          requerido: g.requerido,
+          tipo: g.tipo,
+          opciones: g.opciones.map(o => ({
+            id: o.id,
+            nombre: o.nombre,
+            precio: Number(o.precio),
+          })),
+        })),
       })),
     }));
 

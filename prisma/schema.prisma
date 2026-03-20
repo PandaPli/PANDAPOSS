@@ -155,6 +155,7 @@ model Producto {
   detallesPedido DetallePedido[]
   detallesVenta  DetalleVenta[]
   kardex         Kardex[]
+  variantes      VarianteGrupo[]
   categoria      Categoria?      @relation(fields: [categoriaId], references: [id])
   sucursal       Sucursal?       @relation(fields: [sucursalId], references: [id])
   Tenant         Tenant?         @relation(fields: [tenantId], references: [id])
@@ -163,6 +164,32 @@ model Producto {
   @@index([sucursalId], map: "productos_sucursalId_fkey")
   @@index([tenantId], map: "productos_tenantId_fkey")
   @@map("productos")
+}
+
+model VarianteGrupo {
+  id         Int              @id @default(autoincrement())
+  productoId Int
+  nombre     String           @db.VarChar(100)
+  requerido  Boolean          @default(false)
+  tipo       String           @default("radio")
+  orden      Int              @default(0)
+  producto   Producto         @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  opciones   VarianteOpcion[]
+
+  @@index([productoId])
+  @@map("variante_grupos")
+}
+
+model VarianteOpcion {
+  id      Int           @id @default(autoincrement())
+  grupoId Int
+  nombre  String        @db.VarChar(100)
+  precio  Decimal       @default(0.00) @db.Decimal(10, 2)
+  orden   Int           @default(0)
+  grupo   VarianteGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  @@index([grupoId])
+  @@map("variante_opciones")
 }
 
 model Ingrediente {
