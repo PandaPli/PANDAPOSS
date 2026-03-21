@@ -70,21 +70,22 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addItem(item) {
     set((state) => {
-      // Ignorar ítems cancelados: si el mismo producto fue anulado,
-      // se agrega como entrada nueva (no-guardado) en lugar de incrementar el cancelado
+      // Solo fusionar si el ítem existe Y aún no fue guardado (enviado a KDS).
+      // Si ya fue guardado, se agrega como entrada nueva (no-guardado) para que
+      // handleOrden lo detecte como ítem nuevo y genere un segundo pedido en KDS.
       const existing = state.items.find(
-        (i) => i.id === item.id && i.tipo === item.tipo && !i.cancelado
+        (i) => i.id === item.id && i.tipo === item.tipo && !i.cancelado && !i.guardado
       );
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.id === item.id && i.tipo === item.tipo && !i.cancelado
+            i.id === item.id && i.tipo === item.tipo && !i.cancelado && !i.guardado
               ? { ...i, cantidad: i.cantidad + (item.cantidad ?? 1) }
               : i
           ),
         };
       }
-      return { items: [...state.items, { ...item, cantidad: item.cantidad ?? 1 }] };
+      return { items: [...state.items, { ...item, cantidad: item.cantidad ?? 1, guardado: false }] };
     });
   },
 
