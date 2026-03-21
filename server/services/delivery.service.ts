@@ -188,15 +188,18 @@ export const DeliveryService = {
         }
       });
 
-      // 5. Descontar stock — igual que ventas POS (puede quedar negativo, notificación vía socket)
-      await Promise.all(
-        items.map((item) =>
-          tx.producto.update({
-            where: { id: Number(item.productoId) },
-            data: { stock: { decrement: Number(item.cantidad) } },
-          })
-        )
-      );
+      // 5. Descontar stock — solo para productos con ID (los libres no tienen stock en DB)
+      const itemsConProducto = items.filter((item) => item.productoId);
+      if (itemsConProducto.length > 0) {
+        await Promise.all(
+          itemsConProducto.map((item) =>
+            tx.producto.update({
+              where: { id: Number(item.productoId) },
+              data: { stock: { decrement: Number(item.cantidad) } },
+            })
+          )
+        );
+      }
 
       return pedido;
     });
@@ -208,7 +211,7 @@ export const DeliveryService = {
     });
 
     // Notificar stock bajo (misma lógica que ventas POS)
-    const productoIds = items.map((i) => Number(i.productoId));
+    const productoIds = items.filter((i) => i.productoId).map((i) => Number(i.productoId));
     const sinStock = await prisma.producto.findMany({
       where: { id: { in: productoIds }, stock: { lte: 0 } },
       select: { nombre: true, stock: true },
