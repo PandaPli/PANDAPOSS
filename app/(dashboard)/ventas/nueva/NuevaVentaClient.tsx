@@ -737,6 +737,7 @@ export function NuevaVentaClient({
           mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
           onClose={() => setShowPrecuenta(false)}
+          sucursalId={sucursalId}
           sucursalNombre={sucursalNombre}
           sucursalRut={sucursalRut}
           sucursalTelefono={sucursalTelefono}

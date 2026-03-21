@@ -11,6 +11,7 @@ interface Props {
   meseroNombre?: string;
   logoUrl?: string | null;
   onClose: () => void;
+  sucursalId?: number | null;
   sucursalNombre?: string | null;
   sucursalRut?: string | null;
   sucursalTelefono?: string | null;
@@ -18,7 +19,7 @@ interface Props {
   sucursalGiroComercial?: string | null;
 }
 
-export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
+export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose, sucursalId, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
   const { items, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc } = useCartStore();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -34,20 +35,17 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
   const fecha = ahora.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
   const hora = ahora.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
-  function handlePrint() {
+  async function handlePrint() {
+    // ── 1. Construir HTML para fallback (se abre ventana ANTES de cualquier await) ──
     const content = printRef.current;
     if (!content) return;
-
-    const printWindow = window.open("", "_blank", "width=320,height=800");
-    if (!printWindow) return;
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
     const html = printableLogoUrl
       ? content.innerHTML.replaceAll('src="__LOGO_URL__"', `src="${printableLogoUrl}"`)
       : content.innerHTML.replaceAll('src="__LOGO_URL__"', 'src=""');
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
+    const fullHtml = `<!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
@@ -102,9 +100,61 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             }}
           <\/script>
         </body>
-      </html>
-    `);
-    printWindow.document.close();
+      </html>`;
+
+    // ── 2. Abrir ventana SINCRÓNICAMENTE antes de cualquier await ──────────
+    const pw = window.open("", "_blank", "width=320,height=800");
+
+    // ── 3. Intentar impresión TCP (ESC/POS directo a la térmica) ──────────
+    if (sucursalId) {
+      try {
+        const now = new Date();
+        const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+        const hora  = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+
+        const res = await fetch("/api/print-receipt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sucursalId,
+            type: "precuenta",
+            data: {
+              simbolo,
+              mesaNombre,
+              meseroNombre,
+              sucursalNombre,
+              sucursalRut,
+              sucursalTelefono,
+              sucursalDireccion,
+              sucursalGiroComercial,
+              items: items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+              subtotal: sub,
+              descuento,
+              descuentoMonto: desc,
+              ivaPorc,
+              ivaMonto: iva,
+              total: tot,
+              fecha,
+              hora,
+            },
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (res.ok) {
+          // TCP funcionó → cerrar la pestaña en blanco
+          pw?.close();
+          return;
+        }
+      } catch {
+        // TCP falló → caer al fallback de ventana
+      }
+    }
+
+    // ── 4. Fallback: imprimir desde el navegador ───────────────────────────
+    if (!pw) return;
+    pw.document.write(fullHtml);
+    pw.document.close();
   }
 
   return (

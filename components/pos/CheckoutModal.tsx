@@ -179,18 +179,15 @@ export function CheckoutModal({
     onSuccess();
   }
 
-  function handleImprimirBoleta() {
+  async function handleImprimirBoleta() {
     if (!completedSale) return;
 
     const now = new Date();
     const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
     const hora = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
+    // ── Abrir ventana SINCRÓNICAMENTE antes de cualquier await ────────────
     const printWindow = window.open("", "_blank", "width=360,height=820");
-    if (!printWindow) {
-      finalizeFlow();
-      return;
-    }
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
 
@@ -276,7 +273,7 @@ export function CheckoutModal({
         <div class="document-note">Documento no fiscal</div>
       </div>`;
 
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
+    const fullHtml = `<!DOCTYPE html><html><head><title>Boleta</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       @page{size:80mm auto;margin:0;}
       body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
@@ -293,7 +290,61 @@ export function CheckoutModal({
       .suggested-box{margin:6px 0;border:1px dashed #000;padding:6px;text-align:center;}
       .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
       .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
-    </style></head><body>${html}</body></html>`);
+    </style></head><body>${html}</body></html>`;
+
+    // ── Intentar impresión TCP (ESC/POS directo a la térmica) ─────────────
+    if (sucursalId) {
+      try {
+        const res = await fetch("/api/print-receipt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sucursalId,
+            type: "boleta",
+            data: {
+              simbolo,
+              ventaId: completedSale.ventaId,
+              mesaLabel: completedSale.mesaLabel,
+              grupoNombre: completedSale.grupoNombre,
+              meseroNombre,
+              sucursalNombre,
+              sucursalRut,
+              sucursalTelefono,
+              sucursalDireccion,
+              sucursalGiroComercial,
+              items: completedSale.items,
+              subtotal: completedSale.subtotal,
+              descuentoMonto: completedSale.descuentoMonto,
+              descuentoPorcentaje: completedSale.descuentoPorcentaje,
+              impuestoMonto: completedSale.impuestoMonto,
+              impuestoPorcentaje: completedSale.impuestoPorcentaje,
+              total: completedSale.total,
+              pagos: completedSale.pagos,
+              vuelto: vueltoFinal,
+              fecha,
+              hora,
+            },
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (res.ok) {
+          // TCP funcionó → cerrar ventana en blanco y continuar
+          printWindow?.close();
+          finalizeFlow();
+          return;
+        }
+      } catch {
+        // TCP falló → caer al fallback
+      }
+    }
+
+    // ── Fallback: imprimir desde el navegador ─────────────────────────────
+    if (!printWindow) {
+      finalizeFlow();
+      return;
+    }
+    printWindow.document.write(fullHtml);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
