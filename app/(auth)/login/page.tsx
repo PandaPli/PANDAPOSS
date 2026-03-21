@@ -5,6 +5,18 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn, Loader2, Mail, X, Phone, Send } from "lucide-react";
 
+// CSS de animación del panda — inyectado una sola vez
+const PANDA_STYLES = `
+  @keyframes pandaFloat {
+    0%   { transform: translateY(0px) rotate(-2deg); }
+    50%  { transform: translateY(-12px) rotate(2deg); }
+    100% { transform: translateY(0px) rotate(-2deg); }
+  }
+  .panda-float { animation: pandaFloat 3s ease-in-out infinite; }
+  .panda-look-away { filter: hue-rotate(0deg); transform: scale(0.95) rotate(-5deg) !important; transition: all 0.3s ease; }
+  @keyframes pandaFloat { 0%,100% { transform: translateY(0px) rotate(-2deg); } 50% { transform: translateY(-12px) rotate(2deg); } }
+`;
+
 export default function LoginPage() {
   const router = useRouter();
   const [usuario, setUsuario] = useState("");
@@ -12,6 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   // Contacto drawer
   const [showContacto, setShowContacto] = useState(false);
@@ -65,6 +78,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 p-4 relative overflow-hidden">
+      {/* Estilos de animación del panda */}
+      <style dangerouslySetInnerHTML={{ __html: PANDA_STYLES }} />
+
       {/* Burbujas decorativas */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 -right-32 w-80 h-80 bg-brand-500/15 rounded-full blur-3xl" />
@@ -73,13 +89,23 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Logo + panda */}
+        {/* Panda flotante animado */}
         <div className="text-center mb-8 animate-fade-in">
-          <img
-            src="/logo.png"
-            alt="PandaPoss"
-            className="w-28 h-28 mx-auto mb-3 drop-shadow-2xl"
-          />
+          <div className="relative inline-block mb-3">
+            <img
+              src={passwordFocused ? "/panda-close.png" : "/panda-open.png"}
+              alt="PandaPoss"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/logo.png"; }}
+              className={`w-28 h-28 mx-auto drop-shadow-2xl panda-float transition-all duration-300 ${passwordFocused ? "panda-look-away" : ""}`}
+              style={{ display: "block" }}
+            />
+            {/* Destello de ojos al enfocar contraseña */}
+            {passwordFocused && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-full h-full rounded-full bg-brand-400/10 animate-ping" />
+              </div>
+            )}
+          </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Panda<span className="text-brand-300">Poss</span>
           </h1>
@@ -123,6 +149,8 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
                   placeholder="Ingrese su contrasena"
                   autoComplete="current-password"
                   required

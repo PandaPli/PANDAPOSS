@@ -253,7 +253,7 @@ export function NuevaVentaClient({
   }
 
   async function handleOrden() {
-    const nuevosItems = items.filter((i) => !i.guardado);
+    const nuevosItems = items.filter((i) => !i.guardado && !i.cancelado);
 
     if (nuevosItems.length === 0) {
       setOrdenMsg("No hay productos nuevos para enviar");
@@ -352,25 +352,8 @@ export function NuevaVentaClient({
       LINE,
       center("-- PandaPoss --"),
     ].filter(Boolean).join("\n") + "\n";
-    // ──────────────────────────────────────────────────────────────
 
-    // Intentar imprimir vía agente local
-    if (sucursalId) {
-      try {
-        const res = await fetch("/api/print", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sucursalId, content: textContent }),
-        });
-        if (res.ok) return; // impreso vía agente — no abrir popup
-      } catch {
-        // sin agente → fallback
-      }
-    }
-
-    // Fallback: ventana del navegador (si el agente no está disponible)
-    const pw = window.open("", "_blank", "width=380,height=600");
-    if (!pw) return;
+    // ── Generar HTML para popup (construido antes del await) ────────
     const itemsHtml = items.map((item) => `
         <div class="item">
           <span class="qty">${item.cantidad}x</span>
@@ -386,7 +369,7 @@ export function NuevaVentaClient({
       sucursalDireccion     ? `<div class="legal-line">${sucursalDireccion}</div>` : "",
       sucursalTelefono      ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
     ].filter(Boolean).join("");
-    pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
+    const htmlContent = `<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
       .branch{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
@@ -409,7 +392,36 @@ export function NuevaVentaClient({
       <div class="items">${itemsHtml}</div>
       <div class="footer">— PandaPoss —</div>
       <script>window.onload=function(){window.print();window.close();}<\/script>
-    </body></html>`);
+    </body></html>`;
+    // ──────────────────────────────────────────────────────────────
+
+    // IMPORTANTE: window.open() debe llamarse de forma SÍNCRONA (dentro del
+    // contexto de gesto del usuario) antes de cualquier await, de lo contrario
+    // el navegador bloquea el popup. Abrimos la ventana primero y luego:
+    //  • si TCP funciona → la cerramos silenciosamente
+    //  • si TCP falla   → escribimos el contenido HTML
+    const pw = window.open("", "_blank", "width=380,height=600");
+
+    // Intentar imprimir vía TCP directo (impresora en red)
+    if (sucursalId) {
+      try {
+        const res = await fetch("/api/print", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sucursalId, content: textContent }),
+        });
+        if (res.ok) {
+          pw?.close(); // TCP exitoso — cerrar ventana en blanco
+          return;
+        }
+      } catch {
+        // Sin impresora TCP → fallback al popup
+      }
+    }
+
+    // Fallback: escribir en la ventana ya abierta
+    if (!pw) return;
+    pw.document.write(htmlContent);
     pw.document.close();
   }
 

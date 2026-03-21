@@ -351,6 +351,7 @@ export function CheckoutModal({
       items: items.map((i) => ({
         productoId: i.tipo === "producto" ? i.id : null,
         comboId: i.tipo === "combo" ? i.id : null,
+        nombre: i.nombre,
         cantidad: i.cantidad,
         precio: i.precio,
         subtotal: i.precio * i.cantidad,
