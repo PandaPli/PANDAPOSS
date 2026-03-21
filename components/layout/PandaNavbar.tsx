@@ -50,7 +50,7 @@ interface AppModule {
 }
 
 const modules: AppModule[] = [
-  { label: "Panel", href: "/panel", icon: LayoutDashboard, color: "bg-brand-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Resumen y accesos clave.", featured: true },
+  { label: "Panel", href: "/panel", icon: LayoutDashboard, color: "bg-brand-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Resumen y accesos clave." },
   { label: "Punto de Venta", href: "/ventas/nueva", icon: ShoppingCart, color: "bg-emerald-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "operacion", description: "Cobro rapido en caja.", featured: true },
   { label: "Atencion", href: "/mesas", icon: UtensilsCrossed, color: "bg-orange-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"], category: "operacion", description: "Mesas, sala y servicio.", featured: true },
   { label: "Delivery", href: "/delivery", icon: Bike, color: "bg-orange-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "DELIVERY"], category: "operacion", description: "Despachos y repartos.", featureKey: "delivery", featured: true },
