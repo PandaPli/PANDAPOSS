@@ -37,6 +37,19 @@ export default async function DeliveryPage() {
 
   const simbolo = (session.user as { simbolo?: string })?.simbolo ?? "$";
 
+  // Fetch zonas de delivery de la sucursal
+  const sucursalData = sucursalId
+    ? await prisma.sucursal.findUnique({
+        where: { id: sucursalId },
+        select: { zonasDelivery: true },
+      })
+    : null;
+
+  interface ZonaDelivery { id: number; nombre: string; precio: number }
+  const zonasDelivery: ZonaDelivery[] = Array.isArray(sucursalData?.zonasDelivery)
+    ? (sucursalData!.zonasDelivery as unknown as ZonaDelivery[])
+    : [];
+
   const [pedidos, repartidores, productos] = await Promise.all([
     prisma.pedido.findMany({
       where: pedidoWhere,
@@ -146,6 +159,7 @@ export default async function DeliveryPage() {
         }))}
         sucursalId={sucursalId}
         simbolo={simbolo}
+        zonasDelivery={zonasDelivery}
         stats={{
           pedidosHoy: todayOrders.length,
           enCamino: enCamino.length,

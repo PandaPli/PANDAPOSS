@@ -51,6 +51,8 @@ interface Producto {
   categoria?: { nombre: string };
 }
 
+interface ZonaDelivery { id: number; nombre: string; precio: number }
+
 interface Props {
   pedidos: PedidoDelivery[];
   repartidores: Repartidor[];
@@ -58,6 +60,7 @@ interface Props {
   productos: Producto[];
   sucursalId: number | null;
   simbolo: string;
+  zonasDelivery: ZonaDelivery[];
   stats: {
     pedidosHoy: number;
     enCamino: number;
@@ -78,7 +81,7 @@ const STAGE_STYLE = {
   CANCELADO:  { border: "border-l-rose-400",   bg: "bg-rose-50",   badge: "bg-rose-100 text-rose-700",    dot: "bg-rose-400"  },
 } as const;
 
-export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, stats }: Props) {
+export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, zonasDelivery, stats }: Props) {
   const [pedidos, setPedidos]                   = useState(initialPedidos);
   const [activeFilter, setActiveFilter]         = useState<FilterKey>("todos");
   const [showIngreso, setShowIngreso]           = useState(false);
@@ -362,6 +365,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             productos={productos}
             sucursalId={sucursalId}
             simbolo={simbolo}
+            zonasDelivery={zonasDelivery}
             onOrderCreated={(pedido) => {
               const nuevo: PedidoDelivery = {
                 id: pedido.id, estado: "PENDIENTE", trackingStage: "CONFIRMADO",

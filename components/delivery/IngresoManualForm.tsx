@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef } from "react";
 import {
-  Phone,
   Search,
   User,
   MapPin,
@@ -15,6 +14,8 @@ import {
   Banknote,
   CreditCard,
   ArrowLeftRight,
+  Truck,
+  ChevronDown,
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -47,10 +48,17 @@ interface ClienteEncontrado {
 
 type MetodoPago = "EFECTIVO" | "TARJETA" | "TRANSFERENCIA";
 
+interface ZonaDelivery {
+  id: number;
+  nombre: string;
+  precio: number;
+}
+
 interface Props {
   productos: Producto[];
   sucursalId: number | null;
   simbolo: string;
+  zonasDelivery?: ZonaDelivery[];
   onOrderCreated: (pedido: { id: number; clienteNombre: string }) => void;
 }
 
@@ -63,7 +71,7 @@ const METODOS: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPONENT
 ═══════════════════════════════════════════════════════════════════════════ */
-export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreated }: Props) {
+export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDelivery = [], onOrderCreated }: Props) {
   /* ── Phone lookup ── */
   const [phoneDigits, setPhoneDigits] = useState("");
   const [searching, setSearching] = useState(false);
@@ -75,6 +83,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
   const [direccion, setDireccion] = useState("");
   const [referencia, setReferencia] = useState("");
   const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
+  const [zonaId, setZonaId] = useState<number | null>(
+    zonasDelivery.length > 0 ? zonasDelivery[0].id : null
+  );
+  const [cargoManual, setCargoManual] = useState(0);
 
   /* ── Product cart ── */
   const [searchProd, setSearchProd] = useState("");
@@ -89,6 +101,12 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
   const [errorMsg, setErrorMsg] = useState("");
   const [ticketData, setTicketData] = useState<{ id: number; clienteNombre: string } | null>(null);
 
+  /* ── Zona y cargo de envío ── */
+  const zonaSeleccionada = zonasDelivery.find((z) => z.id === zonaId) ?? null;
+  const cargoEnvio = zonasDelivery.length > 0
+    ? (zonaSeleccionada?.precio ?? 0)
+    : cargoManual;
+
   /* ── Computed ── */
   const productosFiltrados = useMemo(() => {
     const q = normalize(searchProd.trim());
@@ -102,6 +120,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
   }, [productos, searchProd]);
 
   const subtotal = cart.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+  const totalConEnvio = subtotal + cargoEnvio;
   const phone = `+569${phoneDigits.replace(/\s/g, "")}`;
 
   /* ── Phone search ── */
@@ -187,7 +206,8 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
             referencia: referencia.trim() || undefined,
           },
           metodoPago: metodo,
-          cargoEnvio: 0,
+          cargoEnvio,
+          zonaDelivery: zonaSeleccionada?.nombre ?? undefined,
         }),
       });
 
@@ -207,6 +227,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
       setDireccion("");
       setReferencia("");
       setMetodo("EFECTIVO");
+      setZonaId(zonasDelivery.length > 0 ? zonasDelivery[0].id : null);
     } catch (e) {
       setErrorMsg((e as Error).message);
     } finally {
@@ -263,7 +284,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
         <div class="meta">${dateStr} · ${timeStr}</div>
       </div>
       <div class="items">${itemsHtml}</div>
-      <div class="total-row"><span>TOTAL</span><span>${formatCurrency(subtotal, simbolo)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #ccc;"><span>Subtotal</span><span>${formatCurrency(subtotal, simbolo)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Envío${zonaSeleccionada ? ` (${zonaSeleccionada.nombre})` : ""}</span><span>${cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"}</span></div>
+      <div class="total-row"><span>TOTAL</span><span>${formatCurrency(totalConEnvio, simbolo)}</span></div>
       <div class="metodo">Pago: ${metodo}</div>
       <div class="divider"></div>
       <p style="font-size:11px;color:#555;">📍 ${direccion}${referencia ? ` · ${referencia}` : ""}</p>
@@ -379,6 +402,55 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
                 className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               />
             </div>
+
+            {/* Zona de delivery */}
+            {zonasDelivery.length > 0 ? (
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Zona de delivery
+                </label>
+                <div className="relative">
+                  <Truck size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                  <select
+                    value={zonaId ?? ""}
+                    onChange={(e) => setZonaId(Number(e.target.value))}
+                    className="w-full appearance-none rounded-xl border border-stone-200 bg-stone-50 py-2.5 pl-9 pr-8 text-sm font-semibold text-stone-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                  >
+                    {zonasDelivery.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.nombre} — {formatCurrency(z.precio, simbolo)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {zonaSeleccionada && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-600">
+                    <Truck size={11} />
+                    Costo de envío: <span className="font-black">{formatCurrency(zonaSeleccionada.precio, simbolo)}</span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* Sin zonas configuradas: input manual de cargo */
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">
+                  Costo de envío
+                  <span className="ml-1 font-normal text-stone-400">(sin zonas configuradas)</span>
+                </label>
+                <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
+                  <Truck size={14} className="flex-shrink-0 text-stone-400" />
+                  <input
+                    type="number"
+                    min={0}
+                    value={cargoManual}
+                    onChange={(e) => setCargoManual(Number(e.target.value))}
+                    placeholder="0"
+                    className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Payment method */}
             <div>
@@ -555,9 +627,29 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, onOrderCreat
                 </div>
               ))}
 
-              <div className="mt-3 flex items-center justify-between rounded-2xl bg-stone-900 px-4 py-3">
-                <span className="text-sm font-semibold text-stone-300">SUBTOTAL</span>
-                <span className="text-lg font-black text-white">{formatCurrency(subtotal, simbolo)}</span>
+              <div className="mt-3 space-y-1.5">
+                {/* Subtotal */}
+                <div className="flex items-center justify-between rounded-xl bg-stone-100 px-4 py-2.5">
+                  <span className="text-xs font-semibold text-stone-500">Subtotal</span>
+                  <span className="text-sm font-bold text-stone-700">{formatCurrency(subtotal, simbolo)}</span>
+                </div>
+
+                {/* Cargo de envío */}
+                <div className="flex items-center justify-between rounded-xl border border-dashed border-brand-200 bg-brand-50 px-4 py-2.5">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-600">
+                    <Truck size={11} />
+                    {zonaSeleccionada ? zonaSeleccionada.nombre : "Envío"}
+                  </span>
+                  <span className="text-sm font-bold text-brand-600">
+                    {cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"}
+                  </span>
+                </div>
+
+                {/* Total */}
+                <div className="flex items-center justify-between rounded-2xl bg-stone-900 px-4 py-3">
+                  <span className="text-sm font-semibold text-stone-300">TOTAL</span>
+                  <span className="text-lg font-black text-white">{formatCurrency(totalConEnvio, simbolo)}</span>
+                </div>
               </div>
             </div>
           )}
