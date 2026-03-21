@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
 import { effectiveFeature } from "@/lib/plan";
+import { PLAN_LIMITS } from "@/core/billing/planConfig";
+import type { PlanTipo } from "@/core/billing/planConfig";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8 horas
@@ -43,6 +45,7 @@ export const authOptions: NextAuthOptions = {
           delivery:     user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.delivery)     : true,
           menuQR:       user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.menuQR)       : true,
           kioskActivo:  user.sucursal ? user.sucursal.kioskActivo : false,
+          cupones:      user.sucursal ? (PLAN_LIMITS[user.sucursal.plan as PlanTipo]?.cupones ?? false)  : true,
           logoUrl:      user.sucursal?.logoUrl ?? null,
         };
       },
@@ -52,7 +55,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         // Login inicial: seed del objeto user
-        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean; kioskActivo: boolean; logoUrl: string | null };
+        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean; kioskActivo: boolean; cupones: boolean; logoUrl: string | null };
         token.id = Number(u.id);
         token.rol = u.rol;
         token.usuario = u.usuario;
@@ -62,6 +65,7 @@ export const authOptions: NextAuthOptions = {
         token.delivery    = u.delivery;
         token.menuQR      = u.menuQR;
         token.kioskActivo = u.kioskActivo;
+        token.cupones     = u.cupones;
         token.logoUrl     = u.logoUrl;
       } else if (token.sucursalId) {
         // Refresco: leer plan y toggles SIEMPRE desde la sucursal (fuente de verdad)
@@ -76,6 +80,7 @@ export const authOptions: NextAuthOptions = {
           token.delivery    = effectiveFeature(suc.plan, suc.delivery);
           token.menuQR      = effectiveFeature(suc.plan, suc.menuQR);
           token.kioskActivo = suc.kioskActivo;
+          token.cupones     = PLAN_LIMITS[suc.plan as PlanTipo]?.cupones ?? false;
           token.logoUrl     = suc.logoUrl;
         }
       }
@@ -92,6 +97,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as { delivery: boolean }).delivery         = token.delivery    as boolean;
         (session.user as { menuQR: boolean }).menuQR             = token.menuQR      as boolean;
         (session.user as { kioskActivo: boolean }).kioskActivo   = token.kioskActivo as boolean;
+        (session.user as { cupones: boolean }).cupones           = token.cupones     as boolean;
         (session.user as { logoUrl: string | null }).logoUrl = token.logoUrl as string | null;
       }
       return session;

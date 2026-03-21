@@ -34,7 +34,7 @@ import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
 
-type FeatureKey = "delivery" | "menuQR" | "kiosko";
+type FeatureKey = "delivery" | "menuQR" | "kiosko" | "cupones";
 type ModuleCategory = "operacion" | "gestion" | "configuracion";
 
 interface AppModule {
@@ -59,7 +59,7 @@ const modules: AppModule[] = [
   { label: "Productos", href: "/productos", icon: Package, color: "bg-indigo-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Carta, stock y precios." },
   { label: "Clientes", href: "/clientes", icon: Users, color: "bg-cyan-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Base de clientes." },
   { label: "Cajas", href: "/cajas", icon: Wallet, color: "bg-yellow-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"], category: "gestion", description: "Aperturas y arqueos." },
-  { label: "Cupones", href: "/cupones", icon: Tag, color: "bg-pink-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Descuentos y promociones." },
+  { label: "Cupones", href: "/cupones", icon: Tag, color: "bg-pink-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Descuentos y promociones.", featureKey: "cupones" },
   { label: "Recursos Humanos", href: "/rrhh", icon: BriefcaseBusiness, color: "bg-slate-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Personal, asistencia y sedes." },
   { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
   { label: "Sucursales", href: "/sucursales", icon: Building2, color: "bg-rose-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Sedes y orden visual." },
@@ -99,8 +99,9 @@ export function PandaNavbar() {
   const isAdmin = rol === "ADMIN_GENERAL";
   const features: Record<FeatureKey, boolean> = {
     delivery: (session?.user as { delivery?: boolean })?.delivery ?? false,
-    menuQR: (session?.user as { menuQR?: boolean })?.menuQR ?? false,
-    kiosko: (session?.user as { kioskActivo?: boolean })?.kioskActivo ?? false,
+    menuQR:   (session?.user as { menuQR?: boolean })?.menuQR ?? false,
+    kiosko:   (session?.user as { kioskActivo?: boolean })?.kioskActivo ?? false,
+    cupones:  (session?.user as { cupones?: boolean })?.cupones ?? false,
   };
 
   const visible = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);

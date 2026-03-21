@@ -10,6 +10,7 @@ export interface PlanFeatures {
   correo: boolean;
   rrhh: boolean;
   propinas: boolean;
+  cupones: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
@@ -23,6 +24,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     correo: false,
     rrhh: false,
     propinas: false,
+    cupones: false,
   },
   PRO: {
     usuarios: 20,
@@ -34,6 +36,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     correo: true,
     rrhh: true,
     propinas: false,
+    cupones: false,
   },
   PRIME: {
     usuarios: 50,
@@ -45,6 +48,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     correo: true,
     rrhh: true,
     propinas: true,
+    cupones: true,
   },
   DEMO: {
     usuarios: 99999,
@@ -56,5 +60,6 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     correo: true,
     rrhh: true,
     propinas: true,
+    cupones: true,
   },
 };

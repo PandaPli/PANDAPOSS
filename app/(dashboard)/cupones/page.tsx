@@ -11,8 +11,14 @@ export default async function CuponesPage() {
 
   const rol = (session.user as { rol: Rol }).rol;
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const cuponesActivo = (session.user as { cupones?: boolean }).cupones ?? false;
 
   if (!["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"].includes(rol)) {
+    redirect("/panel");
+  }
+
+  // Solo ADMIN_GENERAL o sucursales con plan PRIME acceden
+  if (rol !== "ADMIN_GENERAL" && !cuponesActivo) {
     redirect("/panel");
   }
 
