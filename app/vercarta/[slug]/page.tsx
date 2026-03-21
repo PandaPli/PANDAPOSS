@@ -30,6 +30,7 @@ export default async function VerCartaSlugPage({ params }: Props) {
     where: { activa: true },
     select: {
       id: true, nombre: true, direccion: true, logoUrl: true, simbolo: true, delivery: true,
+      cartaBg: true, cartaTagline: true, cartaSaludo: true,
       socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
       socialYoutube: true, socialTiktok: true, socialTwitter: true,
     },
