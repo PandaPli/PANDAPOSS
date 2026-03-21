@@ -18,13 +18,19 @@ interface Props {
 
 const GRUPOS_DISPONIBLES = ["A", "B", "C", "D", "E"];
 
-/** Llama al API para persistir el cambio de un detalle en DB → KDS lo verá en próximo poll */
-async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cantidad?: number; observacion?: string | null; grupo?: string | null }) {
-  await fetch(`/api/pedidos/detalles/${detalleId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  }).catch(() => {}); // silencioso — el carrito local ya se actualizó
+/** Llama al API para persistir el cambio de un detalle en DB → KDS lo verá en próximo poll.
+ *  Retorna true si tuvo éxito, false si falló. */
+async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cantidad?: number; observacion?: string | null; grupo?: string | null }): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/pedidos/detalles/${detalleId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 interface SplitState {
@@ -53,12 +59,16 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
 
   const grupos = getGrupos();
 
-  /** Anular / reactivar ítem guardado → sincroniza con KDS inmediatamente */
+  /** Anular / reactivar ítem guardado → sincroniza con KDS; hace rollback local si falla */
   const handleCancel = useCallback(async (item: CartItem) => {
     const newCancelado = !item.cancelado;
-    cancelItem(item.id, item.tipo);
+    cancelItem(item.id, item.tipo); // actualización optimista
     if (item.detalleId) {
-      await syncDetalle(item.detalleId, { cancelado: newCancelado });
+      const ok = await syncDetalle(item.detalleId, { cancelado: newCancelado });
+      if (!ok) {
+        // Rollback: revertir estado local si el servidor rechazó el cambio
+        cancelItem(item.id, item.tipo);
+      }
     }
   }, [cancelItem]);
 

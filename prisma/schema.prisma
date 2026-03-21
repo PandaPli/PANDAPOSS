@@ -249,6 +249,7 @@ model Cliente {
 
   @@index([sucursalId], map: "clientes_sucursalId_fkey")
   @@index([tenantId], map: "clientes_tenantId_fkey")
+  @@index([telefono])
   @@map("clientes")
 }
 

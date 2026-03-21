@@ -53,9 +53,10 @@ export interface CreateVentaInput {
 }
 
 function generateVentaNumero() {
-  const timePart = Date.now().toString(36).toUpperCase();
-  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `VTA-${timePart}${randomPart}`.slice(0, 20);
+  const timePart   = Date.now().toString(36).toUpperCase();
+  const rand1      = Math.random().toString(36).slice(2, 5).toUpperCase();
+  const rand2      = Math.random().toString(36).slice(2, 5).toUpperCase();
+  return `VTA-${timePart}-${rand1}${rand2}`.slice(0, 20);
 }
 
 function aggregateProductItems(items: VentaItem[]) {
@@ -97,37 +98,39 @@ async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: nu
  * Si es así, cierra la mesa y marca todos los pedidos activos como ENTREGADO.
  */
 async function checkAndCloseMesa(tx: Prisma.TransactionClient, mesaId: number) {
-  // Buscar detalles activos (no cancelados, no pagados) de pedidos activos de la mesa
-  const pendientes = await tx.detallePedido.count({
-    where: {
-      pedido: {
-        mesaId,
-        estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
-        venta: null,
-      },
-      cancelado: false,
-      pagado: false,
-    },
-  });
-
-  if (pendientes === 0) {
-    // M1: updateMany con condición OCUPADA — idempotente y atómico.
-    // Si dos transacciones concurrentes llegan aquí, ambas intentan
-    // cambiar OCUPADA → LIBRE; la segunda no encuentra filas (count=0)
-    // pero no falla, evitando estados inconsistentes.
-    await tx.mesa.updateMany({
-      where: { id: mesaId, estado: "OCUPADA" },
-      data: { estado: "LIBRE" },
-    });
-
-    await tx.pedido.updateMany({
+  try {
+    // Buscar detalles activos (no cancelados, no pagados) de pedidos activos de la mesa
+    const pendientes = await tx.detallePedido.count({
       where: {
-        mesaId,
-        estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
-        venta: null,
+        pedido: {
+          mesaId,
+          estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+          venta: null,
+        },
+        cancelado: false,
+        pagado: false,
       },
-      data: { estado: "ENTREGADO", meseroLlamado: false },
     });
+
+    if (pendientes === 0) {
+      // M1: updateMany con condición OCUPADA — idempotente y atómico.
+      await tx.mesa.updateMany({
+        where: { id: mesaId, estado: "OCUPADA" },
+        data: { estado: "LIBRE" },
+      });
+
+      await tx.pedido.updateMany({
+        where: {
+          mesaId,
+          estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+          venta: null,
+        },
+        data: { estado: "ENTREGADO", meseroLlamado: false },
+      });
+    }
+  } catch (err) {
+    // No revertir la venta por un error de cierre de mesa — loguear y continuar
+    console.error(`[VentaService] checkAndCloseMesa mesaId=${mesaId}:`, err);
   }
 }
 

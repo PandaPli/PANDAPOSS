@@ -168,7 +168,7 @@ export function NuevaVentaClient({
     try {
       const res = await fetch(`/api/clientes?q=${encodeURIComponent(digits)}`);
       const data = await res.json();
-      if (data.length > 0) {
+      if (data.length > 0 && typeof data[0].id === "number" && data[0].id > 0) {
         setCliente(data[0].id);
         setClienteNombreLocal(data[0].nombre);
         setShowClienteSearch(false);
@@ -210,7 +210,7 @@ export function NuevaVentaClient({
           })),
           cliente: {
             nombre: deliveryNombre.trim(),
-            telefono: deliveryPhone.trim() || "+569--------",
+            telefono: deliveryPhone.trim() || null,
             direccion: deliveryDir.trim(),
             referencia: deliveryRef.trim() || undefined,
           },

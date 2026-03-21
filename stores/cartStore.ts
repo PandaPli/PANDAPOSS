@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { CartItem } from "@/types";
 
+const GRUPOS_VALIDOS = new Set(["A", "B", "C", "D", "E"]);
+
 const GRUPO_COLORS: Record<string, string> = {
   A: "#3b82f6", // blue-500
   B: "#22c55e", // green-500
@@ -131,12 +133,14 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Solo marca como guardados los ítems que aún no lo estaban (los recién enviados al KDS)
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => i.guardado ? i : { ...i, guardado: true }) })),
 
-  setItemGrupo: (detalleId, grupo) =>
+  setItemGrupo: (detalleId, grupo) => {
+    if (grupo !== null && !GRUPOS_VALIDOS.has(grupo)) return;
     set((s) => ({
       items: s.items.map((i) =>
         i.detalleId === detalleId ? { ...i, grupo: grupo ?? undefined } : i
       ),
-    })),
+    }));
+  },
 
   markGrupoPagado: (grupo) =>
     set((s) => ({
@@ -157,6 +161,9 @@ export const useCartStore = create<CartState>((set, get) => ({
         cantidad: split.cantidad,
         grupo: split.grupo,
         detalleId: split.newDetalleId ?? original.detalleId,
+        // Los splits son ítems activos independientes del estado del original
+        pagado: false,
+        cancelado: false,
       }));
 
       return { items: [...sinOriginal, ...nuevos] };

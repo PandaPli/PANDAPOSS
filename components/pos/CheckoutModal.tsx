@@ -126,8 +126,8 @@ export function CheckoutModal({
   function handleAgregarPago() {
     setError("");
     const monto = Number(montoActual);
-    if (!montoActual || isNaN(monto) || monto <= 0) {
-      setError("Ingrese un monto valido");
+    if (!montoActual || isNaN(monto) || monto < 1) {
+      setError("Ingrese un monto valido (mínimo 1)");
       return;
     }
 
