@@ -35,13 +35,15 @@ export default async function DeliveryPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const simbolo = (session.user as { simbolo?: string })?.simbolo ?? "$";
+  const simbolo       = (session.user as { simbolo?: string })?.simbolo ?? "$";
+  const logoUrl       = (session.user as { logoUrl?: string | null })?.logoUrl ?? null;
+  const sucursalNombreSession = (session.user as { name?: string })?.name ?? "";
 
   // Fetch zonas de delivery de la sucursal
   const sucursalData = sucursalId
     ? await prisma.sucursal.findUnique({
         where: { id: sucursalId },
-        select: { zonasDelivery: true },
+        select: { nombre: true, zonasDelivery: true },
       })
     : null;
 
@@ -121,6 +123,7 @@ export default async function DeliveryPage() {
         id: detalle.id,
         cantidad: detalle.cantidad,
         nombre: detalle.producto?.nombre ?? detalle.combo?.nombre ?? "Item",
+        precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0),
       })),
     };
   });
@@ -160,6 +163,8 @@ export default async function DeliveryPage() {
         sucursalId={sucursalId}
         simbolo={simbolo}
         zonasDelivery={zonasDelivery}
+        logoUrl={logoUrl}
+        sucursalNombre={sucursalData?.nombre ?? sucursalNombreSession}
         stats={{
           pedidosHoy: todayOrders.length,
           enCamino: enCamino.length,

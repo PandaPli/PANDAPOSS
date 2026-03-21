@@ -4,14 +4,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, Clock3, MapPin, Package2,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
-  Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star,
+  Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star, Printer,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
 import type { EstadoPedido } from "@/types";
 import { IngresoManualForm } from "@/components/delivery/IngresoManualForm";
 
-interface PedidoDetalle { id: number; cantidad: number; nombre: string; }
+interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: number; }
 
 interface PedidoDelivery {
   id: number;
@@ -61,6 +61,8 @@ interface Props {
   sucursalId: number | null;
   simbolo: string;
   zonasDelivery: ZonaDelivery[];
+  logoUrl: string | null;
+  sucursalNombre: string;
   stats: {
     pedidosHoy: number;
     enCamino: number;
@@ -81,7 +83,7 @@ const STAGE_STYLE = {
   CANCELADO:  { border: "border-l-rose-400",   bg: "bg-rose-50",   badge: "bg-rose-100 text-rose-700",    dot: "bg-rose-400"  },
 } as const;
 
-export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, zonasDelivery, stats }: Props) {
+export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, zonasDelivery, logoUrl, sucursalNombre, stats }: Props) {
   const [pedidos, setPedidos]                   = useState(initialPedidos);
   const [activeFilter, setActiveFilter]         = useState<FilterKey>("todos");
   const [showIngreso, setShowIngreso]           = useState(false);
@@ -169,6 +171,134 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     } finally { setLoadingPedidoId(null); }
   }
 
+  function printComanda(pedido: PedidoDelivery) {
+    const pw = window.open("", "_blank", "width=400,height=640");
+    if (!pw) return;
+
+    const fecha = new Date(pedido.creadoEn).toLocaleDateString("es-CL", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+    const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", {
+      hour: "2-digit", minute: "2-digit",
+    });
+
+    const logoHtml = logoUrl
+      ? `<img src="${logoUrl}" class="logo" alt="Logo" />`
+      : `<div class="logo-placeholder">${sucursalNombre.charAt(0)}</div>`;
+
+    const itemsHtml = pedido.detalles.map((d) => {
+      const sub = d.precio * d.cantidad;
+      return `
+        <div class="item">
+          <div class="item-left">
+            <span class="qty">${d.cantidad}×</span>
+            <span class="nombre">${d.nombre}</span>
+          </div>
+          <span class="item-precio">${formatCurrency(sub, simbolo)}</span>
+        </div>`;
+    }).join("");
+
+    const envioHtml = pedido.cargoEnvio > 0
+      ? `<div class="envio"><span>Envío</span><span>${formatCurrency(pedido.cargoEnvio, simbolo)}</span></div>`
+      : "";
+
+    pw.document.write(`<!DOCTYPE html>
+<html><head>
+  <meta charset="utf-8"/>
+  <title>Comanda #${pedido.id}</title>
+  <style>
+    @page { size: 80mm auto; margin: 0; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      width: 80mm;
+      padding: 10px 12px 18px;
+      background: #fff;
+      color: #000;
+    }
+    .logo { display:block; width:72px; height:72px; object-fit:contain; margin: 0 auto 6px; }
+    .logo-placeholder {
+      display:flex; align-items:center; justify-content:center;
+      width:72px; height:72px; border-radius:12px;
+      background:#111; color:#fff; font-size:32px; font-weight:900;
+      margin: 0 auto 6px;
+    }
+    .center { text-align:center; }
+    .llegamos {
+      font-size: 22px; font-weight: 900; letter-spacing: 2px;
+      text-align:center; margin: 8px 0 2px;
+    }
+    .subtitulo {
+      font-size: 11px; text-align:center; text-transform:uppercase;
+      letter-spacing: 1px; color:#555; margin-bottom: 10px;
+    }
+    .divider { border:none; border-top:1px dashed #000; margin:8px 0; }
+    .meta { font-size:10px; color:#555; margin-bottom:2px; }
+    .meta span { font-weight:bold; color:#000; }
+    .items { margin: 6px 0; }
+    .item {
+      display:flex; justify-content:space-between; align-items:baseline;
+      padding: 3px 0; font-size:13px; border-bottom:1px dotted #ddd;
+    }
+    .item-left { display:flex; gap:6px; flex:1; min-width:0; }
+    .qty { font-weight:900; flex-shrink:0; }
+    .nombre { font-weight:600; }
+    .item-precio { font-weight:700; flex-shrink:0; margin-left:8px; }
+    .envio {
+      display:flex; justify-content:space-between;
+      font-size:12px; color:#555; padding: 3px 0;
+    }
+    .total-box {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-top:8px; padding:6px 8px;
+      border:2px solid #000; border-radius:6px;
+      font-size:18px; font-weight:900;
+    }
+    .pago { text-align:center; font-size:11px; color:#555; margin-top:6px; }
+    .direccion { font-size:11px; color:#444; margin-top:6px; line-height:1.5; }
+    .footer {
+      text-align:center; margin-top:14px;
+      font-size:12px; font-weight:700; letter-spacing:1px;
+      border-top:2px dashed #000; padding-top:10px;
+    }
+    .footer .sub { font-size:10px; font-weight:400; color:#555; margin-top:3px; letter-spacing:0; }
+  </style>
+</head>
+<body>
+  <div class="center">${logoHtml}</div>
+  <div class="llegamos">¡LLEGAMOS!</div>
+  <div class="subtitulo">Aquí está el resumen de tu compra</div>
+  <hr class="divider"/>
+  <div class="meta">Cliente: <span>${pedido.clienteNombre}</span></div>
+  <div class="meta">Pedido: <span>#${pedido.id}</span> · <span>${fecha} ${hora}</span></div>
+  <div class="meta">Dirección: <span>${pedido.direccionEntrega ?? ""}${pedido.referencia ? " · " + pedido.referencia : ""}</span></div>
+  <hr class="divider"/>
+  <div class="items">${itemsHtml}</div>
+  ${envioHtml}
+  <div class="total-box">
+    <span>TOTAL</span>
+    <span>${formatCurrency(pedido.total, simbolo)}</span>
+  </div>
+  <div class="pago">Forma de pago: ${pedido.metodoPago}</div>
+  <hr class="divider"/>
+  <div class="footer">
+    ¡GRACIAS Y QUE DISFRUTES!
+    <div class="sub">Esperamos verte pronto 🐼</div>
+  </div>
+  <script>
+    var img = document.querySelector('img.logo');
+    if (img) {
+      if (img.complete) { window.print(); window.close(); }
+      else {
+        img.onload = function(){ window.print(); window.close(); };
+        img.onerror = function(){ window.print(); window.close(); };
+      }
+    } else { window.print(); window.close(); }
+  <\/script>
+</body></html>`);
+    pw.document.close();
+  }
+
   function renderPedidoCard(pedido: PedidoDelivery) {
     const loading = loadingPedidoId === pedido.id;
     const style = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
@@ -188,11 +318,18 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
               {pedido.estado.replace("_", " ")}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-right">
+          <div className="flex items-center gap-2">
             <span className="text-xs text-surface-muted">{hora}</span>
             <div className="rounded-xl bg-surface-bg px-3 py-1">
               <span className="text-sm font-black text-surface-text">{formatCurrency(pedido.total)}</span>
             </div>
+            <button
+              onClick={() => printComanda(pedido)}
+              title="Imprimir comanda para bolsa"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-500 transition hover:bg-stone-200 hover:text-stone-800 active:scale-95"
+            >
+              <Printer size={14} />
+            </button>
           </div>
         </div>
 
