@@ -9,12 +9,19 @@ import { Eye, EyeOff, LogIn, Loader2, Mail, X, Phone, Send } from "lucide-react"
 const PANDA_STYLES = `
   @keyframes pandaFloat {
     0%   { transform: translateY(0px) rotate(-2deg); }
-    50%  { transform: translateY(-12px) rotate(2deg); }
+    50%  { transform: translateY(-14px) rotate(2deg); }
     100% { transform: translateY(0px) rotate(-2deg); }
   }
-  .panda-float { animation: pandaFloat 3s ease-in-out infinite; }
-  .panda-look-away { filter: hue-rotate(0deg); transform: scale(0.95) rotate(-5deg) !important; transition: all 0.3s ease; }
-  @keyframes pandaFloat { 0%,100% { transform: translateY(0px) rotate(-2deg); } 50% { transform: translateY(-12px) rotate(2deg); } }
+  .panda-float {
+    animation: pandaFloat 3s ease-in-out infinite;
+    transition: filter 0.3s ease, transform 0.3s ease;
+  }
+  .panda-shy {
+    animation: none !important;
+    filter: brightness(0.85) drop-shadow(0 0 12px rgba(139,92,246,0.6));
+    transform: rotate(-15deg) scale(0.9) !important;
+    transition: all 0.35s cubic-bezier(.34,1.56,.64,1);
+  }
 `;
 
 export default function LoginPage() {
@@ -92,17 +99,26 @@ export default function LoginPage() {
         {/* Panda flotante animado */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="relative inline-block mb-3">
-            <img
-              src={passwordFocused ? "/panda-close.png" : "/panda-open.png"}
-              alt="PandaPoss"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/logo.png"; }}
-              className={`w-28 h-28 mx-auto drop-shadow-2xl panda-float transition-all duration-300 ${passwordFocused ? "panda-look-away" : ""}`}
-              style={{ display: "block" }}
-            />
-            {/* Destello de ojos al enfocar contraseña */}
+            {/* Contenedor del panda con ring de color al enfocarse */}
+            <div
+              className={`rounded-full transition-all duration-300 ${
+                passwordFocused
+                  ? "ring-4 ring-brand-400/50 shadow-[0_0_24px_rgba(139,92,246,0.5)]"
+                  : ""
+              }`}
+            >
+              <img
+                src="/logo.png"
+                alt="PandaPoss"
+                className={`w-28 h-28 mx-auto drop-shadow-2xl ${passwordFocused ? "panda-shy" : "panda-float"}`}
+              />
+            </div>
+            {/* Etiqueta "mirando a otro lado" al enfocar contraseña */}
             {passwordFocused && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-full h-full rounded-full bg-brand-400/10 animate-ping" />
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                <span className="text-[10px] font-bold text-brand-300/80 tracking-widest uppercase animate-pulse">
+                  🙈 sin mirar...
+                </span>
               </div>
             )}
           </div>
