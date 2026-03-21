@@ -5,12 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Formato CLP: $5.200  $18.000  $120.000  — sin decimales, separador miles punto */
-export function formatCurrency(amount: number, _simbolo = "$"): string {
-  return `$${new Intl.NumberFormat("es-CL", {
+/** Formato: $5.200  $18.000 — usa el símbolo de la sucursal, sin decimales */
+export function formatCurrency(amount: number, simbolo = "$"): string {
+  const formatted = new Intl.NumberFormat("es-CL", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(Math.round(amount))}`;
+  }).format(Math.round(amount));
+  return `${simbolo}${formatted}`;
 }
 
 export function formatDate(date: string | Date): string {

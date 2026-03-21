@@ -127,21 +127,27 @@ export function NuevaVentaClient({
   }, [initialOrder, mesaId, setInitialState]);
 
   useEffect(() => {
-    if (!initialOrder && typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mesaParam = urlParams.get("mesa");
-      if (mesaParam && !isNaN(Number(mesaParam))) {
-        const newMesaId = Number(mesaParam);
-        const store = useCartStore.getState();
-        // Si la mesa cambió → limpiar carrito completamente (evita mezclar ítems de otras mesas)
-        if (store.mesaId !== newMesaId) {
-          store.setMesaFresh(newMesaId);
-        } else {
-          store.setMesa(newMesaId);
-        }
+    if (typeof window === "undefined") return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const mesaParam = urlParams.get("mesa");
+    if (!mesaParam || isNaN(Number(mesaParam))) return;
+    const newMesaId = Number(mesaParam);
+
+    if (!initialOrder) {
+      // Sin datos del servidor: solo asignar mesaId en el store
+      const store = useCartStore.getState();
+      if (store.mesaId !== newMesaId) {
+        store.setMesaFresh(newMesaId);
+      } else {
+        store.setMesa(newMesaId);
       }
+    } else if (initialOrder.mesaId !== newMesaId) {
+      // Mesa cambió via URL pero initialOrder es de la mesa anterior:
+      // hacer hard reload para que el servidor cargue los pedidos de la nueva mesa
+      window.location.href = `/ventas/nueva?mesa=${newMesaId}`;
     }
-  }, [initialOrder]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleOpenPrecuenta() {
     if (mesaId) {

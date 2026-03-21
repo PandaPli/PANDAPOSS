@@ -7,6 +7,20 @@ import { VentaRepo } from "@/server/repositories/venta.repo";
 import { VentaService } from "@/server/services/venta.service";
 import { prisma } from "@/lib/db";
 
+// Rate limit: máx 20 ventas por minuto por usuario
+const rl = new Map<number, { count: number; resetAt: number }>();
+function checkRateLimit(userId: number): boolean {
+  const now = Date.now();
+  const entry = rl.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rl.set(userId, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= 20) return false;
+  entry.count++;
+  return true;
+}
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -39,6 +53,10 @@ export async function POST(req: NextRequest) {
 
   const usuarioId = (session.user as { id: number }).id;
   const rol = (session.user as { rol: Rol }).rol;
+
+  if (!checkRateLimit(usuarioId)) {
+    return NextResponse.json({ error: "Demasiadas ventas en poco tiempo. Espera un momento." }, { status: 429 });
+  }
 
   // C1: Caja obligatoria — verificar que existe y está ABIERTA
   // ADMIN_GENERAL puede omitirla (ventas de backoffice/corrección)
