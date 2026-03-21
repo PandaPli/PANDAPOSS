@@ -84,74 +84,54 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             .footer { text-align: center; font-size: 10px; margin-top: 8px; }
           </style>
         </head>
-        <body>
-          ${html}
-          <script>
-            var imgs = document.images;
-            var loaded = 0;
-            function tryPrint() {
-              loaded++;
-              if (loaded >= imgs.length) { window.print(); window.close(); }
-            }
-            if (imgs.length === 0) { window.print(); window.close(); }
-            else { for (var i = 0; i < imgs.length; i++) {
-              if (imgs[i].complete) tryPrint();
-              else { imgs[i].onload = tryPrint; imgs[i].onerror = tryPrint; }
-            }}
-          <\/script>
-        </body>
+        <body>${html}</body>
       </html>`;
 
     // ── 2. Abrir ventana SINCRÓNICAMENTE antes de cualquier await ──────────
     const pw = window.open("", "_blank", "width=320,height=800");
 
-    // ── 3. Intentar impresión TCP (ESC/POS directo a la térmica) ──────────
+    const now = new Date();
+    const fechaPrint = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const horaPrint  = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+
+    const printPayload = {
+      sucursalId,
+      type: "precuenta" as const,
+      data: {
+        simbolo, mesaNombre, meseroNombre,
+        sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial,
+        items: items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+        subtotal: sub, descuento, descuentoMonto: desc,
+        ivaPorc, ivaMonto: iva, total: tot,
+        fecha: fechaPrint, hora: horaPrint,
+      },
+    };
+
+    // ── 3. Intentar TCP ESC/POS (/api/print-receipt) ───────────────────────
     if (sucursalId) {
       try {
-        const now = new Date();
-        const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const hora  = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-
         const res = await fetch("/api/print-receipt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sucursalId,
-            type: "precuenta",
-            data: {
-              simbolo,
-              mesaNombre,
-              meseroNombre,
-              sucursalNombre,
-              sucursalRut,
-              sucursalTelefono,
-              sucursalDireccion,
-              sucursalGiroComercial,
-              items: items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
-              subtotal: sub,
-              descuento,
-              descuentoMonto: desc,
-              ivaPorc,
-              ivaMonto: iva,
-              total: tot,
-              fecha,
-              hora,
-            },
-          }),
-          signal: AbortSignal.timeout(8000),
+          body: JSON.stringify(printPayload),
+          signal: AbortSignal.timeout(6000),
         });
-
-        if (res.ok) {
-          // TCP funcionó → cerrar la pestaña en blanco
-          pw?.close();
-          return;
-        }
-      } catch {
-        // TCP falló → caer al fallback de ventana
-      }
+        if (res.ok) { pw?.close(); return; }
+      } catch { /* TCP falló → intentar siguiente */ }
     }
 
-    // ── 4. Fallback: imprimir desde el navegador ───────────────────────────
+    // ── 4. Intentar sistema Linux (/print → lp/usb) ────────────────────────
+    try {
+      const res = await fetch("/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(printPayload),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { pw?.close(); return; }
+    } catch { /* lp falló → abrir Chrome */ }
+
+    // ── 5. Fallback final: abrir ventana Chrome (el usuario imprime) ────────
     if (!pw) return;
     pw.document.write(fullHtml);
     pw.document.close();

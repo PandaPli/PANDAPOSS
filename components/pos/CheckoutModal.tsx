@@ -292,63 +292,59 @@ export function CheckoutModal({
       .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
     </style></head><body>${html}</body></html>`;
 
-    // ── Intentar impresión TCP (ESC/POS directo a la térmica) ─────────────
+    const printPayload = {
+      sucursalId,
+      type: "boleta" as const,
+      data: {
+        simbolo,
+        ventaId: completedSale.ventaId,
+        mesaLabel: completedSale.mesaLabel,
+        grupoNombre: completedSale.grupoNombre,
+        meseroNombre,
+        sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial,
+        items: completedSale.items,
+        subtotal: completedSale.subtotal,
+        descuentoMonto: completedSale.descuentoMonto,
+        descuentoPorcentaje: completedSale.descuentoPorcentaje,
+        impuestoMonto: completedSale.impuestoMonto,
+        impuestoPorcentaje: completedSale.impuestoPorcentaje,
+        total: completedSale.total,
+        pagos: completedSale.pagos,
+        vuelto: vueltoFinal,
+        fecha,
+        hora,
+      },
+    };
+
+    // ── 1. Intentar TCP ESC/POS (/api/print-receipt) ───────────────────────
     if (sucursalId) {
       try {
         const res = await fetch("/api/print-receipt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sucursalId,
-            type: "boleta",
-            data: {
-              simbolo,
-              ventaId: completedSale.ventaId,
-              mesaLabel: completedSale.mesaLabel,
-              grupoNombre: completedSale.grupoNombre,
-              meseroNombre,
-              sucursalNombre,
-              sucursalRut,
-              sucursalTelefono,
-              sucursalDireccion,
-              sucursalGiroComercial,
-              items: completedSale.items,
-              subtotal: completedSale.subtotal,
-              descuentoMonto: completedSale.descuentoMonto,
-              descuentoPorcentaje: completedSale.descuentoPorcentaje,
-              impuestoMonto: completedSale.impuestoMonto,
-              impuestoPorcentaje: completedSale.impuestoPorcentaje,
-              total: completedSale.total,
-              pagos: completedSale.pagos,
-              vuelto: vueltoFinal,
-              fecha,
-              hora,
-            },
-          }),
-          signal: AbortSignal.timeout(8000),
+          body: JSON.stringify(printPayload),
+          signal: AbortSignal.timeout(6000),
         });
-
-        if (res.ok) {
-          // TCP funcionó → cerrar ventana en blanco y continuar
-          printWindow?.close();
-          finalizeFlow();
-          return;
-        }
-      } catch {
-        // TCP falló → caer al fallback
-      }
+        if (res.ok) { printWindow?.close(); finalizeFlow(); return; }
+      } catch { /* TCP falló → intentar siguiente */ }
     }
 
-    // ── Fallback: imprimir desde el navegador ─────────────────────────────
-    if (!printWindow) {
-      finalizeFlow();
-      return;
-    }
+    // ── 2. Intentar sistema Linux (/print → lp/usb) ────────────────────────
+    try {
+      const res = await fetch("/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(printPayload),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { printWindow?.close(); finalizeFlow(); return; }
+    } catch { /* lp falló → abrir Chrome */ }
+
+    // ── 3. Fallback final: mostrar ventana Chrome (el usuario imprime) ─────
+    if (!printWindow) { finalizeFlow(); return; }
     printWindow.document.write(fullHtml);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
-    printWindow.close();
 
     finalizeFlow();
   }
