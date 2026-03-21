@@ -30,6 +30,15 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const userId = (session.user as { id: number }).id;
 
+  // Validar ítems: al menos 1, cantidad > 0
+  const items: { cantidad?: number }[] = Array.isArray(body.items) ? body.items : [];
+  if (items.length === 0) {
+    return NextResponse.json({ error: "El pedido debe tener al menos un ítem." }, { status: 400 });
+  }
+  if (items.some((i) => !i.cantidad || i.cantidad <= 0)) {
+    return NextResponse.json({ error: "La cantidad de cada ítem debe ser mayor a 0." }, { status: 400 });
+  }
+
   const pedido = await PedidoService.create({ ...body, usuarioId: userId });
   return NextResponse.json(pedido, { status: 201 });
 }

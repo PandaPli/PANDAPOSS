@@ -126,9 +126,10 @@ export const useCartStore = create<CartState>((set, get) => ({
   setPedido: (id) => set({ pedidoId: id }),
   setDescuento: (v) => set({ descuento: v }),
   setIva: (v) => set({ ivaPorc: v }),
-  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0 }),
+  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0, ivaPorc: 0 }),
   setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
-  markAsSaved: () => set((s) => ({ items: s.items.map((i) => ({ ...i, guardado: true })) })),
+  // Solo marca como guardados los ítems que aún no lo estaban (los recién enviados al KDS)
+  markAsSaved: () => set((s) => ({ items: s.items.map((i) => i.guardado ? i : { ...i, guardado: true }) })),
 
   setItemGrupo: (detalleId, grupo) =>
     set((s) => ({

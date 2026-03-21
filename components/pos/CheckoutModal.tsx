@@ -117,9 +117,7 @@ export function CheckoutModal({
   const impuestoMonto  = modoGrupo ? 0 : cartTotalIva();
   const cuponDescuento = cuponAplicado?.descuentoAplicado ?? 0;
   const totalDescuentoCombinado = descuentoMonto + cuponDescuento;
-  const totalValue = modoGrupo
-    ? subtotalValue
-    : Math.max(0, cartTotal() - cuponDescuento);
+  const totalValue = Math.max(0, (modoGrupo ? subtotalValue : cartTotal()) - cuponDescuento);
 
   const sumaPagos = pagos.reduce((acc, p) => acc + p.monto, 0);
   const pendiente = Math.max(0, totalValue - sumaPagos);

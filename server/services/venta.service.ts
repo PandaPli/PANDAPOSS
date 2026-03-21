@@ -186,9 +186,20 @@ export const VentaService = {
           // S1: isolationLevel ReadCommitted evita lecturas sucias.
           // El decrement de stock usa UPDATE SET stock = stock - N que es
           // atómico en MySQL — no requiere lock explícito adicional.
-          // En modo grupo NO verificamos ni vinculamos el pedidoId
           if (pedidoId && !modoGrupo) {
             await ensurePedidoDisponible(tx, pedidoId);
+          }
+
+          // S2: En modo grupo, bloquear los detalleIds con SELECT FOR UPDATE
+          // para eliminar la race condition de doble cobro concurrente.
+          if (modoGrupo && detalleIds && detalleIds.length > 0) {
+            const rows = await tx.$queryRaw<{ id: number; pagado: number }[]>(
+              Prisma.sql`SELECT id, pagado FROM DetallePedido WHERE id IN (${Prisma.join(detalleIds)}) FOR UPDATE`
+            );
+            const yaPagadosLock = rows.filter((r) => Number(r.pagado) === 1);
+            if (yaPagadosLock.length > 0) {
+              throw new Error("Algunos ítems ya fueron cobrados. Recarga la mesa.");
+            }
           }
 
           const v = await tx.venta.create({
