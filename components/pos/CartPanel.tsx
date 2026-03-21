@@ -184,21 +184,31 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
           {/* Selector de grupo en modo grupos */}
           {modoGrupos && !item.cancelado && !item.pagado && item.detalleId && (
             <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-              {GRUPOS_DISPONIBLES.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => handleSetGrupo(item, item.grupo === g ? null : g)}
-                  title={`Asignar al Grupo ${g}`}
-                  className="w-6 h-6 rounded-full text-[11px] font-black border-2 transition-all flex items-center justify-center"
-                  style={{
-                    backgroundColor: item.grupo === g ? getGrupoColor(g) : "transparent",
-                    borderColor: getGrupoColor(g),
-                    color: item.grupo === g ? "white" : getGrupoColor(g),
-                  }}
-                >
-                  {g}
-                </button>
-              ))}
+              {GRUPOS_DISPONIBLES.map((g) => {
+                const enEsteGrupo = items.filter((i) => i.grupo === g && !i.cancelado && !i.pagado).length;
+                const esMio = item.grupo === g;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => handleSetGrupo(item, esMio ? null : g)}
+                    title={enEsteGrupo > 0 ? `Grupo ${g} — ${enEsteGrupo} ítem(s)` : `Asignar al Grupo ${g}`}
+                    className="relative w-6 h-6 rounded-full text-[11px] font-black border-2 transition-all flex items-center justify-center"
+                    style={{
+                      backgroundColor: esMio ? getGrupoColor(g) : enEsteGrupo > 0 ? `${getGrupoColor(g)}22` : "transparent",
+                      borderColor: getGrupoColor(g),
+                      color: esMio ? "white" : getGrupoColor(g),
+                    }}
+                  >
+                    {g}
+                    {enEsteGrupo > 0 && !esMio && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full text-[8px] font-black flex items-center justify-center text-white"
+                        style={{ backgroundColor: getGrupoColor(g) }}>
+                        {enEsteGrupo}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
               {/* Botón dividir — solo si cantidad > 1 y está guardado */}
               {item.cantidad > 1 && item.guardado && (
                 <button

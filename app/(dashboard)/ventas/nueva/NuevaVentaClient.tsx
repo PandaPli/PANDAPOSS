@@ -87,6 +87,7 @@ export function NuevaVentaClient({
   const [deliveryDir, setDeliveryDir]               = useState("");
   const [deliveryRef, setDeliveryRef]               = useState("");
   const [deliveryCosto, setDeliveryCosto]           = useState("0");
+  const [deliveryHora, setDeliveryHora]             = useState("");
   const [deliverySubmitting, setDeliverySubmitting] = useState(false);
   const [deliveryError, setDeliveryError]           = useState("");
 
@@ -202,6 +203,15 @@ export function NuevaVentaClient({
   /* ── Enviar a Delivery desde POS ── */
   async function handleEnviarDelivery() {
     if (!deliveryNombre.trim() || !deliveryDir.trim() || items.length === 0) return;
+    // Validar hora de entrega: si se ingresó, debe ser al menos 15 min en el futuro
+    if (deliveryHora) {
+      const horaEntrega = new Date(deliveryHora);
+      const minPermitido = new Date(Date.now() + 15 * 60 * 1000);
+      if (horaEntrega < minPermitido) {
+        setDeliveryError("La hora de entrega debe ser al menos 15 minutos en el futuro.");
+        return;
+      }
+    }
     setDeliverySubmitting(true);
     setDeliveryError("");
     try {
@@ -661,6 +671,16 @@ export function NuevaVentaClient({
                 <label className="label">Referencia</label>
                 <input value={deliveryRef} onChange={(e) => setDeliveryRef(e.target.value)}
                   placeholder="Depto, portón, color de puerta..." className="input" />
+              </div>
+              <div>
+                <label className="label">Hora de entrega <span className="text-surface-muted font-normal">(opcional)</span></label>
+                <input
+                  type="datetime-local"
+                  value={deliveryHora}
+                  min={new Date(Date.now() + 15 * 60 * 1000).toISOString().slice(0, 16)}
+                  onChange={(e) => { setDeliveryHora(e.target.value); setDeliveryError(""); }}
+                  className="input"
+                />
               </div>
               <div>
                 <label className="label">Cargo de envío</label>
