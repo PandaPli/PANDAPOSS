@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.usuario.findUnique({
           where: { usuario: credentials.usuario.toUpperCase() },
-          include: { sucursal: { select: { simbolo: true, plan: true, delivery: true, menuQR: true, logoUrl: true } } },
+          include: { sucursal: { select: { simbolo: true, plan: true, delivery: true, menuQR: true, kioskActivo: true, logoUrl: true } } },
         });
 
         if (!user || user.status !== "ACTIVO") return null;
@@ -40,9 +40,10 @@ export const authOptions: NextAuthOptions = {
           sucursalId: user.sucursalId,
           simbolo: user.sucursal?.simbolo ?? "$",
           plan: user.sucursal?.plan ?? "BASICO",
-          delivery: user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.delivery) : true,
-          menuQR:   user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.menuQR)   : true,
-          logoUrl:  user.sucursal?.logoUrl ?? null,
+          delivery:     user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.delivery)     : true,
+          menuQR:       user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.menuQR)       : true,
+          kioskActivo:  user.sucursal ? user.sucursal.kioskActivo : false,
+          logoUrl:      user.sucursal?.logoUrl ?? null,
         };
       },
     }),
@@ -51,29 +52,31 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         // Login inicial: seed del objeto user
-        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean; logoUrl: string | null };
+        const u = user as unknown as { id: string; rol: Rol; usuario: string; sucursalId: number | null; simbolo: string; plan: string; delivery: boolean; menuQR: boolean; kioskActivo: boolean; logoUrl: string | null };
         token.id = Number(u.id);
         token.rol = u.rol;
         token.usuario = u.usuario;
         token.sucursalId = u.sucursalId;
         token.simbolo = u.simbolo;
         token.plan     = u.plan;
-        token.delivery = u.delivery;
-        token.menuQR   = u.menuQR;
-        token.logoUrl  = u.logoUrl;
+        token.delivery    = u.delivery;
+        token.menuQR      = u.menuQR;
+        token.kioskActivo = u.kioskActivo;
+        token.logoUrl     = u.logoUrl;
       } else if (token.sucursalId) {
         // Refresco: leer plan y toggles SIEMPRE desde la sucursal (fuente de verdad)
         // Así un cambio de plan en la sucursal se refleja sin re-login
         const suc = await prisma.sucursal.findUnique({
           where: { id: token.sucursalId as number },
-          select: { plan: true, simbolo: true, delivery: true, menuQR: true, logoUrl: true },
+          select: { plan: true, simbolo: true, delivery: true, menuQR: true, kioskActivo: true, logoUrl: true },
         });
         if (suc) {
           token.plan     = suc.plan;
           token.simbolo  = suc.simbolo ?? token.simbolo;
-          token.delivery = effectiveFeature(suc.plan, suc.delivery);
-          token.menuQR   = effectiveFeature(suc.plan, suc.menuQR);
-          token.logoUrl  = suc.logoUrl;
+          token.delivery    = effectiveFeature(suc.plan, suc.delivery);
+          token.menuQR      = effectiveFeature(suc.plan, suc.menuQR);
+          token.kioskActivo = suc.kioskActivo;
+          token.logoUrl     = suc.logoUrl;
         }
       }
       return token;
@@ -86,8 +89,9 @@ export const authOptions: NextAuthOptions = {
         (session.user as { sucursalId: number | null }).sucursalId = token.sucursalId as number | null;
         (session.user as { simbolo: string }).simbolo = token.simbolo as string;
         (session.user as { plan: string }).plan         = token.plan     as string;
-        (session.user as { delivery: boolean }).delivery = token.delivery as boolean;
-        (session.user as { menuQR: boolean }).menuQR     = token.menuQR   as boolean;
+        (session.user as { delivery: boolean }).delivery         = token.delivery    as boolean;
+        (session.user as { menuQR: boolean }).menuQR             = token.menuQR      as boolean;
+        (session.user as { kioskActivo: boolean }).kioskActivo   = token.kioskActivo as boolean;
         (session.user as { logoUrl: string | null }).logoUrl = token.logoUrl as string | null;
       }
       return session;

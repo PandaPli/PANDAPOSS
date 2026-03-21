@@ -34,7 +34,7 @@ import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
 
-type FeatureKey = "delivery" | "menuQR";
+type FeatureKey = "delivery" | "menuQR" | "kiosko";
 type ModuleCategory = "operacion" | "gestion" | "configuracion";
 
 interface AppModule {
@@ -64,7 +64,7 @@ const modules: AppModule[] = [
   { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
   { label: "Sucursales", href: "/sucursales", icon: Building2, color: "bg-rose-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Sedes y orden visual." },
   { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gray-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
-  { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-zinc-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil." },
+  { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-zinc-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil.", featureKey: "kiosko" },
   { label: "Carta QR", href: "/carta-qr", icon: QrCode, color: "bg-purple-600", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Menu publico y QR.", featureKey: "menuQR" },
 ];
 
@@ -100,6 +100,7 @@ export function PandaNavbar() {
   const features: Record<FeatureKey, boolean> = {
     delivery: (session?.user as { delivery?: boolean })?.delivery ?? false,
     menuQR: (session?.user as { menuQR?: boolean })?.menuQR ?? false,
+    kiosko: (session?.user as { kioskActivo?: boolean })?.kioskActivo ?? false,
   };
 
   const visible = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);
