@@ -32,12 +32,25 @@ export default async function ConfiguracionPage() {
   let sucursalTelefono: string | null = null;
   let sucursalDireccion: string | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let sucursalZonasDelivery: any = null;
+  let sucursalSocialFacebook:  string | null = null;
+  let sucursalSocialInstagram: string | null = null;
+  let sucursalSocialWhatsapp:  string | null = null;
+  let sucursalSocialYoutube:   string | null = null;
+  let sucursalSocialTiktok:    string | null = null;
+  let sucursalSocialTwitter:   string | null = null;
 
   if (rol === "RESTAURANTE" && sucursalId) {
     const suc = await prisma.sucursal.findUnique({
       where: { id: sucursalId },
-      select: { nombre: true, logoUrl: true, cartaBg: true, cartaTagline: true, cartaSaludo: true, printerPath: true, printerIp: true, rut: true, giroComercial: true, telefono: true, direccion: true, zonasDelivery: true },
+      select: {
+        nombre: true, logoUrl: true, cartaBg: true, cartaTagline: true, cartaSaludo: true,
+        printerPath: true, printerIp: true, rut: true, giroComercial: true,
+        telefono: true, direccion: true, zonasDelivery: true,
+        socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
+        socialYoutube: true, socialTiktok: true, socialTwitter: true,
+      },
     });
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
@@ -51,6 +64,12 @@ export default async function ConfiguracionPage() {
       sucursalTelefono = suc.telefono;
       sucursalDireccion = suc.direccion;
       sucursalZonasDelivery = suc.zonasDelivery;
+      sucursalSocialFacebook  = suc.socialFacebook;
+      sucursalSocialInstagram = suc.socialInstagram;
+      sucursalSocialWhatsapp  = suc.socialWhatsapp;
+      sucursalSocialYoutube   = suc.socialYoutube;
+      sucursalSocialTiktok    = suc.socialTiktok;
+      sucursalSocialTwitter   = suc.socialTwitter;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -87,6 +106,12 @@ export default async function ConfiguracionPage() {
         sucursalTelefono={sucursalTelefono}
         sucursalDireccion={sucursalDireccion}
         sucursalZonasDelivery={sucursalZonasDelivery}
+        sucursalSocialFacebook={sucursalSocialFacebook}
+        sucursalSocialInstagram={sucursalSocialInstagram}
+        sucursalSocialWhatsapp={sucursalSocialWhatsapp}
+        sucursalSocialYoutube={sucursalSocialYoutube}
+        sucursalSocialTiktok={sucursalSocialTiktok}
+        sucursalSocialTwitter={sucursalSocialTwitter}
       />
     </div>
   );

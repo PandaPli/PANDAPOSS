@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, ShoppingBag, Package, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, Package, UtensilsCrossed, Share2 } from "lucide-react";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 interface Producto {
@@ -24,6 +24,12 @@ interface Branch {
   logoUrl: string | null;
   simbolo: string | null;
   delivery: boolean;
+  socialFacebook: string | null;
+  socialInstagram: string | null;
+  socialWhatsapp: string | null;
+  socialYoutube: string | null;
+  socialTiktok: string | null;
+  socialTwitter: string | null;
 }
 interface Props {
   branch: Branch;
@@ -290,7 +296,131 @@ export default function VerCartaClient({ branch, categorias, slug }: Props) {
           </Link>
         </div>
       )}
+
+      {/* ── Radial Social Menu ─────────────────────────────────────── */}
+      <SocialRadialMenu branch={branch} />
     </div>
+  );
+}
+
+/* ─── Social Radial Menu ─────────────────────────────────────────────── */
+const SOCIAL_STYLES = `
+  @keyframes socialPop {
+    0%   { opacity:0; transform: rotate(calc(360deg / var(--total) * var(--i))) scale(0.2); }
+    100% { opacity:1; transform: rotate(calc(360deg / var(--total) * var(--i))) scale(1); }
+  }
+  .social-item-active {
+    animation: socialPop 0.35s cubic-bezier(.34,1.56,.64,1) both;
+    animation-delay: calc(0.04s * var(--i));
+  }
+  .social-toggle-spin { transform: rotate(405deg) !important; }
+`;
+
+function SocialRadialMenu({ branch }: { branch: Branch }) {
+  const [open, setOpen] = useState(false);
+
+  // Construir links dinámicos solo con los que tienen valor
+  const links: { href: string; icon: string; color: string; label: string }[] = [];
+
+  if (branch.socialWhatsapp) {
+    const num = branch.socialWhatsapp.replace(/\D/g, "");
+    links.push({ href: `https://wa.me/${num}`, icon: "whatsapp", color: "#25D366", label: "WhatsApp" });
+  }
+  if (branch.socialInstagram) {
+    links.push({ href: branch.socialInstagram, icon: "instagram", color: "#E1306C", label: "Instagram" });
+  }
+  if (branch.socialFacebook) {
+    links.push({ href: branch.socialFacebook, icon: "facebook-f", color: "#1877F2", label: "Facebook" });
+  }
+  if (branch.socialTiktok) {
+    links.push({ href: branch.socialTiktok, icon: "tiktok", color: "#010101", label: "TikTok" });
+  }
+  if (branch.socialYoutube) {
+    links.push({ href: branch.socialYoutube, icon: "youtube", color: "#FF0000", label: "YouTube" });
+  }
+  if (branch.socialTwitter) {
+    links.push({ href: branch.socialTwitter, icon: "x-twitter", color: "#14171A", label: "X / Twitter" });
+  }
+
+  if (links.length === 0) return null;
+
+  const RADIUS = 72;          // px desde el centro hasta cada ícono
+  const TOTAL  = links.length;
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: SOCIAL_STYLES }} />
+      {/* Font Awesome CDN — solo carga si este componente monta */}
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      />
+
+      {/* Overlay para cerrar al tocar fuera */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[45]"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Contenedor fijo bottom-right */}
+      <div
+        className="fixed z-50"
+        style={{ bottom: branch.delivery ? "88px" : "24px", right: "20px" }}
+      >
+        {/* Íconos radiales */}
+        {open && links.map((link, i) => {
+          const angle = (360 / TOTAL) * i - 90; // empezar desde arriba
+          const rad   = (angle * Math.PI) / 180;
+          const x     = Math.cos(rad) * RADIUS;
+          const y     = Math.sin(rad) * RADIUS;
+
+          return (
+            <a
+              key={link.label}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={link.label}
+              className="social-item-active absolute flex items-center justify-center rounded-full text-white shadow-lg transition-transform duration-200 hover:scale-110 active:scale-95"
+              style={{
+                "--i": i,
+                "--total": TOTAL,
+                width: 44,
+                height: 44,
+                bottom: -22 + y * -1,   // invertir Y (CSS y hacia abajo)
+                right:  -22 + x * -1,
+                background: link.color,
+                boxShadow: `0 4px 16px ${link.color}55`,
+              } as React.CSSProperties}
+            >
+              <i className={`fab fa-${link.icon} text-[18px]`} />
+            </a>
+          );
+        })}
+
+        {/* Botón toggle central */}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="relative z-10 flex items-center justify-center w-13 h-13 rounded-full text-white shadow-xl transition-all duration-500 hover:scale-110 active:scale-95"
+          style={{
+            width: 52,
+            height: 52,
+            background: open
+              ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
+              : "linear-gradient(135deg, #f59e0b, #d97706)",
+            boxShadow: open
+              ? "0 8px 28px rgba(99,102,241,0.5)"
+              : "0 8px 28px rgba(245,158,11,0.45)",
+            transform: open ? "rotate(405deg)" : "rotate(0deg)",
+          }}
+          aria-label={open ? "Cerrar redes sociales" : "Ver redes sociales"}
+        >
+          <Share2 size={20} />
+        </button>
+      </div>
+    </>
   );
 }
 

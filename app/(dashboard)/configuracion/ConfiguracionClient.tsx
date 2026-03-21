@@ -42,9 +42,15 @@ interface Props {
   sucursalCartaTagline?: string | null;
   sucursalCartaSaludo?: string | null;
   sucursalZonasDelivery?: ZonaDelivery[] | null;
+  sucursalSocialFacebook?: string | null;
+  sucursalSocialInstagram?: string | null;
+  sucursalSocialWhatsapp?: string | null;
+  sucursalSocialYoutube?: string | null;
+  sucursalSocialTiktok?: string | null;
+  sucursalSocialTwitter?: string | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -93,6 +99,18 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   });
   const [legalLoading, setLegalLoading] = useState(false);
   const [legalMsg, setLegalMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // --- Estado redes sociales ---
+  const [socialForm, setSocialForm] = useState({
+    facebook:  sucursalSocialFacebook  ?? "",
+    instagram: sucursalSocialInstagram ?? "",
+    whatsapp:  sucursalSocialWhatsapp  ?? "",
+    youtube:   sucursalSocialYoutube   ?? "",
+    tiktok:    sucursalSocialTiktok    ?? "",
+    twitter:   sucursalSocialTwitter   ?? "",
+  });
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [socialMsg, setSocialMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   // --- Estado zonas de delivery ---
   const [zonas, setZonas] = useState<ZonaDelivery[]>(
@@ -377,6 +395,33 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
     }
   }
 
+  async function handleSocialSave() {
+    if (!sucursalId) return;
+    setSocialLoading(true);
+    setSocialMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          socialFacebook:  socialForm.facebook.trim()  || null,
+          socialInstagram: socialForm.instagram.trim() || null,
+          socialWhatsapp:  socialForm.whatsapp.trim()  || null,
+          socialYoutube:   socialForm.youtube.trim()   || null,
+          socialTiktok:    socialForm.tiktok.trim()    || null,
+          socialTwitter:   socialForm.twitter.trim()   || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Error al guardar redes sociales");
+      setSocialMsg({ type: "ok", text: "Redes sociales guardadas." });
+      router.refresh();
+    } catch (err) {
+      setSocialMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setSocialLoading(false);
+    }
+  }
+
   // --- Vista RESTAURANTE: solo card de logo y links ---
   if (esAdminSucursal) {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -584,6 +629,62 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
               >
                 {cartaLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar textos
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Redes Sociales en Carta Digital ─────────────────────── */}
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-gradient-to-br from-surface-bg to-white">
+          <div className="flex items-center gap-3 border-b border-surface-border bg-white px-6 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-500 text-white">
+              <Link2 size={17} />
+            </div>
+            <div>
+              <h2 className="font-semibold text-surface-text">Redes Sociales</h2>
+              <p className="text-xs text-surface-muted">Aparecen como botón flotante en tu carta digital</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-3">
+            {socialMsg && (
+              <div className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${socialMsg.type === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                {socialMsg.type === "ok" ? <CheckCircle2 size={15} /> : null}
+                {socialMsg.text}
+              </div>
+            )}
+
+            {([
+              { key: "whatsapp",  label: "WhatsApp",  placeholder: "56912345678 (solo número, sin +)", icon: "📱" },
+              { key: "instagram", label: "Instagram",  placeholder: "https://instagram.com/tulocal", icon: "📷" },
+              { key: "facebook",  label: "Facebook",   placeholder: "https://facebook.com/tulocal", icon: "📘" },
+              { key: "tiktok",    label: "TikTok",     placeholder: "https://tiktok.com/@tulocal", icon: "🎵" },
+              { key: "youtube",   label: "YouTube",    placeholder: "https://youtube.com/@tucanal", icon: "▶️" },
+              { key: "twitter",   label: "X / Twitter",placeholder: "https://x.com/tulocal", icon: "🐦" },
+            ] as { key: keyof typeof socialForm; label: string; placeholder: string; icon: string }[]).map(({ key, label, placeholder, icon }) => (
+              <div key={key} className="flex items-center gap-3">
+                <span className="text-lg w-7 flex-shrink-0 text-center">{icon}</span>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={socialForm[key]}
+                    onChange={(e) => setSocialForm((f) => ({ ...f, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full rounded-xl border border-surface-border bg-surface-bg px-3 py-2 text-sm text-surface-text outline-none focus:border-brand-500 font-mono"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={handleSocialSave}
+                disabled={socialLoading}
+                className="btn-primary text-sm"
+              >
+                {socialLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Guardar redes
               </button>
             </div>
           </div>

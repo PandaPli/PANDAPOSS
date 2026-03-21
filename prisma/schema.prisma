@@ -41,10 +41,16 @@ model Sucursal {
   cartaSaludo   String?        @db.VarChar(300)
   orden         Int            @default(0)
   tenantId      String?
-  printerPath   String?        @default("/dev/usb/lp0") @db.VarChar(50)
-  printerIp     String?        @db.VarChar(50)
-  rut           String?        @db.VarChar(30)
-  giroComercial String?        @db.VarChar(200)
+  printerPath     String?        @default("/dev/usb/lp0") @db.VarChar(50)
+  printerIp       String?        @db.VarChar(50)
+  rut             String?        @db.VarChar(30)
+  giroComercial   String?        @db.VarChar(200)
+  socialFacebook  String?        @db.VarChar(255)
+  socialInstagram String?        @db.VarChar(255)
+  socialWhatsapp  String?        @db.VarChar(30)
+  socialYoutube   String?        @db.VarChar(255)
+  socialTiktok    String?        @db.VarChar(255)
+  socialTwitter   String?        @db.VarChar(255)
   zonasDelivery Json?
   asistencias   Asistencia[]
   cajas         Caja[]

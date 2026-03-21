@@ -28,7 +28,11 @@ export default async function VerCartaSlugPage({ params }: Props) {
 
   const sucursales = await prisma.sucursal.findMany({
     where: { activa: true },
-    select: { id: true, nombre: true, direccion: true, logoUrl: true, simbolo: true, delivery: true },
+    select: {
+      id: true, nombre: true, direccion: true, logoUrl: true, simbolo: true, delivery: true,
+      socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
+      socialYoutube: true, socialTiktok: true, socialTwitter: true,
+    },
   });
 
   const branch = sucursales.find((s) => createSlug(s.nombre) === slug);

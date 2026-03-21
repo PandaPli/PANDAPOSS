@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -52,6 +52,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (telefono !== undefined) data.telefono = (telefono as string)?.trim() || null;
     if (direccion !== undefined) data.direccion = (direccion as string)?.trim() || null;
     if (zonasDelivery !== undefined) data.zonasDelivery = zonasDelivery ?? null;
+    if (socialFacebook  !== undefined) data.socialFacebook  = (socialFacebook  as string)?.trim() || null;
+    if (socialInstagram !== undefined) data.socialInstagram = (socialInstagram as string)?.trim() || null;
+    if (socialWhatsapp  !== undefined) data.socialWhatsapp  = (socialWhatsapp  as string)?.trim() || null;
+    if (socialYoutube   !== undefined) data.socialYoutube   = (socialYoutube   as string)?.trim() || null;
+    if (socialTiktok    !== undefined) data.socialTiktok    = (socialTiktok    as string)?.trim() || null;
+    if (socialTwitter   !== undefined) data.socialTwitter   = (socialTwitter   as string)?.trim() || null;
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();
