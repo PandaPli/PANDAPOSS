@@ -584,11 +584,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
     <main className="carta-body min-h-screen bg-[#f4efe7] text-stone-900">
       {/* Padding inferior en mobile para que el bottom bar no tape el contenido */}
-      <div className="mx-auto max-w-7xl px-3 py-3 pb-28 sm:px-6 sm:py-6 lg:px-8 xl:pb-6">
-        <div className="grid gap-3 sm:gap-6 xl:grid-cols-[1.2fr_420px]">
-          <section className="space-y-6">
+      <div className="mx-auto max-w-7xl px-3 py-2 pb-28 sm:px-6 sm:py-4 lg:px-8 xl:pb-6">
+        <div className="grid gap-2 sm:gap-5 xl:grid-cols-[1.2fr_420px]">
+          <section className="space-y-3 sm:space-y-5">
             {/* ═══ HERO ═══ */}
-            <div className="relative overflow-hidden rounded-[2rem] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.55)]">
+            <div className="relative overflow-hidden rounded-2xl sm:rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.45)]">
               {/* Fondo */}
               <div
                 className="absolute inset-0"
@@ -607,48 +607,49 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                 </Link>
               </div>
 
-              {/* Logo centrado */}
-              <div className="relative z-10 flex flex-col items-center px-4 pt-3 pb-2 sm:px-8 sm:pt-6 sm:pb-3">
+              {/* Logo + info — layout compacto horizontal en mobile */}
+              <div className="relative z-10 flex items-center gap-3 px-4 pt-2 pb-3 sm:flex-col sm:items-center sm:gap-0 sm:px-8 sm:pt-5 sm:pb-4">
                 {sucursal.logoUrl ? (
-                  <img
-                    src={sucursal.logoUrl}
-                    alt={sucursal.nombre}
-                    className="h-24 w-auto max-w-[200px] object-contain drop-shadow-[0_8px_32px_rgba(0,0,0,0.8)] sm:h-44 sm:max-w-[300px]"
-                  />
+                  <div className="flex-shrink-0 rounded-2xl bg-white p-1.5 shadow-lg sm:rounded-3xl sm:p-2 sm:mb-3">
+                    <img
+                      src={sucursal.logoUrl}
+                      alt={sucursal.nombre}
+                      className="h-12 w-12 object-contain sm:h-24 sm:w-24"
+                    />
+                  </div>
                 ) : (
-                  <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-lg sm:text-5xl">
+                  <h1 className="text-2xl font-black tracking-tight text-white drop-shadow-lg sm:text-4xl sm:mb-3">
                     {sucursal.nombre}
                   </h1>
                 )}
-              </div>
 
-              {/* Bloque de información */}
-              <div className="relative z-10 mx-3 mb-3 mt-1 sm:mx-8 sm:mb-6 sm:mt-2">
-                <div className="rounded-xl border border-white/10 bg-white/10 px-3 py-2.5 text-center backdrop-blur-md sm:rounded-2xl sm:px-5 sm:py-4">
-                  {sucursal.cartaTagline && (
-                    <p className="text-sm font-black text-white drop-shadow sm:text-lg">
-                      {sucursal.cartaTagline}
-                    </p>
-                  )}
-                  {sucursal.cartaSaludo && (
-                    <p className="mt-0.5 text-xs text-white/75 sm:mt-1 sm:text-sm">{sucursal.cartaSaludo}</p>
-                  )}
-                  {!sucursal.cartaTagline && !sucursal.cartaSaludo && (
-                    <p className="text-xs text-white/60 sm:text-sm">Pide directo, cocina lo prepara al momento.</p>
-                  )}
-                  {/* Dirección y teléfono */}
-                  {(sucursal.direccion || sucursal.telefono) && (
-                    <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[11px] text-white/50 sm:text-xs">
-                      {sucursal.direccion && <span>📍 {sucursal.direccion}</span>}
-                      {sucursal.telefono && <span>📞 {sucursal.telefono}</span>}
-                    </div>
-                  )}
+                {/* Info compacta */}
+                <div className="flex-1 sm:w-full">
+                  <div className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-left backdrop-blur-md sm:rounded-2xl sm:px-5 sm:py-3 sm:text-center">
+                    {sucursal.cartaTagline && (
+                      <p className="text-xs font-black text-white drop-shadow sm:text-base">
+                        {sucursal.cartaTagline}
+                      </p>
+                    )}
+                    {sucursal.cartaSaludo && (
+                      <p className="mt-0.5 text-[11px] text-white/75 sm:text-sm">{sucursal.cartaSaludo}</p>
+                    )}
+                    {!sucursal.cartaTagline && !sucursal.cartaSaludo && (
+                      <p className="text-[11px] text-white/60 sm:text-sm">Pide directo, cocina lo prepara al momento.</p>
+                    )}
+                    {(sucursal.direccion || sucursal.telefono) && (
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-white/50 sm:justify-center sm:text-xs">
+                        {sucursal.direccion && <span>📍 {sucursal.direccion}</span>}
+                        {sucursal.telefono && <span>📞 {sucursal.telefono}</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* ── Categorías ── */}
-            <div className="rounded-2xl border border-black/5 bg-white/80 backdrop-blur-sm p-2.5 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.12)] sm:rounded-[2rem] sm:p-4">
+            {/* ── Categorías — sticky bajo el scroll ── */}
+            <div className="sticky top-0 z-20 rounded-2xl border border-black/5 bg-white/95 backdrop-blur-sm p-2 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.14)] sm:rounded-[2rem] sm:p-3">
               <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none sm:gap-2">
                 {categorias.map((categoria) => (
                   <button
