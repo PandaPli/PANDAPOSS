@@ -78,6 +78,10 @@ const config: Config = {
           "0%, 100%": { boxShadow: "0 0 0 0 rgba(108,59,255,0.2)" },
           "50%":      { boxShadow: "0 0 0 8px rgba(108,59,255,0)" },
         },
+        "shrink": {
+          from: { width: "100%" },
+          to:   { width: "0%" },
+        },
       },
       animation: {
         "fade-in":    "fade-in 0.2s ease-out",
@@ -85,6 +89,7 @@ const config: Config = {
         "scale-in":   "scale-in 0.2s ease-out",
         "drop-in":    "drop-in 0.15s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "shrink":     "shrink 3s linear forwards",
       },
     },
   },

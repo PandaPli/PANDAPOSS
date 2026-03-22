@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Tag, Trash2, X, Users } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
@@ -100,6 +100,8 @@ export function CheckoutModal({
   const [error, setError] = useState("");
   const [vueltoFinal, setVueltoFinal] = useState(0);
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
+  const [showFlash, setShowFlash] = useState(false);
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [cuponInput, setCuponInput] = useState("");
   const [cuponLoading, setCuponLoading] = useState(false);
   const [cuponError, setCuponError] = useState("");
@@ -449,6 +451,11 @@ export function CheckoutModal({
         setVueltoFinal(sobrepago);
       }
 
+      // Flash 3 s con total + vuelto
+      setShowFlash(true);
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setShowFlash(false), 3000);
+
       setCompletedSale({
         ventaId: venta.id,
         items: snapshotItems,
@@ -477,6 +484,54 @@ export function CheckoutModal({
   }
 
   if (completedSale) {
+    // ── Pantalla flash: total + vuelto por 3 s ───────────────────────────
+    if (showFlash) {
+      return (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-[#0f172a] select-none">
+          {/* Fondo glow */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-emerald-600/20 blur-[120px]" />
+            <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-emerald-600/15 blur-[120px]" />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center gap-6 text-center">
+            {/* Icono */}
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 border-4 border-emerald-400/50">
+              <CheckCircle2 size={40} className="text-emerald-400" />
+            </div>
+
+            <p className="text-emerald-400 font-black text-lg uppercase tracking-[0.3em]">
+              {modoGrupo ? `Grupo ${completedSale.grupoNombre} cobrado` : "Venta completada"}
+            </p>
+
+            {/* Total */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-white/50 text-sm font-medium uppercase tracking-widest">Total cobrado</span>
+              <span className="text-7xl font-black text-white tabular-nums leading-none">
+                {formatCurrency(completedSale.total, simbolo)}
+              </span>
+            </div>
+
+            {/* Vuelto */}
+            {vueltoFinal > 0 && (
+              <div className="flex flex-col items-center gap-1 rounded-3xl border border-amber-400/30 bg-amber-400/10 px-12 py-5">
+                <span className="text-amber-300/70 text-sm font-medium uppercase tracking-widest">Vuelto a entregar</span>
+                <span className="text-6xl font-black text-amber-300 tabular-nums leading-none">
+                  {formatCurrency(vueltoFinal, simbolo)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Barra de progreso de 3 s */}
+          <div className="absolute bottom-0 left-0 h-1 w-full overflow-hidden">
+            <div className="h-full bg-emerald-400/60 animate-[shrink_3s_linear_forwards]" style={{ width: "100%" }} />
+          </div>
+        </div>
+      );
+    }
+
+    // ── Pantalla post-flash: imprimir boleta ─────────────────────────────
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
         <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl animate-scale-in">
@@ -494,8 +549,8 @@ export function CheckoutModal({
           )}
 
           <div className="mt-6 rounded-2xl border border-surface-border bg-surface-bg p-4 text-left">
-            <p className="text-sm font-semibold text-surface-text">Impresion de boleta</p>
-            <p className="mt-1 text-sm text-surface-muted">Deseas imprimir la boleta antes de continuar?</p>
+            <p className="text-sm font-semibold text-surface-text">Impresión de boleta</p>
+            <p className="mt-1 text-sm text-surface-muted">¿Deseas imprimir la boleta antes de continuar?</p>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
@@ -504,7 +559,7 @@ export function CheckoutModal({
             </button>
             <button onClick={handleImprimirBoleta} className="btn-primary justify-center">
               <Printer size={16} />
-              Si, imprimir
+              Sí, imprimir
             </button>
           </div>
         </div>
