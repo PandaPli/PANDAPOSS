@@ -6,10 +6,10 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  params: Promise<{ sucursalId: string }>;
+  params: Promise<{ cajaId: string }>;
 }
 
 export default async function VisorPage({ params }: Props) {
-  const { sucursalId } = await params;
-  return <VisorClient sucursalId={Number(sucursalId)} />;
+  const { cajaId } = await params;
+  return <VisorClient cajaId={Number(cajaId)} />;
 }

@@ -1,10 +1,6 @@
 /**
  * visorBus — pub/sub en memoria para el display visor del cliente.
- * Funciona para instancia única (Railway single-instance).
- *
- * Cada sucursal tiene:
- *   - lastState : último mensaje enviado (para hidratar reconexiones)
- *   - listeners : Set de callbacks activos (conexiones SSE abiertas)
+ * La clave es cajaId (cada caja tiene su propia pantalla visor).
  */
 
 export type VisorMsg =
@@ -30,28 +26,25 @@ export type VisorMsg =
     }
   | { type: "success"; total: number; simbolo: string; sucursalNombre?: string };
 
-const lastState = new Map<number, VisorMsg>();
-const listeners = new Map<number, Set<(msg: VisorMsg) => void>>();
+const lastState  = new Map<number, VisorMsg>();
+const listeners  = new Map<number, Set<(msg: VisorMsg) => void>>();
 
-export function getVisorState(sucursalId: number): VisorMsg {
-  return lastState.get(sucursalId) ?? { type: "idle" };
+export function getVisorState(cajaId: number): VisorMsg {
+  return lastState.get(cajaId) ?? { type: "idle" };
 }
 
-export function pushVisorState(sucursalId: number, msg: VisorMsg): void {
-  lastState.set(sucursalId, msg);
-  const subs = listeners.get(sucursalId);
-  if (subs) {
-    subs.forEach((cb) => {
-      try { cb(msg); } catch { /* cliente desconectado */ }
-    });
-  }
+export function pushVisorState(cajaId: number, msg: VisorMsg): void {
+  lastState.set(cajaId, msg);
+  listeners.get(cajaId)?.forEach((cb) => {
+    try { cb(msg); } catch { /* cliente desconectado */ }
+  });
 }
 
 export function subscribeVisor(
-  sucursalId: number,
+  cajaId: number,
   cb: (msg: VisorMsg) => void
 ): () => void {
-  if (!listeners.has(sucursalId)) listeners.set(sucursalId, new Set());
-  listeners.get(sucursalId)!.add(cb);
-  return () => listeners.get(sucursalId)?.delete(cb);
+  if (!listeners.has(cajaId)) listeners.set(cajaId, new Set());
+  listeners.get(cajaId)!.add(cb);
+  return () => listeners.get(cajaId)?.delete(cb);
 }

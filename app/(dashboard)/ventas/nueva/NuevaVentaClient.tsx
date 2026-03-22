@@ -109,12 +109,13 @@ export function NuevaVentaClient({
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
 
   // ── Visor de cliente ─────────────────────────────────────────────────────
-  const lastTotalRef = useRef<number>(0); // último total no-cero (para success)
+  const lastTotalRef = useRef<number>(0);
   const [visorCopied, setVisorCopied] = useState(false);
 
-  const visorUrl = sucursalId ? `/visor/${sucursalId}` : null;
+  // El visor se activa solo cuando hay una caja abierta
+  const visorUrl = cajaId ? `/visor/${cajaId}` : null;
 
-  // Mantener lastTotalRef actualizado con el último total no-cero
+  // Guardar último total no-cero para la pantalla de éxito
   useEffect(() => {
     const unsub = useCartStore.subscribe((state) => {
       const t = state.total();
@@ -123,15 +124,16 @@ export function NuevaVentaClient({
     return unsub;
   }, []);
 
-  // Enviar estado del carrito al visor vía API (SSE)
+  // Enviar estado del carrito al visor en cada cambio
   useEffect(() => {
-    if (!sucursalId) return;
+    if (!cajaId) return; // sin caja abierta, no hay visor
     const store = useCartStore.getState();
     const activeItems = items.filter((i) => !i.cancelado && !i.pagado);
     const payload =
       activeItems.length === 0
-        ? { type: "idle" as const, sucursalNombre: sucursalNombre ?? "" }
+        ? { cajaId, type: "idle" as const, sucursalNombre: sucursalNombre ?? "" }
         : {
+            cajaId,
             type:           "cart" as const,
             items:          activeItems.map((i) => ({
               id:          i.id,
@@ -157,7 +159,7 @@ export function NuevaVentaClient({
       body:    JSON.stringify(payload),
     }).catch(() => { /* visor no crítico */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, descuento, ivaPorc, simbolo, sucursalId, sucursalNombre]);
+  }, [items, descuento, ivaPorc, simbolo, cajaId, sucursalNombre]);
 
   function openVisor() {
     if (!visorUrl) return;
@@ -373,14 +375,14 @@ export function NuevaVentaClient({
   }
 
   function handleSuccess() {
-    // Notificar al visor que la venta se completó
-    if (sucursalId) {
+    if (cajaId) {
       fetch("/api/visor/push", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type:          "success",
-          total:         lastTotalRef.current,
+          cajaId,
+          type:           "success",
+          total:          lastTotalRef.current,
           simbolo,
           sucursalNombre: sucursalNombre ?? "",
         }),

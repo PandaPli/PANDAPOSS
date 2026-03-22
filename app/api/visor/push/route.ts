@@ -9,13 +9,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const sucursalId = (session.user as { sucursalId?: number | null }).sucursalId;
-  if (!sucursalId) {
-    return NextResponse.json({ error: "Sin sucursal" }, { status: 400 });
+  const body: VisorMsg & { cajaId?: number } = await req.json();
+
+  if (!body.cajaId) {
+    return NextResponse.json({ error: "Falta cajaId" }, { status: 400 });
   }
 
-  const body: VisorMsg = await req.json();
-  pushVisorState(sucursalId, body);
+  const { cajaId, ...msg } = body;
+  pushVisorState(cajaId, msg as VisorMsg);
 
   return NextResponse.json({ ok: true });
 }

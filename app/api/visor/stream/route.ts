@@ -1,37 +1,32 @@
 import { NextRequest } from "next/server";
 import { getVisorState, subscribeVisor } from "@/lib/visorBus";
 
-// Forzar modo Edge-compatible (streaming real)
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const sucursalId = Number(req.nextUrl.searchParams.get("s"));
-  if (!sucursalId || isNaN(sucursalId)) {
-    return new Response("Falta parámetro s (sucursalId)", { status: 400 });
+  const cajaId = Number(req.nextUrl.searchParams.get("c"));
+  if (!cajaId || isNaN(cajaId)) {
+    return new Response("Falta parámetro c (cajaId)", { status: 400 });
   }
 
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     start(controller) {
-      // 1. Enviar estado actual inmediatamente (hidratación)
-      const current = getVisorState(sucursalId);
-      controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify(current)}\n\n`)
-      );
+      // Enviar estado actual inmediatamente (hidratación al reconectar)
+      const current = getVisorState(cajaId);
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(current)}\n\n`));
 
-      // 2. Suscribir a actualizaciones en tiempo real
-      const unsub = subscribeVisor(sucursalId, (msg) => {
+      // Suscribir a actualizaciones en tiempo real
+      const unsub = subscribeVisor(cajaId, (msg) => {
         try {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(msg)}\n\n`));
         } catch {
-          // Cliente cerró la conexión
+          // cliente cerró la conexión
         }
       });
 
-      // 3. Heartbeat cada 25s para mantener la conexión viva
+      // Heartbeat cada 25s para mantener la conexión viva a través de proxies
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": ping\n\n"));
@@ -40,7 +35,6 @@ export async function GET(req: NextRequest) {
         }
       }, 25_000);
 
-      // 4. Limpiar al desconectar
       req.signal.addEventListener("abort", () => {
         unsub();
         clearInterval(heartbeat);
@@ -51,10 +45,10 @@ export async function GET(req: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type":  "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      "Connection":    "keep-alive",
-      "X-Accel-Buffering": "no", // Nginx: deshabilitar buffer
+      "Content-Type":      "text/event-stream",
+      "Cache-Control":     "no-cache, no-transform",
+      "Connection":        "keep-alive",
+      "X-Accel-Buffering": "no",
     },
   });
 }

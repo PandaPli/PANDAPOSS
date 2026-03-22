@@ -33,13 +33,13 @@ interface SuccessMsg {
   sucursalNombre?: string;
 }
 
-export default function VisorClient({ sucursalId }: { sucursalId: number }) {
-  const [visorState, setVisorState] = useState<VisorState>("idle");
-  const [cartData, setCartData]     = useState<CartMsg | null>(null);
-  const [successData, setSuccessData] = useState<SuccessMsg | null>(null);
+export default function VisorClient({ cajaId }: { cajaId: number }) {
+  const [visorState, setVisorState]     = useState<VisorState>("idle");
+  const [cartData, setCartData]         = useState<CartMsg | null>(null);
+  const [successData, setSuccessData]   = useState<SuccessMsg | null>(null);
   const [sucursalNombre, setSucursalNombre] = useState("");
-  const [clock, setClock] = useState("");
-  const [connected, setConnected] = useState(false);
+  const [clock, setClock]               = useState("");
+  const [connected, setConnected]       = useState(false);
 
   // Reloj en tiempo real
   useEffect(() => {
@@ -51,21 +51,22 @@ export default function VisorClient({ sucursalId }: { sucursalId: number }) {
     return () => clearInterval(t);
   }, []);
 
-  // SSE — escucha actualizaciones del servidor
+  // SSE — conexión al stream de la caja
   useEffect(() => {
     let es: EventSource;
     let retryTimeout: ReturnType<typeof setTimeout>;
 
     function connect() {
-      es = new EventSource(`/api/visor/stream?s=${sucursalId}`);
+      es = new EventSource(`/api/visor/stream?c=${cajaId}`);
 
       es.onopen = () => setConnected(true);
 
       es.onmessage = (e) => {
         try {
           const msg: VisorMsg = JSON.parse(e.data);
-          if (msg.sucursalNombre) setSucursalNombre(msg.sucursalNombre);
-
+          if ("sucursalNombre" in msg && msg.sucursalNombre) {
+            setSucursalNombre(msg.sucursalNombre);
+          }
           if (msg.type === "idle") {
             setVisorState("idle");
             setCartData(null);
@@ -81,15 +82,12 @@ export default function VisorClient({ sucursalId }: { sucursalId: number }) {
               setSuccessData(null);
             }, 7000);
           }
-        } catch {
-          /* JSON malformado — ignorar */
-        }
+        } catch { /* ignorar JSON malformado */ }
       };
 
       es.onerror = () => {
         setConnected(false);
         es.close();
-        // Reconectar tras 3 segundos
         retryTimeout = setTimeout(connect, 3000);
       };
     }
@@ -99,7 +97,7 @@ export default function VisorClient({ sucursalId }: { sucursalId: number }) {
       clearTimeout(retryTimeout);
       es?.close();
     };
-  }, [sucursalId]);
+  }, [cajaId]);
 
   // ── Render ───────────────────────────────────────────────────────────────
   if (visorState === "success" && successData) {
@@ -124,7 +122,6 @@ function IdleScreen({
 }) {
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center gap-8 bg-[#0f172a] select-none overflow-hidden">
-      {/* Fondo decorativo */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px]" />
         <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-purple-600/10 blur-[120px]" />
@@ -134,33 +131,20 @@ function IdleScreen({
         <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-blue-600/20 border border-blue-500/30 text-5xl">
           🐼
         </div>
-
         {sucursalNombre && (
           <p className="text-2xl font-bold text-white/70 tracking-wide">{sucursalNombre}</p>
         )}
-
-        <h1 className="text-6xl font-black text-white tracking-tight leading-tight">
-          ¡Bienvenido!
-        </h1>
-
-        <p className="text-xl text-white/40 font-medium">
-          En un momento atendemos tu pedido
-        </p>
-
+        <h1 className="text-6xl font-black text-white tracking-tight">¡Bienvenido!</h1>
+        <p className="text-xl text-white/40 font-medium">En un momento atendemos tu pedido</p>
         {clock && (
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-8 py-4">
-            <span className="text-5xl font-black text-white/70 tabular-nums tracking-widest">
-              {clock}
-            </span>
+            <span className="text-5xl font-black text-white/70 tabular-nums tracking-widest">{clock}</span>
           </div>
         )}
       </div>
 
-      {/* Indicador de conexión */}
       <div className="absolute bottom-6 flex items-center gap-2">
-        <span
-          className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`}
-        />
+        <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`} />
         <span className="text-xs text-white/20 font-medium tracking-widest uppercase">
           {connected ? "PandaPOS" : "Conectando…"}
         </span>
@@ -171,32 +155,22 @@ function IdleScreen({
 
 // ── Cart ─────────────────────────────────────────────────────────────────────
 
-function CartScreen({
-  data,
-  sucursalNombre,
-}: {
-  data: CartMsg;
-  sucursalNombre: string;
-}) {
+function CartScreen({ data, sucursalNombre }: { data: CartMsg; sucursalNombre: string }) {
   const showDescuento = data.descuento > 0 && data.totalDescuento > 0;
   const showIva       = data.ivaPorc > 0 && data.totalIva > 0;
 
   return (
     <div className="flex h-screen w-screen flex-col bg-[#0f172a] select-none overflow-hidden">
-      {/* Header */}
       <div className="flex flex-shrink-0 items-center justify-between border-b border-white/10 bg-white/5 px-6 py-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🛒</span>
-          <span className="text-lg font-bold text-white/70">
-            {sucursalNombre || "Tu pedido"}
-          </span>
+          <span className="text-lg font-bold text-white/70">{sucursalNombre || "Tu pedido"}</span>
         </div>
         <span className="rounded-full bg-blue-600/20 border border-blue-500/30 px-4 py-1.5 text-sm font-bold text-blue-400">
           {data.items.length} {data.items.length === 1 ? "ítem" : "ítems"}
         </span>
       </div>
 
-      {/* Items */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
         {data.items.map((item, idx) => (
           <div
@@ -221,7 +195,6 @@ function CartScreen({
         ))}
       </div>
 
-      {/* Totales */}
       <div className="flex-shrink-0 border-t border-white/10 bg-[#0d1117] px-6 py-5">
         <div className="space-y-1.5 mb-4">
           <div className="flex justify-between text-white/50 text-sm">
@@ -261,32 +234,22 @@ function SuccessScreen({ data }: { data: SuccessMsg }) {
         <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-emerald-600/15 blur-[120px]" />
         <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-emerald-600/10 blur-[120px]" />
       </div>
-
       <div className="relative z-10 flex flex-col items-center gap-8 text-center px-8">
         <div className="flex h-32 w-32 items-center justify-center rounded-full bg-emerald-500/20 border-4 border-emerald-400/60 animate-pulse">
           <svg className="h-16 w-16 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-
         <div className="space-y-3">
-          <p className="text-emerald-400 font-black text-2xl uppercase tracking-[0.25em]">
-            ¡Gracias por su compra!
-          </p>
-          <h1 className="text-7xl font-black text-white tabular-nums">
-            {formatCurrency(data.total, data.simbolo)}
-          </h1>
+          <p className="text-emerald-400 font-black text-2xl uppercase tracking-[0.25em]">¡Gracias por su compra!</p>
+          <h1 className="text-7xl font-black text-white tabular-nums">{formatCurrency(data.total, data.simbolo)}</h1>
           <p className="text-white/40 text-lg font-medium">Pago recibido correctamente</p>
         </div>
-
         {data.sucursalNombre && (
           <p className="text-white/25 text-base font-medium">{data.sucursalNombre}</p>
         )}
       </div>
-
-      <p className="absolute bottom-6 text-xs text-white/15 font-medium tracking-widest uppercase">
-        PandaPOS
-      </p>
+      <p className="absolute bottom-6 text-xs text-white/15 font-medium tracking-widest uppercase">PandaPOS</p>
     </div>
   );
 }
