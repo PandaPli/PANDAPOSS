@@ -8,7 +8,7 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Search, User, X, Truck, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Search, User, X, Truck, Loader2, MapPin, Monitor } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -71,7 +71,7 @@ export function NuevaVentaClient({
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh, setCliente } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc } = useCartStore();
 
   /* ── Cliente (opcional, por defecto CLIENTE EN MESÓN) ── */
   const [clienteNombreLocal, setClienteNombreLocal] = useState<string | null>(null);
@@ -107,6 +107,63 @@ export function NuevaVentaClient({
     items: CartItem[];
   } | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
+
+  // ── Visor de cliente (segundo monitor) ──────────────────────────────────
+  const visorWindowRef = useRef<Window | null>(null);
+  const visorChannelRef = useRef<BroadcastChannel | null>(null);
+  const lastTotalRef = useRef<number>(0); // último total no-cero (para pantalla success)
+
+  // Inicializar BroadcastChannel en cliente
+  useEffect(() => {
+    visorChannelRef.current = new BroadcastChannel("pandapos-visor");
+    return () => { visorChannelRef.current?.close(); };
+  }, []);
+
+  // Suscribir al store para mantener lastTotalRef actualizado
+  useEffect(() => {
+    const unsub = useCartStore.subscribe((state) => {
+      const t = state.total();
+      if (t > 0) lastTotalRef.current = t;
+    });
+    return unsub;
+  }, []);
+
+  // Broadcast del carrito al visor en cada cambio relevante
+  useEffect(() => {
+    const ch = visorChannelRef.current;
+    if (!ch) return;
+    const store = useCartStore.getState();
+    const activeItems = items.filter((i) => !i.cancelado && !i.pagado);
+    if (activeItems.length === 0) {
+      ch.postMessage({ type: "idle", sucursalNombre: sucursalNombre ?? "" });
+    } else {
+      const sub  = store.subtotal();
+      const desc = store.totalDescuento();
+      const iva  = store.totalIva();
+      ch.postMessage({
+        type:           "cart",
+        items,
+        subtotal:       sub,
+        descuento,
+        totalDescuento: desc,
+        ivaPorc,
+        totalIva:       iva,
+        total:          store.total(),
+        simbolo,
+        sucursalNombre: sucursalNombre ?? "",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, descuento, ivaPorc, simbolo, sucursalNombre]);
+
+  function openVisor() {
+    if (visorWindowRef.current && !visorWindowRef.current.closed) {
+      visorWindowRef.current.focus();
+      return;
+    }
+    const w = window.open("/visor", "pandapos-visor", "width=1024,height=768,menubar=no,toolbar=no,location=no,status=no");
+    if (w) visorWindowRef.current = w;
+  }
 
   // Ref para saber si ya hicimos la hidratación inicial en este montaje
   const hydrated = useRef(false);
@@ -308,6 +365,13 @@ export function NuevaVentaClient({
   }
 
   function handleSuccess() {
+    // Notificar al visor que la venta se completó
+    visorChannelRef.current?.postMessage({
+      type: "success",
+      total: lastTotalRef.current,
+      simbolo,
+      sucursalNombre: sucursalNombre ?? "",
+    });
     router.push(mesaId ? "/mesas" : "/panel");
   }
 
@@ -519,6 +583,16 @@ export function NuevaVentaClient({
               <span className="hidden sm:inline">Sin caja</span>
             </span>
           )}
+
+          {/* Botón visor cliente */}
+          <button
+            onClick={openVisor}
+            title="Abrir visor para el cliente"
+            className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-muted hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
+          >
+            <Monitor size={13} />
+            <span className="hidden sm:inline">Visor</span>
+          </button>
         </div>
       </div>
 
