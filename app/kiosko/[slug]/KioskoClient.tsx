@@ -275,7 +275,7 @@ export function KioskoClient({ sucursal, categorias }: Props) {
           </div>
           <div>
             <p className="text-emerald-400 font-black text-xl uppercase tracking-[0.3em]">¡Pedido Recibido!</p>
-            <p className="text-8xl font-black text-white mt-3">#{pedidoNumero ?? pedidoId}</p>
+            <p className="text-8xl font-black text-white mt-3">#{pedidoNumero || pedidoId}</p>
             <p className="text-white/50 text-lg mt-2">Guarda tu número de pedido</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-5 text-sm text-white/60">

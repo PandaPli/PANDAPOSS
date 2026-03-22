@@ -115,6 +115,13 @@ export const PedidoService = {
       include: { detalles: true },
     });
 
+    // Usar el id como numero de orden (secuencial garantizado por autoincrement)
+    const pedidoConNumero = await prisma.pedido.update({
+      where: { id: pedido.id },
+      data: { numero: pedido.id },
+      include: { detalles: true },
+    });
+
     if (mesaId) {
       await prisma.mesa.update({
         where: { id: mesaId },
@@ -122,7 +129,7 @@ export const PedidoService = {
       });
     }
 
-    return pedido;
+    return pedidoConNumero;
   },
 
   async update(id: number, input: UpdatePedidoInput) {
