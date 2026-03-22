@@ -29,14 +29,15 @@ export async function GET(req: NextRequest) {
         }
       });
 
-      // Heartbeat cada 25s para mantener la conexión viva a través de proxies
+      // Heartbeat cada 20s — como dato real para que el cliente pueda
+      // detectar si la conexión sigue viva (los comentarios SSE no son detectables)
       const heartbeat = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(": ping\n\n"));
+          controller.enqueue(encoder.encode(`data: {"type":"heartbeat"}\n\n`));
         } catch {
           clearInterval(heartbeat);
         }
-      }, 25_000);
+      }, 20_000);
 
       req.signal.addEventListener("abort", () => {
         unsub();

@@ -82,19 +82,36 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
   useEffect(() => {
     let es: EventSource;
     let retryTimeout: ReturnType<typeof setTimeout>;
-    // Ref al timer del "success" para cancelarlo si llega un cart/idle
     let successTimer: ReturnType<typeof setTimeout> | null = null;
+    // Timeout de vida: si no llega ningún mensaje en 35s → reconectar
+    // (detecta conexiones silenciosamente muertas en mobile)
+    let aliveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function resetAliveTimeout() {
+      if (aliveTimeout) clearTimeout(aliveTimeout);
+      aliveTimeout = setTimeout(() => {
+        // Sin mensajes en 35s — forzar reconexión
+        es?.close();
+        connect();
+      }, 35_000);
+    }
 
     function connect() {
       es = new EventSource(`/api/visor/stream?c=${cajaId}`);
 
-      es.onopen = () => setConnected(true);
+      es.onopen = () => {
+        setConnected(true);
+        resetAliveTimeout();
+      };
 
       es.onmessage = (e) => {
+        resetAliveTimeout(); // cualquier mensaje reinicia el watchdog
         try {
-          const msg: VisorMsg = JSON.parse(e.data);
+          const msg: VisorMsg & { type: string } = JSON.parse(e.data);
+          // Ignorar heartbeats — solo sirven para resetear el watchdog
+          if (msg.type === "heartbeat") return;
           if ("sucursalNombre" in msg && msg.sucursalNombre) {
-            setSucursalNombre(msg.sucursalNombre);
+            setSucursalNombre(msg.sucursalNombre as string);
           }
           if (msg.type === "idle") {
             // Cancelar cualquier transición automática de success→idle pendiente
@@ -142,6 +159,7 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
             setVisorState("cart");
           } else if (msg.type === "success") {
             if (successTimer) clearTimeout(successTimer);
+            prevItemsRef.current = []; // limpiar para el próximo pedido
             setSuccessData(msg as SuccessMsg);
             setVisorState("success");
             successTimer = setTimeout(() => {
@@ -155,6 +173,7 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
 
       es.onerror = () => {
         setConnected(false);
+        if (aliveTimeout) { clearTimeout(aliveTimeout); aliveTimeout = null; }
         es.close();
         retryTimeout = setTimeout(connect, 3000);
       };
@@ -163,6 +182,7 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
     connect();
     return () => {
       if (successTimer) clearTimeout(successTimer);
+      if (aliveTimeout) clearTimeout(aliveTimeout);
       if (lastItemTimerRef.current) clearTimeout(lastItemTimerRef.current);
       clearTimeout(retryTimeout);
       es?.close();
