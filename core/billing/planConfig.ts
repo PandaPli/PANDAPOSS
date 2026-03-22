@@ -61,7 +61,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     clientes: 99999,
     delivery: true,
     menuQR: true,
-    kiosko: true,
+    kiosko: true,  // PRIME + DEMO únicamente
     correo: true,
     rrhh: true,
     propinas: true,
