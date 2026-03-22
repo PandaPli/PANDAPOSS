@@ -22,7 +22,10 @@ export async function GET(req: NextRequest) {
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(msg)}\n\n`));
         } catch {
-          // cliente cerró la conexión
+          // Stream cerrado — limpiar listener para no acumular callbacks muertos
+          unsub();
+          clearInterval(heartbeat);
+          try { controller.close(); } catch { /* ya cerrado */ }
         }
       });
 

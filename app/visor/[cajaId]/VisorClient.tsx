@@ -72,6 +72,8 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
   useEffect(() => {
     let es: EventSource;
     let retryTimeout: ReturnType<typeof setTimeout>;
+    // Ref al timer del "success" para cancelarlo si llega un cart/idle
+    let successTimer: ReturnType<typeof setTimeout> | null = null;
 
     function connect() {
       es = new EventSource(`/api/visor/stream?c=${cajaId}`);
@@ -85,16 +87,22 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
             setSucursalNombre(msg.sucursalNombre);
           }
           if (msg.type === "idle") {
+            // Cancelar cualquier transición automática de success→idle pendiente
+            if (successTimer) { clearTimeout(successTimer); successTimer = null; }
             setVisorState("idle");
             setCartData(null);
             setSuccessData(null);
           } else if (msg.type === "cart") {
+            // Cancelar el timer de success: el nuevo pedido tiene prioridad
+            if (successTimer) { clearTimeout(successTimer); successTimer = null; }
             setCartData(msg as CartMsg);
             setVisorState("cart");
           } else if (msg.type === "success") {
+            if (successTimer) clearTimeout(successTimer);
             setSuccessData(msg as SuccessMsg);
             setVisorState("success");
-            setTimeout(() => {
+            successTimer = setTimeout(() => {
+              successTimer = null;
               setVisorState("idle");
               setSuccessData(null);
             }, 7000);
@@ -111,6 +119,7 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
 
     connect();
     return () => {
+      if (successTimer) clearTimeout(successTimer);
       clearTimeout(retryTimeout);
       es?.close();
     };
