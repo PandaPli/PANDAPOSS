@@ -211,8 +211,8 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-400 text-lg font-black">
               +
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-white font-bold text-base leading-tight truncate">
+            <div className="flex flex-col">
+              <span className="text-white font-bold text-base leading-tight break-words">
                 {lastItem.cantidad > 1 && (
                   <span className="mr-1.5 text-blue-400 font-black">{lastItem.cantidad}×</span>
                 )}
@@ -314,20 +314,25 @@ function CartScreen({ data, sucursalNombre }: { data: CartMsg; sucursalNombre: s
         {data.items.map((item, idx) => (
           <div
             key={`${item.id}-${idx}`}
-            className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/5 px-5 py-4 gap-4"
+            className="flex items-start gap-4 rounded-2xl border border-white/8 bg-white/5 px-5 py-4"
           >
-            <div className="flex items-center gap-4 min-w-0">
-              <span className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/20 text-sm font-black text-blue-400">
-                {item.cantidad}x
-              </span>
-              <div className="min-w-0">
-                <p className="text-white font-semibold text-base truncate">{item.nombre}</p>
-                {item.observacion && (
-                  <p className="text-white/40 text-xs truncate">{item.observacion}</p>
-                )}
-              </div>
+            {/* Cantidad */}
+            <span className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600/20 text-sm font-black text-blue-400 mt-0.5">
+              {item.cantidad}x
+            </span>
+
+            {/* Nombre + observación — crece y hace wrap */}
+            <div className="flex-1">
+              <p className="text-white font-semibold text-base leading-snug break-words">
+                {item.nombre}
+              </p>
+              {item.observacion && (
+                <p className="text-white/40 text-xs mt-0.5 break-words">{item.observacion}</p>
+              )}
             </div>
-            <span className="flex-shrink-0 text-white font-bold text-base tabular-nums">
+
+            {/* Precio — siempre visible a la derecha */}
+            <span className="flex-shrink-0 text-white font-bold text-base tabular-nums text-right mt-0.5">
               {formatCurrency(item.precio * item.cantidad, data.simbolo)}
             </span>
           </div>
