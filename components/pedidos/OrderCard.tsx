@@ -10,6 +10,7 @@ interface OrderCardProps {
   onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
   onLlamarMesero: (id: number) => Promise<void>;
   isDelivery?: boolean;
+  sucursalId?: number | null;
   sucursalNombre?: string | null;
   sucursalRut?: string | null;
   sucursalTelefono?: string | null;
@@ -36,7 +37,7 @@ const tipoLabel: Record<string, string> = {
   MOSTRADOR: "MOSTRADOR",
 };
 
-export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: OrderCardProps) {
+export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, sucursalId, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
 
@@ -54,7 +55,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
     setLoadingMesero(false);
   }
 
-  function handlePrint() {
+  async function handlePrint() {
     const ahora = new Date();
     const fecha = ahora.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
     const hora = ahora.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
@@ -62,8 +63,9 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
     const meseroLabel = pedido.usuario?.nombre ?? "—";
     const tipo = tipoLabel[pedido.tipo] ?? pedido.tipo;
 
+    // ── HTML para fallback Chrome ──────────────────────────────────────────
     const legalLines = [
-      sucursalNombre ? `<div style="font-weight:bold;font-size:13px;">${sucursalNombre}</div>` : "",
+      sucursalNombre ? `<div style="font-weight:bold;font-size:12px;">${sucursalNombre}</div>` : "",
       sucursalGiroComercial ? `<div>${sucursalGiroComercial}</div>` : "",
       sucursalRut ? `<div>RUT: ${sucursalRut}</div>` : "",
       sucursalDireccion ? `<div>${sucursalDireccion}</div>` : "",
@@ -73,113 +75,105 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
     const itemsHtml = pedido.detalles.map((d) => {
       const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "—";
       if (d.cancelado) {
-        return `
-          <div class="item" style="opacity:0.5;">
-            <div class="item-row" style="text-decoration:line-through;">
-              <span class="qty">${d.cantidad}x</span>
-              <span class="item-name">${nombre}</span>
-              <span style="font-size:11px;margin-left:6px;">[ANULADO]</span>
-            </div>
-          </div>
-        `;
+        return `<div class="item" style="opacity:0.5;"><div class="item-row" style="text-decoration:line-through;"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span><span style="font-size:11px;margin-left:6px;">[ANULADO]</span></div></div>`;
       }
-      return `
-        <div class="item">
-          <div class="item-row">
-            <span class="qty">${d.cantidad}x</span>
-            <span class="item-name">${nombre}</span>
-          </div>
-          ${d.observacion ? `<div class="item-obs">➜ ${d.observacion}</div>` : ""}
-        </div>
-      `;
+      return `<div class="item"><div class="item-row"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span></div>${d.observacion ? `<div class="item-obs">➜ ${d.observacion}</div>` : ""}</div>`;
     }).join("");
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Comanda #${pedido.numero}</title>
-          <style>
-            @page { size: 80mm auto; margin: 0; }
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Courier New', Courier, monospace;
-              font-size: 14px;
-              width: 72mm;
-              padding: 4mm 4mm 8mm 4mm;
-              color: #000;
-              background: #fff;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .center { text-align: center; }
-            .bold { font-weight: bold; }
-            .big { font-size: 22px; font-weight: bold; }
-            .tipo-badge {
-              display: inline-block;
-              border: 2px solid #000;
-              padding: 2px 10px;
-              font-size: 15px;
-              font-weight: bold;
-              letter-spacing: 2px;
-              margin: 4px 0;
-            }
-            .divider { border: none; border-top: 1px dashed #000; margin: 5px 0; }
-            .divider-solid { border: none; border-top: 2px solid #000; margin: 5px 0; }
-            .meta-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
-            .meta-label { color: #000; }
-            .item { margin: 5px 0; }
-            .item-row { display: flex; align-items: baseline; gap: 6px; }
-            .qty { font-size: 18px; font-weight: bold; min-width: 28px; }
-            .item-name { font-size: 15px; font-weight: bold; flex: 1; }
-            .item-obs { font-size: 12px; margin-left: 34px; font-style: italic; }
-            .obs-box { border: 1px dashed #000; padding: 4px 6px; font-size: 12px; margin-top: 6px; }
-          </style>
-        </head>
-        <body>
-          ${legalLines ? `<div style="text-align:center;font-size:11px;line-height:1.5;margin-bottom:4px;">${legalLines}</div><hr class="divider" />` : ""}
-          <div class="center">
-            <div class="tipo-badge">${tipo}</div>
-          </div>
+    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Comanda #${pedido.numero}</title><style>
+      @page{size:80mm auto;margin:0;}*{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:'Courier New',Courier,monospace;font-size:13px;width:80mm;padding:4mm 4mm 10mm 4mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .center{text-align:center;}.bold{font-weight:bold;}.big{font-size:20px;font-weight:bold;}
+      .tipo-badge{display:inline-block;border:2px solid #000;padding:2px 10px;font-size:14px;font-weight:bold;letter-spacing:2px;margin:4px 0;}
+      .divider{border:none;border-top:1px dashed #000;margin:5px 0;}.divider-solid{border:none;border-top:2px solid #000;margin:5px 0;}
+      .meta-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;}
+      .item{margin:5px 0;}.item-row{display:flex;align-items:baseline;gap:6px;}
+      .qty{font-size:16px;font-weight:bold;min-width:26px;}.item-name{font-size:13px;font-weight:bold;flex:1;}
+      .item-obs{font-size:11px;margin-left:32px;font-style:italic;}
+      .obs-box{border:1px dashed #000;padding:4px 6px;font-size:11px;margin-top:6px;}
+      @media print{html,body{width:80mm;}}
+    </style></head><body>
+      ${legalLines ? `<div style="text-align:center;font-size:11px;line-height:1.5;margin-bottom:4px;">${legalLines}</div><hr class="divider"/>` : ""}
+      <div class="center"><div class="tipo-badge">${tipo}</div></div>
+      <hr class="divider"/>
+      <div class="center big">${mesaLabel}</div>
+      <hr class="divider"/>
+      <div class="meta-row"><span>Mesero/a:</span><span class="bold">${meseroLabel}</span></div>
+      <div class="meta-row"><span>Pedido:</span><span class="bold">#${pedido.numero}</span></div>
+      <div class="meta-row"><span>Fecha:</span><span>${fecha} ${hora}</span></div>
+      <hr class="divider-solid"/>
+      ${itemsHtml}
+      ${pedido.observacion ? `<hr class="divider"/><div class="obs-box">📝 ${pedido.observacion}</div>` : ""}
+    </body></html>`;
 
-          <hr class="divider" />
+    // ── 1. Abrir ventana sincrónicamente (antes de cualquier await) ────────
+    const pw = window.open("", "_blank", "width=302,height=700");
+    if (pw) {
+      pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}</style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
+      pw.document.close();
+    }
 
-          <div class="center big">${mesaLabel}</div>
+    // ── 2. Texto plano para TCP / lp ──────────────────────────────────────
+    const LINE = "================================";
+    const center32 = (s: string) => s.padStart(Math.floor((32 + s.length) / 2)).padEnd(32);
+    const legalSection = [
+      sucursalNombre        ? center32(sucursalNombre)              : "",
+      sucursalGiroComercial ? center32(sucursalGiroComercial)       : "",
+      sucursalRut           ? center32(`RUT: ${sucursalRut}`)       : "",
+      sucursalDireccion     ? center32(sucursalDireccion)           : "",
+      sucursalTelefono      ? center32(`Tel: ${sucursalTelefono}`)  : "",
+    ].filter(Boolean).join("\n");
+    const itemsText = pedido.detalles
+      .filter((d) => !d.cancelado)
+      .map((d) => {
+        const nombre = (d.producto?.nombre ?? d.combo?.nombre ?? "—").toUpperCase();
+        const line1 = `${d.cantidad}x  ${nombre}`;
+        return d.observacion ? `${line1}\n     * ${d.observacion}` : line1;
+      }).join("\n");
+    const textContent = [
+      legalSection ? legalSection + "\n" + LINE : "",
+      center32(tipo),
+      center32(mesaLabel),
+      LINE,
+      `Mesero: ${meseroLabel}`,
+      `Pedido: #${pedido.numero}`,
+      `${fecha}  ${hora}`,
+      LINE,
+      itemsText,
+      LINE,
+      center32("-- PandaPoss --"),
+    ].filter(Boolean).join("\n") + "\n";
 
-          <hr class="divider" />
+    // ── 3. Intentar TCP ESC/POS ────────────────────────────────────────────
+    if (sucursalId) {
+      try {
+        const res = await fetch("/api/print", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sucursalId, content: textContent }),
+          signal: AbortSignal.timeout(6000),
+        });
+        if (res.ok) { pw?.close(); return; }
+      } catch { /* TCP falló → siguiente */ }
+    }
 
-          <div class="meta-row">
-            <span class="meta-label">Mesero/a:</span>
-            <span class="bold">${meseroLabel}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Pedido:</span>
-            <span class="bold">#${pedido.numero}</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-label">Fecha:</span>
-            <span>${fecha} ${hora}</span>
-          </div>
+    // ── 4. Intentar lp / USB Linux ────────────────────────────────────────
+    try {
+      const res = await fetch("/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sucursalId, content: textContent }),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { pw?.close(); return; }
+    } catch { /* lp falló → Chrome */ }
 
-          <hr class="divider-solid" />
-
-          ${itemsHtml}
-
-          ${pedido.observacion ? `
-          <hr class="divider" />
-          <div class="obs-box">📝 ${pedido.observacion}</div>
-          ` : ""}
-
-          <script>window.onload = function() { window.print(); window.close(); }<\/script>
-        </body>
-      </html>
-    `;
-
-    const win = window.open("", "_blank", "width=320,height=600");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
+    // ── 5. Fallback Chrome ────────────────────────────────────────────────
+    if (!pw) return;
+    pw.document.write(fullHtml);
+    pw.document.close();
+    pw.onload = () => { pw.focus(); pw.print(); };
+    setTimeout(() => { try { pw.focus(); pw.print(); } catch { /* cerrado */ } }, 500);
   }
 
   const siguiente = nextEstado[pedido.estado];

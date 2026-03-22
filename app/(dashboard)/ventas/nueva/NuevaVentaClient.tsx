@@ -400,29 +400,42 @@ export function NuevaVentaClient({
     // el navegador bloquea el popup. Abrimos la ventana primero y luego:
     //  • si TCP funciona → la cerramos silenciosamente
     //  • si TCP falla   → escribimos el contenido HTML
-    const pw = window.open("", "_blank", "width=380,height=600");
+    const pw = window.open("", "_blank", "width=302,height=700");
+    if (pw) {
+      pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}</style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
+      pw.document.close();
+    }
 
-    // Intentar imprimir vía TCP directo (impresora en red)
+    // ── Intentar TCP ESC/POS ───────────────────────────────────────────────
     if (sucursalId) {
       try {
         const res = await fetch("/api/print", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sucursalId, content: textContent }),
+          signal: AbortSignal.timeout(6000),
         });
-        if (res.ok) {
-          pw?.close(); // TCP exitoso — cerrar ventana en blanco
-          return;
-        }
-      } catch {
-        // Sin impresora TCP → fallback al popup
-      }
+        if (res.ok) { pw?.close(); return; }
+      } catch { /* TCP falló → siguiente */ }
     }
 
-    // Fallback: escribir en la ventana ya abierta
+    // ── Intentar lp / USB Linux ───────────────────────────────────────────
+    try {
+      const res = await fetch("/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sucursalId, content: textContent }),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { pw?.close(); return; }
+    } catch { /* lp falló → Chrome */ }
+
+    // ── Fallback Chrome ───────────────────────────────────────────────────
     if (!pw) return;
     pw.document.write(htmlContent);
     pw.document.close();
+    pw.onload = () => { pw.focus(); pw.print(); };
+    setTimeout(() => { try { pw.focus(); pw.print(); } catch { /* cerrado */ } }, 500);
   }
 
   function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {

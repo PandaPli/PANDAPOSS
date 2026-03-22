@@ -11,6 +11,7 @@ import { join } from "path";
 import {
   buildPrecuentaBuffer,
   buildBoletaBuffer,
+  buildTicketBuffer,
   type PrecuentaData,
   type BoletaData,
 } from "@/server/services/print.service";
@@ -36,13 +37,14 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { sucursalId, type, data } = body as {
+  const { sucursalId, type, data, content } = body as {
     sucursalId?: number;
-    type: "precuenta" | "boleta";
-    data: PrecuentaData | BoletaData;
+    type?: "precuenta" | "boleta";
+    data?: PrecuentaData | BoletaData;
+    content?: string;
   };
 
-  if (!type || !data)
+  if (!content && (!type || !data))
     return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
 
   // Obtener configuración de impresora
@@ -55,9 +57,11 @@ export async function POST(req: NextRequest) {
     printerPath = suc?.printerPath ?? null;
   }
 
-  const buffer = type === "precuenta"
-    ? buildPrecuentaBuffer(data as PrecuentaData)
-    : buildBoletaBuffer(data as BoletaData);
+  const buffer = content
+    ? buildTicketBuffer(content)
+    : type === "precuenta"
+      ? buildPrecuentaBuffer(data as PrecuentaData)
+      : buildBoletaBuffer(data as BoletaData);
 
   // ── Estrategia 1: dispositivo USB directo (/dev/usb/lp0) ──────────────────
   if (printerPath?.startsWith("/dev/")) {

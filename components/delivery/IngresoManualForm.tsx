@@ -236,46 +236,40 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   }
 
   /* ── Print ticket ── */
-  function printTicket(id: number, clienteNombre: string) {
+  async function printTicket(id: number, clienteNombre: string) {
     const now = new Date();
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-    const pw = window.open("", "_blank", "width=340,height=580");
-    if (!pw) return;
-
-    const itemsHtml = cart
-      .map(
-        (item) => `
+    // ── HTML para fallback Chrome ──────────────────────────────────────────
+    const itemsHtml = cart.map((item) => `
       <div class="item">
         <span class="qty">${item.cantidad}×</span>
         <div class="info">
           <span class="nombre">${item.nombre}</span>
           <span class="precio">${formatCurrency(item.precio * item.cantidad, simbolo)}</span>
         </div>
-      </div>`
-      )
-      .join("");
+      </div>`).join("");
 
-    pw.document.write(`<!DOCTYPE html><html><head><title>Ticket #${id}</title><style>
+    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ticket #${id}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:13px;width:80mm;padding:12px;}
-      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;}
-      .title{font-size:18px;font-weight:bold;letter-spacing:2px;}
-      .ticket-num{font-size:28px;font-weight:900;margin-top:4px;}
-      .cliente{font-size:15px;font-weight:bold;margin-top:6px;}
-      .meta{font-size:11px;color:#555;margin-top:2px;}
-      .divider{border-top:1px dashed #000;margin:8px 0;}
-      .items{margin:8px 0;}
-      .item{display:flex;gap:8px;margin:5px 0;align-items:flex-start;}
-      .qty{font-weight:bold;min-width:22px;}
+      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm 4mm 12mm 4mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
+      .title{font-size:14px;font-weight:bold;letter-spacing:2px;}
+      .ticket-num{font-size:24px;font-weight:900;margin-top:3px;}
+      .cliente{font-size:13px;font-weight:bold;margin-top:4px;}
+      .meta{font-size:10px;color:#555;margin-top:2px;}
+      .divider{border-top:1px dashed #000;margin:6px 0;}
+      .items{margin:6px 0;}
+      .item{display:flex;gap:6px;margin:4px 0;align-items:flex-start;}
+      .qty{font-weight:bold;min-width:20px;}
       .info{flex:1;display:flex;justify-content:space-between;}
       .nombre{font-weight:bold;}
-      .precio{color:#555;}
-      .total-row{display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:8px;border-top:2px solid #000;padding-top:8px;}
-      .footer{text-align:center;font-size:10px;color:#999;margin-top:10px;}
-      .metodo{font-size:11px;color:#555;text-align:right;margin-top:4px;}
-      @media print{body{width:80mm;}}
+      .precio{color:#333;}
+      .total-row{display:flex;justify-content:space-between;font-size:14px;font-weight:900;margin-top:6px;border-top:2px solid #000;padding-top:6px;}
+      .footer{text-align:center;font-size:10px;color:#777;margin-top:8px;}
+      .metodo{font-size:10px;color:#555;text-align:right;margin-top:3px;}
+      @media print{html,body{width:80mm;}}
     </style></head><body>
       <div class="header">
         <div class="title">PEDIDO DELIVERY</div>
@@ -284,17 +278,80 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
         <div class="meta">${dateStr} · ${timeStr}</div>
       </div>
       <div class="items">${itemsHtml}</div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #ccc;"><span>Subtotal</span><span>${formatCurrency(subtotal, simbolo)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Envío${zonaSeleccionada ? ` (${zonaSeleccionada.nombre})` : ""}</span><span>${cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:5px;padding-top:5px;border-top:1px dashed #ccc;"><span>Subtotal</span><span>${formatCurrency(subtotal, simbolo)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span>Envío${zonaSeleccionada ? ` (${zonaSeleccionada.nombre})` : ""}</span><span>${cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"}</span></div>
       <div class="total-row"><span>TOTAL</span><span>${formatCurrency(totalConEnvio, simbolo)}</span></div>
       <div class="metodo">Pago: ${metodo}</div>
       <div class="divider"></div>
-      <p style="font-size:11px;color:#555;">📍 ${direccion}${referencia ? ` · ${referencia}` : ""}</p>
-      <p style="font-size:11px;color:#555;margin-top:3px;">📞 ${phone}</p>
+      <p style="font-size:10px;color:#555;">📍 ${direccion}${referencia ? ` · ${referencia}` : ""}</p>
+      <p style="font-size:10px;color:#555;margin-top:2px;">📞 ${phone}</p>
       <div class="footer">— PandaPoss Delivery —</div>
-      <script>window.onload=function(){window.print();window.close();};<\/script>
-    </body></html>`);
+    </body></html>`;
+
+    // ── 1. Abrir ventana sincrónicamente ───────────────────────────────────
+    const pw = window.open("", "_blank", "width=302,height=800");
+    if (pw) {
+      pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}</style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
+      pw.document.close();
+    }
+
+    // ── 2. Texto plano para TCP / lp ──────────────────────────────────────
+    const LINE = "================================";
+    const center32 = (s: string) => s.padStart(Math.floor((32 + s.length) / 2)).padEnd(32);
+    const row32 = (l: string, r: string) => l.padEnd(32 - r.length) + r;
+    const itemsText = cart.map((item) =>
+      row32(`${item.cantidad}x ${item.nombre}`, formatCurrency(item.precio * item.cantidad, simbolo))
+    ).join("\n");
+    const textContent = [
+      LINE,
+      center32("PEDIDO DELIVERY"),
+      center32(`#${id}`),
+      center32(clienteNombre),
+      `${dateStr}  ${timeStr}`,
+      LINE,
+      itemsText,
+      LINE,
+      row32("Subtotal", formatCurrency(subtotal, simbolo)),
+      row32(`Envio${zonaSeleccionada ? ` (${zonaSeleccionada.nombre})` : ""}`, cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"),
+      row32("TOTAL", formatCurrency(totalConEnvio, simbolo)),
+      `Pago: ${metodo}`,
+      LINE,
+      `Dir: ${direccion}${referencia ? " · " + referencia : ""}`,
+      `Tel: ${phone}`,
+      LINE,
+      center32("-- PandaPoss Delivery --"),
+    ].filter(Boolean).join("\n") + "\n";
+
+    // ── 3. Intentar TCP ESC/POS ────────────────────────────────────────────
+    if (sucursalId) {
+      try {
+        const res = await fetch("/api/print", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sucursalId, content: textContent }),
+          signal: AbortSignal.timeout(6000),
+        });
+        if (res.ok) { pw?.close(); return; }
+      } catch { /* TCP falló → siguiente */ }
+    }
+
+    // ── 4. Intentar lp / USB Linux ────────────────────────────────────────
+    try {
+      const res = await fetch("/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sucursalId, content: textContent }),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { pw?.close(); return; }
+    } catch { /* lp falló → Chrome */ }
+
+    // ── 5. Fallback Chrome ────────────────────────────────────────────────
+    if (!pw) return;
+    pw.document.write(fullHtml);
     pw.document.close();
+    pw.onload = () => { pw.focus(); pw.print(); };
+    setTimeout(() => { try { pw.focus(); pw.print(); } catch { /* cerrado */ } }, 500);
   }
 
   /* ── Render ── */
