@@ -75,7 +75,7 @@ async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: nu
   // espera a que la primera haga commit/rollback antes de leer.
   // Así se elimina la race condition de doble cobro de mesa.
   const rows = await tx.$queryRaw<{ id: number; estado: string; ventaId: number | null }[]>(
-    Prisma.sql`SELECT id, estado, ventaId FROM Pedido WHERE id = ${pedidoId} LIMIT 1 FOR UPDATE`
+    Prisma.sql`SELECT id, estado, ventaId FROM pedidos WHERE id = ${pedidoId} LIMIT 1 FOR UPDATE`
   );
 
   const pedido = rows[0];
@@ -197,7 +197,7 @@ export const VentaService = {
           // para eliminar la race condition de doble cobro concurrente.
           if (modoGrupo && detalleIds && detalleIds.length > 0) {
             const rows = await tx.$queryRaw<{ id: number; pagado: number }[]>(
-              Prisma.sql`SELECT id, pagado FROM DetallePedido WHERE id IN (${Prisma.join(detalleIds)}) FOR UPDATE`
+              Prisma.sql`SELECT id, pagado FROM detalles_pedidos WHERE id IN (${Prisma.join(detalleIds)}) FOR UPDATE`
             );
             const yaPagadosLock = rows.filter((r) => Number(r.pagado) === 1);
             if (yaPagadosLock.length > 0) {
