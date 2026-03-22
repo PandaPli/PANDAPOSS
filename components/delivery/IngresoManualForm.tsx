@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { printFrame } from "@/lib/printFrame";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 interface Producto {
@@ -241,9 +242,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-    const pw = window.open("", "_blank", "width=340,height=580");
-    if (!pw) return;
-
     const itemsHtml = cart
       .map(
         (item) => `
@@ -257,7 +255,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       )
       .join("");
 
-    pw.document.write(`<!DOCTYPE html><html><head><title>Ticket #${id}</title><style>
+    printFrame(`<!DOCTYPE html><html><head><title>Ticket #${id}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:13px;width:80mm;padding:12px;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;}
@@ -293,8 +291,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       <p style="font-size:11px;color:#555;margin-top:3px;">📞 ${phone}</p>
       <div class="footer">— PandaPoss Delivery —</div>
     </body></html>`);
-    pw.document.close();
-    setTimeout(() => { pw.focus(); pw.print(); }, 400);
   }
 
   /* ── Render ── */

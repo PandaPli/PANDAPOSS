@@ -11,6 +11,7 @@ import type { ProductoCard, CartItem, RondaPedido } from "@/types";
 import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Search, User, X, Truck, Loader2, MapPin, Monitor } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { printFrame } from "@/lib/printFrame";
 
 const CANCEL_ROLES = ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER", "SECRETARY", "WAITER"];
 
@@ -411,8 +412,6 @@ export function NuevaVentaClient({
   }
 
   function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
-    const pw = window.open("", "_blank", "width=380,height=600");
-    if (!pw) return;
     const now = new Date();
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -437,7 +436,7 @@ export function NuevaVentaClient({
       sucursalDireccion ? `<div class="legal-line">${sucursalDireccion}</div>` : "",
       sucursalTelefono ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
     ].filter(Boolean).join("");
-    pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
+    printFrame(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
       .branch{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
@@ -465,8 +464,6 @@ export function NuevaVentaClient({
       <div class="items">${itemsHtml}</div>
       <div class="footer">— PandaPoss —</div>
     </body></html>`);
-    pw.document.close();
-    setTimeout(() => { pw.focus(); pw.print(); }, 400);
   }
 
   function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {

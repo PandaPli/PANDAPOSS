@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Tag, Trash2, X, Users } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
+import { printFrame } from "@/lib/printFrame";
 import type { CartItem, MetodoPago, PagoItem } from "@/types";
 
 interface ReceiptItem {
@@ -188,12 +189,6 @@ export function CheckoutModal({
     const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
     const hora = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
-    const printWindow = window.open("", "_blank", "width=360,height=820");
-    if (!printWindow) {
-      finalizeFlow();
-      return;
-    }
-
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
 
     const pagosHtml = completedSale.pagos
@@ -269,7 +264,7 @@ export function CheckoutModal({
         <div class="document-note">Documento no fiscal</div>
       </div>`;
 
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
+    printFrame(`<!DOCTYPE html><html><head><title>Boleta</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       @page{size:80mm auto;margin:0;}
       body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
@@ -287,8 +282,6 @@ export function CheckoutModal({
       .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
       .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
     </style></head><body>${html}</body></html>`);
-    printWindow.document.close();
-    setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
 
     finalizeFlow();
   }

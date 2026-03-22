@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Printer, X } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
+import { printFrame } from "@/lib/printFrame";
 
 interface Props {
   simbolo?: string;
@@ -33,15 +34,12 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
     const content = printRef.current;
     if (!content) return;
 
-    const printWindow = window.open("", "_blank", "width=320,height=800");
-    if (!printWindow) return;
-
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
     const html = printableLogoUrl
       ? content.innerHTML.replaceAll('src="__LOGO_URL__"', `src="${printableLogoUrl}"`)
       : content.innerHTML.replaceAll('src="__LOGO_URL__"', 'src=""');
 
-    printWindow.document.write(`
+    printFrame(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -86,21 +84,6 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
         </body>
       </html>
     `);
-    printWindow.document.close();
-    var imgs = printWindow.document.images;
-    if (imgs.length === 0) {
-      setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
-    } else {
-      var loaded = 0;
-      var tryPrint = function() {
-        loaded++;
-        if (loaded >= imgs.length) { printWindow.focus(); printWindow.print(); }
-      };
-      for (var i = 0; i < imgs.length; i++) {
-        if ((imgs[i] as HTMLImageElement).complete) tryPrint();
-        else { (imgs[i] as HTMLImageElement).onload = tryPrint; (imgs[i] as HTMLImageElement).onerror = tryPrint; }
-      }
-    }
   }
 
   return (
