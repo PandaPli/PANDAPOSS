@@ -108,18 +108,13 @@ export function NuevaVentaClient({
   } | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
 
-  // ── Visor de cliente (segundo monitor) ──────────────────────────────────
-  const visorWindowRef = useRef<Window | null>(null);
-  const visorChannelRef = useRef<BroadcastChannel | null>(null);
-  const lastTotalRef = useRef<number>(0); // último total no-cero (para pantalla success)
+  // ── Visor de cliente ─────────────────────────────────────────────────────
+  const lastTotalRef = useRef<number>(0); // último total no-cero (para success)
+  const [visorCopied, setVisorCopied] = useState(false);
 
-  // Inicializar BroadcastChannel en cliente
-  useEffect(() => {
-    visorChannelRef.current = new BroadcastChannel("pandapos-visor");
-    return () => { visorChannelRef.current?.close(); };
-  }, []);
+  const visorUrl = sucursalId ? `/visor/${sucursalId}` : null;
 
-  // Suscribir al store para mantener lastTotalRef actualizado
+  // Mantener lastTotalRef actualizado con el último total no-cero
   useEffect(() => {
     const unsub = useCartStore.subscribe((state) => {
       const t = state.total();
@@ -128,41 +123,54 @@ export function NuevaVentaClient({
     return unsub;
   }, []);
 
-  // Broadcast del carrito al visor en cada cambio relevante
+  // Enviar estado del carrito al visor vía API (SSE)
   useEffect(() => {
-    const ch = visorChannelRef.current;
-    if (!ch) return;
+    if (!sucursalId) return;
     const store = useCartStore.getState();
     const activeItems = items.filter((i) => !i.cancelado && !i.pagado);
-    if (activeItems.length === 0) {
-      ch.postMessage({ type: "idle", sucursalNombre: sucursalNombre ?? "" });
-    } else {
-      const sub  = store.subtotal();
-      const desc = store.totalDescuento();
-      const iva  = store.totalIva();
-      ch.postMessage({
-        type:           "cart",
-        items,
-        subtotal:       sub,
-        descuento,
-        totalDescuento: desc,
-        ivaPorc,
-        totalIva:       iva,
-        total:          store.total(),
-        simbolo,
-        sucursalNombre: sucursalNombre ?? "",
-      });
-    }
+    const payload =
+      activeItems.length === 0
+        ? { type: "idle" as const, sucursalNombre: sucursalNombre ?? "" }
+        : {
+            type:           "cart" as const,
+            items:          activeItems.map((i) => ({
+              id:          i.id,
+              tipo:        i.tipo,
+              nombre:      i.nombre,
+              precio:      i.precio,
+              cantidad:    i.cantidad,
+              observacion: i.observacion ?? null,
+            })),
+            subtotal:       store.subtotal(),
+            descuento,
+            totalDescuento: store.totalDescuento(),
+            ivaPorc,
+            totalIva:       store.totalIva(),
+            total:          store.total(),
+            simbolo,
+            sucursalNombre: sucursalNombre ?? "",
+          };
+
+    fetch("/api/visor/push", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(payload),
+    }).catch(() => { /* visor no crítico */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, descuento, ivaPorc, simbolo, sucursalNombre]);
+  }, [items, descuento, ivaPorc, simbolo, sucursalId, sucursalNombre]);
 
   function openVisor() {
-    if (visorWindowRef.current && !visorWindowRef.current.closed) {
-      visorWindowRef.current.focus();
-      return;
-    }
-    const w = window.open("/visor", "pandapos-visor", "width=1024,height=768,menubar=no,toolbar=no,location=no,status=no");
-    if (w) visorWindowRef.current = w;
+    if (!visorUrl) return;
+    window.open(visorUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function copyVisorUrl() {
+    if (!visorUrl) return;
+    const full = `${window.location.origin}${visorUrl}`;
+    navigator.clipboard.writeText(full).then(() => {
+      setVisorCopied(true);
+      setTimeout(() => setVisorCopied(false), 2000);
+    });
   }
 
   // Ref para saber si ya hicimos la hidratación inicial en este montaje
@@ -366,12 +374,18 @@ export function NuevaVentaClient({
 
   function handleSuccess() {
     // Notificar al visor que la venta se completó
-    visorChannelRef.current?.postMessage({
-      type: "success",
-      total: lastTotalRef.current,
-      simbolo,
-      sucursalNombre: sucursalNombre ?? "",
-    });
+    if (sucursalId) {
+      fetch("/api/visor/push", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type:          "success",
+          total:         lastTotalRef.current,
+          simbolo,
+          sucursalNombre: sucursalNombre ?? "",
+        }),
+      }).catch(() => { /* visor no crítico */ });
+    }
     router.push(mesaId ? "/mesas" : "/panel");
   }
 
@@ -585,14 +599,32 @@ export function NuevaVentaClient({
           )}
 
           {/* Botón visor cliente */}
-          <button
-            onClick={openVisor}
-            title="Abrir visor para el cliente"
-            className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-muted hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
-          >
-            <Monitor size={13} />
-            <span className="hidden sm:inline">Visor</span>
-          </button>
+          {visorUrl && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={openVisor}
+                title={`Abrir visor: ${visorUrl}`}
+                className="inline-flex items-center gap-1.5 rounded-l-full border border-surface-border bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-muted hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
+              >
+                <Monitor size={13} />
+                <span className="hidden sm:inline">Visor</span>
+              </button>
+              <button
+                onClick={copyVisorUrl}
+                title="Copiar enlace del visor"
+                className="inline-flex items-center rounded-r-full border border-l-0 border-surface-border bg-white px-2 py-1.5 text-xs font-semibold text-surface-muted hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
+              >
+                {visorCopied ? (
+                  <CheckCircle2 size={13} className="text-emerald-500" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

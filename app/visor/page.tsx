@@ -1,10 +1,6 @@
-import type { Metadata } from "next";
-import VisorClient from "./VisorClient";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Visor Cliente | PandaPOS",
-};
-
-export default function VisorPage() {
-  return <VisorClient />;
+// /visor sin ID → redirigir a login (el visor requiere el ID de sucursal en la URL)
+export default function VisorRootPage() {
+  redirect("/login");
 }
