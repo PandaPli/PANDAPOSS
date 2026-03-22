@@ -188,6 +188,13 @@ export function CheckoutModal({
 
     // ── Abrir ventana SINCRÓNICAMENTE antes de cualquier await ────────────
     const printWindow = window.open("", "_blank", "width=302,height=900");
+    if (printWindow) {
+      printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}
+      </style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
+      printWindow.document.close();
+    }
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
 

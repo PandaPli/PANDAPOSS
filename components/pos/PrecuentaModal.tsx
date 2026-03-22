@@ -93,6 +93,13 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
 
     // ── 2. Abrir ventana SINCRÓNICAMENTE antes de cualquier await ──────────
     const pw = window.open("", "_blank", "width=302,height=900");
+    if (pw) {
+      pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}
+      </style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
+      pw.document.close();
+    }
 
     const now = new Date();
     const fechaPrint = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
