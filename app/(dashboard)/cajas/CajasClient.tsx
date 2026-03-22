@@ -23,9 +23,10 @@ interface Caja {
 interface Props {
   cajas: Caja[];
   simbolo: string;
+  meseroNombre: string;
 }
 
-export function CajasClient({ cajas: initial, simbolo }: Props) {
+export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
   const router = useRouter();
   const [cajas, setCajas] = useState(initial);
   const [loading, setLoading] = useState<number | null>(null);
@@ -60,10 +61,11 @@ export function CajasClient({ cajas: initial, simbolo }: Props) {
       }
       const cajaActualizada = await res.json();
       // Actualizar estado local inmediatamente (sin esperar router.refresh)
+      // Bug 5 fix: incluir nombre del cajero en el optimistic update
       setCajas((prev) =>
         prev.map((c) =>
           c.id === cajaId
-            ? { ...c, estado: "ABIERTA", saldoInicio: Number(saldoInicio) || 0, abiertaEn: cajaActualizada.abiertaEn }
+            ? { ...c, estado: "ABIERTA", saldoInicio: Number(saldoInicio) || 0, abiertaEn: cajaActualizada.abiertaEn, usuario: { nombre: meseroNombre } }
             : c
         )
       );

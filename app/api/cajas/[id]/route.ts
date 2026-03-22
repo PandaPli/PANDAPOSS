@@ -31,11 +31,16 @@ export async function PATCH(
   if (ownership === null) return NextResponse.json({ error: "Caja no encontrada" }, { status: 404 });
   if (ownership === false) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
-  // Validar saldo numérico no negativo
+  // Bug 2 fix: validar saldo numérico en ambas acciones
   if (action === "abrir") {
     const s = Number(saldoInicio ?? 0);
     if (isNaN(s) || s < 0 || !isFinite(s))
       return NextResponse.json({ error: "Saldo de inicio inválido" }, { status: 400 });
+  }
+  if (action === "cerrar") {
+    const s = Number(saldoFinal ?? "");
+    if (saldoFinal === undefined || saldoFinal === null || isNaN(s) || s < 0 || !isFinite(s))
+      return NextResponse.json({ error: "Saldo final inválido" }, { status: 400 });
   }
 
   try {

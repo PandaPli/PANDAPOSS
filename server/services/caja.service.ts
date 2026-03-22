@@ -1,38 +1,45 @@
 import { prisma } from "@/lib/db";
 import { CajaRepo } from "@/server/repositories/caja.repo";
+import { Prisma } from "@prisma/client";
 
 export const CajaService = {
   async abrir(id: number, userId: number, saldoInicio: number) {
-    const caja = await CajaRepo.findById(id);
-    if (!caja) throw new Error("Caja no encontrada");
-    if (caja.estado === "ABIERTA") throw new Error("La caja ya está abierta");
+    return prisma.$transaction(async (tx) => {
+      // Bloquear la fila de la caja para evitar race condition de doble apertura
+      const cajas = await tx.$queryRaw<{ id: number; estado: string; sucursalId: number }[]>(
+        Prisma.sql`SELECT id, estado, sucursalId FROM cajas WHERE id = ${id} LIMIT 1 FOR UPDATE`
+      );
+      const caja = cajas[0];
+      if (!caja) throw new Error("Caja no encontrada");
+      if (caja.estado === "ABIERTA") throw new Error("La caja ya está abierta");
 
-    // A2: Verificar que no haya otra caja ABIERTA en la misma sucursal
-    const otraAbierta = await prisma.caja.findFirst({
-      where: { sucursalId: caja.sucursalId, estado: "ABIERTA", id: { not: id } },
-      select: { nombre: true },
+      // Regla: 1 sola caja abierta por sucursal — verificado dentro de la transacción
+      const otraAbierta = await tx.caja.findFirst({
+        where: { sucursalId: caja.sucursalId, estado: "ABIERTA", id: { not: id } },
+        select: { nombre: true },
+      });
+      if (otraAbierta) {
+        throw new Error(`Ya hay una caja abierta en esta sucursal (${otraAbierta.nombre}). Ciérrala primero.`);
+      }
+
+      const [cajaActualizada] = await Promise.all([
+        tx.caja.update({
+          where: { id },
+          data: {
+            estado: "ABIERTA",
+            saldoInicio,
+            usuarioId: userId,
+            abiertaEn: new Date(),
+            cerradaEn: null,
+          },
+        }),
+        tx.arqueo.create({
+          data: { cajaId: id, usuarioId: userId, saldoInicio },
+        }),
+      ]);
+
+      return cajaActualizada;
     });
-    if (otraAbierta) {
-      throw new Error(`Ya hay una caja abierta en esta sucursal (${otraAbierta.nombre}). Ciérrala primero.`);
-    }
-
-    const [cajaActualizada] = await prisma.$transaction([
-      prisma.caja.update({
-        where: { id },
-        data: {
-          estado: "ABIERTA",
-          saldoInicio,
-          usuarioId: userId,
-          abiertaEn: new Date(),
-          cerradaEn: null,
-        },
-      }),
-      prisma.arqueo.create({
-        data: { cajaId: id, usuarioId: userId, saldoInicio },
-      }),
-    ]);
-
-    return cajaActualizada;
   },
 
   async cerrar(id: number, saldoFinal: number, observacion?: string) {
@@ -54,12 +61,18 @@ export const CajaService = {
     });
 
     let totalVentas = 0;
-    let totalEfectivo = 0;
-    ventasAgrupadas.forEach((g) => {
-      const sum = Number(g._sum.total ?? 0);
-      totalVentas += sum;
-      if (g.metodoPago === "EFECTIVO") totalEfectivo += sum;
+    ventasAgrupadas.forEach((g) => { totalVentas += Number(g._sum.total ?? 0); });
+
+    // Bug 1 fix: calcular efectivo real desde PagoVenta para incluir pagos MIXTO
+    // (una venta MIXTO puede tener parte en efectivo; antes solo contaban las ventas 100% EFECTIVO)
+    const efectivoPagos = await prisma.pagoVenta.aggregate({
+      _sum: { monto: true },
+      where: {
+        metodoPago: "EFECTIVO",
+        venta: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
+      },
     });
+    const totalEfectivo = Number(efectivoPagos._sum.monto ?? 0);
 
     const [ingresosAgr, retirosAgr] = await Promise.all([
       prisma.movimientoCaja.aggregate({
@@ -86,7 +99,8 @@ export const CajaService = {
     const [cajaActualizada] = await prisma.$transaction([
       prisma.caja.update({
         where: { id },
-        data: { estado: "CERRADA", cerradaEn: hasta, usuarioId: null },
+        // Bug 4 fix: no borrar usuarioId — conserva quién tenía asignada la caja para auditoría
+        data: { estado: "CERRADA", cerradaEn: hasta },
       }),
       ...(arqueoAbierto
         ? [
@@ -176,10 +190,22 @@ export const CajaService = {
       };
     });
 
+    // Bug 1 fix: efectivo real desde PagoVenta (incluye pagos MIXTO con componente en efectivo)
+    const efectivoPagosResumen = await prisma.pagoVenta.aggregate({
+      _sum: { monto: true },
+      where: {
+        metodoPago: "EFECTIVO",
+        venta: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
+      },
+    });
+    const efectivoReal = Number(efectivoPagosResumen._sum.monto ?? 0);
+    // Reemplazar el total de efectivo del breakdown con el valor real (PagoVenta)
+    breakdown.EFECTIVO.dinero = efectivoReal;
+
     const sumIngresos = Number(movIngresos._sum.monto ?? 0);
     const sumRetiros  = Number(movRetiros._sum.monto  ?? 0);
     const dineroFisicoEsperado =
-      (Number(caja.saldoInicio) + breakdown.EFECTIVO.dinero) + sumIngresos - sumRetiros;
+      (Number(caja.saldoInicio) + efectivoReal) + sumIngresos - sumRetiros;
 
     return {
       saldoApertura: Number(caja.saldoInicio),

@@ -11,6 +11,7 @@ export default async function CajasPage() {
   const simbolo = (session.user as { simbolo?: string })?.simbolo ?? "$";
   const rol = (session.user as { rol?: Rol })?.rol;
   const sucursalId = (session.user as { sucursalId?: number | null })?.sucursalId ?? null;
+  const meseroNombre = session.user?.name ?? "—";
 
   const where = rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {};
 
@@ -37,7 +38,7 @@ export default async function CajasPage() {
 
   return (
     <div className="space-y-6">
-      <CajasClient cajas={plain} simbolo={simbolo} />
+      <CajasClient cajas={plain} simbolo={simbolo} meseroNombre={meseroNombre} />
     </div>
   );
 }
