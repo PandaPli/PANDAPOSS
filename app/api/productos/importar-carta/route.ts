@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         const buffer = await resp.arrayBuffer();
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const pdfParse = require("pdf-parse/lib/pdf-parse.js");
+          const pdfParse = require("pdf-parse");
           const data = await pdfParse(Buffer.from(buffer));
           const texto = data.text?.replace(/\s{3,}/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 8000) ?? "";
           if (!texto || texto.length < 30) {

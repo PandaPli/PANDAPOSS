@@ -120,7 +120,7 @@ export default function VisorClient({
         try {
           const msg: VisorMsg & { type: string } = JSON.parse(e.data);
           // Ignorar heartbeats — solo sirven para resetear el watchdog
-          if (msg.type === "heartbeat") return;
+          if ((msg.type as string) === "heartbeat") return;
           if ("sucursalNombre" in msg && msg.sucursalNombre) {
             setSucursalNombre(msg.sucursalNombre as string);
           }
