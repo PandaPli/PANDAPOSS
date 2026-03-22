@@ -340,11 +340,12 @@ export function CheckoutModal({
       if (res.ok) { printWindow?.close(); finalizeFlow(); return; }
     } catch { /* lp falló → abrir Chrome */ }
 
-    // ── 3. Fallback final: mostrar ventana Chrome (el usuario imprime) ─────
+    // ── 3. Fallback final: mostrar ventana Chrome y disparar print ─────────
     if (!printWindow) { finalizeFlow(); return; }
     printWindow.document.write(fullHtml);
     printWindow.document.close();
-    printWindow.focus();
+    printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
+    setTimeout(() => { try { printWindow.focus(); printWindow.print(); } catch { /* ya cerró */ } }, 500);
 
     finalizeFlow();
   }

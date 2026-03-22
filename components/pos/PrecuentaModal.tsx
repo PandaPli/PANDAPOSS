@@ -131,10 +131,13 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
       if (res.ok) { pw?.close(); return; }
     } catch { /* lp falló → abrir Chrome */ }
 
-    // ── 5. Fallback final: abrir ventana Chrome (el usuario imprime) ────────
+    // ── 5. Fallback final: abrir ventana Chrome y disparar print ───────────
     if (!pw) return;
     pw.document.write(fullHtml);
     pw.document.close();
+    pw.onload = () => { pw.focus(); pw.print(); };
+    // fallback por si onload ya disparó antes de asignarlo
+    setTimeout(() => { try { pw.focus(); pw.print(); } catch { /* ya cerró */ } }, 500);
   }
 
   return (
