@@ -60,6 +60,8 @@ export default function VisorClient({
   const [toastVisible, setToastVisible] = useState(false);
   const lastItemTimerRef                = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevItemsRef                    = useRef<CartMsg["items"]>([]);
+  // Proteger la pantalla de éxito: ignorar "idle" mientras successTimer está activo
+  const inSuccessRef                    = useRef(false);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -123,7 +125,9 @@ export default function VisorClient({
             setSucursalNombre(msg.sucursalNombre as string);
           }
           if (msg.type === "idle") {
-            // Cancelar cualquier transición automática de success→idle pendiente
+            // Si estamos mostrando la pantalla de éxito, ignorar "idle"
+            // (evita que el siguiente useEffect del carrito vacío tape el total)
+            if (inSuccessRef.current) return;
             if (successTimer) { clearTimeout(successTimer); successTimer = null; }
             prevItemsRef.current = [];
             setLastItem(null);
@@ -132,6 +136,7 @@ export default function VisorClient({
             setSuccessData(null);
           } else if (msg.type === "cart") {
             // Cancelar el timer de success: el nuevo pedido tiene prioridad
+            inSuccessRef.current = false;
             if (successTimer) { clearTimeout(successTimer); successTimer = null; }
 
             // Detectar el último ítem agregado/modificado
@@ -172,10 +177,12 @@ export default function VisorClient({
           } else if (msg.type === "success") {
             if (successTimer) clearTimeout(successTimer);
             prevItemsRef.current = []; // limpiar para el próximo pedido
+            inSuccessRef.current = true;
             setSuccessData(msg as SuccessMsg);
             setVisorState("success");
             successTimer = setTimeout(() => {
               successTimer = null;
+              inSuccessRef.current = false;
               setVisorState("idle");
               setSuccessData(null);
             }, 7000);

@@ -272,21 +272,23 @@ model Proveedor {
 }
 
 model Caja {
-  id          Int              @id @default(autoincrement())
-  nombre      String           @db.VarChar(80)
-  estado      EstadoCaja       @default(CERRADA)
-  saldoInicio Decimal          @default(0.00) @db.Decimal(10, 2)
-  sucursalId  Int
-  usuarioId   Int?
-  abiertaEn   DateTime?
-  cerradaEn   DateTime?
-  creadoEn    DateTime         @default(now())
-  arqueos     Arqueo[]
-  sucursal    Sucursal         @relation(fields: [sucursalId], references: [id])
-  usuario     Usuario?         @relation(fields: [usuarioId], references: [id])
-  movimientos MovimientoCaja[]
-  pedidos     Pedido[]
-  ventas      Venta[]
+  id           Int              @id @default(autoincrement())
+  nombre       String           @db.VarChar(80)
+  estado       EstadoCaja       @default(CERRADA)
+  saldoInicio  Decimal          @default(0.00) @db.Decimal(10, 2)
+  sucursalId   Int
+  usuarioId    Int?
+  abiertaEn    DateTime?
+  cerradaEn    DateTime?
+  creadoEn     DateTime         @default(now())
+  /// Estado del visor de cliente — JSON serializado, actualizado en tiempo real
+  visorEstado  String?          @db.Text
+  arqueos      Arqueo[]
+  sucursal     Sucursal         @relation(fields: [sucursalId], references: [id])
+  usuario      Usuario?         @relation(fields: [usuarioId], references: [id])
+  movimientos  MovimientoCaja[]
+  pedidos      Pedido[]
+  ventas       Venta[]
 
   @@index([sucursalId], map: "cajas_sucursalId_fkey")
   @@index([usuarioId], map: "cajas_usuarioId_fkey")

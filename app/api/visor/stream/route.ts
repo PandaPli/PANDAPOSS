@@ -1,7 +1,22 @@
 import { NextRequest } from "next/server";
-import { getVisorState, getVisorStateFromDisk, subscribeVisor } from "@/lib/visorBus";
+import { subscribeVisor, getVisorStateMem, type VisorMsg } from "@/lib/visorBus";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+/** Lee el estado del visor desde la DB (fuente de verdad para todos los workers) */
+async function readVisorStateFromDB(cajaId: number): Promise<VisorMsg | null> {
+  try {
+    const caja = await prisma.caja.findUnique({
+      where: { id: cajaId },
+      select: { visorEstado: true },
+    });
+    if (!caja?.visorEstado) return null;
+    return JSON.parse(caja.visorEstado) as VisorMsg;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(req: NextRequest) {
   const cajaId = Number(req.nextUrl.searchParams.get("c"));
@@ -11,57 +26,57 @@ export async function GET(req: NextRequest) {
 
   const encoder = new TextEncoder();
 
+  // Estado inicial: DB primero, luego memoria del proceso
+  const dbState  = await readVisorStateFromDB(cajaId);
+  const initMsg: VisorMsg = dbState ?? getVisorStateMem(cajaId) ?? { type: "idle" };
+
   const stream = new ReadableStream({
     start(controller) {
-      // Enviar estado actual inmediatamente (hidratación al conectar/reconectar)
-      const current = getVisorState(cajaId);
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(current)}\n\n`));
+      // Enviar estado actual inmediatamente al conectar/reconectar
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(initMsg)}\n\n`));
+      let lastSentJson = JSON.stringify(initMsg);
 
-      let lastSentJson = JSON.stringify(current);
-
-      // Suscribir a actualizaciones del mismo proceso (respuesta inmediata)
+      // Suscribir a notificaciones del mismo proceso (respuesta instantánea)
       const unsub = subscribeVisor(cajaId, (msg) => {
         const json = JSON.stringify(msg);
         lastSentJson = json;
         try {
           controller.enqueue(encoder.encode(`data: ${json}\n\n`));
         } catch {
-          unsub();
-          clearInterval(filePoll);
-          clearInterval(heartbeat);
-          try { controller.close(); } catch { /* ya cerrado */ }
+          cleanup();
         }
       });
 
-      // Poll al disco cada 2 s — detecta cambios de otros workers PM2
-      const filePoll = setInterval(() => {
+      // Poll DB cada 1 s — detecta cambios de OTROS workers PM2
+      const dbPoll = setInterval(async () => {
         try {
-          const diskState = getVisorStateFromDisk(cajaId);
-          const json = JSON.stringify(diskState);
+          const state = await readVisorStateFromDB(cajaId);
+          if (!state) return;
+          const json = JSON.stringify(state);
           if (json !== lastSentJson) {
             lastSentJson = json;
             controller.enqueue(encoder.encode(`data: ${json}\n\n`));
           }
-        } catch {
-          clearInterval(filePoll);
-        }
-      }, 2_000);
+        } catch { /* poll silencioso */ }
+      }, 1_000);
 
       // Heartbeat cada 20 s — detecta conexiones silenciosamente muertas
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`data: {"type":"heartbeat"}\n\n`));
         } catch {
-          clearInterval(heartbeat);
+          cleanup();
         }
       }, 20_000);
 
-      req.signal.addEventListener("abort", () => {
+      function cleanup() {
         unsub();
-        clearInterval(filePoll);
+        clearInterval(dbPoll);
         clearInterval(heartbeat);
         try { controller.close(); } catch { /* ya cerrado */ }
-      });
+      }
+
+      req.signal.addEventListener("abort", cleanup);
     },
   });
 
