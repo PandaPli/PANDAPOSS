@@ -7,7 +7,7 @@ import { CartPanel } from "@/components/pos/CartPanel";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
-import type { ProductoCard, CartItem } from "@/types";
+import type { ProductoCard, CartItem, RondaPedido } from "@/types";
 import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Search, User, X, Truck, Loader2, MapPin, Monitor } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ interface Props {
   cajaId?: number;
   cajaNombre?: string;
   meseroNombre?: string;
-  initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
+  initialOrder?: { id: number; mesaId: number | null; items: CartItem[]; rondas?: RondaPedido[] } | null;
   logoUrl?: string | null;
   mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
   sucursalId?: number | null;
@@ -99,6 +99,9 @@ export function NuevaVentaClient({
       (p) => !p.categoria?.estacion || estaciones.includes(p.categoria.estacion)
     );
   }, [productos, userRol]);
+
+  // Historial de rondas de esta mesa (server-loaded + local)
+  const [localRondas, setLocalRondas] = useState<RondaPedido[]>(initialOrder?.rondas ?? []);
 
   const [checkoutGrupo, setCheckoutGrupo] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<{
@@ -359,6 +362,22 @@ export function NuevaVentaClient({
       const pedido = await res.json();
       setPedido(pedido.id);
       markAsSaved();
+
+      // Agregar la ronda al historial local
+      setLocalRondas((prev) => [
+        ...prev,
+        {
+          pedidoId: pedido.id,
+          numero: prev.length + 1,
+          creadoEn: new Date().toISOString(),
+          items: nuevosItems.map((i) => ({
+            nombre: i.nombre,
+            cantidad: i.cantidad,
+            observacion: i.observacion ?? null,
+            cancelado: false,
+          })),
+        },
+      ]);
 
       setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
       setTimeout(() => setOrdenMsg(""), 4000);
@@ -649,6 +668,7 @@ export function NuevaVentaClient({
             onPrecuenta={handleOpenPrecuenta}
             ordenLoading={ordenLoading}
             canCancelItems={userRol ? CANCEL_ROLES.includes(userRol) : false}
+            rondas={localRondas}
           />
         </div>
       </div>

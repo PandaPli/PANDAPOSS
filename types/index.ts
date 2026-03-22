@@ -49,6 +49,20 @@ export interface GrupoPago {
   pagado: boolean;
 }
 
+export interface RondaDetalle {
+  nombre: string;
+  cantidad: number;
+  observacion?: string | null;
+  cancelado: boolean;
+}
+
+export interface RondaPedido {
+  pedidoId: number;
+  numero: number; // 1-based
+  creadoEn: string; // ISO date string
+  items: RondaDetalle[];
+}
+
 export interface PagoItem {
   metodoPago: MetodoPago;
   monto: number;

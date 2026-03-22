@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NuevaVentaClient } from "./NuevaVentaClient";
-import type { CartItem } from "@/types";
+import type { CartItem, RondaPedido } from "@/types";
 
 const PEDIDOS_ACTIVOS = ["PENDIENTE", "EN_PROCESO", "LISTO"] as const;
 
@@ -97,9 +97,22 @@ async function getAllPedidosMesa(mesaId: number) {
     })
   );
 
+  // Construir historial de rondas (un pedido = una ronda)
+  const rondas: RondaPedido[] = pedidos.map((pedido, idx) => ({
+    pedidoId: pedido.id,
+    numero: idx + 1,
+    creadoEn: pedido.creadoEn.toISOString(),
+    items: pedido.detalles.map((d) => ({
+      nombre: d.producto?.nombre ?? d.combo?.nombre ?? "—",
+      cantidad: d.cantidad,
+      observacion: d.observacion ?? null,
+      cancelado: d.cancelado ?? false,
+    })),
+  }));
+
   // Retornar con el pedido más reciente como referencia de ID
   const ultimo = pedidos[pedidos.length - 1];
-  return { id: ultimo.id, mesaId, items: initialItems };
+  return { id: ultimo.id, mesaId, items: initialItems, rondas };
 }
 
 interface Props {

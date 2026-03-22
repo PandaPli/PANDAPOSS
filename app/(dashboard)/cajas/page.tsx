@@ -36,9 +36,12 @@ export default async function CajasPage() {
     sucursal: c.sucursal ? { nombre: c.sucursal.nombre } : null,
   }));
 
+  // Bug 9: solo ADMIN y RESTAURANTE pueden crear cajas; CASHIER solo abre/cierra
+  const canCreate = rol === "ADMIN_GENERAL" || rol === "RESTAURANTE";
+
   return (
     <div className="space-y-6">
-      <CajasClient cajas={plain} simbolo={simbolo} meseroNombre={meseroNombre} />
+      <CajasClient cajas={plain} simbolo={simbolo} meseroNombre={meseroNombre} canCreate={canCreate} />
     </div>
   );
 }

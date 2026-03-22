@@ -20,6 +20,11 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  // Bug 9: solo ADMIN_GENERAL y RESTAURANTE pueden crear cajas
+  const rolCheck = (session.user as { rol: Rol }).rol;
+  if (rolCheck !== "ADMIN_GENERAL" && rolCheck !== "RESTAURANTE")
+    return NextResponse.json({ error: "No autorizado para crear cajas" }, { status: 403 });
+
   const { nombre, sucursalId } = await req.json();
   if (!nombre) return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
-import type { CartItem } from "@/types";
+import type { CartItem, RondaPedido } from "@/types";
 
 interface Props {
   simbolo?: string;
@@ -14,6 +14,7 @@ interface Props {
   onPrecuenta: () => void;
   ordenLoading?: boolean;
   canCancelItems?: boolean;
+  rondas?: RondaPedido[];
 }
 
 const GRUPOS_DISPONIBLES = ["A", "B", "C", "D", "E"];
@@ -38,7 +39,7 @@ interface SplitState {
   cantidades: Record<string, number>;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false }: Props) {
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [] }: Props) {
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
@@ -307,6 +308,15 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   const itemsEnviados  = items.filter((i) =>  i.guardado);
   const hayAmbos       = itemsNuevos.length > 0 && itemsEnviados.length > 0;
 
+  /** Formatea hora de una ronda de forma discreta */
+  function formatRondaHora(iso: string) {
+    try {
+      return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-white border-l border-surface-border">
       {/* Header */}
@@ -338,7 +348,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
 
       {/* Items */}
       <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
-        {items.length === 0 ? (
+        {items.length === 0 && rondas.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-surface-muted">
             <ShoppingCart size={32} className="mb-2 opacity-20" />
             <p className="text-sm font-medium">El carrito esta vacio</p>
@@ -386,48 +396,85 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               </div>
             )}
           </>
-        ) : hayAmbos ? (
-          <>
-            {/* Ítems nuevos (aún no enviados) */}
-            <div>
-              <p className="text-[10px] font-bold text-surface-muted uppercase tracking-wide px-1 mb-1.5">
-                Nuevos
-              </p>
-              <div className="space-y-2">
-                {itemsNuevos.map((item) => renderItem(item, false))}
-              </div>
-            </div>
-
-            {/* Último pedido enviado */}
-            <div className="mt-3">
-              <div className="flex items-center gap-1.5 px-1 mb-1.5">
-                <Send size={11} className="text-amber-500" />
-                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
-                  {pedidoId ? `Último pedido #${pedidoId}` : "Último pedido enviado"}
-                </p>
-              </div>
-              <div className="space-y-2 pl-1 border-l-2 border-amber-200 rounded">
-                {itemsEnviados.map((item) => renderItem(item, false))}
-              </div>
-            </div>
-          </>
-        ) : itemsEnviados.length > 0 && itemsNuevos.length === 0 ? (
-          <>
-            {/* Solo hay ítems enviados — mostrar encabezado del último pedido */}
-            <div>
-              <div className="flex items-center gap-1.5 px-1 mb-1.5">
-                <Send size={11} className="text-amber-500" />
-                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
-                  {pedidoId ? `Último pedido #${pedidoId}` : "Último pedido enviado"}
-                </p>
-              </div>
-              <div className="space-y-2 pl-1 border-l-2 border-amber-200 rounded">
-                {itemsEnviados.map((item) => renderItem(item, false))}
-              </div>
-            </div>
-          </>
         ) : (
-          items.map((item) => renderItem(item, false))
+          <>
+            {/* Ítems nuevos (aún no enviados a cocina) */}
+            {itemsNuevos.length > 0 && (
+              <div>
+                {(rondas.length > 0 || itemsEnviados.length > 0) && (
+                  <p className="text-[10px] font-bold text-surface-muted uppercase tracking-wide px-1 mb-1.5">
+                    Por enviar
+                  </p>
+                )}
+                <div className="space-y-2">
+                  {itemsNuevos.map((item) => renderItem(item, false))}
+                </div>
+              </div>
+            )}
+
+            {/* Historial de rondas */}
+            {rondas.length > 0 && (
+              <div className="space-y-3 mt-1">
+                {rondas.map((ronda) => (
+                  <div key={ronda.pedidoId}>
+                    {/* Encabezado de ronda */}
+                    <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                      <Send size={10} className="text-amber-500 flex-shrink-0" />
+                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
+                        Ronda {ronda.numero}
+                      </p>
+                      <span className="ml-auto flex items-center gap-1 text-[10px] text-surface-muted">
+                        <Clock size={9} />
+                        {formatRondaHora(ronda.creadoEn)} hrs
+                      </span>
+                    </div>
+                    {/* Productos de la ronda — sin agrupación */}
+                    <div className="space-y-1 pl-2 border-l-2 border-amber-200 rounded">
+                      {ronda.items.map((d, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-baseline gap-2 px-2 py-1 rounded-lg text-sm ${
+                            d.cancelado ? "opacity-50" : "bg-surface-bg"
+                          }`}
+                        >
+                          <span className={`font-bold text-brand-500 flex-shrink-0 text-xs ${d.cancelado ? "line-through text-gray-400" : ""}`}>
+                            {d.cantidad}x
+                          </span>
+                          <span className={`flex-1 text-xs font-semibold ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+                            {d.nombre}
+                          </span>
+                          {d.cancelado && (
+                            <span className="text-[9px] font-bold text-red-400 bg-red-50 px-1 rounded">ANULADO</span>
+                          )}
+                        </div>
+                      ))}
+                      {/* Observaciones por ítem (discretas) */}
+                      {ronda.items.filter((d) => d.observacion && !d.cancelado).map((d, i) => (
+                        <p key={`obs-${i}`} className="text-[10px] text-surface-muted italic pl-7">
+                          ↳ {d.observacion}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Fallback: ítems enviados sin rondas (caso sin mesa) */}
+            {rondas.length === 0 && itemsEnviados.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                  <Send size={11} className="text-amber-500" />
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
+                    {pedidoId ? `Último pedido #${pedidoId}` : "Último pedido enviado"}
+                  </p>
+                </div>
+                <div className="space-y-2 pl-1 border-l-2 border-amber-200 rounded">
+                  {itemsEnviados.map((item) => renderItem(item, false))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

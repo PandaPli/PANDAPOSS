@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Wallet, DoorOpen, DoorClosed, Plus, Loader2, X,
-  TrendingUp, TrendingDown, Minus, Clock, Banknote, CreditCard, Receipt, FileWarning, ArrowLeftRight
+  TrendingUp, TrendingDown, Minus, Clock, Banknote, CreditCard, Receipt, FileWarning, ArrowLeftRight, History, Shuffle
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,17 +20,30 @@ interface Caja {
   sucursal: { nombre: string } | null;
 }
 
+interface ArqueoHistorial {
+  id: number;
+  abiertaEn: string;
+  cerradaEn: string | null;
+  saldoInicio: number;
+  saldoFinal: number | null;
+  totalVentas: number | null;
+  diferencia: number | null;
+  observacion: string | null;
+  cajero: string;
+}
+
 interface Props {
   cajas: Caja[];
   simbolo: string;
   meseroNombre: string;
+  canCreate: boolean;
 }
 
-export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
+export function CajasClient({ cajas: initial, simbolo, meseroNombre, canCreate }: Props) {
   const router = useRouter();
   const [cajas, setCajas] = useState(initial);
   const [loading, setLoading] = useState<number | null>(null);
-  const [modal, setModal] = useState<{ type: "abrir" | "cerrar" | "nueva" | "movimiento"; cajaId?: number } | null>(null);
+  const [modal, setModal] = useState<{ type: "abrir" | "cerrar" | "nueva" | "movimiento" | "historial"; cajaId?: number } | null>(null);
   const [resumenZ, setResumenZ] = useState<any>(null);
   const [saldoInicio, setSaldoInicio] = useState("");
   const [saldoFinal, setSaldoFinal] = useState("");
@@ -43,6 +56,13 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
   const [tipoMovimiento, setTipoMovimiento] = useState<"INGRESO" | "RETIRO">("RETIRO");
   const [montoMovimiento, setMontoMovimiento] = useState("");
   const [motivoMovimiento, setMotivoMovimiento] = useState("");
+
+  // Bug 6: Historial de arqueos
+  const [historialData, setHistorialData] = useState<ArqueoHistorial[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+
+  // Bug 8: Confirmación antes de cerrar
+  const [confirmCierre, setConfirmCierre] = useState(false);
 
   async function abrirCaja() {
     if (!modal || modal.type !== "abrir" || !modal.cajaId) return;
@@ -152,6 +172,7 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
       }
       const data = await res.json();
       setResumenZ(data);
+      setConfirmCierre(false);
       setModal({ type: "cerrar", cajaId });
     } catch (e) {
       setError((e as Error).message);
@@ -187,6 +208,27 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
     }
   }
 
+  // Bug 6: cargar historial de arqueos
+  async function clickHistorial(cajaId: number) {
+    setError("");
+    setLoadingHistorial(true);
+    setHistorialData([]);
+    setModal({ type: "historial", cajaId });
+    try {
+      const res = await fetch(`/api/cajas/${cajaId}/arqueos`);
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "No se pudo obtener el historial");
+      }
+      const data = await res.json();
+      setHistorialData(data);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  }
+
   function cerrarModal() {
     setModal(null);
     setResumenZ(null);
@@ -197,6 +239,8 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
     setMotivoMovimiento("");
     setResult(null);
     setError("");
+    setConfirmCierre(false);
+    setHistorialData([]);
   }
 
   return (
@@ -206,10 +250,13 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
           <h1 className="text-2xl font-bold text-surface-text">Cajas</h1>
           <p className="text-surface-muted text-sm mt-1">Gestión de cajas y arqueos</p>
         </div>
-        <button onClick={() => setModal({ type: "nueva" })} className="btn-primary">
-          <Plus size={16} />
-          Nueva Caja
-        </button>
+        {/* Bug 9: solo ADMIN_GENERAL y RESTAURANTE pueden crear cajas */}
+        {canCreate && (
+          <button onClick={() => setModal({ type: "nueva" })} className="btn-primary">
+            <Plus size={16} />
+            Nueva Caja
+          </button>
+        )}
       </div>
 
       {/* Grid de cajas */}
@@ -283,6 +330,14 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                 <ArrowLeftRight size={14} /> Movimientos Extras
               </button>
             )}
+            {/* Bug 6: Ver historial de turnos */}
+            <button
+              onClick={() => clickHistorial(caja.id)}
+              className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium bg-surface-bg text-surface-muted border border-surface-border hover:bg-surface-hover hover:text-surface-text transition-colors"
+              title="Ver historial de turnos anteriores"
+            >
+              <History size={14} /> Ver Historial
+            </button>
           </div>
         ))}
       </div>
@@ -298,6 +353,7 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                 {modal.type === "cerrar" && (result ? "Resumen de Cierre" : "Cerrar Caja")}
                 {modal.type === "nueva" && "Nueva Caja"}
                 {modal.type === "movimiento" && "Registrar Movimiento"}
+                {modal.type === "historial" && "Historial de Turnos"}
               </h2>
               <button onClick={cerrarModal} className="p-2 text-surface-muted hover:text-surface-text hover:bg-surface-bg rounded-lg">
                 <X size={18} />
@@ -360,8 +416,8 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                     <button
                       onClick={() => setTipoMovimiento("RETIRO")}
                       className={`py-2 text-sm font-medium rounded-md transition-all ${
-                        tipoMovimiento === "RETIRO" 
-                          ? "bg-white shadow-sm text-surface-text border border-surface-border" 
+                        tipoMovimiento === "RETIRO"
+                          ? "bg-white shadow-sm text-surface-text border border-surface-border"
                           : "text-surface-muted hover:text-surface-text"
                       }`}
                     >
@@ -370,15 +426,15 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                     <button
                       onClick={() => setTipoMovimiento("INGRESO")}
                       className={`py-2 text-sm font-medium rounded-md transition-all ${
-                        tipoMovimiento === "INGRESO" 
-                          ? "bg-white shadow-sm text-surface-text border border-surface-border" 
+                        tipoMovimiento === "INGRESO"
+                          ? "bg-white shadow-sm text-surface-text border border-surface-border"
                           : "text-surface-muted hover:text-surface-text"
                       }`}
                     >
                       Añadir Efectivo
                     </button>
                   </div>
-                  
+
                   <div>
                     <label className="label">Monto ({simbolo})</label>
                     <input
@@ -391,7 +447,7 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                       step={0.01}
                     />
                   </div>
-                  
+
                   <div>
                     <label className="label">Motivo u Observación</label>
                     <input
@@ -402,7 +458,7 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                       placeholder={tipoMovimiento === "RETIRO" ? "Ej: Pago de hielo, proveedor..." : "Ej: Sencillo prestado"}
                     />
                   </div>
-                  
+
                   <button
                     onClick={crearMovimiento}
                     disabled={loading !== null || !montoMovimiento || !motivoMovimiento}
@@ -414,13 +470,74 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                 </div>
               )}
 
+              {/* Bug 6: Modal historial de arqueos */}
+              {modal.type === "historial" && (
+                <div className="space-y-3">
+                  {loadingHistorial ? (
+                    <div className="flex items-center justify-center py-10 text-surface-muted">
+                      <Loader2 size={20} className="animate-spin mr-2" /> Cargando turnos...
+                    </div>
+                  ) : historialData.length === 0 ? (
+                    <div className="text-center py-10 text-surface-muted text-sm">
+                      <History size={32} className="mx-auto mb-2 opacity-30" />
+                      No hay turnos registrados aún
+                    </div>
+                  ) : (
+                    historialData.map((a) => (
+                      <div key={a.id} className="border border-surface-border rounded-xl p-3 bg-surface-bg space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-surface-text">{a.cajero}</span>
+                          {a.cerradaEn ? (
+                            <span className="text-[10px] bg-surface-border text-surface-muted px-2 py-0.5 rounded-full">Cerrado</span>
+                          ) : (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Abierto</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-surface-muted">
+                          <span>
+                            <Clock size={11} className="inline mr-0.5" />
+                            {new Date(a.abiertaEn).toLocaleString("es-CL")}
+                          </span>
+                          {a.cerradaEn && (
+                            <span>→ {new Date(a.cerradaEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          <div>
+                            <p className="text-[10px] text-surface-muted">Fondo inicio</p>
+                            <p className="font-semibold text-surface-text">{formatCurrency(a.saldoInicio, simbolo)}</p>
+                          </div>
+                          {a.totalVentas !== null && (
+                            <div>
+                              <p className="text-[10px] text-surface-muted">Total ventas</p>
+                              <p className="font-semibold text-emerald-600">{formatCurrency(a.totalVentas, simbolo)}</p>
+                            </div>
+                          )}
+                          {a.diferencia !== null && (
+                            <div>
+                              <p className="text-[10px] text-surface-muted">Diferencia</p>
+                              <p className={`font-semibold ${a.diferencia > 0 ? "text-emerald-600" : a.diferencia < 0 ? "text-red-600" : "text-surface-muted"}`}>
+                                {a.diferencia > 0 ? "+" : ""}{formatCurrency(a.diferencia, simbolo)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        {a.observacion && (
+                          <p className="text-xs text-surface-muted italic border-t border-surface-border pt-1.5">"{a.observacion}"</p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
               {modal.type === "cerrar" && !result && resumenZ && (
                 <>
                   <div className="bg-surface-bg p-4 rounded-xl space-y-3 mb-4 text-sm border border-surface-border">
                      <h3 className="font-semibold text-surface-text flex items-center gap-2 border-b border-surface-border pb-2">
                        <Receipt size={16} className="text-brand-500" /> Reporte de Turno (Z-Out)
                      </h3>
-                     
+
                      <div className="grid grid-cols-2 gap-2 mt-2">
                         <div className="p-2 bg-white rounded-lg border border-surface-border">
                            <p className="text-xs text-surface-muted">Ventas Globales</p>
@@ -432,12 +549,26 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                            <p className="font-bold text-emerald-600">{formatCurrency(resumenZ.desgloseMediosDePago.EFECTIVO.dinero, simbolo)}</p>
                         </div>
                      </div>
-                     
+
                      <div className="space-y-1.5 pt-2">
                         <div className="flex items-center justify-between text-xs text-surface-text">
                            <span className="flex items-center gap-1.5"><CreditCard size={13} className="text-indigo-500"/> Tarjeta / Banco</span>
                            <span className="font-medium">{formatCurrency(resumenZ.desgloseMediosDePago.TARJETA.dinero + resumenZ.desgloseMediosDePago.TRANSFERENCIA.dinero, simbolo)}</span>
                         </div>
+                        {/* Bug 7: mostrar CRÉDITO si hubo ventas con ese método */}
+                        {resumenZ.desgloseMediosDePago.CREDITO?.dinero > 0 && (
+                          <div className="flex items-center justify-between text-xs text-surface-text">
+                            <span className="flex items-center gap-1.5"><Receipt size={13} className="text-purple-500"/> Crédito / Cuenta</span>
+                            <span className="font-medium">{formatCurrency(resumenZ.desgloseMediosDePago.CREDITO.dinero, simbolo)}</span>
+                          </div>
+                        )}
+                        {/* Bug 7: mostrar MIXTO si hubo ventas con ese método */}
+                        {resumenZ.desgloseMediosDePago.MIXTO?.dinero > 0 && (
+                          <div className="flex items-center justify-between text-xs text-surface-text">
+                            <span className="flex items-center gap-1.5"><Shuffle size={13} className="text-orange-500"/> Pago Mixto</span>
+                            <span className="font-medium">{formatCurrency(resumenZ.desgloseMediosDePago.MIXTO.dinero, simbolo)}</span>
+                          </div>
+                        )}
                         {resumenZ.anulaciones.cantidad > 0 && (
                           <div className="flex items-center justify-between text-xs text-red-500">
                              <span className="flex items-center gap-1.5"><FileWarning size={13} /> Anulaciones ({resumenZ.anulaciones.cantidad})</span>
@@ -497,10 +628,23 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre }: Props) {
                     </div>
                   </div>
 
+                  {/* Bug 8: Confirmación antes de liquidar el turno */}
+                  <label className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg cursor-pointer select-none mt-2">
+                    <input
+                      type="checkbox"
+                      checked={confirmCierre}
+                      onChange={(e) => setConfirmCierre(e.target.checked)}
+                      className="mt-0.5 accent-amber-600 w-4 h-4 shrink-0"
+                    />
+                    <span className="text-xs text-amber-800 font-medium leading-relaxed">
+                      Confirmo que ya conté el dinero físico y que esta acción cerrará el turno de forma definitiva.
+                    </span>
+                  </label>
+
                   <button
                     onClick={cerrarCaja}
-                    disabled={loading !== null || !saldoFinal}
-                    className="w-full flex items-center justify-center gap-2 py-3 mt-5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                    disabled={loading !== null || !saldoFinal || !confirmCierre}
+                    className="w-full flex items-center justify-center gap-2 py-3 mt-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <DoorClosed size={16} />}
                     Liquidación de Turno
