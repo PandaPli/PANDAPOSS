@@ -44,7 +44,7 @@ export const authOptions: NextAuthOptions = {
           plan: user.sucursal?.plan ?? "BASICO",
           delivery:     user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.delivery)     : true,
           menuQR:       user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.menuQR)       : true,
-          kioskActivo:  user.sucursal ? user.sucursal.kioskActivo : false,
+          kioskActivo:  user.sucursal ? effectiveFeature(user.sucursal.plan, user.sucursal.kioskActivo) : true,
           cupones:      user.sucursal ? (PLAN_LIMITS[user.sucursal.plan as PlanTipo]?.cupones ?? false)  : true,
           logoUrl:      user.sucursal?.logoUrl ?? null,
         };
@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
           token.simbolo  = suc.simbolo ?? token.simbolo;
           token.delivery    = effectiveFeature(suc.plan, suc.delivery);
           token.menuQR      = effectiveFeature(suc.plan, suc.menuQR);
-          token.kioskActivo = suc.kioskActivo;
+          token.kioskActivo = effectiveFeature(suc.plan, suc.kioskActivo);
           token.cupones     = PLAN_LIMITS[suc.plan as PlanTipo]?.cupones ?? false;
           token.logoUrl     = suc.logoUrl;
         }

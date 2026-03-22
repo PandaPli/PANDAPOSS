@@ -7,6 +7,7 @@ export interface PlanFeatures {
   clientes: number;
   delivery: boolean;
   menuQR: boolean;
+  kiosko: boolean;
   correo: boolean;
   rrhh: boolean;
   propinas: boolean;
@@ -21,6 +22,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     clientes: 100,
     delivery: false,
     menuQR: false,
+    kiosko: false,
     correo: false,
     rrhh: false,
     propinas: false,
@@ -33,6 +35,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     clientes: 200,
     delivery: true,
     menuQR: true,
+    kiosko: true,
     correo: true,
     rrhh: true,
     propinas: false,
@@ -45,6 +48,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     clientes: 1000,
     delivery: true,
     menuQR: true,
+    kiosko: true,
     correo: true,
     rrhh: true,
     propinas: true,
@@ -57,6 +61,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     clientes: 99999,
     delivery: true,
     menuQR: true,
+    kiosko: true,
     correo: true,
     rrhh: true,
     propinas: true,
