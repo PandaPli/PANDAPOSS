@@ -40,11 +40,19 @@ interface LastItem {
   simbolo: string;
 }
 
-export default function VisorClient({ cajaId }: { cajaId: number }) {
+export default function VisorClient({
+  cajaId,
+  logoUrl,
+  sucursalNombreInit = "",
+}: {
+  cajaId: number;
+  logoUrl?: string | null;
+  sucursalNombreInit?: string;
+}) {
   const [visorState, setVisorState]     = useState<VisorState>("idle");
   const [cartData, setCartData]         = useState<CartMsg | null>(null);
   const [successData, setSuccessData]   = useState<SuccessMsg | null>(null);
-  const [sucursalNombre, setSucursalNombre] = useState("");
+  const [sucursalNombre, setSucursalNombre] = useState(sucursalNombreInit);
   const [clock, setClock]               = useState("");
   const [connected, setConnected]       = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -200,7 +208,14 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
   } else if (visorState === "cart" && cartData) {
     screen = <CartScreen data={cartData} sucursalNombre={sucursalNombre} />;
   } else {
-    screen = <IdleScreen clock={clock} sucursalNombre={sucursalNombre} connected={connected} />;
+    screen = (
+      <IdleScreen
+        clock={clock}
+        sucursalNombre={sucursalNombre}
+        connected={connected}
+        logoUrl={logoUrl ?? null}
+      />
+    );
   }
 
   return (
@@ -264,35 +279,68 @@ function IdleScreen({
   clock,
   sucursalNombre,
   connected,
+  logoUrl,
 }: {
   clock: string;
   sucursalNombre: string;
   connected: boolean;
+  logoUrl: string | null;
 }) {
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center gap-8 bg-[#0f172a] select-none overflow-hidden">
+    <div className="flex h-screen w-screen bg-[#0f172a] select-none overflow-hidden">
+      {/* Fondos de luz ambiental */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-purple-600/10 blur-[120px]" />
+        <div className="absolute -top-60 -left-40 h-[600px] w-[600px] rounded-full bg-blue-700/10 blur-[140px]" />
+        <div className="absolute -bottom-60 -right-40 h-[600px] w-[600px] rounded-full bg-purple-700/10 blur-[140px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-blue-600/20 border border-blue-500/30 text-5xl">
-          🐼
-        </div>
-        {sucursalNombre && (
-          <p className="text-2xl font-bold text-white/70 tracking-wide">{sucursalNombre}</p>
-        )}
-        <h1 className="text-6xl font-black text-white tracking-tight">¡Bienvenido!</h1>
-        <p className="text-xl text-white/40 font-medium">En un momento atendemos tu pedido</p>
-        {clock && (
-          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-8 py-4">
-            <span className="text-5xl font-black text-white/70 tabular-nums tracking-widest">{clock}</span>
+      {/* ── Mitad izquierda: LOGO ── */}
+      <div className="relative z-10 flex w-1/2 items-center justify-center border-r border-white/8">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt={sucursalNombre || "Logo"}
+            className="max-h-[55vh] max-w-[80%] object-contain drop-shadow-2xl"
+          />
+        ) : (
+          /* Placeholder si no hay logo: iniciales del nombre */
+          <div className="flex h-56 w-56 items-center justify-center rounded-[2.5rem] bg-white/8 border border-white/12 shadow-2xl">
+            <span className="text-7xl font-black text-white/60 tracking-tight select-none">
+              {sucursalNombre ? sucursalNombre.slice(0, 2).toUpperCase() : "PO"}
+            </span>
           </div>
         )}
       </div>
 
-      <div className="absolute bottom-6 flex items-center gap-2">
+      {/* ── Mitad derecha: BIENVENIDO + HORA ── */}
+      <div className="relative z-10 flex w-1/2 flex-col items-center justify-center gap-8 px-10 text-center">
+        {sucursalNombre && (
+          <p className="text-2xl font-semibold text-white/40 tracking-widest uppercase">
+            {sucursalNombre}
+          </p>
+        )}
+
+        <div className="space-y-3">
+          <h1 className="text-7xl font-black text-white tracking-tight leading-none">
+            ¡Bienvenido!
+          </h1>
+          <p className="text-xl text-white/35 font-medium">
+            En un momento atendemos tu pedido
+          </p>
+        </div>
+
+        {clock && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-10 py-5 mt-2">
+            <span className="text-6xl font-black text-white/75 tabular-nums tracking-widest">
+              {clock}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Indicador de conexión */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
         <span className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`} />
         <span className="text-xs text-white/20 font-medium tracking-widest uppercase">
           {connected ? "PandaPOS" : "Conectando…"}

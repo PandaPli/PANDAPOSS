@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getVisorState, subscribeVisor } from "@/lib/visorBus";
+import { getVisorState, getVisorStateFromDisk, subscribeVisor } from "@/lib/visorBus";
 
 export const dynamic = "force-dynamic";
 
@@ -13,24 +13,41 @@ export async function GET(req: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      // Enviar estado actual inmediatamente (hidratación al reconectar)
+      // Enviar estado actual inmediatamente (hidratación al conectar/reconectar)
       const current = getVisorState(cajaId);
       controller.enqueue(encoder.encode(`data: ${JSON.stringify(current)}\n\n`));
 
-      // Suscribir a actualizaciones en tiempo real
+      let lastSentJson = JSON.stringify(current);
+
+      // Suscribir a actualizaciones del mismo proceso (respuesta inmediata)
       const unsub = subscribeVisor(cajaId, (msg) => {
+        const json = JSON.stringify(msg);
+        lastSentJson = json;
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(msg)}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${json}\n\n`));
         } catch {
-          // Stream cerrado — limpiar listener para no acumular callbacks muertos
           unsub();
+          clearInterval(filePoll);
           clearInterval(heartbeat);
           try { controller.close(); } catch { /* ya cerrado */ }
         }
       });
 
-      // Heartbeat cada 20s — como dato real para que el cliente pueda
-      // detectar si la conexión sigue viva (los comentarios SSE no son detectables)
+      // Poll al disco cada 2 s — detecta cambios de otros workers PM2
+      const filePoll = setInterval(() => {
+        try {
+          const diskState = getVisorStateFromDisk(cajaId);
+          const json = JSON.stringify(diskState);
+          if (json !== lastSentJson) {
+            lastSentJson = json;
+            controller.enqueue(encoder.encode(`data: ${json}\n\n`));
+          }
+        } catch {
+          clearInterval(filePoll);
+        }
+      }, 2_000);
+
+      // Heartbeat cada 20 s — detecta conexiones silenciosamente muertas
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`data: {"type":"heartbeat"}\n\n`));
@@ -41,6 +58,7 @@ export async function GET(req: NextRequest) {
 
       req.signal.addEventListener("abort", () => {
         unsub();
+        clearInterval(filePoll);
         clearInterval(heartbeat);
         try { controller.close(); } catch { /* ya cerrado */ }
       });

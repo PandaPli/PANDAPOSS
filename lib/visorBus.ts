@@ -1,7 +1,15 @@
 /**
- * visorBus — pub/sub en memoria para el display visor del cliente.
- * La clave es cajaId (cada caja tiene su propia pantalla visor).
+ * visorBus — pub/sub para el display visor del cliente.
+ *
+ * Estrategia dual:
+ *  1. In-memory (mismo proceso) → notificación inmediata vía listeners.
+ *  2. Filesystem (/tmp) → estado persistido para que otros workers de PM2
+ *     puedan leerlo cada 2 s vía poll en el SSE endpoint.
  */
+
+import fs   from "fs";
+import os   from "os";
+import path from "path";
 
 export type VisorMsg =
   | { type: "idle"; sucursalNombre?: string }
@@ -26,15 +34,43 @@ export type VisorMsg =
     }
   | { type: "success"; total: number; simbolo: string; sucursalNombre?: string };
 
-const lastState  = new Map<number, VisorMsg>();
-const listeners  = new Map<number, Set<(msg: VisorMsg) => void>>();
+const lastState = new Map<number, VisorMsg>();
+const listeners = new Map<number, Set<(msg: VisorMsg) => void>>();
+
+/** Ruta del archivo de estado para una caja */
+function statePath(cajaId: number): string {
+  return path.join(os.tmpdir(), `pandapos-visor-${cajaId}.json`);
+}
+
+/** Lee el estado desde disco (otro worker pudo haberlo escrito) */
+function readStateFromDisk(cajaId: number): VisorMsg | null {
+  try {
+    const raw = fs.readFileSync(statePath(cajaId), "utf8");
+    return JSON.parse(raw) as VisorMsg;
+  } catch {
+    return null;
+  }
+}
 
 export function getVisorState(cajaId: number): VisorMsg {
-  return lastState.get(cajaId) ?? { type: "idle" };
+  // Preferir memoria; si no hay, leer del disco
+  return lastState.get(cajaId) ?? readStateFromDisk(cajaId) ?? { type: "idle" };
+}
+
+export function getVisorStateFromDisk(cajaId: number): VisorMsg {
+  // Siempre leer del disco (usado por el poll cross-process)
+  return readStateFromDisk(cajaId) ?? lastState.get(cajaId) ?? { type: "idle" };
 }
 
 export function pushVisorState(cajaId: number, msg: VisorMsg): void {
   lastState.set(cajaId, msg);
+
+  // Persistir en disco para sincronizar con otros workers PM2
+  try {
+    fs.writeFileSync(statePath(cajaId), JSON.stringify(msg));
+  } catch { /* silencioso — el poll del cliente compensará */ }
+
+  // Notificar listeners del mismo proceso (respuesta inmediata)
   listeners.get(cajaId)?.forEach((cb) => {
     try { cb(msg); } catch { /* cliente desconectado */ }
   });
