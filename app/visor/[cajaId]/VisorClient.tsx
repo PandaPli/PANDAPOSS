@@ -33,6 +33,13 @@ interface SuccessMsg {
   sucursalNombre?: string;
 }
 
+interface LastItem {
+  nombre: string;
+  cantidad: number;
+  precio: number;
+  simbolo: string;
+}
+
 export default function VisorClient({ cajaId }: { cajaId: number }) {
   const [visorState, setVisorState]     = useState<VisorState>("idle");
   const [cartData, setCartData]         = useState<CartMsg | null>(null);
@@ -41,6 +48,9 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
   const [clock, setClock]               = useState("");
   const [connected, setConnected]       = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [lastItem, setLastItem]         = useState<LastItem | null>(null);
+  const lastItemTimerRef                = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevItemsRef                    = useRef<CartMsg["items"]>([]);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -89,12 +99,45 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
           if (msg.type === "idle") {
             // Cancelar cualquier transición automática de success→idle pendiente
             if (successTimer) { clearTimeout(successTimer); successTimer = null; }
+            prevItemsRef.current = [];
+            setLastItem(null);
             setVisorState("idle");
             setCartData(null);
             setSuccessData(null);
           } else if (msg.type === "cart") {
             // Cancelar el timer de success: el nuevo pedido tiene prioridad
             if (successTimer) { clearTimeout(successTimer); successTimer = null; }
+
+            // Detectar el último ítem agregado/modificado
+            const incoming = (msg as CartMsg).items;
+            const prev = prevItemsRef.current;
+            let detected: LastItem | null = null;
+
+            // Buscar ítem nuevo o con cantidad aumentada
+            for (let i = incoming.length - 1; i >= 0; i--) {
+              const cur = incoming[i];
+              const old = prev.find((p) => p.id === cur.id && p.tipo === cur.tipo);
+              if (!old || cur.cantidad > old.cantidad) {
+                detected = {
+                  nombre:   cur.nombre,
+                  cantidad: cur.cantidad,
+                  precio:   cur.precio,
+                  simbolo:  (msg as CartMsg).simbolo,
+                };
+                break;
+              }
+            }
+            prevItemsRef.current = incoming;
+
+            if (detected) {
+              setLastItem(detected);
+              if (lastItemTimerRef.current) clearTimeout(lastItemTimerRef.current);
+              lastItemTimerRef.current = setTimeout(() => {
+                setLastItem(null);
+                lastItemTimerRef.current = null;
+              }, 3000);
+            }
+
             setCartData(msg as CartMsg);
             setVisorState("cart");
           } else if (msg.type === "success") {
@@ -120,6 +163,7 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
     connect();
     return () => {
       if (successTimer) clearTimeout(successTimer);
+      if (lastItemTimerRef.current) clearTimeout(lastItemTimerRef.current);
       clearTimeout(retryTimeout);
       es?.close();
     };
@@ -138,6 +182,29 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
   return (
     <div className="relative">
       {screen}
+
+      {/* Toast último producto — esquina inferior izquierda */}
+      {lastItem && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-[fade-in_0.25s_ease-out]">
+          <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-[#1e293b]/90 backdrop-blur-md px-6 py-4 shadow-2xl min-w-[280px] max-w-[90vw]">
+            {/* Ícono agregado */}
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-400 text-lg font-black">
+              +
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-white font-bold text-base leading-tight truncate">
+                {lastItem.cantidad > 1 && (
+                  <span className="mr-1.5 text-blue-400 font-black">{lastItem.cantidad}×</span>
+                )}
+                {lastItem.nombre}
+              </span>
+              <span className="text-white/50 text-sm tabular-nums mt-0.5">
+                {formatCurrency(lastItem.precio * lastItem.cantidad, lastItem.simbolo)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Botón pantalla completa — esquina superior derecha */}
       <button
