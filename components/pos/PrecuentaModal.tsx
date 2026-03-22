@@ -12,9 +12,15 @@ interface Props {
   meseroNombre?: string;
   logoUrl?: string | null;
   onClose: () => void;
+  sucursalId?: number | null;
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
-export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose }: Props) {
+export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
   const { items, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc } = useCartStore();
   const printRef = useRef<HTMLDivElement>(null);
 
