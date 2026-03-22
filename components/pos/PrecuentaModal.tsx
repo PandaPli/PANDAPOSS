@@ -11,15 +11,9 @@ interface Props {
   meseroNombre?: string;
   logoUrl?: string | null;
   onClose: () => void;
-  sucursalId?: number | null;
-  sucursalNombre?: string | null;
-  sucursalRut?: string | null;
-  sucursalTelefono?: string | null;
-  sucursalDireccion?: string | null;
-  sucursalGiroComercial?: string | null;
 }
 
-export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose, sucursalId, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
+export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose }: Props) {
   const { items, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc } = useCartStore();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -35,17 +29,20 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
   const fecha = ahora.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
   const hora = ahora.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
-  async function handlePrint() {
-    // ── 1. Construir HTML para fallback (se abre ventana ANTES de cualquier await) ──
+  function handlePrint() {
     const content = printRef.current;
     if (!content) return;
+
+    const printWindow = window.open("", "_blank", "width=320,height=800");
+    if (!printWindow) return;
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
     const html = printableLogoUrl
       ? content.innerHTML.replaceAll('src="__LOGO_URL__"', `src="${printableLogoUrl}"`)
       : content.innerHTML.replaceAll('src="__LOGO_URL__"', 'src=""');
 
-    const fullHtml = `<!DOCTYPE html>
+    printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
@@ -55,100 +52,54 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: 'Courier New', Courier, monospace;
-              font-size: 12px;
-              width: 80mm;
-              padding: 4mm 4mm 10mm 4mm;
+              font-size: 13px;
+              width: 72mm;
+              padding: 4mm 4mm 8mm 4mm;
               color: #000;
               background: #fff;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
-            .logo-wrap { text-align: center; margin-bottom: 5px; }
-            .logo { width: 56px; height: 56px; object-fit: contain; display: block; margin: 0 auto 3px; }
-            .title { text-align: center; font-weight: bold; font-size: 15px; letter-spacing: 1px; }
-            .subtitle { text-align: center; font-size: 11px; }
-            .divider { border: none; border-top: 1px dashed #000; margin: 5px 0; }
-            .row { display: flex; justify-content: space-between; gap: 4px; padding: 2px 0; font-size: 12px; }
+            .logo-wrap { text-align: center; margin-bottom: 6px; }
+            .logo { width: 60px; height: 60px; object-fit: contain; display: block; margin: 0 auto 4px; }
+            .title { text-align: center; font-weight: bold; font-size: 16px; letter-spacing: 1px; }
+            .subtitle { text-align: center; font-size: 12px; }
+            .divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+            .row { display: flex; justify-content: space-between; gap: 4px; padding: 2px 0; font-size: 13px; }
             .item { padding: 3px 0; }
-            .item-name { font-size: 12px; font-weight: bold; }
-            .item-detail { display: flex; justify-content: space-between; font-size: 11px; }
+            .item-name { font-size: 13px; font-weight: bold; }
+            .item-detail { display: flex; justify-content: space-between; font-size: 12px; }
             .item-amount { font-weight: bold; }
-            .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 16px; font-weight: bold; }
-            .suggested-box { margin: 6px 0; border: 1px dashed #000; padding: 5px; text-align: center; }
-            .suggested-label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-            .suggested-total { font-size: 20px; font-weight: bold; margin-top: 2px; }
-            .tip-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; }
-            .warning { text-align: center; padding: 4px; border: 1px dashed #000; margin-top: 6px; }
-            .warning-title { font-weight: bold; font-size: 12px; }
-            .warning-sub { font-size: 10px; }
-            .footer { text-align: center; font-size: 10px; margin-top: 6px; }
-            @media print {
-              html, body { width: 80mm; }
-              body { padding: 2mm 4mm 10mm 4mm; }
-            }
+            .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 18px; font-weight: bold; }
+            .suggested-box { margin: 8px 0; border: 1px dashed #000; padding: 6px; text-align: center; }
+            .suggested-label { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+            .suggested-total { font-size: 24px; font-weight: bold; margin-top: 2px; }
+            .tip-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 13px; }
+            .warning { text-align: center; padding: 5px; border: 1px dashed #000; margin-top: 8px; }
+            .warning-title { font-weight: bold; font-size: 13px; }
+            .warning-sub { font-size: 11px; }
+            .footer { text-align: center; font-size: 10px; margin-top: 8px; }
           </style>
         </head>
-        <body>${html}</body>
-      </html>`;
-
-    // ── 2. Abrir ventana SINCRÓNICAMENTE antes de cualquier await ──────────
-    const pw = window.open("", "_blank", "width=302,height=900");
-    if (pw) {
-      pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}
-      </style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
-      pw.document.close();
-    }
-
-    const now = new Date();
-    const fechaPrint = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const horaPrint  = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-
-    const printPayload = {
-      sucursalId,
-      type: "precuenta" as const,
-      data: {
-        simbolo, mesaNombre, meseroNombre,
-        sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial,
-        items: items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
-        subtotal: sub, descuento, descuentoMonto: desc,
-        ivaPorc, ivaMonto: iva, total: tot,
-        fecha: fechaPrint, hora: horaPrint,
-      },
-    };
-
-    // ── 3. Intentar TCP ESC/POS (/api/print-receipt) ───────────────────────
-    if (sucursalId) {
-      try {
-        const res = await fetch("/api/print-receipt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(printPayload),
-          signal: AbortSignal.timeout(6000),
-        });
-        if (res.ok) { pw?.close(); return; }
-      } catch { /* TCP falló → intentar siguiente */ }
-    }
-
-    // ── 4. Intentar sistema Linux (/print → lp/usb) ────────────────────────
-    try {
-      const res = await fetch("/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(printPayload),
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) { pw?.close(); return; }
-    } catch { /* lp falló → abrir Chrome */ }
-
-    // ── 5. Fallback final: abrir ventana Chrome y disparar print ───────────
-    if (!pw) return;
-    pw.document.write(fullHtml);
-    pw.document.close();
-    pw.onload = () => { pw.focus(); pw.print(); };
-    // fallback por si onload ya disparó antes de asignarlo
-    setTimeout(() => { try { pw.focus(); pw.print(); } catch { /* ya cerró */ } }, 500);
+        <body>
+          ${html}
+          <script>
+            var imgs = document.images;
+            var loaded = 0;
+            function tryPrint() {
+              loaded++;
+              if (loaded >= imgs.length) { window.print(); window.close(); }
+            }
+            if (imgs.length === 0) { window.print(); window.close(); }
+            else { for (var i = 0; i < imgs.length; i++) {
+              if (imgs[i].complete) tryPrint();
+              else { imgs[i].onload = tryPrint; imgs[i].onerror = tryPrint; }
+            }}
+          <\/script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
 
   return (
@@ -163,19 +114,6 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
 
         <div className="max-h-[60vh] overflow-y-auto p-5">
           <div ref={printRef}>
-            {/* Datos legales */}
-            {(sucursalNombre || sucursalGiroComercial || sucursalRut || sucursalDireccion || sucursalTelefono) && (
-              <div style={{ textAlign: "center", fontSize: 11, lineHeight: 1.5, marginBottom: 6 }}>
-                {sucursalNombre && <div style={{ fontWeight: "bold", fontSize: 13 }}>{sucursalNombre}</div>}
-                {sucursalGiroComercial && <div>{sucursalGiroComercial}</div>}
-                {sucursalRut && <div>RUT: {sucursalRut}</div>}
-                {sucursalDireccion && <div>{sucursalDireccion}</div>}
-                {sucursalTelefono && <div>Tel: {sucursalTelefono}</div>}
-              </div>
-            )}
-            {(sucursalNombre || sucursalGiroComercial || sucursalRut || sucursalDireccion || sucursalTelefono) && (
-              <div className="divider" style={{ borderTop: "1px dashed #000", margin: "6px 0" }} />
-            )}
             {/* Encabezado */}
             <div className="logo-wrap" style={{ textAlign: "center", marginBottom: 6 }}>
               {logoUrl ? (

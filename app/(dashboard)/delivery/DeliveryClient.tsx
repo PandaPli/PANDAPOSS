@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, Clock3, MapPin, Package2,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
-  Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star, Printer,
+  Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
@@ -171,124 +171,6 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     } finally { setLoadingPedidoId(null); }
   }
 
-  async function printComanda(pedido: PedidoDelivery) {
-    const fecha = new Date(pedido.creadoEn).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const hora  = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-
-    // ── HTML para fallback Chrome ──────────────────────────────────────────
-    const logoHtml = logoUrl
-      ? `<img src="${logoUrl}" class="logo" alt="Logo" />`
-      : `<div class="logo-placeholder">${sucursalNombre.charAt(0)}</div>`;
-    const itemsHtml = pedido.detalles.map((d) => {
-      const sub = d.precio * d.cantidad;
-      return `<div class="item"><div class="item-left"><span class="qty">${d.cantidad}×</span><span class="nombre">${d.nombre}</span></div><span class="item-precio">${formatCurrency(sub, simbolo)}</span></div>`;
-    }).join("");
-    const envioHtml = pedido.cargoEnvio > 0
-      ? `<div class="envio"><span>Envío</span><span>${formatCurrency(pedido.cargoEnvio, simbolo)}</span></div>`
-      : "";
-    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Comanda #${pedido.id}</title><style>
-      @page{size:80mm auto;margin:0;}*{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:'Courier New',Courier,monospace;width:80mm;padding:4mm 4mm 12mm 4mm;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .logo{display:block;width:56px;height:56px;object-fit:contain;margin:0 auto 5px;}
-      .logo-placeholder{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:10px;background:#111;color:#fff;font-size:26px;font-weight:900;margin:0 auto 5px;}
-      .center{text-align:center;}.llegamos{font-size:20px;font-weight:900;letter-spacing:2px;text-align:center;margin:6px 0 2px;}
-      .subtitulo{font-size:10px;text-align:center;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:8px;}
-      .divider{border:none;border-top:1px dashed #000;margin:6px 0;}
-      .meta{font-size:10px;color:#555;margin-bottom:2px;}.meta span{font-weight:bold;color:#000;}
-      .item{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:12px;border-bottom:1px dotted #ccc;}
-      .item-left{display:flex;gap:5px;flex:1;min-width:0;}.qty{font-weight:900;flex-shrink:0;}.nombre{font-weight:600;}
-      .item-precio{font-weight:700;flex-shrink:0;margin-left:6px;}
-      .envio{display:flex;justify-content:space-between;font-size:11px;color:#555;padding:3px 0;}
-      .total-box{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:5px 8px;border:2px solid #000;font-size:16px;font-weight:900;}
-      .pago{text-align:center;font-size:10px;color:#555;margin-top:5px;}
-      .footer{text-align:center;margin-top:12px;font-size:11px;font-weight:700;letter-spacing:1px;border-top:2px dashed #000;padding-top:8px;}
-      .footer .sub{font-size:10px;font-weight:400;color:#555;margin-top:3px;letter-spacing:0;}
-      @media print{html,body{width:80mm;}}
-    </style></head><body>
-      <div class="center">${logoHtml}</div>
-      <div class="llegamos">¡LLEGAMOS!</div>
-      <div class="subtitulo">Aquí está el resumen de tu compra</div>
-      <hr class="divider"/>
-      <div class="meta">Cliente: <span>${pedido.clienteNombre}</span></div>
-      <div class="meta">Pedido: <span>#${pedido.id}</span> · <span>${fecha} ${hora}</span></div>
-      <div class="meta">Dirección: <span>${pedido.direccionEntrega ?? ""}${pedido.referencia ? " · " + pedido.referencia : ""}</span></div>
-      <hr class="divider"/>
-      <div class="items">${itemsHtml}</div>
-      ${envioHtml}
-      <div class="total-box"><span>TOTAL</span><span>${formatCurrency(pedido.total, simbolo)}</span></div>
-      <div class="pago">Forma de pago: ${pedido.metodoPago}</div>
-      <hr class="divider"/>
-      <div class="footer">¡GRACIAS Y QUE DISFRUTES!<div class="sub">Esperamos verte pronto 🐼</div></div>
-    </body></html>`;
-
-    // ── 1. Abrir ventana sincrónicamente ───────────────────────────────────
-    const pw = window.open("", "_blank", "width=302,height=900");
-    if (pw) {
-      pw.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}</style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
-      pw.document.close();
-    }
-
-    // ── 2. Texto plano para TCP / lp ──────────────────────────────────────
-    const LINE = "================================";
-    const center32 = (s: string) => s.padStart(Math.floor((32 + s.length) / 2)).padEnd(32);
-    const row32 = (l: string, r: string) => l.padEnd(32 - r.length) + r;
-    const itemsText = pedido.detalles.map((d) =>
-      row32(`${d.cantidad}x ${d.nombre}`, formatCurrency(d.precio * d.cantidad, simbolo))
-    ).join("\n");
-    const textContent = [
-      LINE,
-      center32("¡LLEGAMOS!"),
-      center32("Resumen de tu compra"),
-      LINE,
-      `Cliente: ${pedido.clienteNombre}`,
-      `Pedido: #${pedido.id}  ${fecha} ${hora}`,
-      pedido.direccionEntrega ? `Dir: ${pedido.direccionEntrega}` : "",
-      pedido.referencia       ? `Ref: ${pedido.referencia}`       : "",
-      LINE,
-      itemsText,
-      LINE,
-      pedido.cargoEnvio > 0 ? row32("Envio", formatCurrency(pedido.cargoEnvio, simbolo)) : "",
-      row32("TOTAL", formatCurrency(pedido.total, simbolo)),
-      LINE,
-      `Pago: ${pedido.metodoPago}`,
-      LINE,
-      center32("¡GRACIAS Y QUE DISFRUTES!"),
-      center32("Esperamos verte pronto"),
-      LINE,
-    ].filter(Boolean).join("\n") + "\n";
-
-    // ── 3. Intentar TCP ESC/POS ────────────────────────────────────────────
-    if (sucursalId) {
-      try {
-        const res = await fetch("/api/print", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sucursalId, content: textContent }),
-          signal: AbortSignal.timeout(6000),
-        });
-        if (res.ok) { pw?.close(); return; }
-      } catch { /* TCP falló → siguiente */ }
-    }
-
-    // ── 4. Intentar lp / USB Linux ────────────────────────────────────────
-    try {
-      const res = await fetch("/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sucursalId, content: textContent }),
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) { pw?.close(); return; }
-    } catch { /* lp falló → Chrome */ }
-
-    // ── 5. Fallback Chrome ────────────────────────────────────────────────
-    if (!pw) return;
-    pw.document.write(fullHtml);
-    pw.document.close();
-    pw.onload = () => { pw.focus(); pw.print(); };
-    setTimeout(() => { try { pw.focus(); pw.print(); } catch { /* cerrado */ } }, 500);
-  }
-
   function renderPedidoCard(pedido: PedidoDelivery) {
     const loading = loadingPedidoId === pedido.id;
     const style = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
@@ -313,13 +195,6 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             <div className="rounded-xl bg-surface-bg px-3 py-1">
               <span className="text-sm font-black text-surface-text">{formatCurrency(pedido.total)}</span>
             </div>
-            <button
-              onClick={() => printComanda(pedido)}
-              title="Imprimir comanda para bolsa"
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-100 text-stone-500 transition hover:bg-stone-200 hover:text-stone-800 active:scale-95"
-            >
-              <Printer size={14} />
-            </button>
           </div>
         </div>
 

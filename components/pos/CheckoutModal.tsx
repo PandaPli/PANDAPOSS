@@ -181,32 +181,20 @@ export function CheckoutModal({
     onSuccess();
   }
 
-  async function handleImprimirBoleta() {
+  function handleImprimirBoleta() {
     if (!completedSale) return;
 
     const now = new Date();
     const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
     const hora = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
-    // ── Abrir ventana SINCRÓNICAMENTE antes de cualquier await ────────────
-    const printWindow = window.open("", "_blank", "width=302,height=900");
-    if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Courier New',monospace;background:#fff;display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-size:13px;}
-      </style></head><body><div style="text-align:center"><div style="font-size:22px;margin-bottom:8px;">🖨️</div>Enviando a impresora…</div></body></html>`);
-      printWindow.document.close();
+    const printWindow = window.open("", "_blank", "width=360,height=820");
+    if (!printWindow) {
+      finalizeFlow();
+      return;
     }
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
-
-    const legalLines = [
-      sucursalNombre ? `<div style="font-weight:bold;font-size:12px;">${sucursalNombre}</div>` : "",
-      sucursalGiroComercial ? `<div>${sucursalGiroComercial}</div>` : "",
-      sucursalRut ? `<div>RUT: ${sucursalRut}</div>` : "",
-      sucursalDireccion ? `<div>${sucursalDireccion}</div>` : "",
-      sucursalTelefono ? `<div>Tel: ${sucursalTelefono}</div>` : "",
-    ].filter(Boolean).join("");
 
     const pagosHtml = completedSale.pagos
       .map((pago) => {
@@ -223,8 +211,8 @@ export function CheckoutModal({
       .map(
         (item, index) => `
         <div class="item" style="${index < completedSale.items.length - 1 ? "border-bottom:1px dotted #eee;" : ""}">
-          <div style="display:flex;justify-content:space-between;gap:4px;font-size:12px;font-weight:bold;"><span style="flex:1;">${item.nombre}</span></div>
-          <div style="display:flex;justify-content:space-between;gap:4px;font-size:11px;color:#444;margin-top:2px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="flex:1;">${item.nombre}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#666;margin-top:2px;">
             <span>${item.cantidad} x ${formatCurrency(item.precio, simbolo)}</span>
             <span style="font-weight:bold;color:#000;">${formatCurrency(item.precio * item.cantidad, simbolo)}</span>
           </div>
@@ -236,7 +224,6 @@ export function CheckoutModal({
 
     const html = `
       <div class="ticket">
-        ${legalLines ? `<div style="text-align:center;font-size:11px;margin-bottom:6px;line-height:1.5;">${legalLines}</div><div class="divider"></div>` : ""}
         <div class="logo-wrap">
           ${printableLogoUrl ? `<img src="${printableLogoUrl}" alt="Logo" class="logo" />` : ""}
           <p class="title">Boleta</p>
@@ -282,80 +269,28 @@ export function CheckoutModal({
         <div class="document-note">Documento no fiscal</div>
       </div>`;
 
-    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boleta</title><style>
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       @page{size:80mm auto;margin:0;}
-      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm 4mm 12mm 4mm;color:#111;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .ticket{width:100%;}.logo-wrap{text-align:center;margin-bottom:6px;}
-      .logo{width:56px;height:56px;object-fit:contain;display:block;margin:0 auto 4px;}
-      .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#555;}
-      .divider{border:none;border-top:1px dashed #000;margin:5px 0;}.divider-tight{margin:4px 0;}
-      .section-block{font-size:12px;}.section-title{text-align:center;font-size:10px;font-weight:bold;color:#444;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;}
-      .row{display:flex;justify-content:space-between;gap:4px;padding:2px 0;font-size:12px;}.row-green{color:#059669;}
-      .item{padding:3px 0;}.total-box{margin-top:5px;border:1px dashed #000;padding:6px;}
-      .total-row{display:flex;justify-content:space-between;gap:4px;font-size:16px;font-weight:bold;color:#000;}
-      .footer-note{margin-top:10px;text-align:center;font-size:11px;color:#222;}
-      .document-note{margin-top:3px;text-align:center;font-size:10px;color:#555;}
-      .suggested-box{margin:5px 0;border:1px dashed #000;padding:5px;text-align:center;}
+      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
+      .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
+      .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
+      .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}
+      .divider{border-top:1px dashed #ccc;margin:8px 0;}.divider-tight{margin:6px 0;}
+      .section-block{font-size:12px;}.section-title{text-align:center;font-size:11px;font-weight:bold;color:#444;margin-bottom:6px;text-transform:uppercase;}
+      .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}.row-green{color:#059669;}
+      .item{padding:4px 0;}.total-box{margin-top:6px;border:1px dashed #2563eb;border-radius:8px;padding:8px;background:#eff6ff;}
+      .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
+      .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
+      .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
+      .suggested-box{margin:6px 0;border:1px dashed #000;padding:6px;text-align:center;}
       .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
-      .suggested-total{font-size:20px;font-weight:bold;margin-top:2px;}
-      @media print{html,body{width:80mm;}}
-    </style></head><body>${html}</body></html>`;
-
-    const printPayload = {
-      sucursalId,
-      type: "boleta" as const,
-      data: {
-        simbolo,
-        ventaId: completedSale.ventaId,
-        mesaLabel: completedSale.mesaLabel,
-        grupoNombre: completedSale.grupoNombre,
-        meseroNombre,
-        sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial,
-        items: completedSale.items,
-        subtotal: completedSale.subtotal,
-        descuentoMonto: completedSale.descuentoMonto,
-        descuentoPorcentaje: completedSale.descuentoPorcentaje,
-        impuestoMonto: completedSale.impuestoMonto,
-        impuestoPorcentaje: completedSale.impuestoPorcentaje,
-        total: completedSale.total,
-        pagos: completedSale.pagos,
-        vuelto: vueltoFinal,
-        fecha,
-        hora,
-      },
-    };
-
-    // ── 1. Intentar TCP ESC/POS (/api/print-receipt) ───────────────────────
-    if (sucursalId) {
-      try {
-        const res = await fetch("/api/print-receipt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(printPayload),
-          signal: AbortSignal.timeout(6000),
-        });
-        if (res.ok) { printWindow?.close(); finalizeFlow(); return; }
-      } catch { /* TCP falló → intentar siguiente */ }
-    }
-
-    // ── 2. Intentar sistema Linux (/print → lp/usb) ────────────────────────
-    try {
-      const res = await fetch("/print", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(printPayload),
-        signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) { printWindow?.close(); finalizeFlow(); return; }
-    } catch { /* lp falló → abrir Chrome */ }
-
-    // ── 3. Fallback final: mostrar ventana Chrome y disparar print ─────────
-    if (!printWindow) { finalizeFlow(); return; }
-    printWindow.document.write(fullHtml);
+      .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
+    </style></head><body>${html}</body></html>`);
     printWindow.document.close();
-    printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
-    setTimeout(() => { try { printWindow.focus(); printWindow.print(); } catch { /* ya cerró */ } }, 500);
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
 
     finalizeFlow();
   }
