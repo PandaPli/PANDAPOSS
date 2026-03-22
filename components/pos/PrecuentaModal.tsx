@@ -55,40 +55,44 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: 'Courier New', Courier, monospace;
-              font-size: 13px;
-              width: 72mm;
-              padding: 4mm 4mm 8mm 4mm;
+              font-size: 12px;
+              width: 80mm;
+              padding: 4mm 4mm 10mm 4mm;
               color: #000;
               background: #fff;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
-            .logo-wrap { text-align: center; margin-bottom: 6px; }
-            .logo { width: 60px; height: 60px; object-fit: contain; display: block; margin: 0 auto 4px; }
-            .title { text-align: center; font-weight: bold; font-size: 16px; letter-spacing: 1px; }
-            .subtitle { text-align: center; font-size: 12px; }
-            .divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
-            .row { display: flex; justify-content: space-between; gap: 4px; padding: 2px 0; font-size: 13px; }
+            .logo-wrap { text-align: center; margin-bottom: 5px; }
+            .logo { width: 56px; height: 56px; object-fit: contain; display: block; margin: 0 auto 3px; }
+            .title { text-align: center; font-weight: bold; font-size: 15px; letter-spacing: 1px; }
+            .subtitle { text-align: center; font-size: 11px; }
+            .divider { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+            .row { display: flex; justify-content: space-between; gap: 4px; padding: 2px 0; font-size: 12px; }
             .item { padding: 3px 0; }
-            .item-name { font-size: 13px; font-weight: bold; }
-            .item-detail { display: flex; justify-content: space-between; font-size: 12px; }
+            .item-name { font-size: 12px; font-weight: bold; }
+            .item-detail { display: flex; justify-content: space-between; font-size: 11px; }
             .item-amount { font-weight: bold; }
-            .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 18px; font-weight: bold; }
-            .suggested-box { margin: 8px 0; border: 1px dashed #000; padding: 6px; text-align: center; }
-            .suggested-label { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-            .suggested-total { font-size: 24px; font-weight: bold; margin-top: 2px; }
-            .tip-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 13px; }
-            .warning { text-align: center; padding: 5px; border: 1px dashed #000; margin-top: 8px; }
-            .warning-title { font-weight: bold; font-size: 13px; }
-            .warning-sub { font-size: 11px; }
-            .footer { text-align: center; font-size: 10px; margin-top: 8px; }
+            .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 16px; font-weight: bold; }
+            .suggested-box { margin: 6px 0; border: 1px dashed #000; padding: 5px; text-align: center; }
+            .suggested-label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+            .suggested-total { font-size: 20px; font-weight: bold; margin-top: 2px; }
+            .tip-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; }
+            .warning { text-align: center; padding: 4px; border: 1px dashed #000; margin-top: 6px; }
+            .warning-title { font-weight: bold; font-size: 12px; }
+            .warning-sub { font-size: 10px; }
+            .footer { text-align: center; font-size: 10px; margin-top: 6px; }
+            @media print {
+              html, body { width: 80mm; }
+              body { padding: 2mm 4mm 10mm 4mm; }
+            }
           </style>
         </head>
         <body>${html}</body>
       </html>`;
 
     // ── 2. Abrir ventana SINCRÓNICAMENTE antes de cualquier await ──────────
-    const pw = window.open("", "_blank", "width=320,height=800");
+    const pw = window.open("", "_blank", "width=302,height=900");
 
     const now = new Date();
     const fechaPrint = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
