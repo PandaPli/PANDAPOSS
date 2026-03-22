@@ -74,8 +74,9 @@ async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: nu
   // M2: SELECT FOR UPDATE bloquea la fila — la segunda transacción concurrente
   // espera a que la primera haga commit/rollback antes de leer.
   // Así se elimina la race condition de doble cobro de mesa.
+  // La FK está en ventas.pedidoId (no en pedidos). LEFT JOIN para detectar si ya fue cobrado.
   const rows = await tx.$queryRaw<{ id: number; estado: string; ventaId: number | null }[]>(
-    Prisma.sql`SELECT id, estado, venta_id AS ventaId FROM pedidos WHERE id = ${pedidoId} LIMIT 1 FOR UPDATE`
+    Prisma.sql`SELECT p.id, p.estado, v.id AS ventaId FROM pedidos p LEFT JOIN ventas v ON v.pedidoId = p.id WHERE p.id = ${pedidoId} LIMIT 1 FOR UPDATE`
   );
 
   const pedido = rows[0];
