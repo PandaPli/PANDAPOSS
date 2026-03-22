@@ -464,9 +464,9 @@ export function NuevaVentaClient({
       <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
       <div class="items">${itemsHtml}</div>
       <div class="footer">— PandaPoss —</div>
-      <script>window.onload=function(){window.print();window.close();}<\/script>
     </body></html>`);
     pw.document.close();
+    setTimeout(() => { pw.focus(); pw.print(); }, 400);
   }
 
   function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {

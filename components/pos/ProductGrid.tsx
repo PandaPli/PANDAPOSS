@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, Package, Plus } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Search, Package, Plus, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency, normalize } from "@/lib/utils";
 import type { ProductoCard } from "@/types";
@@ -11,10 +11,38 @@ interface Props {
   simbolo?: string;
 }
 
+interface ToastItem {
+  producto: ProductoCard;
+  qty: number;
+  key: number;
+}
+
 export function ProductGrid({ productos, simbolo = "$" }: Props) {
   const [search, setSearch] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
   const addItem = useCartStore((s) => s.addItem);
+
+  // Toast del último producto agregado
+  const [toast, setToast] = useState<ToastItem | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      // Forzar re-paint antes de activar la transición de entrada
+      requestAnimationFrame(() => setToastVisible(true));
+      // Iniciar cuenta regresiva de salida
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setToastVisible(false);
+        // Esperar que termine la animación de salida antes de desmontar
+        setTimeout(() => setToast(null), 300);
+      }, 2500);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [toast]);
 
   const categorias = useMemo(() => {
     const map = new Map<number, string>();
@@ -48,6 +76,13 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
       precio: p.precio,
       imagen: p.imagen ?? undefined,
     });
+    // Leer la cantidad actualizada del store (addItem es síncrono)
+    const storeItems = useCartStore.getState().items;
+    const found = storeItems.find((i) => i.id === p.id && i.tipo === "producto" && !i.guardado);
+    const qty = found?.cantidad ?? 1;
+
+    setToastVisible(false);
+    setToast({ producto: p, qty, key: Date.now() });
   }
 
   return (
@@ -150,6 +185,51 @@ export function ProductGrid({ productos, simbolo = "$" }: Props) {
           </div>
         )}
       </div>
+
+      {/* Toast — último producto agregado */}
+      {toast && (
+        <div
+          className="pointer-events-none fixed bottom-6 left-6 z-[200] flex items-center gap-3 rounded-2xl border-2 border-brand-400 bg-white px-4 py-3 shadow-2xl"
+          style={{
+            transition: "opacity 250ms ease, transform 250ms ease",
+            opacity: toastVisible ? 1 : 0,
+            transform: toastVisible ? "translateY(0)" : "translateY(12px)",
+          }}
+        >
+          {/* Imagen del producto */}
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-surface-bg border border-surface-border">
+            {toast.producto.imagen ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={toast.producto.imagen}
+                alt={toast.producto.nombre}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Package size={20} className="text-surface-muted opacity-30" />
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="min-w-0 max-w-[180px]">
+            <p className="truncate text-sm font-bold text-surface-text">{toast.producto.nombre}</p>
+            <p className="text-xs font-semibold text-brand-500">{formatCurrency(toast.producto.precio, simbolo)}</p>
+            {toast.producto.categoria && (
+              <p className="text-[10px] text-surface-muted">{toast.producto.categoria.nombre}</p>
+            )}
+          </div>
+
+          {/* Badge cantidad */}
+          <div className="flex shrink-0 flex-col items-center gap-0.5 ml-1">
+            <ShoppingCart size={12} className="text-brand-400" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-sm font-black text-white shadow">
+              {toast.qty}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

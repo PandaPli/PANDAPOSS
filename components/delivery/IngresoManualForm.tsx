@@ -292,9 +292,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       <p style="font-size:11px;color:#555;">📍 ${direccion}${referencia ? ` · ${referencia}` : ""}</p>
       <p style="font-size:11px;color:#555;margin-top:3px;">📞 ${phone}</p>
       <div class="footer">— PandaPoss Delivery —</div>
-      <script>window.onload=function(){window.print();window.close();};<\/script>
     </body></html>`);
     pw.document.close();
+    setTimeout(() => { pw.focus(); pw.print(); }, 400);
   }
 
   /* ── Render ── */

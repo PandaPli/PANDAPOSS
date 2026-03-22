@@ -83,23 +83,24 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
         </head>
         <body>
           ${html}
-          <script>
-            var imgs = document.images;
-            var loaded = 0;
-            function tryPrint() {
-              loaded++;
-              if (loaded >= imgs.length) { window.print(); window.close(); }
-            }
-            if (imgs.length === 0) { window.print(); window.close(); }
-            else { for (var i = 0; i < imgs.length; i++) {
-              if (imgs[i].complete) tryPrint();
-              else { imgs[i].onload = tryPrint; imgs[i].onerror = tryPrint; }
-            }}
-          <\/script>
         </body>
       </html>
     `);
     printWindow.document.close();
+    var imgs = printWindow.document.images;
+    if (imgs.length === 0) {
+      setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
+    } else {
+      var loaded = 0;
+      var tryPrint = function() {
+        loaded++;
+        if (loaded >= imgs.length) { printWindow.focus(); printWindow.print(); }
+      };
+      for (var i = 0; i < imgs.length; i++) {
+        if ((imgs[i] as HTMLImageElement).complete) tryPrint();
+        else { (imgs[i] as HTMLImageElement).onload = tryPrint; (imgs[i] as HTMLImageElement).onerror = tryPrint; }
+      }
+    }
   }
 
   return (

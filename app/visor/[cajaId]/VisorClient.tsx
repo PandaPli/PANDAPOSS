@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { formatCurrency } from "@/lib/utils";
 import type { VisorMsg } from "@/lib/visorBus";
 
@@ -49,6 +49,7 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
   const [connected, setConnected]       = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastItem, setLastItem]         = useState<LastItem | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
   const lastItemTimerRef                = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevItemsRef                    = useRef<CartMsg["items"]>([]);
 
@@ -147,10 +148,13 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
             prevItemsRef.current = incoming;
 
             if (detected) {
+              setToastVisible(false);
               setLastItem(detected);
+              requestAnimationFrame(() => setToastVisible(true));
               if (lastItemTimerRef.current) clearTimeout(lastItemTimerRef.current);
               lastItemTimerRef.current = setTimeout(() => {
-                setLastItem(null);
+                setToastVisible(false);
+                setTimeout(() => { setLastItem(null); }, 300);
                 lastItemTimerRef.current = null;
               }, 3000);
             }
@@ -203,25 +207,31 @@ export default function VisorClient({ cajaId }: { cajaId: number }) {
     <div className="relative">
       {screen}
 
-      {/* Toast último producto — esquina inferior izquierda */}
+      {/* Toast último producto agregado — centro inferior */}
       {lastItem && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-[fade-in_0.25s_ease-out]">
-          <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-[#1e293b]/90 backdrop-blur-md px-6 py-4 shadow-2xl min-w-[280px] max-w-[90vw]">
-            {/* Ícono agregado */}
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-400 text-lg font-black">
-              +
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white font-bold text-base leading-tight break-words">
-                {lastItem.cantidad > 1 && (
-                  <span className="mr-1.5 text-blue-400 font-black">{lastItem.cantidad}×</span>
-                )}
-                {lastItem.nombre}
-              </span>
-              <span className="text-white/50 text-sm tabular-nums mt-0.5">
-                {formatCurrency(lastItem.precio * lastItem.cantidad, lastItem.simbolo)}
-              </span>
-            </div>
+        <div
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-2xl border border-white/15 bg-[#1e293b]/95 backdrop-blur-md px-6 py-4 shadow-2xl min-w-[320px] max-w-[90vw]"
+          style={{
+            transition: "opacity 250ms ease, transform 250ms ease",
+            opacity: toastVisible ? 1 : 0,
+            transform: toastVisible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(16px)",
+          }}
+        >
+          {/* Badge "Agregado" */}
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-400 text-2xl font-black">
+            +
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-0.5">Agregado</span>
+            <span className="text-white font-bold text-lg leading-tight break-words">
+              {lastItem.cantidad > 1 && (
+                <span className="mr-1.5 text-blue-400 font-black">{lastItem.cantidad}×</span>
+              )}
+              {lastItem.nombre}
+            </span>
+            <span className="text-blue-300 text-sm tabular-nums font-semibold mt-0.5">
+              {formatCurrency(lastItem.precio * lastItem.cantidad, lastItem.simbolo)}
+            </span>
           </div>
         </div>
       )}
@@ -311,7 +321,7 @@ function CartScreen({ data, sucursalNombre }: { data: CartMsg; sucursalNombre: s
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-        {data.items.map((item, idx) => (
+        {[...data.items].reverse().map((item, idx) => (
           <div
             key={`${item.id}-${idx}`}
             className="flex items-start gap-4 rounded-2xl border border-white/8 bg-white/5 px-5 py-4"

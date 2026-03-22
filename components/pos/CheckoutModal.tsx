@@ -288,9 +288,7 @@ export function CheckoutModal({
       .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
     </style></head><body>${html}</body></html>`);
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
 
     finalizeFlow();
   }
