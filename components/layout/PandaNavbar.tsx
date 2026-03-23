@@ -29,6 +29,7 @@ import {
   Users,
   UtensilsCrossed,
   Wallet,
+  X,
 } from "lucide-react";
 import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
@@ -219,75 +220,80 @@ export function PandaNavbar() {
         <AnimatePresence>
           {showApps && (
             <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95, y: -5 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute left-0 top-[48px] z-50 w-[420px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[28px] border border-white/60 bg-white/95 shadow-elevated backdrop-blur-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="fixed inset-0 top-[52px] z-50 flex flex-col bg-white/98 backdrop-blur-xl"
             >
-              <div className="border-b border-surface-border bg-gradient-to-br from-white via-slate-50 to-brand-50/40 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-500">Apps PandaPoss</p>
-                    <h2 className="mt-1 text-lg font-bold text-surface-text">Accesos por contexto</h2>
-                    <p className="mt-1 text-xs text-surface-muted">Primero lo esencial, despues gestion y configuracion.</p>
+              {/* Header */}
+              <div className="border-b border-surface-border bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 px-6 py-4">
+                <div className="mx-auto flex max-w-6xl items-center gap-6">
+                  <div className="flex-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-200">Apps PandaPoss</p>
+                    <h2 className="mt-0.5 text-xl font-bold text-white">¿A dónde vas?</h2>
                   </div>
-                  {current ? (
-                    <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-surface-muted shadow-sm">
-                      En {current.label}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="relative mt-4">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
-                  <input
-                    type="text"
-                    placeholder="Buscar modulo..."
-                    value={searchApp}
-                    onChange={(event) => setSearchApp(event.target.value)}
-                    className="w-full rounded-2xl border border-white/70 bg-white px-3 py-2 pl-9 text-sm shadow-sm outline-none transition-all focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                    autoFocus
-                  />
+                  <div className="relative w-64">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+                    <input
+                      type="text"
+                      placeholder="Buscar módulo..."
+                      value={searchApp}
+                      onChange={(e) => setSearchApp(e.target.value)}
+                      className="w-full rounded-2xl border border-white/20 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowApps(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
               </div>
 
-              <div className="max-h-[68vh] space-y-5 overflow-y-auto p-4">
-                {featured.length > 0 && (
-                  <section>
-                    <div className="mb-3">
-                      <h3 className="text-sm font-semibold text-surface-text">Accesos principales</h3>
-                      <p className="text-xs text-surface-muted">Lo que mas se usa al abrir el sistema.</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {featured.map((mod) => renderModuleCard(mod, "featured"))}
-                    </div>
-                  </section>
-                )}
+              {/* Grid de apps */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="mx-auto max-w-6xl px-6 py-8 space-y-10">
 
-                {grouped.map(({ category, meta, items }) =>
-                  items.length > 0 ? (
-                    <section key={category}>
-                      <div className="mb-3 flex items-end justify-between gap-4">
-                        <div>
-                          <h3 className="text-sm font-semibold text-surface-text">{meta.title}</h3>
-                          <p className="text-xs text-surface-muted">{meta.subtitle}</p>
-                        </div>
-                        <span className="text-[11px] font-medium text-surface-muted">{items.length} modulo{items.length !== 1 ? "s" : ""}</span>
+                  {filtered.length === 0 && (
+                    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-surface-border bg-slate-50 text-center">
+                      <Search size={28} className="text-surface-muted" />
+                      <p className="mt-3 text-sm font-semibold text-surface-text">No encontramos ese módulo</p>
+                      <p className="mt-1 text-xs text-surface-muted">Prueba con otra palabra clave.</p>
+                    </div>
+                  )}
+
+                  {featured.length > 0 && (
+                    <section>
+                      <div className="mb-4 flex items-center gap-3">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">Accesos principales</h3>
+                        <div className="h-px flex-1 bg-surface-border" />
                       </div>
-                      <div className="grid grid-cols-3 gap-2.5">
-                        {items.map((mod) => renderModuleCard(mod, "compact"))}
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                        {featured.map((mod) => renderModuleCard(mod, "featured"))}
                       </div>
                     </section>
-                  ) : null
-                )}
+                  )}
 
-                {filtered.length === 0 && (
-                  <div className="flex min-h-[180px] flex-col items-center justify-center rounded-3xl border border-dashed border-surface-border bg-slate-50 px-6 text-center">
-                    <Search size={22} className="text-surface-muted" />
-                    <p className="mt-3 text-sm font-semibold text-surface-text">No encontramos ese modulo</p>
-                    <p className="mt-1 text-xs text-surface-muted">Prueba con otra palabra clave o revisa tus permisos actuales.</p>
-                  </div>
-                )}
+                  {grouped.map(({ category, meta, items }) =>
+                    items.length > 0 ? (
+                      <section key={category}>
+                        <div className="mb-4 flex items-center gap-3">
+                          <div>
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">{meta.title}</h3>
+                          </div>
+                          <div className="h-px flex-1 bg-surface-border" />
+                          <span className="text-[11px] font-medium text-surface-muted">{items.length} módulo{items.length !== 1 ? "s" : ""}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                          {items.map((mod) => renderModuleCard(mod, "compact"))}
+                        </div>
+                      </section>
+                    ) : null
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
