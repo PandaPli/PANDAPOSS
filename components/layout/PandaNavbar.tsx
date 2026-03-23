@@ -155,10 +155,10 @@ function AppIconCard({ mod, active, locked, onClick, sortable, dragRef, dragStyl
       </div>
       {/* Etiqueta */}
       <p className={cn(
-        "w-[88px] text-center text-[11px] font-semibold leading-tight",
-        locked ? "text-white/50" : active ? "text-white font-bold" : "text-white/90"
+        "w-[88px] text-center text-[12px] font-bold leading-tight drop-shadow-sm",
+        locked ? "text-slate-400" : active ? "text-violet-900" : "text-slate-700"
       )}>{mod.label}</p>
-      {sortable && <GripVertical size={11} className="text-white/40" />}
+      {sortable && <GripVertical size={11} className="text-slate-400" />}
     </div>
   );
 
@@ -490,7 +490,7 @@ export function PandaNavbar() {
                       <section key={cat}>
                         {/* Separador de sección */}
                         <div className="mb-5 flex items-center gap-3">
-                          <span className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-violet-800/50">
+                          <span className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-slate-500">
                             {categoryMeta[cat].title}
                           </span>
                           <div className="h-px flex-1 bg-violet-200/50" />
