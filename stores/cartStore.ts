@@ -76,12 +76,21 @@ export const useCartStore = create<CartState>((set, get) => ({
       // Si ya fue guardado, se agrega como entrada nueva (no-guardado) para que
       // handleOrden lo detecte como ítem nuevo y genere un segundo pedido en KDS.
       const existing = state.items.find(
-        (i) => i.id === item.id && i.tipo === item.tipo && !i.cancelado && !i.guardado
+        (i) =>
+          i.id === item.id &&
+          i.tipo === item.tipo &&
+          !i.cancelado &&
+          !i.guardado &&
+          (i.grupo ?? null) === (item.grupo ?? null) // Respetar grupo/cuenta
       );
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.id === item.id && i.tipo === item.tipo && !i.cancelado && !i.guardado
+            i.id === item.id &&
+            i.tipo === item.tipo &&
+            !i.cancelado &&
+            !i.guardado &&
+            (i.grupo ?? null) === (item.grupo ?? null)
               ? { ...i, cantidad: i.cantidad + (item.cantidad ?? 1) }
               : i
           ),

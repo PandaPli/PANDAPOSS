@@ -72,6 +72,9 @@ export function NuevaVentaClient({
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
+  /* ── Cuentas por mesa ── */
+  const [activeCuenta, setActiveCuenta] = useState<string | null>(null);
+
   const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc } = useCartStore();
 
   /* ── Cliente (opcional, por defecto CLIENTE EN MESÓN) ── */
@@ -111,6 +114,14 @@ export function NuevaVentaClient({
     items: CartItem[];
   } | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
+
+  const CUENTA_LETRAS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+  const cuentasUsadas = useMemo(() => {
+    const s = new Set<string>();
+    items.forEach((i) => { if (i.grupo) s.add(i.grupo); });
+    return CUENTA_LETRAS.filter((l) => s.has(l));
+  }, [items]);
+  const siguienteCuenta = CUENTA_LETRAS.find((l) => !cuentasUsadas.includes(l)) ?? null;
 
   // ── Visor de cliente ─────────────────────────────────────────────────────
   const lastTotalRef = useRef<number>(0);
@@ -628,6 +639,68 @@ export function NuevaVentaClient({
         </div>
       )}
 
+      {/* ── Cuentas por mesa — solo cuando hay mesaId ── */}
+      {mesaId && (
+        <div className="flex flex-shrink-0 items-center gap-1.5 overflow-x-auto border-b border-surface-border bg-gradient-to-r from-brand-50 to-violet-50 px-3 py-2 scrollbar-hide">
+          {/* Ícono */}
+          <span className="shrink-0 text-xs font-bold text-brand-700 mr-0.5">🪑</span>
+
+          {/* Tab: Sin cuenta */}
+          <button
+            onClick={() => setActiveCuenta(null)}
+            className={cn(
+              "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-all",
+              !activeCuenta
+                ? "bg-brand-500 text-white shadow-sm"
+                : "border border-surface-border bg-white text-surface-muted hover:bg-white hover:text-brand-600"
+            )}
+          >
+            Mesa completa
+          </button>
+
+          {/* Tabs de cuentas existentes */}
+          {cuentasUsadas.map((cuenta) => {
+            const colores = [
+              "bg-violet-500", "bg-emerald-500", "bg-orange-500",
+              "bg-rose-500", "bg-cyan-500", "bg-amber-500", "bg-indigo-500", "bg-pink-500",
+            ];
+            const colorIdx = CUENTA_LETRAS.indexOf(cuenta);
+            const colorActivo = colores[colorIdx % colores.length];
+            return (
+              <button
+                key={cuenta}
+                onClick={() => setActiveCuenta(cuenta)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-all",
+                  activeCuenta === cuenta
+                    ? `${colorActivo} text-white shadow-sm`
+                    : "border border-surface-border bg-white text-surface-muted hover:bg-white hover:text-brand-600"
+                )}
+              >
+                Cuenta {cuenta}
+              </button>
+            );
+          })}
+
+          {/* Botón agregar cuenta */}
+          {siguienteCuenta && (
+            <button
+              onClick={() => setActiveCuenta(siguienteCuenta)}
+              className="shrink-0 rounded-full border border-dashed border-brand-300 bg-white px-3 py-1.5 text-xs font-bold text-brand-500 transition-all hover:border-brand-500 hover:bg-brand-50"
+            >
+              + Cuenta {siguienteCuenta}
+            </button>
+          )}
+
+          {/* Indicador activo */}
+          {activeCuenta && (
+            <span className="ml-auto shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-[11px] font-bold text-brand-700">
+              ➕ agregando a Cuenta {activeCuenta}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-shrink-0 border-b border-surface-border bg-white md:hidden">
         <button
           onClick={() => setMobileTab("menu")}
@@ -658,7 +731,7 @@ export function NuevaVentaClient({
 
       <div className="flex flex-1 overflow-hidden">
         <div className={cn("flex-1 overflow-hidden p-3 sm:p-4", mobileTab === "carrito" ? "hidden md:block" : "block")}>
-          <ProductGrid productos={productosFiltrados} simbolo={simbolo} />
+          <ProductGrid productos={productosFiltrados} simbolo={simbolo} activeCuenta={activeCuenta} />
         </div>
 
         <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>

@@ -48,6 +48,8 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
 
   const [dirtyObs, setDirtyObs] = useState<Record<string, string>>({});
   const [modoGrupos, setModoGrupos] = useState(false);
+  // Auto-activar modo cuentas cuando hay ítems con grupo asignado
+  const hayCuentas = items.some((i) => i.grupo && !i.cancelado && !i.pagado);
   const [splitDialog, setSplitDialog] = useState<SplitState | null>(null);
 
   const sub  = subtotal();
@@ -300,7 +302,8 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   };
 
   // Ítems sin grupo asignado
-  const itemsSinGrupo = modoGrupos
+  const modoCuentas = modoGrupos || hayCuentas;
+  const itemsSinGrupo = modoCuentas
     ? items.filter((i) => !i.grupo && !i.cancelado && !i.pagado)
     : [];
 
@@ -330,18 +333,18 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
           </span>
         )}
         {/* Toggle modo grupos — solo si hay ítems guardados */}
-        {items.some((i) => i.guardado && !i.cancelado) && (
+        {(items.some((i) => i.guardado && !i.cancelado) || hayCuentas) && (
           <button
             onClick={() => setModoGrupos((v) => !v)}
-            title={modoGrupos ? "Desactivar división de cuenta" : "Dividir cuenta por grupos"}
+            title={modoCuentas ? "Ver todo junto" : "Dividir por cuentas"}
             className={`ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
-              modoGrupos
+              modoCuentas
                 ? "bg-brand-500 text-white"
                 : "bg-surface-bg border border-surface-border text-surface-muted hover:border-brand-300 hover:text-brand-500"
             }`}
           >
             <Users size={12} />
-            {modoGrupos ? "Grupos" : "Dividir"}
+            {modoCuentas ? "Cuentas" : "Dividir"}
           </button>
         )}
       </div>
@@ -355,7 +358,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
             <p className="text-sm font-medium">El carrito esta vacio</p>
             <p className="text-xs mt-1 opacity-60">Selecciona productos del menu</p>
           </div>
-        ) : modoGrupos ? (
+        ) : modoCuentas ? (
           <>
             {/* Modo grupos: ítems agrupados por grupo */}
             {grupos.map((grupo) => {
@@ -533,9 +536,9 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
       {/* Totales + Botones */}
       {items.length > 0 && (
         <div className="border-t border-surface-border p-3 space-y-2.5">
-          {modoGrupos && grupos.length > 0 ? (
+          {modoCuentas && grupos.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por grupo:</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por cuenta:</p>
               {grupos.map((grupo) => {
                 const grupoSub = getSubtotalGrupo(grupo);
                 const color = getGrupoColor(grupo);
@@ -548,7 +551,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   >
                     <span className="flex items-center gap-2">
                       <span className="w-5 h-5 rounded-full text-white text-[11px] font-black flex items-center justify-center" style={{ backgroundColor: color }}>{grupo}</span>
-                      Grupo {grupo}
+                      Cuenta {grupo}
                     </span>
                     <span className="flex items-center gap-1">
                       <Receipt size={12} />
