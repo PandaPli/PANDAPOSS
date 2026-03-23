@@ -3,7 +3,7 @@
 import { useRef, useState, useMemo, useCallback } from "react";
 import ImageCropModal from "@/components/ui/ImageCropModal";
 import { useRouter } from "next/navigation";
-import { Check, Edit2, ImagePlus, Loader2, Package, Pencil, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
+import { Bookmark, BookmarkCheck, Check, Edit2, ImagePlus, Loader2, Package, Pencil, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import {
   DndContext,
@@ -197,6 +197,11 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
   const [variantesLocal, setVariantesLocal] = useState<VGrupo[]>([]);
   const [variantesLoading, setVariantesLoading] = useState(false);
+  const PLANTILLAS_KEY = "pp_variant_plantillas";
+  const [plantillas, setPlantillas] = useState<VGrupo[]>(() => {
+    try { return JSON.parse(localStorage.getItem(PLANTILLAS_KEY) ?? "[]"); } catch { return []; }
+  });
+  const [showPlantillas, setShowPlantillas] = useState(false);
 
   // ── Drag & drop de categorías ─────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -327,6 +332,34 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
   function renombrarCategoria(id: number, nombre: string) {
     setCategoriasState((prev) => prev.map((c) => c.id === id ? { ...c, nombre } : c));
+  }
+
+  function guardarPlantilla(grupo: VGrupo) {
+    const nueva = { ...grupo, _key: Math.random().toString(36).slice(2) };
+    setPlantillas((prev) => {
+      // reemplazar si ya existe con el mismo nombre
+      const filtradas = prev.filter((p) => p.nombre !== grupo.nombre);
+      const updated = [...filtradas, nueva];
+      localStorage.setItem(PLANTILLAS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }
+
+  function importarPlantilla(plantilla: VGrupo) {
+    setVariantesLocal((prev) => [...prev, {
+      ...plantilla,
+      _key: Math.random().toString(36).slice(2),
+      opciones: plantilla.opciones.map((o) => ({ ...o, _key: Math.random().toString(36).slice(2) })),
+    }]);
+    setShowPlantillas(false);
+  }
+
+  function eliminarPlantilla(nombre: string) {
+    setPlantillas((prev) => {
+      const updated = prev.filter((p) => p.nombre !== nombre);
+      localStorage.setItem(PLANTILLAS_KEY, JSON.stringify(updated));
+      return updated;
+    });
   }
 
   async function cambiarEstacion(categoriaId: number, estacion: Estacion) {
@@ -1206,6 +1239,14 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                       </select>
                       <button
                         type="button"
+                        title="Guardar como plantilla"
+                        onClick={() => guardarPlantilla(grupo)}
+                        className={`p-1.5 rounded-lg transition-colors ${plantillas.some(p => p.nombre === grupo.nombre) ? "text-amber-500 hover:text-amber-600" : "text-surface-muted hover:bg-amber-50 hover:text-amber-500"}`}
+                      >
+                        {plantillas.some(p => p.nombre === grupo.nombre) ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setVariantesLocal(prev => prev.filter((_, i) => i !== gi))}
                         className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                       >
@@ -1265,6 +1306,47 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                     </div>
                   </div>
                 ))}
+
+                {/* Plantillas guardadas */}
+                {plantillas.length > 0 && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPlantillas(v => !v)}
+                      className="flex w-full items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5"><BookmarkCheck size={13} /> Importar desde plantilla ({plantillas.length})</span>
+                      <ChevronDown size={13} className={`transition-transform ${showPlantillas ? "rotate-180" : ""}`} />
+                    </button>
+                    {showPlantillas && (
+                      <div className="mt-1 rounded-xl border border-surface-border bg-white shadow-sm overflow-hidden">
+                        {plantillas.map((p) => (
+                          <div key={p._key} className="flex items-center gap-2 px-3 py-2 hover:bg-surface-bg border-b border-surface-border last:border-b-0">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-surface-text truncate">{p.nombre}</p>
+                              <p className="text-[10px] text-surface-muted">{p.opciones.length} opciones · {p.tipo === "radio" ? "Una opción" : "Varias"}{p.requerido ? " · Requerido" : ""}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => importarPlantilla(p)}
+                              className="shrink-0 rounded-lg bg-brand-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-brand-700 transition-colors"
+                            >
+                              Agregar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => eliminarPlantilla(p.nombre)}
+                              className="shrink-0 p-1 text-surface-muted hover:text-red-500 transition-colors"
+                              title="Eliminar plantilla"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <button
                   type="button"
