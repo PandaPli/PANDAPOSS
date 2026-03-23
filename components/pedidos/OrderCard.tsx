@@ -136,7 +136,10 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
   // ── Datos derivados ───────────────────────────────────────────────────
   const siguiente  = nextEstado[pedido.estado];
   const urgency    = getUrgency(pedido.creadoEn, now);
-  const tipo       = tipoConfig[pedido.tipo] ?? tipoConfig["COCINA"];
+  const esKiosko   = pedido.tipo === "MOSTRADOR" && (pedido.observacion ?? "").includes("KIOSKO");
+  const tipo       = esKiosko
+    ? { label: "Auto Atención", gradient: "from-indigo-500 to-violet-600", icon: <ShoppingBag size={14} /> }
+    : (tipoConfig[pedido.tipo] ?? tipoConfig["COCINA"]);
 
   let customerName    = "";
   let cleanObservation = pedido.observacion || "";
