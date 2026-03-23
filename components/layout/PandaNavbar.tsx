@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
@@ -12,6 +12,7 @@ import {
   Building2,
   ChevronDown,
   ClipboardList,
+  GripVertical,
   LayoutDashboard,
   LayoutGrid,
   Lock,
@@ -31,6 +32,21 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
@@ -86,6 +102,32 @@ const roleLabels: Record<Rol, string> = {
   DELIVERY: "Repartidor/a",
 };
 
+// ── Tarjeta sortable para modo reordenamiento ──────────────────────────────
+function SortableAppCard({ mod }: { mod: AppModule }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: mod.href });
+  const Icon = mod.icon;
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        "flex flex-col items-center gap-2 rounded-2xl border p-4 text-center select-none cursor-grab active:cursor-grabbing",
+        isDragging
+          ? "border-brand-300 bg-brand-50 shadow-xl z-50 opacity-80 scale-105"
+          : "border-surface-border bg-white hover:border-brand-200 hover:bg-slate-50"
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-sm", mod.color)}>
+        <Icon size={20} />
+      </div>
+      <p className="text-[11px] font-semibold leading-tight text-surface-text">{mod.label}</p>
+      <GripVertical size={12} className="text-surface-muted mt-auto" />
+    </div>
+  );
+}
+
 export function PandaNavbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -98,6 +140,9 @@ export function PandaNavbar() {
   const rol = (session?.user as { rol?: Rol })?.rol;
   const nombre = session?.user?.name ?? "Usuario";
   const isAdmin = rol === "ADMIN_GENERAL";
+  const canReorder = rol === "ADMIN_GENERAL" || rol === "RESTAURANTE";
+  const [reordering, setReordering] = useState(false);
+  const ORDER_KEY = "pp_apps_order";
   const features: Record<FeatureKey, boolean> = {
     delivery: (session?.user as { delivery?: boolean })?.delivery ?? false,
     menuQR:   (session?.user as { menuQR?: boolean })?.menuQR ?? false,
@@ -105,17 +150,53 @@ export function PandaNavbar() {
     cupones:  (session?.user as { cupones?: boolean })?.cupones ?? false,
   };
 
-  const visible = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);
+  const visibleBase = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);
+
+  // Orden persistido en localStorage
+  const [orderedHrefs, setOrderedHrefs] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ORDER_KEY) ?? "[]") as string[];
+      return saved.length > 0 ? saved : [];
+    } catch { return []; }
+  });
+
+  const visible = useMemo(() => {
+    if (orderedHrefs.length === 0) return visibleBase;
+    const ordered = orderedHrefs
+      .map((href) => visibleBase.find((m) => m.href === href))
+      .filter(Boolean) as AppModule[];
+    const rest = visibleBase.filter((m) => !orderedHrefs.includes(m.href));
+    return [...ordered, ...rest];
+  }, [visibleBase, orderedHrefs]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setOrderedHrefs((prev) => {
+      const hrefs = prev.length > 0 ? prev : visible.map((m) => m.href);
+      const oldIdx = hrefs.indexOf(active.id as string);
+      const newIdx = hrefs.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      const next = arrayMove(hrefs, oldIdx, newIdx);
+      localStorage.setItem(ORDER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [visible]);
+
   const current = modules.find((mod) => pathname === mod.href || pathname.startsWith(mod.href + "/"));
   const filtered = searchApp
     ? visible.filter((mod) => normalize(mod.label).includes(normalize(searchApp)))
     : visible;
-  const featured = !searchApp ? filtered.filter((mod) => mod.featured) : [];
-  const grouped = (Object.keys(categoryMeta) as ModuleCategory[]).map((category) => ({
-    category,
-    meta: categoryMeta[category],
-    items: (searchApp ? filtered : filtered.filter((mod) => !mod.featured)).filter((mod) => mod.category === category),
-  }));
+  const featured = !searchApp && !reordering ? filtered.filter((mod) => mod.featured) : [];
+  const grouped = !reordering
+    ? (Object.keys(categoryMeta) as ModuleCategory[]).map((category) => ({
+        category,
+        meta: categoryMeta[category],
+        items: (searchApp ? filtered : filtered.filter((mod) => !mod.featured)).filter((mod) => mod.category === category),
+      }))
+    : [];
 
   useEffect(() => {
     function handle(event: MouseEvent) {
@@ -228,24 +309,54 @@ export function PandaNavbar() {
             >
               {/* Header */}
               <div className="border-b border-surface-border bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 px-6 py-4">
-                <div className="mx-auto flex max-w-6xl items-center gap-6">
+                <div className="mx-auto flex max-w-6xl items-center gap-4">
                   <div className="flex-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-200">Apps PandaPoss</p>
-                    <h2 className="mt-0.5 text-xl font-bold text-white">¿A dónde vas?</h2>
+                    <h2 className="mt-0.5 text-xl font-bold text-white">
+                      {reordering ? "Arrastra para reordenar" : "¿A dónde vas?"}
+                    </h2>
                   </div>
-                  <div className="relative w-64">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
-                    <input
-                      type="text"
-                      placeholder="Buscar módulo..."
-                      value={searchApp}
-                      onChange={(e) => setSearchApp(e.target.value)}
-                      className="w-full rounded-2xl border border-white/20 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
-                      autoFocus
-                    />
-                  </div>
+                  {!reordering && (
+                    <div className="relative w-56">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
+                      <input
+                        type="text"
+                        placeholder="Buscar módulo..."
+                        value={searchApp}
+                        onChange={(e) => setSearchApp(e.target.value)}
+                        className="w-full rounded-2xl border border-white/20 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                  {canReorder && (
+                    <button
+                      onClick={() => { setReordering(v => !v); setSearchApp(""); }}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition",
+                        reordering
+                          ? "bg-amber-400 text-stone-900 hover:bg-amber-300"
+                          : "border border-white/20 text-white/70 hover:bg-white/10 hover:text-white"
+                      )}
+                    >
+                      <GripVertical size={14} />
+                      {reordering ? "Listo" : "Reordenar"}
+                    </button>
+                  )}
+                  {canReorder && reordering && (
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem(ORDER_KEY);
+                        setOrderedHrefs([]);
+                        setReordering(false);
+                      }}
+                      className="rounded-xl border border-white/20 px-3 py-2 text-xs font-semibold text-white/60 transition hover:bg-white/10 hover:text-white"
+                    >
+                      Restablecer
+                    </button>
+                  )}
                   <button
-                    onClick={() => setShowApps(false)}
+                    onClick={() => { setShowApps(false); setReordering(false); }}
                     className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 transition hover:bg-white/10 hover:text-white"
                   >
                     <X size={18} />
@@ -257,41 +368,57 @@ export function PandaNavbar() {
               <div className="flex-1 overflow-y-auto">
                 <div className="mx-auto max-w-6xl px-6 py-8 space-y-10">
 
-                  {filtered.length === 0 && (
-                    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-surface-border bg-slate-50 text-center">
-                      <Search size={28} className="text-surface-muted" />
-                      <p className="mt-3 text-sm font-semibold text-surface-text">No encontramos ese módulo</p>
-                      <p className="mt-1 text-xs text-surface-muted">Prueba con otra palabra clave.</p>
-                    </div>
-                  )}
-
-                  {featured.length > 0 && (
-                    <section>
-                      <div className="mb-4 flex items-center gap-3">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">Accesos principales</h3>
-                        <div className="h-px flex-1 bg-surface-border" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                        {featured.map((mod) => renderModuleCard(mod, "featured"))}
-                      </div>
-                    </section>
-                  )}
-
-                  {grouped.map(({ category, meta, items }) =>
-                    items.length > 0 ? (
-                      <section key={category}>
-                        <div className="mb-4 flex items-center gap-3">
-                          <div>
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">{meta.title}</h3>
-                          </div>
-                          <div className="h-px flex-1 bg-surface-border" />
-                          <span className="text-[11px] font-medium text-surface-muted">{items.length} módulo{items.length !== 1 ? "s" : ""}</span>
-                        </div>
+                  {/* Modo reordenamiento — grid flat sortable */}
+                  {reordering && (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={visible.map(m => m.href)} strategy={rectSortingStrategy}>
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                          {items.map((mod) => renderModuleCard(mod, "compact"))}
+                          {visible.map((mod) => (
+                            <SortableAppCard key={mod.href} mod={mod} />
+                          ))}
                         </div>
-                      </section>
-                    ) : null
+                      </SortableContext>
+                    </DndContext>
+                  )}
+
+                  {/* Modo normal */}
+                  {!reordering && (
+                    <>
+                      {filtered.length === 0 && (
+                        <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-surface-border bg-slate-50 text-center">
+                          <Search size={28} className="text-surface-muted" />
+                          <p className="mt-3 text-sm font-semibold text-surface-text">No encontramos ese módulo</p>
+                          <p className="mt-1 text-xs text-surface-muted">Prueba con otra palabra clave.</p>
+                        </div>
+                      )}
+
+                      {featured.length > 0 && (
+                        <section>
+                          <div className="mb-4 flex items-center gap-3">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">Accesos principales</h3>
+                            <div className="h-px flex-1 bg-surface-border" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                            {featured.map((mod) => renderModuleCard(mod, "featured"))}
+                          </div>
+                        </section>
+                      )}
+
+                      {grouped.map(({ category, meta, items }) =>
+                        items.length > 0 ? (
+                          <section key={category}>
+                            <div className="mb-4 flex items-center gap-3">
+                              <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">{meta.title}</h3>
+                              <div className="h-px flex-1 bg-surface-border" />
+                              <span className="text-[11px] font-medium text-surface-muted">{items.length} módulo{items.length !== 1 ? "s" : ""}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                              {items.map((mod) => renderModuleCard(mod, "compact"))}
+                            </div>
+                          </section>
+                        ) : null
+                      )}
+                    </>
                   )}
                 </div>
               </div>
