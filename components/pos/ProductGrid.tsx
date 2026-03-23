@@ -10,7 +10,7 @@ import type { ProductoCard } from "@/types";
 interface Props {
   productos: ProductoCard[];
   simbolo?: string;
-  activeCuenta?: string | null;
+  activeGrupo?: string | null;
 }
 
 interface ToastItem {
@@ -33,7 +33,7 @@ const CAT_COLORS = [
   "from-purple-400 to-violet-500",
 ];
 
-export function ProductGrid({ productos, simbolo = "$", activeCuenta }: Props) {
+export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
   const [search, setSearch] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
   const addItem = useCartStore((s) => s.addItem);
@@ -98,7 +98,7 @@ export function ProductGrid({ productos, simbolo = "$", activeCuenta }: Props) {
       nombre: p.nombre,
       precio: p.precio,
       imagen: p.imagen ?? undefined,
-      grupo: activeCuenta ?? undefined,
+      grupo: activeGrupo ?? undefined,
     });
     const storeItems = useCartStore.getState().items;
     const found = storeItems.find((i) => i.id === p.id && i.tipo === "producto" && !i.guardado);

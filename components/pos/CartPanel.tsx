@@ -17,7 +17,7 @@ interface Props {
   rondas?: RondaPedido[];
 }
 
-const GRUPOS_DISPONIBLES = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const GRUPOS_DISPONIBLES = ["A1", "A2", "A3", "A4", "A5"];
 
 /** Llama al API para persistir el cambio de un detalle en DB → KDS lo verá en próximo poll.
  *  Retorna true si tuvo éxito, false si falló. */
@@ -195,7 +195,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   <button
                     key={g}
                     onClick={() => handleSetGrupo(item, esMio ? null : g)}
-                    title={enEsteGrupo > 0 ? `Cuenta ${g} — ${enEsteGrupo} ítem(s)` : `Asignar a Cuenta ${g}`}
+                    title={enEsteGrupo > 0 ? `Grupo ${g} — ${enEsteGrupo} ítem(s)` : `Asignar a Grupo ${g}`}
                     className="relative w-6 h-6 rounded-full text-[11px] font-black border-2 transition-all flex items-center justify-center"
                     style={{
                       backgroundColor: esMio ? getGrupoColor(g) : enEsteGrupo > 0 ? `${getGrupoColor(g)}22` : "transparent",
@@ -217,7 +217,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               {item.cantidad > 1 && item.guardado && (
                 <button
                   onClick={() => handleOpenSplit(item)}
-                  title="Dividir entre cuentas"
+                  title="Dividir entre grupos"
                   className="w-6 h-6 rounded-full border-2 border-surface-border text-surface-muted hover:border-brand-400 hover:text-brand-500 transition-all flex items-center justify-center"
                 >
                   <Scissors size={10} />
@@ -336,7 +336,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         {(items.some((i) => i.guardado && !i.cancelado) || hayCuentas) && (
           <button
             onClick={() => setModoGrupos((v) => !v)}
-            title={modoCuentas ? "Ver todo junto" : "Dividir por cuentas"}
+            title={modoCuentas ? "Ver todo junto" : "Dividir por grupos"}
             className={`ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
               modoCuentas
                 ? "bg-brand-500 text-white"
@@ -344,7 +344,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
             }`}
           >
             <Users size={12} />
-            {modoCuentas ? "Cuentas" : "Dividir"}
+            {modoCuentas ? "Grupos" : "Dividir"}
           </button>
         )}
       </div>
@@ -371,7 +371,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   <div className="flex items-center gap-2 mb-1 px-1">
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                     <span className="text-xs font-bold text-surface-text" style={{ color }}>
-                      Cuenta {grupo}
+                      Grupo {grupo}
                     </span>
                     <span className="ml-auto text-xs font-semibold text-surface-muted">
                       {formatCurrency(grupoSub, simbolo)}
@@ -502,7 +502,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black text-white" style={{ backgroundColor: color }}>
                     {g}
                   </div>
-                  <span className="text-xs text-surface-text w-14">Cuenta {g}</span>
+                  <span className="text-xs text-surface-text w-14">Grupo {g}</span>
                   <button onClick={() => setSplitDialog((s) => s ? { ...s, cantidades: { ...s.cantidades, [g]: Math.max(0, val - 1) } } : s)}
                     className="w-5 h-5 rounded border border-surface-border flex items-center justify-center hover:bg-white text-xs">-</button>
                   <span className="w-4 text-center text-xs font-bold">{val}</span>
@@ -538,7 +538,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         <div className="border-t border-surface-border p-3 space-y-2.5">
           {modoCuentas && grupos.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por cuenta:</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por grupo:</p>
               {grupos.map((grupo) => {
                 const grupoSub = getSubtotalGrupo(grupo);
                 const color = getGrupoColor(grupo);
@@ -551,7 +551,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   >
                     <span className="flex items-center gap-2">
                       <span className="w-5 h-5 rounded-full text-white text-[11px] font-black flex items-center justify-center" style={{ backgroundColor: color }}>{grupo}</span>
-                      Cuenta {grupo}
+                      Grupo {grupo}
                     </span>
                     <span className="flex items-center gap-1">
                       <Receipt size={12} />

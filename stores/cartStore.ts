@@ -1,18 +1,19 @@
 import { create } from "zustand";
 import type { CartItem } from "@/types";
 
-const GRUPOS_VALIDOS = new Set(["A", "B", "C", "D", "E"]);
-
 const GRUPO_COLORS: Record<string, string> = {
-  A: "#3b82f6", // blue-500
-  B: "#22c55e", // green-500
-  C: "#f97316", // orange-500
-  D: "#a855f7", // purple-500
-  E: "#ec4899", // pink-500
+  A1: "#3b82f6", // blue-500
+  A2: "#22c55e", // green-500
+  A3: "#f97316", // orange-500
+  A4: "#a855f7", // purple-500
+  A5: "#ec4899", // pink-500
+  A6: "#06b6d4", // cyan-500
+  A7: "#f59e0b", // amber-500
+  A8: "#6366f1", // indigo-500
 };
 
 export function getGrupoColor(grupo: string): string {
-  return GRUPO_COLORS[grupo.toUpperCase()] ?? "#6b7280";
+  return GRUPO_COLORS[grupo] ?? "#6b7280";
 }
 
 interface CartState {
@@ -186,7 +187,6 @@ export const useCartStore = create<CartState>((set, get) => ({
   }),
 
   setItemGrupo: (detalleId, grupo) => {
-    if (grupo !== null && !GRUPOS_VALIDOS.has(grupo)) return;
     set((s) => ({
       items: s.items.map((i) =>
         i.detalleId === detalleId ? { ...i, grupo: grupo ?? undefined } : i
