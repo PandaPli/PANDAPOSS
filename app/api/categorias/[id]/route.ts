@@ -14,9 +14,13 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json();
 
+  const data: { estacion?: string; nombre?: string } = {};
+  if (body.estacion !== undefined) data.estacion = body.estacion;
+  if (body.nombre  !== undefined) data.nombre  = body.nombre;
+
   const categoria = await prisma.categoria.update({
     where: { id: Number(id) },
-    data: { estacion: body.estacion },
+    data,
   });
 
   return NextResponse.json(categoria);

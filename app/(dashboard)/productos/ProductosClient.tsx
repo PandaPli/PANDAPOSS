@@ -3,7 +3,7 @@
 import { useRef, useState, useMemo, useCallback } from "react";
 import ImageCropModal from "@/components/ui/ImageCropModal";
 import { useRouter } from "next/navigation";
-import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
+import { Check, Edit2, ImagePlus, Loader2, Package, Pencil, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import {
   DndContext,
@@ -65,14 +65,37 @@ function SortableCatCard({
   cat,
   savingEstacion,
   onCambiarEstacion,
+  onRename,
 }: {
   cat: Categoria;
   savingEstacion: number | null;
   onCambiarEstacion: (id: number, est: Estacion) => void;
+  onRename: (id: number, nombre: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
   const est = (cat.estacion ?? "COCINA") as Estacion;
   const cfg = ESTACION_CONFIG[est];
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft]     = useState(cat.nombre);
+  const [saving, setSaving]   = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() { setDraft(cat.nombre); setEditing(true); setTimeout(() => inputRef.current?.select(), 30); }
+  function cancel()    { setEditing(false); setDraft(cat.nombre); }
+
+  async function save() {
+    const nombre = draft.trim();
+    if (!nombre || nombre === cat.nombre) { cancel(); return; }
+    setSaving(true);
+    await fetch(`/api/categorias/${cat.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre }),
+    });
+    onRename(cat.id, nombre);
+    setSaving(false);
+    setEditing(false);
+  }
 
   return (
     <div
@@ -89,7 +112,34 @@ function SortableCatCard({
         >
           <GripVertical size={13} />
         </button>
-        <span className="text-xs font-medium text-surface-text truncate flex-1">{cat.nombre}</span>
+
+        {editing ? (
+          <div className="flex flex-1 items-center gap-1">
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") cancel(); }}
+              className="flex-1 min-w-0 rounded border border-brand-500 px-1.5 py-0.5 text-xs font-medium text-surface-text outline-none"
+              disabled={saving}
+            />
+            <button onClick={save} disabled={saving} className="text-emerald-600 hover:text-emerald-700 disabled:opacity-40" title="Guardar">
+              {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            </button>
+            <button onClick={cancel} className="text-surface-muted hover:text-red-500" title="Cancelar">
+              <X size={11} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={startEdit}
+            className="group flex flex-1 items-center gap-1 min-w-0 text-left"
+            title="Clic para renombrar"
+          >
+            <span className="text-xs font-medium text-surface-text truncate flex-1">{cat.nombre}</span>
+            <Pencil size={10} className="flex-shrink-0 text-surface-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        )}
       </div>
       <div className="flex items-center gap-1">
         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
@@ -274,6 +324,10 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       return matchSearch && matchCat && matchSuc;
     });
   }, [productos, search, catFiltro, sucFiltro]);
+
+  function renombrarCategoria(id: number, nombre: string) {
+    setCategoriasState((prev) => prev.map((c) => c.id === id ? { ...c, nombre } : c));
+  }
 
   async function cambiarEstacion(categoriaId: number, estacion: Estacion) {
     setSavingEstacion(categoriaId);
@@ -553,6 +607,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                     cat={cat}
                     savingEstacion={savingEstacion}
                     onCambiarEstacion={cambiarEstacion}
+                    onRename={renombrarCategoria}
                   />
                 ))}
               </div>
