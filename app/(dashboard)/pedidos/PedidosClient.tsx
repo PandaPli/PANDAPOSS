@@ -69,7 +69,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalNombre, sucursalR
 
   useEffect(() => {
     fetchPedidos();
-    const id = setInterval(fetchPedidos, 30_000);
+    const id = setInterval(fetchPedidos, 5_000);
     return () => clearInterval(id);
   }, [fetchPedidos]);
 
@@ -204,7 +204,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalNombre, sucursalR
         <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-slate-700/60 bg-slate-800/50 text-center">
           <img src="/logo.png" alt="PandaPoss" className="w-16 h-16 mx-auto mb-4 opacity-20 grayscale" />
           <p className="text-slate-400 font-bold text-lg">Sin pedidos {filter.replace("_", " ").toLowerCase()}</p>
-          <p className="text-slate-600 text-sm mt-1">Actualizando automáticamente cada 30 segundos…</p>
+          <p className="text-slate-600 text-sm mt-1">Actualizando automáticamente cada 5 segundos…</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
