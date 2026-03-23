@@ -37,6 +37,8 @@ interface CartState {
   clear: () => void;
   setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
   markAsSaved: () => void;
+  /** Marca los ítems recién guardados como guardado:true y les asigna su detalleId del servidor */
+  markAsSavedWithIds: (detalleIds: number[]) => void;
 
   /** Asigna un grupo de pago a un ítem (null = sin grupo) */
   setItemGrupo: (detalleId: number, grupo: string | null) => void;
@@ -167,6 +169,21 @@ export const useCartStore = create<CartState>((set, get) => ({
   setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
   // Solo marca como guardados los ítems que aún no lo estaban (los recién enviados al KDS)
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => i.guardado ? i : { ...i, guardado: true }) })),
+
+  // Marca los ítems recién guardados como guardado:true y les asigna su detalleId del servidor.
+  // detalleIds debe estar en el mismo orden que los ítems no-guardados y no-cancelados del estado actual.
+  markAsSavedWithIds: (detalleIds) => set((s) => {
+    let idx = 0;
+    return {
+      items: s.items.map((i) => {
+        if (!i.guardado && !i.cancelado) {
+          const detalleId = detalleIds[idx++];
+          return { ...i, guardado: true, detalleId: detalleId ?? i.detalleId };
+        }
+        return i;
+      }),
+    };
+  }),
 
   setItemGrupo: (detalleId, grupo) => {
     if (grupo !== null && !GRUPOS_VALIDOS.has(grupo)) return;

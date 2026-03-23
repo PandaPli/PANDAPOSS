@@ -75,7 +75,7 @@ export function NuevaVentaClient({
   /* ── Cuentas por mesa ── */
   const [activeCuenta, setActiveCuenta] = useState<string | null>(null);
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, markAsSavedWithIds, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc } = useCartStore();
 
   /* ── Cliente (opcional, por defecto CLIENTE EN MESÓN) ── */
   const [clienteNombreLocal, setClienteNombreLocal] = useState<string | null>(null);
@@ -373,7 +373,15 @@ export function NuevaVentaClient({
 
       const pedido = await res.json();
       setPedido(pedido.id);
-      markAsSaved();
+      // Asignar detalleId de cada ítem guardado para que cancel/delete sean precisos por ronda
+      const detalleIds: number[] = Array.isArray(pedido.detalles)
+        ? pedido.detalles.map((d: { id: number }) => d.id)
+        : [];
+      if (detalleIds.length > 0) {
+        markAsSavedWithIds(detalleIds);
+      } else {
+        markAsSaved();
+      }
 
       // Agregar la ronda al historial local
       setLocalRondas((prev) => [
