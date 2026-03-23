@@ -102,29 +102,87 @@ const roleLabels: Record<Rol, string> = {
   DELIVERY: "Repartidor/a",
 };
 
-// ── Tarjeta sortable para modo reordenamiento ──────────────────────────────
+// ── Tarjeta de app unificada (normal + sortable) ──────────────────────────
+interface AppIconCardProps {
+  mod: AppModule;
+  active?: boolean;
+  locked?: boolean;
+  onClick?: () => void;
+  // drag props (solo en modo reordenar)
+  sortable?: boolean;
+  dragRef?: (node: HTMLElement | null) => void;
+  dragStyle?: React.CSSProperties;
+  dragAttrs?: React.HTMLAttributes<HTMLElement>;
+  dragListeners?: React.HTMLAttributes<HTMLElement>;
+  isDragging?: boolean;
+}
+
+function AppIconCard({ mod, active, locked, onClick, sortable, dragRef, dragStyle, dragAttrs, dragListeners, isDragging }: AppIconCardProps) {
+  const Icon = mod.icon;
+  const inner = (
+    <div
+      ref={dragRef as ((node: HTMLDivElement | null) => void) | undefined}
+      style={dragStyle}
+      className={cn(
+        "flex flex-col items-center gap-2 text-center transition-all",
+        sortable ? "cursor-grab active:cursor-grabbing select-none" : "group",
+        isDragging && "z-50 scale-110 opacity-90"
+      )}
+      {...(dragAttrs as React.HTMLAttributes<HTMLDivElement>)}
+      {...(dragListeners as React.HTMLAttributes<HTMLDivElement>)}
+    >
+      {/* Tarjeta cuadrada blanca */}
+      <div className={cn(
+        "flex h-[84px] w-[84px] items-center justify-center rounded-[22px] bg-white transition-all",
+        isDragging
+          ? "shadow-2xl ring-2 ring-violet-400"
+          : active
+            ? "shadow-lg ring-2 ring-brand-400"
+            : "shadow-md group-hover:-translate-y-1 group-hover:shadow-xl"
+      )}>
+        {/* Ícono con gradiente */}
+        <div className={cn(
+          "flex h-[54px] w-[54px] items-center justify-center rounded-[14px] text-white shadow-sm",
+          locked ? "bg-slate-300" : mod.color
+        )}>
+          <Icon size={26} />
+          {locked && (
+            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow">
+              <Lock size={8} className="text-slate-400" />
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Etiqueta */}
+      <p className={cn(
+        "w-[88px] text-center text-[11px] font-semibold leading-tight",
+        locked ? "text-white/50" : active ? "text-white font-bold" : "text-white/90"
+      )}>{mod.label}</p>
+      {sortable && <GripVertical size={11} className="text-white/40" />}
+    </div>
+  );
+
+  if (sortable) return inner;
+  return (
+    <a href={locked ? "/planes" : mod.href} onClick={onClick} title={mod.description}>
+      {inner}
+    </a>
+  );
+}
+
+// ── Wrapper sortable ────────────────────────────────────────────────────────
 function SortableAppCard({ mod }: { mod: AppModule }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: mod.href });
-  const Icon = mod.icon;
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(
-        "flex flex-col items-center gap-2.5 rounded-2xl p-3 text-center select-none cursor-grab active:cursor-grabbing transition-all",
-        isDragging
-          ? "bg-white shadow-2xl z-50 opacity-90 scale-110 ring-2 ring-brand-300"
-          : "bg-white/60 hover:bg-white hover:shadow-md"
-      )}
-      {...attributes}
-      {...listeners}
-    >
-      <div className={cn("flex h-14 w-14 items-center justify-center rounded-[18px] text-white shadow-lg", mod.color)}>
-        <Icon size={24} />
-      </div>
-      <p className="text-[11px] font-bold leading-tight text-surface-text">{mod.label}</p>
-      <GripVertical size={12} className="text-surface-muted/50" />
-    </div>
+    <AppIconCard
+      mod={mod}
+      sortable
+      dragRef={setNodeRef}
+      dragStyle={{ transform: CSS.Transform.toString(transform), transition }}
+      dragAttrs={attributes}
+      dragListeners={listeners}
+      isDragging={isDragging}
+    />
   );
 }
 
@@ -189,14 +247,6 @@ export function PandaNavbar() {
   const filtered = searchApp
     ? visible.filter((mod) => normalize(mod.label).includes(normalize(searchApp)))
     : visible;
-  const featured = !searchApp && !reordering ? filtered.filter((mod) => mod.featured) : [];
-  const grouped = !reordering
-    ? (Object.keys(categoryMeta) as ModuleCategory[]).map((category) => ({
-        category,
-        meta: categoryMeta[category],
-        items: (searchApp ? filtered : filtered.filter((mod) => !mod.featured)).filter((mod) => mod.category === category),
-      }))
-    : [];
 
   useEffect(() => {
     function handle(event: MouseEvent) {
@@ -209,91 +259,6 @@ export function PandaNavbar() {
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [showApps]);
-
-  function renderModuleCard(mod: AppModule, variant: "featured" | "compact") {
-    const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
-    const locked = !!mod.featureKey && !features[mod.featureKey] && !isAdmin;
-    const Icon = mod.icon;
-
-    if (variant === "featured") {
-      return (
-        <Link
-          key={mod.href}
-          href={locked ? "/planes" : mod.href}
-          onClick={() => setShowApps(false)}
-          title={locked ? "Disponible en plan PRO" : mod.description}
-          className={cn(
-            "group relative overflow-hidden rounded-2xl p-4 transition-all",
-            locked
-              ? "bg-slate-100/80 opacity-70"
-              : active
-                ? "bg-white shadow-lg ring-2 ring-brand-300"
-                : "bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg"
-          )}
-        >
-          {/* Glow de fondo sutil */}
-          {!locked && (
-            <div className={cn("absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-10 blur-2xl", mod.color)} />
-          )}
-          <div className="flex items-start justify-between gap-3">
-            <div className={cn(
-              "flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] text-white shadow-md",
-              locked ? "bg-slate-400" : mod.color
-            )}>
-              <Icon size={26} />
-            </div>
-            {locked ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                <Lock size={9} /> Pro
-              </span>
-            ) : active ? (
-              <span className="rounded-full bg-brand-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-brand-700">
-                Activo
-              </span>
-            ) : null}
-          </div>
-          <div className="relative mt-3 space-y-0.5">
-            <p className={cn("text-sm font-bold", locked ? "text-slate-500" : "text-surface-text")}>{mod.label}</p>
-            <p className={cn("text-[11px] leading-5", locked ? "text-slate-400" : "text-surface-muted")}>{locked ? "Disponible en plan Pro." : mod.description}</p>
-          </div>
-        </Link>
-      );
-    }
-
-    // Compact — estilo iOS: icono grande centrado + etiqueta abajo
-    return (
-      <Link
-        key={mod.href}
-        href={locked ? "/planes" : mod.href}
-        onClick={() => setShowApps(false)}
-        title={locked ? "Disponible en plan PRO" : mod.description}
-        className={cn(
-          "group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition-all",
-          locked
-            ? "bg-slate-100/80 opacity-70"
-            : active
-              ? "bg-white shadow-md ring-2 ring-brand-300"
-              : "bg-white/60 hover:bg-white hover:shadow-md"
-        )}
-      >
-        <div className={cn(
-          "relative flex h-14 w-14 items-center justify-center rounded-[18px] text-white shadow-md",
-          locked ? "bg-slate-400" : mod.color
-        )}>
-          <Icon size={24} />
-          {locked && (
-            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm">
-              <Lock size={9} className="text-slate-500" />
-            </div>
-          )}
-        </div>
-        <p className={cn(
-          "text-[11px] font-bold leading-tight",
-          locked ? "text-slate-400" : active ? "text-brand-700" : "text-surface-text"
-        )}>{mod.label}</p>
-      </Link>
-    );
-  }
 
   return (
     <>
@@ -405,83 +370,85 @@ export function PandaNavbar() {
     </nav>
 
     {/* ── Overlay fullscreen del cajón de apps ─────────────────────────────────
-        Renderizado FUERA del <nav> para que backdrop-blur-md no contenga los
-        elementos con position:fixed (comportamiento conocido de Chrome/WebKit).  */}
+        Fuera del <nav> para evitar contención por backdrop-filter en Chrome.   */}
     <AnimatePresence>
       {showApps && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          className="fixed inset-0 top-[52px] z-50 flex flex-col bg-gradient-to-br from-slate-50 via-white to-violet-50/40 backdrop-blur-xl"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="fixed inset-0 top-[52px] z-50 flex flex-col overflow-hidden"
+          style={{ background: "linear-gradient(135deg,#ede9fe 0%,#f5f3ff 25%,#fdf4ff 50%,#fff7ed 75%,#f0fdf4 100%)" }}
         >
-          {/* Header */}
-          <div className="border-b border-surface-border bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 px-6 py-4">
-            <div className="mx-auto flex max-w-6xl items-center gap-4">
-              <div className="flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-200">Apps PandaPoss</p>
-                <h2 className="mt-0.5 text-xl font-bold text-white">
-                  {reordering ? "Arrastra para reordenar" : "¿A dónde vas?"}
-                </h2>
-              </div>
-              {!reordering && (
-                <div className="relative w-56">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
-                  <input
-                    type="text"
-                    placeholder="Buscar módulo..."
-                    value={searchApp}
-                    onChange={(e) => setSearchApp(e.target.value)}
-                    className="w-full rounded-2xl border border-white/20 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
-                    autoFocus
-                  />
-                </div>
-              )}
-              {canReorder && (
-                <button
-                  onClick={() => { setReordering(v => !v); setSearchApp(""); }}
-                  className={cn(
-                    "flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition",
-                    reordering
-                      ? "bg-amber-400 text-stone-900 hover:bg-amber-300"
-                      : "border border-white/20 text-white/70 hover:bg-white/10 hover:text-white"
-                  )}
-                >
-                  <GripVertical size={14} />
-                  {reordering ? "Listo" : "Reordenar"}
-                </button>
-              )}
-              {canReorder && reordering && (
-                <button
-                  onClick={() => {
-                    localStorage.removeItem(ORDER_KEY);
-                    setOrderedHrefs([]);
-                    setReordering(false);
-                  }}
-                  className="rounded-xl border border-white/20 px-3 py-2 text-xs font-semibold text-white/60 transition hover:bg-white/10 hover:text-white"
-                >
-                  Restablecer
-                </button>
-              )}
-              <button
-                onClick={() => { setShowApps(false); setReordering(false); }}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-white/60 transition hover:bg-white/10 hover:text-white"
-              >
-                <X size={18} />
-              </button>
-            </div>
+          {/* Bokeh decorativos */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 right-24 h-80 w-80 rounded-full bg-yellow-300/30 blur-3xl" />
+            <div className="absolute top-32 -left-16 h-72 w-72 rounded-full bg-violet-400/25 blur-3xl" />
+            <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-pink-300/20 blur-3xl" />
+            <div className="absolute bottom-32 left-1/3 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+            <div className="absolute top-1/2 right-1/3 h-48 w-48 rounded-full bg-emerald-300/20 blur-3xl" />
           </div>
 
-          {/* Grid de apps */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-6xl px-6 py-8 space-y-10">
+          {/* Barra superior: búsqueda + controles */}
+          <div className="relative z-10 flex items-center gap-3 border-b border-white/40 bg-white/30 px-6 py-3 backdrop-blur-sm">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-violet-700/70">
+                {reordering ? "Arrastra para reordenar" : "Apps PandaPoss"}
+              </p>
+            </div>
+            {!reordering && (
+              <div className="relative w-52">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar módulo..."
+                  value={searchApp}
+                  onChange={(e) => setSearchApp(e.target.value)}
+                  className="w-full rounded-xl border border-violet-200/60 bg-white/70 py-1.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-violet-400 focus:bg-white"
+                  autoFocus
+                />
+              </div>
+            )}
+            {canReorder && (
+              <button
+                onClick={() => { setReordering(v => !v); setSearchApp(""); }}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition",
+                  reordering
+                    ? "bg-amber-400 text-stone-900 shadow"
+                    : "border border-violet-200/60 bg-white/60 text-violet-700 hover:bg-white"
+                )}
+              >
+                <GripVertical size={13} />
+                {reordering ? "✓ Listo" : "Reordenar"}
+              </button>
+            )}
+            {canReorder && reordering && (
+              <button
+                onClick={() => { localStorage.removeItem(ORDER_KEY); setOrderedHrefs([]); setReordering(false); }}
+                className="rounded-xl border border-violet-200/60 bg-white/60 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-white"
+              >
+                Restablecer
+              </button>
+            )}
+            <button
+              onClick={() => { setShowApps(false); setReordering(false); }}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/60 text-slate-500 transition hover:bg-white hover:text-slate-800"
+            >
+              <X size={16} />
+            </button>
+          </div>
 
-              {/* Modo reordenamiento */}
+          {/* Contenido scrollable */}
+          <div className="relative z-10 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-5xl px-8 py-10 space-y-10">
+
+              {/* ── Modo reordenamiento ── */}
               {reordering && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={visible.map(m => m.href)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+                    <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
                       {visible.map((mod) => (
                         <SortableAppCard key={mod.href} mod={mod} />
                       ))}
@@ -490,43 +457,57 @@ export function PandaNavbar() {
                 </DndContext>
               )}
 
-              {/* Modo normal */}
+              {/* ── Modo normal: agrupación inteligente ── */}
               {!reordering && (
                 <>
                   {filtered.length === 0 && (
-                    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-dashed border-surface-border bg-slate-50 text-center">
-                      <Search size={28} className="text-surface-muted" />
-                      <p className="mt-3 text-sm font-semibold text-surface-text">No encontramos ese módulo</p>
-                      <p className="mt-1 text-xs text-surface-muted">Prueba con otra palabra clave.</p>
+                    <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
+                      <Search size={32} className="text-violet-300" />
+                      <p className="mt-3 text-sm font-bold text-violet-900/60">Sin resultados</p>
+                      <p className="text-xs text-violet-700/40">Prueba con otra palabra clave.</p>
                     </div>
                   )}
 
-                  {featured.length > 0 && (
-                    <section>
-                      <div className="mb-4 flex items-center gap-3">
-                        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accesos principales</h3>
-                        <div className="h-px flex-1 bg-slate-200/70" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                        {featured.map((mod) => renderModuleCard(mod, "featured"))}
-                      </div>
-                    </section>
+                  {/* Si hay búsqueda activa: grid plano sin secciones */}
+                  {searchApp && filtered.length > 0 && (
+                    <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
+                      {filtered.map((mod) => {
+                        const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
+                        const locked = !!mod.featureKey && !features[mod.featureKey] && !isAdmin;
+                        return (
+                          <AppIconCard key={mod.href} mod={mod} active={active} locked={locked}
+                            onClick={() => setShowApps(false)} />
+                        );
+                      })}
+                    </div>
                   )}
 
-                  {grouped.map(({ category, meta, items }) =>
-                    items.length > 0 ? (
-                      <section key={category}>
-                        <div className="mb-4 flex items-center gap-3">
-                          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">{meta.title}</h3>
-                          <div className="h-px flex-1 bg-slate-200/70" />
-                          <span className="text-[10px] font-semibold text-slate-300">{items.length} módulo{items.length !== 1 ? "s" : ""}</span>
+                  {/* Sin búsqueda: secciones agrupadas por categoría */}
+                  {!searchApp && (Object.keys(categoryMeta) as ModuleCategory[]).map((cat) => {
+                    const items = filtered.filter(m => m.category === cat);
+                    if (items.length === 0) return null;
+                    return (
+                      <section key={cat}>
+                        {/* Separador de sección */}
+                        <div className="mb-5 flex items-center gap-3">
+                          <span className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-violet-800/50">
+                            {categoryMeta[cat].title}
+                          </span>
+                          <div className="h-px flex-1 bg-violet-200/50" />
                         </div>
-                        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-                          {items.map((mod) => renderModuleCard(mod, "compact"))}
+                        <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
+                          {items.map((mod) => {
+                            const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
+                            const locked = !!mod.featureKey && !features[mod.featureKey] && !isAdmin;
+                            return (
+                              <AppIconCard key={mod.href} mod={mod} active={active} locked={locked}
+                                onClick={() => setShowApps(false)} />
+                            );
+                          })}
                         </div>
                       </section>
-                    ) : null
-                  )}
+                    );
+                  })}
                 </>
               )}
             </div>
