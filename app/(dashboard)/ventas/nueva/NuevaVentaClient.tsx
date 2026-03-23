@@ -442,8 +442,9 @@ export function NuevaVentaClient({
       sucursalTelefono ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
     ].filter(Boolean).join("");
     printFrame(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
+      @page{size:80mm auto;margin:0;}
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
+      body{font-family:monospace;font-size:14px;width:80mm;max-width:80mm;padding:8px;}
       .branch{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
       .legal-name{font-size:13px;font-weight:bold;}
       .legal-line{font-size:11px;color:#444;margin-top:2px;}
@@ -458,7 +459,6 @@ export function NuevaVentaClient({
       .nombre{font-size:15px;font-weight:bold;display:block;}
       .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
       .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
-      @media print{body{width:80mm;}}
     </style></head><body>
       ${legalLines ? `<div class="branch">${legalLines}</div>` : ""}
       <div class="header">

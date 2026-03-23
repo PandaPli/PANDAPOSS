@@ -267,7 +267,7 @@ export function CheckoutModal({
     printFrame(`<!DOCTYPE html><html><head><title>Boleta</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       @page{size:80mm auto;margin:0;}
-      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
+      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;max-width:80mm;padding:10px;color:#111;background:#fff;}
       .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
       .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
       .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}

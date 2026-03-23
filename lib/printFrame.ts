@@ -8,8 +8,9 @@
 export function printFrame(html: string): void {
   const iframe = document.createElement("iframe");
   // Tamaño real pero fuera del viewport — el contenido se renderiza correctamente
+  // 302px = ~80mm a 96dpi — ancho real de papel térmico
   iframe.style.cssText =
-    "position:fixed;left:-9999px;top:0;width:320px;height:600px;border:none;visibility:hidden;";
+    "position:fixed;left:-9999px;top:0;width:302px;height:800px;border:none;visibility:hidden;";
   document.body.appendChild(iframe);
 
   const doc = iframe.contentDocument!;

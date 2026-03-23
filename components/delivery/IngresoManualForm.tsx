@@ -256,8 +256,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       .join("");
 
     printFrame(`<!DOCTYPE html><html><head><title>Ticket #${id}</title><style>
+      @page{size:80mm auto;margin:0;}
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:13px;width:80mm;padding:12px;}
+      body{font-family:monospace;font-size:13px;width:80mm;max-width:80mm;padding:10px;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;}
       .title{font-size:18px;font-weight:bold;letter-spacing:2px;}
       .ticket-num{font-size:28px;font-weight:900;margin-top:4px;}
@@ -273,7 +274,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       .total-row{display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:8px;border-top:2px solid #000;padding-top:8px;}
       .footer{text-align:center;font-size:10px;color:#999;margin-top:10px;}
       .metodo{font-size:11px;color:#555;text-align:right;margin-top:4px;}
-      @media print{body{width:80mm;}}
     </style></head><body>
       <div class="header">
         <div class="title">PEDIDO DELIVERY</div>
