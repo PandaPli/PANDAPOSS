@@ -610,11 +610,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
               {/* Logo + info — layout compacto horizontal en mobile */}
               <div className="relative z-10 flex items-center gap-3 px-4 pt-2 pb-3 sm:flex-col sm:items-center sm:gap-0 sm:px-8 sm:pt-5 sm:pb-4">
                 {sucursal.logoUrl ? (
-                  <div className="flex-shrink-0 rounded-2xl bg-white p-1.5 shadow-lg sm:rounded-3xl sm:p-2 sm:mb-3">
+                  <div className="flex-shrink-0 rounded-2xl bg-white p-2 shadow-md sm:rounded-3xl sm:p-3 sm:mb-3">
                     <img
                       src={sucursal.logoUrl}
                       alt={sucursal.nombre}
-                      className="h-12 w-12 object-contain sm:h-24 sm:w-24"
+                      className="h-12 w-auto max-w-[88px] object-contain sm:h-24 sm:max-w-[180px]"
                     />
                   </div>
                 ) : (
@@ -625,7 +625,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
                 {/* Info compacta */}
                 <div className="flex-1 sm:w-full">
-                  <div className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-left backdrop-blur-md sm:rounded-2xl sm:px-5 sm:py-3 sm:text-center">
+                  <div className="px-1 py-1 text-left sm:text-center">
                     {sucursal.cartaTagline && (
                       <p className="text-xs font-black text-white drop-shadow sm:text-base">
                         {sucursal.cartaTagline}
