@@ -67,22 +67,22 @@ interface AppModule {
 }
 
 const modules: AppModule[] = [
-  { label: "Panel", href: "/panel", icon: LayoutDashboard, color: "bg-brand-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Resumen y accesos clave." },
-  { label: "Punto de Venta", href: "/ventas/nueva", icon: ShoppingCart, color: "bg-emerald-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "operacion", description: "Cobro rapido en caja.", featured: true },
-  { label: "Atencion", href: "/mesas", icon: UtensilsCrossed, color: "bg-orange-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"], category: "operacion", description: "Mesas, sala y servicio.", featured: true },
-  { label: "Delivery", href: "/delivery", icon: Bike, color: "bg-orange-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "DELIVERY"], category: "operacion", description: "Despachos y repartos.", featureKey: "delivery", featured: true },
-  { label: "Pedidos", href: "/pedidos", icon: ClipboardList, color: "bg-amber-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Flujo activo de comandas.", featured: true },
-  { label: "Ventas", href: "/ventas", icon: BarChart3, color: "bg-teal-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Historial y rendimiento." },
-  { label: "Productos", href: "/productos", icon: Package, color: "bg-indigo-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Carta, stock y precios." },
-  { label: "Clientes", href: "/clientes", icon: Users, color: "bg-cyan-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Base de clientes." },
-  { label: "Cajas", href: "/cajas", icon: Wallet, color: "bg-yellow-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"], category: "gestion", description: "Aperturas y arqueos." },
-  { label: "Cupones", href: "/cupones", icon: Tag, color: "bg-pink-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Descuentos y promociones.", featureKey: "cupones" },
-  { label: "Recursos Humanos", href: "/rrhh", icon: BriefcaseBusiness, color: "bg-slate-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Personal, asistencia y sedes." },
-  { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-violet-500", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
-  { label: "Sucursales", href: "/sucursales", icon: Building2, color: "bg-rose-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Sedes y orden visual." },
-  { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gray-500", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
-  { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-zinc-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil.", featureKey: "kiosko" },
-  { label: "Carta QR", href: "/carta-qr", icon: QrCode, color: "bg-purple-600", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Menu publico y QR.", featureKey: "menuQR" },
+  { label: "Panel", href: "/panel", icon: LayoutDashboard, color: "bg-gradient-to-br from-violet-500 to-indigo-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Resumen y accesos clave." },
+  { label: "Punto de Venta", href: "/ventas/nueva", icon: ShoppingCart, color: "bg-gradient-to-br from-emerald-400 to-teal-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "operacion", description: "Cobro rapido en caja.", featured: true },
+  { label: "Atencion", href: "/mesas", icon: UtensilsCrossed, color: "bg-gradient-to-br from-orange-400 to-rose-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"], category: "operacion", description: "Mesas, sala y servicio.", featured: true },
+  { label: "Delivery", href: "/delivery", icon: Bike, color: "bg-gradient-to-br from-amber-400 to-orange-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "DELIVERY"], category: "operacion", description: "Despachos y repartos.", featureKey: "delivery", featured: true },
+  { label: "Pedidos", href: "/pedidos", icon: ClipboardList, color: "bg-gradient-to-br from-yellow-400 to-amber-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Flujo activo de comandas.", featured: true },
+  { label: "Ventas", href: "/ventas", icon: BarChart3, color: "bg-gradient-to-br from-cyan-400 to-blue-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Historial y rendimiento." },
+  { label: "Productos", href: "/productos", icon: Package, color: "bg-gradient-to-br from-indigo-500 to-purple-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Carta, stock y precios." },
+  { label: "Clientes", href: "/clientes", icon: Users, color: "bg-gradient-to-br from-sky-400 to-cyan-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Base de clientes." },
+  { label: "Cajas", href: "/cajas", icon: Wallet, color: "bg-gradient-to-br from-yellow-400 to-yellow-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"], category: "gestion", description: "Aperturas y arqueos." },
+  { label: "Cupones", href: "/cupones", icon: Tag, color: "bg-gradient-to-br from-pink-400 to-rose-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Descuentos y promociones.", featureKey: "cupones" },
+  { label: "Recursos Humanos", href: "/rrhh", icon: BriefcaseBusiness, color: "bg-gradient-to-br from-blue-500 to-indigo-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Personal, asistencia y sedes." },
+  { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-gradient-to-br from-violet-500 to-purple-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
+  { label: "Sucursales", href: "/sucursales", icon: Building2, color: "bg-gradient-to-br from-rose-400 to-pink-600", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Sedes y orden visual." },
+  { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gradient-to-br from-slate-500 to-gray-700", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
+  { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-gradient-to-br from-teal-500 to-emerald-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil.", featureKey: "kiosko" },
+  { label: "Carta QR", href: "/carta-qr", icon: QrCode, color: "bg-gradient-to-br from-purple-500 to-violet-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Menu publico y QR.", featureKey: "menuQR" },
 ];
 
 const categoryMeta: Record<ModuleCategory, { title: string; subtitle: string }> = {
@@ -111,19 +111,19 @@ function SortableAppCard({ mod }: { mod: AppModule }) {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-2xl border p-4 text-center select-none cursor-grab active:cursor-grabbing",
+        "flex flex-col items-center gap-2.5 rounded-2xl p-3 text-center select-none cursor-grab active:cursor-grabbing transition-all",
         isDragging
-          ? "border-brand-300 bg-brand-50 shadow-xl z-50 opacity-80 scale-105"
-          : "border-surface-border bg-white hover:border-brand-200 hover:bg-slate-50"
+          ? "bg-white shadow-2xl z-50 opacity-90 scale-110 ring-2 ring-brand-300"
+          : "bg-white/60 hover:bg-white hover:shadow-md"
       )}
       {...attributes}
       {...listeners}
     >
-      <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-sm", mod.color)}>
-        <Icon size={20} />
+      <div className={cn("flex h-14 w-14 items-center justify-center rounded-[18px] text-white shadow-lg", mod.color)}>
+        <Icon size={24} />
       </div>
-      <p className="text-[11px] font-semibold leading-tight text-surface-text">{mod.label}</p>
-      <GripVertical size={12} className="text-surface-muted mt-auto" />
+      <p className="text-[11px] font-bold leading-tight text-surface-text">{mod.label}</p>
+      <GripVertical size={12} className="text-surface-muted/50" />
     </div>
   );
 }
@@ -221,36 +221,44 @@ export function PandaNavbar() {
           onClick={() => setShowApps(false)}
           title={locked ? "Disponible en plan PRO" : mod.description}
           className={cn(
-            "group rounded-2xl border p-4 transition-all",
+            "group relative overflow-hidden rounded-2xl p-4 transition-all",
             locked
-              ? "border-slate-200 bg-slate-100/70 opacity-80"
+              ? "bg-slate-100/80 opacity-70"
               : active
-                ? "border-brand-200 bg-brand-50 shadow-sm"
-                : "border-surface-border bg-white hover:-translate-y-0.5 hover:border-brand-100 hover:bg-slate-50"
+                ? "bg-white shadow-lg ring-2 ring-brand-300"
+                : "bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg"
           )}
         >
+          {/* Glow de fondo sutil */}
+          {!locked && (
+            <div className={cn("absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-10 blur-2xl", mod.color)} />
+          )}
           <div className="flex items-start justify-between gap-3">
-            <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm", locked ? "bg-slate-400" : mod.color)}>
-              <Icon size={22} />
+            <div className={cn(
+              "flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] text-white shadow-md",
+              locked ? "bg-slate-400" : mod.color
+            )}>
+              <Icon size={26} />
             </div>
             {locked ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
-                <Lock size={10} /> Pro
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+                <Lock size={9} /> Pro
               </span>
             ) : active ? (
-              <span className="rounded-full bg-brand-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-700">
+              <span className="rounded-full bg-brand-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-brand-700">
                 Activo
               </span>
             ) : null}
           </div>
-          <div className="mt-3 space-y-1">
-            <p className={cn("text-sm font-semibold", locked ? "text-slate-500" : "text-surface-text")}>{mod.label}</p>
-            <p className={cn("text-xs leading-5", locked ? "text-slate-400" : "text-surface-muted")}>{locked ? "Disponible al activar funciones Pro." : mod.description}</p>
+          <div className="relative mt-3 space-y-0.5">
+            <p className={cn("text-sm font-bold", locked ? "text-slate-500" : "text-surface-text")}>{mod.label}</p>
+            <p className={cn("text-[11px] leading-5", locked ? "text-slate-400" : "text-surface-muted")}>{locked ? "Disponible en plan Pro." : mod.description}</p>
           </div>
         </Link>
       );
     }
 
+    // Compact — estilo iOS: icono grande centrado + etiqueta abajo
     return (
       <Link
         key={mod.href}
@@ -258,24 +266,29 @@ export function PandaNavbar() {
         onClick={() => setShowApps(false)}
         title={locked ? "Disponible en plan PRO" : mod.description}
         className={cn(
-          "group flex min-h-[112px] flex-col gap-2 rounded-2xl border p-3 text-left transition-all",
+          "group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition-all",
           locked
-            ? "border-slate-200 bg-slate-100/70 opacity-75"
+            ? "bg-slate-100/80 opacity-70"
             : active
-              ? "border-brand-200 bg-brand-50"
-              : "border-surface-border bg-white hover:border-brand-100 hover:bg-slate-50"
+              ? "bg-white shadow-md ring-2 ring-brand-300"
+              : "bg-white/60 hover:bg-white hover:shadow-md"
         )}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm", locked ? "bg-slate-400" : mod.color)}>
-            <Icon size={18} />
-          </div>
-          {locked ? <Lock size={12} className="mt-1 text-slate-400" /> : null}
+        <div className={cn(
+          "relative flex h-14 w-14 items-center justify-center rounded-[18px] text-white shadow-md",
+          locked ? "bg-slate-400" : mod.color
+        )}>
+          <Icon size={24} />
+          {locked && (
+            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm">
+              <Lock size={9} className="text-slate-500" />
+            </div>
+          )}
         </div>
-        <div className="space-y-1">
-          <p className={cn("text-[12px] font-semibold leading-tight", locked ? "text-slate-500" : active ? "text-brand-700" : "text-surface-text")}>{mod.label}</p>
-          <p className={cn("text-[10px] leading-4", locked ? "text-slate-400" : "text-surface-muted")}>{mod.description}</p>
-        </div>
+        <p className={cn(
+          "text-[11px] font-bold leading-tight",
+          locked ? "text-slate-400" : active ? "text-brand-700" : "text-surface-text"
+        )}>{mod.label}</p>
       </Link>
     );
   }
@@ -305,7 +318,7 @@ export function PandaNavbar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="fixed inset-0 top-[52px] z-50 flex flex-col bg-white/98 backdrop-blur-xl"
+              className="fixed inset-0 top-[52px] z-50 flex flex-col bg-gradient-to-br from-slate-50 via-white to-violet-50/40 backdrop-blur-xl"
             >
               {/* Header */}
               <div className="border-b border-surface-border bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 px-6 py-4">
@@ -372,7 +385,7 @@ export function PandaNavbar() {
                   {reordering && (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                       <SortableContext items={visible.map(m => m.href)} strategy={rectSortingStrategy}>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
                           {visible.map((mod) => (
                             <SortableAppCard key={mod.href} mod={mod} />
                           ))}
@@ -395,10 +408,10 @@ export function PandaNavbar() {
                       {featured.length > 0 && (
                         <section>
                           <div className="mb-4 flex items-center gap-3">
-                            <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">Accesos principales</h3>
-                            <div className="h-px flex-1 bg-surface-border" />
+                            <h3 className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">Accesos principales</h3>
+                            <div className="h-px flex-1 bg-slate-200/70" />
                           </div>
-                          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                             {featured.map((mod) => renderModuleCard(mod, "featured"))}
                           </div>
                         </section>
@@ -408,11 +421,11 @@ export function PandaNavbar() {
                         items.length > 0 ? (
                           <section key={category}>
                             <div className="mb-4 flex items-center gap-3">
-                              <h3 className="text-sm font-bold uppercase tracking-wider text-surface-text">{meta.title}</h3>
-                              <div className="h-px flex-1 bg-surface-border" />
-                              <span className="text-[11px] font-medium text-surface-muted">{items.length} módulo{items.length !== 1 ? "s" : ""}</span>
+                              <h3 className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">{meta.title}</h3>
+                              <div className="h-px flex-1 bg-slate-200/70" />
+                              <span className="text-[10px] font-semibold text-slate-300">{items.length} módulo{items.length !== 1 ? "s" : ""}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
                               {items.map((mod) => renderModuleCard(mod, "compact"))}
                             </div>
                           </section>
