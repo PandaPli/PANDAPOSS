@@ -63,12 +63,13 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   /** Anular / reactivar ítem guardado → sincroniza con KDS; hace rollback local si falla */
   const handleCancel = useCallback(async (item: CartItem) => {
     const newCancelado = !item.cancelado;
-    cancelItem(item.id, item.tipo); // actualización optimista
+    // Usar detalleId para cancelar SOLO este ítem (no todos los del mismo producto)
+    cancelItem(item.id, item.tipo, item.detalleId);
     if (item.detalleId) {
       const ok = await syncDetalle(item.detalleId, { cancelado: newCancelado });
       if (!ok) {
-        // Rollback: revertir estado local si el servidor rechazó el cambio
-        cancelItem(item.id, item.tipo);
+        // Rollback: revertir solo este ítem
+        cancelItem(item.id, item.tipo, item.detalleId);
       }
     }
   }, [cancelItem]);
@@ -255,20 +256,20 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
           {!item.guardado && !item.cancelado && !item.pagado && (
             <>
               <button
-                onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1)}
+                onClick={() => updateCantidad(item.id, item.tipo, item.cantidad - 1, item.detalleId)}
                 className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
               >
                 <Minus size={12} />
               </button>
               <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
               <button
-                onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1)}
+                onClick={() => updateCantidad(item.id, item.tipo, item.cantidad + 1, item.detalleId)}
                 className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-all"
               >
                 <Plus size={12} />
               </button>
               <button
-                onClick={() => removeItem(item.id, item.tipo)}
+                onClick={() => removeItem(item.id, item.tipo, item.detalleId)}
                 className="w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 flex items-center justify-center transition-all ml-1"
               >
                 <Trash2 size={12} />

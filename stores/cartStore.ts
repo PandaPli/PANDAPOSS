@@ -24,16 +24,16 @@ interface CartState {
   ivaPorc: number;
 
   addItem: (item: Omit<CartItem, "cantidad"> & { cantidad?: number }) => void;
-  removeItem: (id: number, tipo: "producto" | "combo") => void;
-  updateCantidad: (id: number, tipo: "producto" | "combo", cantidad: number) => void;
-  updateObservacion: (id: number, tipo: "producto" | "combo", obs: string) => void;
+  removeItem: (id: number, tipo: "producto" | "combo", detalleId?: number) => void;
+  updateCantidad: (id: number, tipo: "producto" | "combo", cantidad: number, detalleId?: number) => void;
+  updateObservacion: (id: number, tipo: "producto" | "combo", obs: string, detalleId?: number) => void;
   setMesa: (id: number | null) => void;
   setMesaFresh: (id: number) => void; // limpia carrito y asigna nueva mesa
   setCliente: (id: number | null) => void;
   setPedido: (id: number | null) => void;
   setDescuento: (v: number) => void;
   setIva: (v: number) => void;
-  cancelItem: (id: number, tipo: "producto" | "combo") => void;
+  cancelItem: (id: number, tipo: "producto" | "combo", detalleId?: number) => void;
   clear: () => void;
   setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
   markAsSaved: () => void;
@@ -91,35 +91,61 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
   },
 
-  removeItem(id, tipo) {
-    set((s) => ({ items: s.items.filter((i) => !(i.id === id && i.tipo === tipo)) }));
+  removeItem(id, tipo, detalleId?) {
+    set((s) => {
+      if (detalleId !== undefined) {
+        // Eliminar por detalleId exacto (ítems guardados de rondas anteriores)
+        return { items: s.items.filter((i) => i.detalleId !== detalleId) };
+      }
+      // Solo eliminar el PRIMER ítem no-guardado con ese id+tipo
+      // Evita borrar ítems de otras rondas del mismo producto
+      let removed = false;
+      return {
+        items: s.items.filter((i) => {
+          if (!removed && i.id === id && i.tipo === tipo && !i.guardado) {
+            removed = true;
+            return false;
+          }
+          return true;
+        }),
+      };
+    });
   },
 
-  updateCantidad(id, tipo, cantidad) {
+  updateCantidad(id, tipo, cantidad, detalleId?) {
     if (cantidad <= 0) {
-      get().removeItem(id, tipo);
+      get().removeItem(id, tipo, detalleId);
       return;
     }
     set((s) => ({
-      items: s.items.map((i) =>
-        i.id === id && i.tipo === tipo ? { ...i, cantidad } : i
-      ),
+      items: s.items.map((i) => {
+        const match = detalleId !== undefined
+          ? i.detalleId === detalleId
+          : i.id === id && i.tipo === tipo && !i.guardado;
+        return match ? { ...i, cantidad } : i;
+      }),
     }));
   },
 
-  updateObservacion(id, tipo, obs) {
+  updateObservacion(id, tipo, obs, detalleId?) {
     set((s) => ({
-      items: s.items.map((i) =>
-        i.id === id && i.tipo === tipo ? { ...i, observacion: obs } : i
-      ),
+      items: s.items.map((i) => {
+        const match = detalleId !== undefined
+          ? i.detalleId === detalleId
+          : i.id === id && i.tipo === tipo && !i.guardado;
+        return match ? { ...i, observacion: obs } : i;
+      }),
     }));
   },
 
-  cancelItem: (id, tipo) =>
+  cancelItem: (id, tipo, detalleId?) =>
     set((s) => ({
-      items: s.items.map((i) =>
-        i.id === id && i.tipo === tipo ? { ...i, cancelado: !i.cancelado } : i
-      ),
+      items: s.items.map((i) => {
+        const match = detalleId !== undefined
+          ? i.detalleId === detalleId
+          : i.id === id && i.tipo === tipo;
+        return match ? { ...i, cancelado: !i.cancelado } : i;
+      }),
     })),
 
   setMesa: (id) => set({ mesaId: id }),

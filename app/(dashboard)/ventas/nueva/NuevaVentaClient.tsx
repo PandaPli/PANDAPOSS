@@ -382,11 +382,16 @@ export function NuevaVentaClient({
 
       setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
       setTimeout(() => setOrdenMsg(""), 4000);
-      setTicketData({
+
+      const newTicket = {
         pedidoNum: pedido.id,
         mesa: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : null),
         items: nuevosItems,
-      });
+      };
+      // Imprimir automáticamente al enviar — sin requerir click manual
+      printKitchenTicket(newTicket);
+      // El dialog queda disponible para re-imprimir si se necesita
+      setTicketData(newTicket);
     } catch (e) {
       setOrdenMsg((e as Error).message);
     } finally {
@@ -829,7 +834,7 @@ export function NuevaVentaClient({
                   {ticketData.mesa ? ` · ${ticketData.mesa}` : ""}
                 </p>
                 <p className="mt-0.5 text-sm text-surface-muted">
-                  ¿Imprimir ticket de barra / cocina?
+                  Comanda impresa automáticamente. ¿Re-imprimir?
                 </p>
               </div>
             </div>
@@ -865,7 +870,7 @@ export function NuevaVentaClient({
                 className="btn-primary flex-1 justify-center py-2.5 text-sm"
               >
                 <Printer size={15} />
-                Sí, imprimir
+                Re-imprimir
               </button>
               <button
                 onClick={() => setTicketData(null)}
