@@ -7,6 +7,7 @@ interface PedidoItem {
   comboId?: number | null;
   cantidad: number;
   observacion?: string | null;
+  grupo?: string | null;
 }
 
 export interface CreatePedidoInput {
@@ -104,6 +105,7 @@ export const PedidoService = {
             comboId:     item.comboId ?? null,
             cantidad:    item.cantidad,
             observacion: item.observacion ?? null,
+            grupo:       item.grupo ?? null,
             precio: item.productoId
               ? precioProducto.get(item.productoId)
               : item.comboId
