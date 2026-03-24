@@ -741,7 +741,7 @@ export function NuevaVentaClient({
           <ProductGrid productos={productosFiltrados} simbolo={simbolo} activeGrupo={activeGrupo} />
         </div>
 
-        <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
+        <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-80 xl:w-[420px]", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
           <CartPanel
             simbolo={simbolo}
             onCheckout={() => { setCheckoutGrupo(null); setShowCheckout(true); }}

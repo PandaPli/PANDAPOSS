@@ -152,12 +152,20 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     return (
       <div
         key={key}
-        className={`flex items-start gap-3 p-3 rounded-xl transition-all ${
+        className={`flex items-start gap-2.5 p-2.5 rounded-xl transition-all ${
           item.cancelado ? "bg-gray-100 opacity-60" :
           item.pagado ? "bg-green-50 opacity-60" :
           "bg-surface-bg"
         }`}
       >
+        {/* Imagen del producto */}
+        {item.imagen && !item.cancelado && !item.pagado && (
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Indicador de grupo (punto de color) en modo grupos */}
         {modoGrupos && item.grupo && !item.cancelado && !item.pagado && (
           <div
