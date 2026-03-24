@@ -737,7 +737,7 @@ export function NuevaVentaClient({
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className={cn("flex-1 overflow-hidden p-3 sm:p-4", mobileTab === "carrito" ? "hidden md:block" : "block")}>
+        <div className={cn("flex-1 overflow-hidden", mobileTab === "carrito" ? "hidden md:block" : "block")}>
           <ProductGrid productos={productosFiltrados} simbolo={simbolo} activeGrupo={activeGrupo} />
         </div>
 

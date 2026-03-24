@@ -108,7 +108,7 @@ export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
   }
 
   return (
-    <div className="flex h-full overflow-hidden rounded-xl border border-surface-border bg-white shadow-sm">
+    <div className="flex h-full overflow-hidden bg-white border-r border-surface-border">
 
       {/* ── Sidebar categorías ─────────────────────────────────── */}
       <div className="flex w-[120px] shrink-0 flex-col overflow-y-auto border-r border-surface-border bg-surface-bg/60 p-1.5 gap-1">
