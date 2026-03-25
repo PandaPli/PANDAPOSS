@@ -668,7 +668,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
             </div>
 
             {/* ── Productos ── */}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
               {(categoriaVisible?.productos ?? []).map((producto, idx) => {
                 const quantity = cart.filter((item) => item.id === producto.id).reduce((s, i) => s + i.cantidad, 0);
                 const handleAdd = () => {
@@ -682,33 +682,33 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                 return (
                   <article
                     key={producto.id}
-                    className="flex items-center gap-3 overflow-hidden rounded-2xl bg-white p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.10)] transition-all duration-200 active:scale-[0.99] sm:flex-col sm:p-0 sm:hover:shadow-lg"
+                    className="flex items-center gap-3 overflow-hidden rounded-2xl bg-white p-3 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.10)] transition-all duration-200 active:scale-[0.99] hover:shadow-md"
                   >
-                    {/* Imagen — miniatura en mobile, hero en sm+ */}
+                    {/* Imagen — miniatura compacta en todos los tamaños */}
                     <button
-                      className="relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-xl sm:aspect-[4/3] sm:h-auto sm:w-full sm:rounded-none sm:rounded-t-2xl"
+                      className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl"
                       onClick={() => setViewerIndex(idx)}
                     >
                       {producto.imagen ? (
-                        <img src={producto.imagen} alt={producto.nombre} className="h-full w-full object-cover transition-transform duration-300 sm:group-hover:scale-105" />
+                        <img src={producto.imagen} alt={producto.nombre} className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-100">
-                          <span className="text-3xl opacity-40">🍽️</span>
+                          <span className="text-2xl opacity-40">🍽️</span>
                         </div>
                       )}
                       {/* badge cantidad */}
                       {quantity > 0 && (
-                        <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-black text-white shadow">
+                        <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-[10px] font-black text-white shadow">
                           {quantity}
                         </span>
                       )}
                     </button>
 
                     {/* Info */}
-                    <div className="min-w-0 flex-1 sm:w-full sm:flex-none sm:p-3">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-black leading-tight text-stone-900">{producto.nombre}</p>
                       {producto.descripcion && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-stone-400 sm:line-clamp-2">{producto.descripcion}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-stone-400">{producto.descripcion}</p>
                       )}
                       <div className="mt-1.5 flex items-center justify-between gap-2">
                         <p className="text-sm font-black text-orange-500">
@@ -717,8 +717,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                             <span className="ml-1 text-[10px] font-medium text-stone-400">+opc.</span>
                           )}
                         </p>
-                        {/* Botón en desktop inline con precio */}
-                        <div className="hidden sm:block shrink-0">
+                        {/* Botón siempre visible */}
+                        <div className="shrink-0">
                           {quantity === 0 ? (
                             <button onClick={handleAdd} className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-200/60 transition-all hover:from-orange-600 active:scale-90">
                               <Plus size={16} />
@@ -731,23 +731,6 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
                             </div>
                           )}
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Botón en mobile (derecha) */}
-                    <div className="shrink-0 sm:hidden">
-                      {quantity === 0 ? (
-                        <button onClick={handleAdd} className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-200/60 transition-all hover:from-orange-600 active:scale-90">
-                          <Plus size={18} />
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-1 rounded-full bg-stone-950 px-1.5 py-1">
-                          <button onClick={handleRemove} className="flex h-7 w-7 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white active:scale-90"><Minus size={13} /></button>
-                          <span className="min-w-[18px] text-center text-sm font-black text-white">{quantity}</span>
-                          <button onClick={handleAdd} className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white transition active:scale-90"><Plus size={13} /></button>
-                        </div>
-                      )}
-                    </div>
                   </article>
                 );
               })}
