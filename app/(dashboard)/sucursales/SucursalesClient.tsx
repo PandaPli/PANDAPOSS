@@ -5,6 +5,8 @@ import { Plus, Building2, ImageIcon, Upload, X, Loader2 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from "@dnd-kit/sortable";
 import { SortableSucursalCard } from "./SortableSucursalCard";
+import { SECTOR_CONFIG } from "@/core/sector/sectorConfig";
+import type { SectorTipo } from "@/types";
 
 interface Sucursal {
   id: number;
@@ -15,12 +17,22 @@ interface Sucursal {
   simbolo: string;
   activa: boolean;
   plan: "BASICO" | "PRO" | "PRIME" | "DEMO";
+  sector: SectorTipo;
   logoUrl: string | null;
   creadoEn: string | Date;
   _count: { usuarios: number; cajas: number };
 }
 
-const emptyForm = { nombre: "", direccion: "", telefono: "", email: "", simbolo: "$", plan: "BASICO" as "BASICO" | "PRO" | "PRIME" | "DEMO", logoUrl: null as string | null };
+const emptyForm = {
+  nombre: "",
+  direccion: "",
+  telefono: "",
+  email: "",
+  simbolo: "$",
+  plan: "BASICO" as "BASICO" | "PRO" | "PRIME" | "DEMO",
+  sector: "RESTAURANTE_BAR" as SectorTipo,
+  logoUrl: null as string | null,
+};
 
 export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal[] }) {
   const [sucursales, setSucursales] = useState<Sucursal[]>(initial);
@@ -48,6 +60,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
       email: s.email ?? "",
       simbolo: s.simbolo,
       plan: s.plan,
+      sector: s.sector ?? "RESTAURANTE_BAR",
       logoUrl: s.logoUrl ?? null,
     });
     setError("");
@@ -291,6 +304,31 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   placeholder="Av. Principal 123, Ciudad"
                   className="input"
                 />
+              </div>
+
+              {/* Sector */}
+              <div>
+                <label className="label">Sector Gastronómico</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.entries(SECTOR_CONFIG) as [SectorTipo, typeof SECTOR_CONFIG[SectorTipo]][]).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setForm({ ...form, sector: key })}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center ${
+                        form.sector === key
+                          ? "border-brand-500 bg-brand-50 text-brand-700"
+                          : "border-surface-border bg-surface-bg text-surface-text hover:border-brand-300"
+                      }`}
+                    >
+                      <span className="text-2xl">{cfg.emoji}</span>
+                      <span className="text-xs font-medium leading-tight">{cfg.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-surface-muted mt-1.5">
+                  {SECTOR_CONFIG[form.sector]?.descripcion}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

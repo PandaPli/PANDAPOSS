@@ -30,6 +30,7 @@ model Sucursal {
   simbolo       String         @default("$") @db.VarChar(5)
   activa        Boolean        @default(true)
   plan          PlanTipo       @default(BASICO)
+  sector        SectorTipo     @default(RESTAURANTE_BAR)
   delivery      Boolean        @default(false)
   menuQR        Boolean        @default(false)
   correoActivo  Boolean        @default(false)
@@ -771,6 +772,12 @@ enum PlanTipo {
   PRO
   PRIME
   DEMO
+}
+
+enum SectorTipo {
+  DELIVERY
+  RESTAURANTE_BAR
+  DISCOTECA
 }
 
 enum Estacion {

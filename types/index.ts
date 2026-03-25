@@ -1,4 +1,6 @@
-﻿export type Rol =
+﻿export type SectorTipo = "DELIVERY" | "RESTAURANTE_BAR" | "DISCOTECA";
+
+export type Rol =
   | "ADMIN_GENERAL"
   | "RESTAURANTE"
   | "SECRETARY"
