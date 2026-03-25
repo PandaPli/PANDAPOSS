@@ -21,7 +21,7 @@ export default async function RegistroPage({ params }: { params: Promise<{ id: s
   if (!isNaN(numId)) {
     sucursal = await prisma.sucursal.findUnique({
       where: { id: numId },
-      select: { id: true, nombre: true, activa: true },
+      select: { id: true, nombre: true, activa: true, logoUrl: true },
     });
   }
 
@@ -29,12 +29,18 @@ export default async function RegistroPage({ params }: { params: Promise<{ id: s
   if (!sucursal) {
     const todas = await prisma.sucursal.findMany({
       where: { activa: true },
-      select: { id: true, nombre: true, activa: true },
+      select: { id: true, nombre: true, activa: true, logoUrl: true },
     });
     sucursal = todas.find((s) => toSlug(s.nombre) === toSlug(id)) ?? null;
   }
 
   if (!sucursal || !sucursal.activa) notFound();
 
-  return <RegistroClient sucursalId={sucursal.id} sucursalNombre={sucursal.nombre} />;
+  return (
+    <RegistroClient
+      sucursalId={sucursal.id}
+      sucursalNombre={sucursal.nombre}
+      sucursalLogo={sucursal.logoUrl ?? null}
+    />
+  );
 }

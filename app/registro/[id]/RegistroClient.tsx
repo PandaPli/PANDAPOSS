@@ -9,12 +9,13 @@ import {
 interface Props {
   sucursalId: number;
   sucursalNombre: string;
+  sucursalLogo?: string | null;
 }
 
 type Step = "form" | "success";
 type BusquedaEstado = "idle" | "buscando" | "encontrado" | "nuevo";
 
-export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
+export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Props) {
   const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -217,24 +218,66 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
 
           {/* ── HERO ── */}
           <div className="text-center pt-4 pop-in">
-            {/* Anillo de pulso */}
-            <div className="relative flex justify-center mb-4">
-              <span className="absolute w-32 h-32 rounded-full bg-white/30"
-                style={{ animation: "pulse-ring 1.5s ease-out infinite" }} />
-              <span className="absolute w-32 h-32 rounded-full bg-white/20"
-                style={{ animation: "pulse-ring 1.5s ease-out infinite", animationDelay: "0.4s" }} />
-              <div className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center shadow-2xl">
-                <span className="text-6xl" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.15))" }}>🎂</span>
+
+            {/* Logo del restaurante con anillo de pulso */}
+            <div className="relative flex justify-center mb-5">
+              <span className="absolute w-36 h-36 rounded-full bg-white/25"
+                style={{ animation: "pulse-ring 1.8s ease-out infinite" }} />
+              <span className="absolute w-36 h-36 rounded-full bg-white/15"
+                style={{ animation: "pulse-ring 1.8s ease-out infinite", animationDelay: "0.5s" }} />
+              <div className="relative w-32 h-32 rounded-full bg-white flex items-center justify-center shadow-2xl overflow-hidden">
+                {sucursalLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={sucursalLogo}
+                    alt={sucursalNombre}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-6xl" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.15))" }}>🎂</span>
+                )}
               </div>
             </div>
 
-            <h1 className="text-4xl font-black text-white leading-tight"
-              style={{ textShadow: "0 2px 12px rgba(0,0,0,0.2)" }}>
-              ¡FELIZ<br />CUMPLE,<br />
-              <span className="text-yellow-200">{nombre.toUpperCase()}!</span>
+            {/* Nombre del restaurante grande */}
+            <div className="mb-1">
+              <p className="text-white/70 text-sm font-bold uppercase tracking-[0.2em] mb-1">
+                🎊 &nbsp; tu regalo de &nbsp; 🎊
+              </p>
+              <h2 className="font-black leading-none"
+                style={{
+                  fontSize: "clamp(2.2rem, 11vw, 3.5rem)",
+                  textShadow: "0 3px 16px rgba(0,0,0,0.25)",
+                  background: "linear-gradient(180deg, #ffffff 0%, #ffe58a 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  letterSpacing: "-0.01em",
+                }}>
+                {sucursalNombre.toUpperCase()}
+              </h2>
+            </div>
+
+            {/* Separador brillante */}
+            <div className="flex items-center justify-center gap-2 my-3">
+              <div className="h-px flex-1 bg-white/30" />
+              <span className="text-white/60 text-lg">✦</span>
+              <div className="h-px flex-1 bg-white/30" />
+            </div>
+
+            {/* Felicidades + mensaje */}
+            <h1 className="font-black text-white leading-tight"
+              style={{
+                fontSize: "clamp(1.8rem, 9vw, 2.8rem)",
+                textShadow: "0 2px 12px rgba(0,0,0,0.2)",
+              }}>
+              ¡Felicidades,<br />
+              <span className="text-yellow-200">{nombre}!</span>
             </h1>
-            <p className="text-white/80 mt-2 text-sm font-medium">
-              {result.esNuevo ? `🎉 ¡Bienvenido/a a ${sucursalNombre}!` : `✅ Datos actualizados en ${sucursalNombre}`}
+            <p className="text-white/85 mt-2 text-base font-semibold leading-snug px-2"
+              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.2)" }}>
+              <span className="text-yellow-200 font-black">{sucursalNombre}</span> te regala{" "}
+              <span className="text-yellow-200 font-black">30% de descuento</span>
+              <br />para el día de tu cumpleaños 🎂
             </p>
           </div>
 
