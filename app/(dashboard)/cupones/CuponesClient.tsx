@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Tag, Trash2, ToggleLeft, ToggleRight, Pencil, X, Check, Copy } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Tag, Trash2, ToggleLeft, ToggleRight, Pencil, X, Check, Copy, Search, Cake, User, Phone, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface Cupon {
@@ -40,6 +40,46 @@ export function CuponesClient({ cupones: initial, sucursalId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+
+  // ── Buscador de códigos de cumpleaños ──
+  const [busCodigo, setBusCodigo] = useState("");
+  const [busLoading, setBusLoading] = useState(false);
+  const [busResultado, setBusResultado] = useState<null | {
+    encontrado: boolean;
+    esCumpleHoy?: boolean;
+    cliente?: {
+      nombre: string;
+      telefono: string | null;
+      fechaNacimiento: string | null;
+      activo: boolean;
+    };
+  }>(null);
+  const busRef = useRef<HTMLInputElement>(null);
+
+  async function handleBuscarCodigo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!busCodigo.trim()) return;
+    setBusLoading(true);
+    setBusResultado(null);
+    try {
+      const res = await fetch(
+        `/api/cupones/buscar-cumple?codigo=${encodeURIComponent(busCodigo.trim().toUpperCase())}`
+      );
+      const data = await res.json();
+      setBusResultado(data);
+    } catch {
+      setBusResultado({ encontrado: false });
+    } finally {
+      setBusLoading(false);
+    }
+  }
+
+  function formatFecha(iso: string | null) {
+    if (!iso) return "—";
+    const [y, m, d] = iso.slice(0, 10).split("-");
+    const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    return `${Number(d)} de ${meses[Number(m) - 1]} de ${y}`;
+  }
 
   function handleCopy(codigo: string) {
     navigator.clipboard.writeText(codigo);
@@ -135,6 +175,159 @@ export function CuponesClient({ cupones: initial, sucursalId }: Props) {
 
   return (
     <div className="space-y-6 p-6">
+
+      {/* ══════════════════════════════════════
+          BUSCADOR DE CÓDIGOS DE CUMPLEAÑOS
+      ══════════════════════════════════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Header del buscador */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3"
+          style={{ background: "linear-gradient(135deg,#fff7ed,#fff)" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl"
+            style={{ background: "linear-gradient(135deg,#f97316,#ec4899)" }}>
+            🎂
+          </div>
+          <div>
+            <p className="font-bold text-gray-800 text-sm">Buscador de Código de Cumpleaños</p>
+            <p className="text-xs text-gray-400">Ingresa el código del cliente para ver su fecha de nacimiento</p>
+          </div>
+        </div>
+
+        {/* Input */}
+        <div className="px-5 py-4">
+          <form onSubmit={handleBuscarCodigo} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+              <input
+                ref={busRef}
+                type="text"
+                value={busCodigo}
+                onChange={(e) => {
+                  setBusCodigo(e.target.value.toUpperCase());
+                  if (busResultado) setBusResultado(null);
+                }}
+                placeholder="Ej: ROD-ZN6UMR"
+                className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-orange-400 uppercase"
+                autoCapitalize="characters"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={busLoading || !busCodigo.trim()}
+              className="bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 disabled:opacity-50 shrink-0"
+            >
+              {busLoading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+              Buscar
+            </button>
+          </form>
+
+          {/* Resultado */}
+          {busResultado && (
+            <div className="mt-4">
+              {!busResultado.encontrado ? (
+                /* ── Código no encontrado ── */
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <AlertCircle size={22} className="text-red-400 shrink-0" />
+                  <div>
+                    <p className="font-bold text-red-700 text-sm">Código no encontrado</p>
+                    <p className="text-xs text-red-500 mt-0.5">
+                      No existe ningún cliente con el código &quot;{busCodigo}&quot; en esta sucursal
+                    </p>
+                  </div>
+                </div>
+              ) : busResultado.cliente ? (
+                /* ── Documento de cumpleaños ── */
+                <div className={`rounded-2xl overflow-hidden border-2 ${
+                  busResultado.esCumpleHoy
+                    ? "border-orange-400 shadow-lg shadow-orange-100"
+                    : "border-gray-200"
+                }`}>
+                  {/* Banner si es su cumpleaños hoy */}
+                  {busResultado.esCumpleHoy && (
+                    <div className="px-5 py-2 text-center font-black text-white text-sm tracking-wide"
+                      style={{ background: "linear-gradient(135deg,#f97316,#ec4899)" }}>
+                      🎉 ¡HOY ES SU CUMPLEAÑOS! · CUPÓN VÁLIDO 🎉
+                    </div>
+                  )}
+
+                  <div className="bg-white p-5 space-y-4">
+                    {/* Nombre */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center shrink-0">
+                        <User size={18} className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Cliente</p>
+                        <p className="font-black text-gray-800 text-xl leading-tight">
+                          {busResultado.cliente.nombre}
+                        </p>
+                        {busResultado.cliente.telefono && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                            <Phone size={10} /> {busResultado.cliente.telefono}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Separador */}
+                    <div className="border-t-2 border-dashed border-gray-100" />
+
+                    {/* Fecha de nacimiento — protagonista */}
+                    <div className="text-center py-2">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <Cake size={16} className="text-orange-400" />
+                        <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">
+                          Fecha de Nacimiento
+                        </p>
+                        <Cake size={16} className="text-orange-400" />
+                      </div>
+                      <p className="font-black text-gray-800"
+                        style={{ fontSize: "clamp(1.4rem,5vw,2rem)" }}>
+                        {busResultado.cliente.fechaNacimiento
+                          ? busResultado.cliente.fechaNacimiento.slice(8, 10) +
+                            "/" +
+                            busResultado.cliente.fechaNacimiento.slice(5, 7) +
+                            "/" +
+                            busResultado.cliente.fechaNacimiento.slice(0, 4)
+                          : "—"}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-0.5 capitalize">
+                        {formatFecha(busResultado.cliente.fechaNacimiento)}
+                      </p>
+                    </div>
+
+                    {/* Separador */}
+                    <div className="border-t-2 border-dashed border-gray-100" />
+
+                    {/* Código */}
+                    <div className="flex items-center justify-between bg-gray-900 rounded-xl px-4 py-3">
+                      <span className="font-mono text-white text-lg font-black tracking-widest">
+                        {busCodigo}
+                      </span>
+                      {busResultado.esCumpleHoy ? (
+                        <span className="flex items-center gap-1 text-green-400 text-xs font-bold">
+                          <CheckCircle2 size={14} /> Válido hoy
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 text-xs">
+                          Válido solo en su cumpleaños
+                        </span>
+                      )}
+                    </div>
+
+                    {!busResultado.cliente.activo && (
+                      <p className="text-xs text-center text-red-500 font-semibold">
+                        ⚠️ Este cliente está bloqueado
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
