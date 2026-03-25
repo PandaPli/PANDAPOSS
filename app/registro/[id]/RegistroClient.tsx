@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Gift, Cake, Loader2, CheckCircle2, Copy, Check,
-  ChevronRight, Phone, Search, UserCheck, UserPlus,
+  ChevronRight, Search, UserCheck, UserPlus,
 } from "lucide-react";
 
 interface Props {
@@ -34,7 +34,6 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
   // Estado del formulario
   const [form, setForm] = useState({
     nombre: "",
-    email: "",
     telefono: "",
     direccion: "",
     fechaNacimiento: "",
@@ -79,12 +78,12 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
           setForm((prev) => ({
             ...prev,
             nombre: prev.nombre || data.cliente.nombre,
-            email: prev.email || data.cliente.email,
             direccion: prev.direccion || data.cliente.direccion,
             fechaNacimiento: prev.fechaNacimiento || data.cliente.fechaNacimiento,
             genero: prev.genero || data.cliente.genero,
           }));
-          setEmailCupon(data.cliente.email || "");
+          // Prellenar email en el campo post-éxito si ya lo tenía guardado
+          if (data.cliente.email) setEmailCupon(data.cliente.email);
         } else {
           setBusquedaEstado("nuevo");
         }
@@ -168,7 +167,6 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
     setEmailEnviado(false);
     setForm({
       nombre: "",
-      email: "",
       telefono: "",
       direccion: "",
       fechaNacimiento: "",
@@ -287,21 +285,38 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
                       {errorEmail}
                     </p>
                   )}
-                  <form onSubmit={handleEnviarEmail} className="flex gap-2">
-                    <input
-                      type="email"
-                      required
-                      value={emailCupon}
-                      onChange={(e) => setEmailCupon(e.target.value)}
-                      placeholder="tucorreo@ejemplo.com"
-                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    />
+                  <form onSubmit={handleEnviarEmail} className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="email"
+                        required
+                        value={emailCupon}
+                        onChange={(e) => setEmailCupon(e.target.value)}
+                        placeholder="tucorreo@ejemplo.com"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 pr-10"
+                      />
+                      {/* Icono que indica que es editable */}
+                      {emailCupon && (
+                        <button
+                          type="button"
+                          onClick={() => setEmailCupon("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors text-xs"
+                          title="Borrar y escribir otro"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                     <button
                       type="submit"
-                      disabled={enviandoEmail}
-                      className="bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-1.5 disabled:opacity-60 shrink-0"
+                      disabled={enviandoEmail || !emailCupon}
+                      className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold px-4 py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
                     >
-                      {enviandoEmail ? <Loader2 size={16} className="animate-spin" /> : "Enviar"}
+                      {enviandoEmail ? (
+                        <><Loader2 size={16} className="animate-spin" /> Enviando...</>
+                      ) : (
+                        "Enviarme el cupón 🎁"
+                      )}
                     </button>
                   </form>
                 </div>
@@ -435,20 +450,6 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 required
                 placeholder="Ej: María González"
-              />
-            </div>
-
-            {/* ── CORREO ── */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                Correo electrónico
-              </label>
-              <input
-                type="email"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="correo@ejemplo.com"
               />
             </div>
 

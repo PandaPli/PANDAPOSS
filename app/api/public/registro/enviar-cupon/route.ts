@@ -26,16 +26,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Datos no encontrados" }, { status: 404 });
     }
 
+    // Siempre guardar/actualizar el email (puede haberlo editado)
+    await prisma.cliente.update({
+      where: { codigoCumple },
+      data: { email: email.trim().toLowerCase() },
+    });
+
     // Si no tiene RESEND_API_KEY configurada, simular éxito (para desarrollo)
     if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_placeholder") {
       console.log(`[email-dev] Cupón ${codigoCumple} → ${email}`);
-      // Guardar email en el cliente si no tenía
-      if (!cliente.email) {
-        await prisma.cliente.update({
-          where: { codigoCumple },
-          data: { email },
-        });
-      }
       return NextResponse.json({ ok: true, dev: true });
     }
 
@@ -46,14 +45,6 @@ export async function POST(req: NextRequest) {
       sucursalNombre: sucursal.nombre,
       sucursalId: Number(sucursalId),
     });
-
-    // Guardar email en el cliente si no tenía
-    if (!cliente.email) {
-      await prisma.cliente.update({
-        where: { codigoCumple },
-        data: { email },
-      });
-    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
