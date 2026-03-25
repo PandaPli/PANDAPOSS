@@ -37,9 +37,51 @@ export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Pro
     nombre: "",
     telefono: "",
     direccion: "",
-    fechaNacimiento: "",
+    fechaNacimiento: "", // ISO YYYY-MM-DD (lo que va a la API)
     genero: "",
   });
+
+  // Texto visible de la fecha (DD/MM/AAAA) — separado del valor ISO
+  const [fechaTexto, setFechaTexto] = useState("");
+  const [fechaError, setFechaError] = useState("");
+
+  // Convierte DD/MM/AAAA → YYYY-MM-DD; retorna "" si inválida
+  function parseDisplayDate(texto: string): string {
+    const match = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return "";
+    const [, d, m, y] = match;
+    const dia = Number(d), mes = Number(m), anio = Number(y);
+    if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return "";
+    if (anio < 1900 || anio > new Date().getFullYear()) return "";
+    return `${y}-${m}-${d}`;
+  }
+
+  function handleFechaChange(raw: string) {
+    // Solo dígitos y slashes
+    let v = raw.replace(/[^\d/]/g, "");
+
+    // Auto-insertar slash después de DD y MM
+    if (/^\d{2}$/.test(v) && fechaTexto.length === 1) v = v + "/";
+    else if (/^\d{2}\/\d{2}$/.test(v) && fechaTexto.length === 4) v = v + "/";
+
+    // Limitar a 10 caracteres DD/MM/AAAA
+    if (v.length > 10) return;
+
+    setFechaTexto(v);
+    setFechaError("");
+
+    if (v.length === 10) {
+      const iso = parseDisplayDate(v);
+      if (iso) {
+        setForm((prev) => ({ ...prev, fechaNacimiento: iso }));
+      } else {
+        setFechaError("Fecha inválida — usa el formato DD/MM/AAAA");
+        setForm((prev) => ({ ...prev, fechaNacimiento: "" }));
+      }
+    } else {
+      setForm((prev) => ({ ...prev, fechaNacimiento: "" }));
+    }
+  }
 
   // Estado de la búsqueda automática por teléfono
   const [busquedaEstado, setBusquedaEstado] = useState<BusquedaEstado>("idle");
@@ -80,9 +122,14 @@ export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Pro
             ...prev,
             nombre: prev.nombre || data.cliente.nombre,
             direccion: prev.direccion || data.cliente.direccion,
-            fechaNacimiento: prev.fechaNacimiento || data.cliente.fechaNacimiento,
+            fechaNacimiento: prev.fechaNacimiento || data.cliente.fechaNacimiento || "",
             genero: prev.genero || data.cliente.genero,
           }));
+          // Convertir fecha ISO a DD/MM/AAAA para mostrar en el campo texto
+          if (!fechaTexto && data.cliente.fechaNacimiento) {
+            const [y, m, d] = data.cliente.fechaNacimiento.slice(0, 10).split("-");
+            if (y && m && d) setFechaTexto(`${d}/${m}/${y}`);
+          }
           // Prellenar email en el campo post-éxito si ya lo tenía guardado
           if (data.cliente.email) setEmailCupon(data.cliente.email);
         } else {
@@ -166,6 +213,8 @@ export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Pro
     telefonoAnterior.current = "";
     setEmailCupon("");
     setEmailEnviado(false);
+    setFechaTexto("");
+    setFechaError("");
     setForm({
       nombre: "",
       telefono: "",
@@ -553,21 +602,27 @@ export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Pro
             </div>
 
             {/* ── CUMPLEAÑOS — destacado ── */}
-            <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-1">
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-1.5">
               <label className="flex items-center gap-1.5 text-xs font-bold text-amber-700 uppercase tracking-wider">
                 <Cake size={13} />
                 Fecha de Cumpleaños ✨
               </label>
               <input
-                type="date"
-                className="w-full border border-amber-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
-                value={form.fechaNacimiento}
-                onChange={(e) => setForm({ ...form, fechaNacimiento: e.target.value })}
-                max={new Date().toISOString().slice(0, 10)}
+                type="text"
+                inputMode="numeric"
+                value={fechaTexto}
+                onChange={(e) => handleFechaChange(e.target.value)}
+                placeholder="30/09/1987"
+                maxLength={10}
+                className="w-full border border-amber-200 bg-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition font-mono tracking-widest text-gray-700"
               />
-              {!form.fechaNacimiento ? (
+              {fechaError ? (
+                <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                  ⚠️ {fechaError}
+                </p>
+              ) : !form.fechaNacimiento ? (
                 <p className="text-xs text-amber-600">
-                  🎁 Necesitamos tu cumpleaños para activar tu cupón de regalo
+                  🎁 Escribe tu cumpleaños — día/mes/año (ej: 30/09/1987)
                 </p>
               ) : (
                 <p className="text-xs text-green-600 font-medium flex items-center gap-1">
