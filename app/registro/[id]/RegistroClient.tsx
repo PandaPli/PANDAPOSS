@@ -175,115 +175,165 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
   }
 
   // ══════════════════════════════════════════════
-  // PANTALLA DE ÉXITO
+  // PANTALLA DE ÉXITO — festiva y celebrativa
   // ══════════════════════════════════════════════
   if (step === "success" && result) {
+    const nombre = result.nombre.split(" ")[0];
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm text-center space-y-6 animate-fade-in">
-          {/* Icono celebración */}
-          <div className="flex justify-center">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200">
-              <span className="text-5xl">🎂</span>
-            </div>
-          </div>
+      <div className="min-h-screen relative overflow-hidden flex items-start justify-center p-4 pt-6"
+        style={{ background: "linear-gradient(135deg, #ff6b6b 0%, #ff8e53 30%, #ff6b9d 60%, #c44dff 100%)" }}>
 
-          {/* Mensaje */}
-          <div>
-            <h1 className="text-3xl font-black text-gray-800">
-              ¡FELICIDADES,<br />
-              {result.nombre.split(" ")[0]}!
+        {/* ── Confetti decorativo (CSS puro) ── */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {["🎊","🎉","⭐","🌟","✨","🎈","🎁","💛","🧡","💜","🩷","🎀"].map((emoji, i) => (
+            <span
+              key={i}
+              className="absolute text-2xl select-none"
+              style={{
+                left: `${[8,18,28,38,48,58,68,78,88,12,35,62][i]}%`,
+                top: `${[5,12,3,8,15,6,10,4,7,18,2,14][i]}%`,
+                animation: `float-${(i % 3) + 1} ${3 + (i % 3)}s ease-in-out infinite`,
+                animationDelay: `${i * 0.3}s`,
+                opacity: 0.85,
+              }}
+            >
+              {emoji}
+            </span>
+          ))}
+        </div>
+
+        <style>{`
+          @keyframes float-1 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-14px) rotate(8deg)} }
+          @keyframes float-2 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-20px) rotate(-10deg)} }
+          @keyframes float-3 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-10px) rotate(5deg)} }
+          @keyframes pop-in  { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+          @keyframes slide-up{ 0%{transform:translateY(30px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+          @keyframes pulse-ring{ 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(1.6);opacity:0} }
+          .pop-in  { animation: pop-in  0.6s cubic-bezier(.34,1.56,.64,1) both }
+          .slide-up{ animation: slide-up 0.5s ease both }
+        `}</style>
+
+        <div className="relative w-full max-w-sm space-y-4 z-10">
+
+          {/* ── HERO ── */}
+          <div className="text-center pt-4 pop-in">
+            {/* Anillo de pulso */}
+            <div className="relative flex justify-center mb-4">
+              <span className="absolute w-32 h-32 rounded-full bg-white/30"
+                style={{ animation: "pulse-ring 1.5s ease-out infinite" }} />
+              <span className="absolute w-32 h-32 rounded-full bg-white/20"
+                style={{ animation: "pulse-ring 1.5s ease-out infinite", animationDelay: "0.4s" }} />
+              <div className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                <span className="text-6xl" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.15))" }}>🎂</span>
+              </div>
+            </div>
+
+            <h1 className="text-4xl font-black text-white leading-tight"
+              style={{ textShadow: "0 2px 12px rgba(0,0,0,0.2)" }}>
+              ¡FELIZ<br />CUMPLE,<br />
+              <span className="text-yellow-200">{nombre.toUpperCase()}!</span>
             </h1>
-            <p className="text-gray-500 mt-2 text-sm">
-              {result.esNuevo
-                ? `Bienvenido/a a ${sucursalNombre}`
-                : `Tus datos en ${sucursalNombre} han sido actualizados`}
+            <p className="text-white/80 mt-2 text-sm font-medium">
+              {result.esNuevo ? `🎉 ¡Bienvenido/a a ${sucursalNombre}!` : `✅ Datos actualizados en ${sucursalNombre}`}
             </p>
           </div>
 
-          {/* Cupón */}
-          {result.codigoCumple ? (
-            <div className="bg-white rounded-2xl shadow-xl border-2 border-dashed border-amber-300 overflow-hidden">
-              <div className="bg-gradient-to-r from-amber-400 to-orange-500 px-6 py-4">
-                <div className="flex items-center justify-center gap-2 text-white">
-                  <Gift size={20} />
-                  <span className="font-bold text-lg">REGALO DE CUMPLEAÑOS</span>
-                  <Gift size={20} />
+          {/* ── CUPÓN ── */}
+          {result.codigoCumple && (
+            <div className="slide-up rounded-3xl overflow-hidden shadow-2xl"
+              style={{ animationDelay: "0.15s", border: "3px solid rgba(255,255,255,0.6)" }}>
+
+              {/* Header del cupón */}
+              <div className="bg-white/15 backdrop-blur-sm px-6 py-4 text-center border-b border-white/20">
+                <div className="flex items-center justify-center gap-2 text-white font-black text-lg tracking-wide">
+                  <span>🎁</span> REGALO DE CUMPLEAÑOS <span>🎁</span>
                 </div>
-                <p className="text-center text-white/90 text-sm mt-1">{sucursalNombre}</p>
-              </div>
-
-              <div className="px-6 py-5">
-                <div className="text-6xl font-black text-orange-500 leading-none">30%</div>
-                <div className="text-xl font-bold text-gray-700">DE DESCUENTO</div>
-                <p className="text-gray-400 text-xs mt-1">
-                  en tu próxima visita el día de tu cumpleaños
+                <p className="text-white/70 text-xs mt-0.5 font-semibold uppercase tracking-widest">
+                  {sucursalNombre}
                 </p>
-                <p className="text-gray-400 text-xs mt-0.5 font-medium">Tope máximo $15.000</p>
               </div>
 
-              <div className="px-6 pb-5">
-                <p className="text-xs text-gray-400 mb-2 uppercase tracking-wider font-medium">
+              {/* Cuerpo blanco */}
+              <div className="bg-white px-6 py-5 text-center">
+                {/* Descuento grande */}
+                <div className="mb-3">
+                  <div className="text-8xl font-black leading-none"
+                    style={{ background: "linear-gradient(135deg,#ff6b6b,#ff8e53,#c44dff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    30%
+                  </div>
+                  <div className="text-2xl font-black text-gray-800 -mt-1">DE DESCUENTO</div>
+                  <p className="text-gray-400 text-xs mt-1">en tu visita el día de tu cumpleaños</p>
+                  <div className="inline-block mt-1 bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold px-3 py-1 rounded-full">
+                    Tope máximo $15.000
+                  </div>
+                </div>
+
+                {/* Separador punteado */}
+                <div className="border-t-2 border-dashed border-gray-200 my-4" />
+
+                {/* Código */}
+                <p className="text-xs text-gray-400 mb-2 uppercase tracking-widest font-semibold">
                   Tu código personal
                 </p>
                 <button
                   onClick={copiarCodigo}
-                  className="w-full bg-gray-900 text-white rounded-xl py-3 px-4 flex items-center justify-between group transition-colors hover:bg-gray-800"
+                  className="w-full rounded-2xl py-3.5 px-5 flex items-center justify-between group transition-all active:scale-95"
+                  style={{ background: "linear-gradient(135deg,#1a1a2e,#16213e)" }}
                 >
-                  <span className="font-mono text-xl font-bold tracking-widest">
+                  <span className="font-mono text-2xl font-black tracking-widest text-white">
                     {result.codigoCumple}
                   </span>
-                  <span className="text-gray-400 group-hover:text-white transition-colors">
-                    {copied ? (
-                      <Check size={18} className="text-green-400" />
-                    ) : (
-                      <Copy size={18} />
-                    )}
+                  <span className="ml-3 shrink-0">
+                    {copied
+                      ? <span className="text-green-400 text-xs font-bold">¡Copiado!</span>
+                      : <Copy size={18} className="text-white/50 group-hover:text-white transition-colors" />
+                    }
                   </span>
                 </button>
-                <p className="text-xs text-gray-400 mt-2 flex items-center justify-center gap-1">
-                  <CheckCircle2 size={11} className="text-green-500" />
-                  Código de uso único · válido solo el día de tu cumpleaños
+
+                <p className="text-xs text-gray-400 mt-2.5 flex items-center justify-center gap-1.5">
+                  <CheckCircle2 size={12} className="text-green-400" />
+                  Código único · válido solo el día de tu cumpleaños
                 </p>
               </div>
 
-              <div className="bg-gray-50 px-6 py-3 border-t border-gray-100">
-                <p className="text-xs text-gray-400 text-center">
-                  🎁 Presenta este cupón al momento de pagar
+              {/* Footer del cupón */}
+              <div className="px-6 py-3 text-center"
+                style={{ background: "linear-gradient(135deg,#ff6b6b,#ff8e53)" }}>
+                <p className="text-white text-xs font-bold">
+                  🎊 Preséntalo al momento de pagar · ¡Te esperamos!
                 </p>
               </div>
             </div>
-          ) : null}
+          )}
 
-          {/* Enviar cupón por correo */}
+          {/* ── ENVIAR POR EMAIL ── */}
           {result.codigoCumple && (
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="slide-up rounded-3xl overflow-hidden shadow-xl bg-white"
+              style={{ animationDelay: "0.3s" }}>
               {emailEnviado ? (
-                <div className="p-5 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                    <Check size={20} className="text-green-600" />
+                <div className="p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-2xl"
+                    style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)" }}>
+                    ✓
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800 text-sm">¡Cupón enviado!</p>
-                    <p className="text-xs text-gray-500">
-                      Revisa tu bandeja en <strong>{emailCupon}</strong>
+                    <p className="font-black text-gray-800">¡Cupón enviado! 🎉</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Revisa <strong>{emailCupon}</strong>
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="p-5 space-y-3">
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">
-                      📧 ¿Quieres que te enviemos el cupón a tu correo?
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Así lo tendrás guardado para el día de tu cumpleaños
-                    </p>
-                  </div>
+                  <p className="font-black text-gray-800">
+                    📧 ¿Te lo enviamos al correo?
+                  </p>
+                  <p className="text-xs text-gray-400 -mt-1">
+                    Así lo tendrás guardado para tu cumpleaños
+                  </p>
                   {errorEmail && (
-                    <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">
-                      {errorEmail}
-                    </p>
+                    <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl">{errorEmail}</p>
                   )}
                   <form onSubmit={handleEnviarEmail} className="space-y-2">
                     <div className="relative">
@@ -293,30 +343,22 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
                         value={emailCupon}
                         onChange={(e) => setEmailCupon(e.target.value)}
                         placeholder="tucorreo@ejemplo.com"
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 pr-10"
+                        className="w-full border-2 border-gray-100 focus:border-orange-400 rounded-xl px-4 py-3 text-sm focus:outline-none transition pr-10"
                       />
-                      {/* Icono que indica que es editable */}
                       {emailCupon && (
-                        <button
-                          type="button"
-                          onClick={() => setEmailCupon("")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors text-xs"
-                          title="Borrar y escribir otro"
-                        >
+                        <button type="button" onClick={() => setEmailCupon("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 text-sm transition-colors">
                           ✕
                         </button>
                       )}
                     </div>
-                    <button
-                      type="submit"
-                      disabled={enviandoEmail || !emailCupon}
-                      className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold px-4 py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-                    >
-                      {enviandoEmail ? (
-                        <><Loader2 size={16} className="animate-spin" /> Enviando...</>
-                      ) : (
-                        "Enviarme el cupón 🎁"
-                      )}
+                    <button type="submit" disabled={enviandoEmail || !emailCupon}
+                      className="w-full text-white font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-95"
+                      style={{ background: "linear-gradient(135deg,#ff6b6b,#ff8e53,#c44dff)" }}>
+                      {enviandoEmail
+                        ? <><Loader2 size={16} className="animate-spin" /> Enviando...</>
+                        : "Enviarme el cupón 🎁"
+                      }
                     </button>
                   </form>
                 </div>
@@ -325,15 +367,16 @@ export function RegistroClient({ sucursalId, sucursalNombre }: Props) {
           )}
 
           {!result.codigoCumple && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
-              <CheckCircle2 size={40} className="text-green-500 mx-auto mb-3" />
-              <p className="text-gray-600 text-sm">
-                ¡Datos registrados! Agrega tu fecha de cumpleaños para recibir tu cupón de regalo.
+            <div className="slide-up bg-white rounded-3xl shadow-xl p-6 text-center" style={{ animationDelay: "0.2s" }}>
+              <CheckCircle2 size={44} className="text-green-500 mx-auto mb-3" />
+              <p className="text-gray-600 text-sm font-medium">
+                ¡Datos registrados! Agrega tu fecha de cumpleaños para activar tu cupón.
               </p>
             </div>
           )}
 
-          <button onClick={resetForm} className="text-sm text-gray-400 underline">
+          <button onClick={resetForm}
+            className="w-full text-center text-white/60 text-xs py-2 hover:text-white/90 transition-colors">
             Registrar otro cliente
           </button>
         </div>
