@@ -118,7 +118,7 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva }: Props) {
         }`}>
           {s.plan === "DEMO"  ? "🧪 DEMO" :
            s.plan === "PRIME" ? "👑 PRIME" :
-           s.plan === "PRO"   ? "⭐ PRO" : "BÁSICO"}
+           s.plan === "PRO"   ? "⭐ PRO" : "INICIAL"}
         </span>
       </div>
 

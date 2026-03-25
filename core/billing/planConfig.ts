@@ -18,7 +18,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
   BASICO: {
     usuarios: 10,
     cajas: 1,
-    productos: 150,
+    productos: 300,
     clientes: 100,
     delivery: false,
     menuQR: false,
@@ -32,7 +32,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     usuarios: 20,
     cajas: 2,
     productos: 500,
-    clientes: 200,
+    clientes: 600,
     delivery: true,
     menuQR: true,
     kiosko: false,

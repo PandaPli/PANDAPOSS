@@ -107,7 +107,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
       <title>Comanda #${pedido.numero}</title>
       <style>
-        @page{size:80mm auto;margin:0}*{margin:0;padding:0;box-sizing:border-box}
+        @page{size:80mm auto;margin:0}@media print{@page{size:80mm auto;margin:0}}*{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'Courier New',monospace;font-size:14px;width:72mm;padding:4mm 4mm 8mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
         .center{text-align:center}.bold{font-weight:bold}.big{font-size:22px;font-weight:bold}
         .tipo-badge{display:inline-block;border:2px solid #000;padding:2px 10px;font-size:15px;font-weight:bold;letter-spacing:2px;margin:4px 0}

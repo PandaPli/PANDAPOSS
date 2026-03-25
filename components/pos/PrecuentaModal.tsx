@@ -52,7 +52,7 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
           <meta charset="utf-8" />
           <title>Precuenta</title>
           <style>
-            @page { size: 80mm auto; margin: 0; }
+            @page { size: 80mm auto; margin: 0; } @media print { @page { size: 80mm auto; margin: 0; } }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: 'Courier New', Courier, monospace;

@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { ChevronRight, Clock, Users, QrCode } from "lucide-react";
 import { cn, timeAgo, formatCurrency } from "@/lib/utils";
+
+const GRUPO_COLORS: Record<string, string> = {
+  A1: "#3b82f6", A2: "#22c55e", A3: "#f97316",
+  A4: "#a855f7", A5: "#ec4899",
+};
 import type { EstadoMesa, MesaConEstado } from "@/types";
 
 interface TableMapProps {
@@ -118,6 +123,23 @@ export function TableMap({ mesas, onSelectMesa }: TableMapProps) {
                 <span>{timeAgo(pedido.creadoEn)}</span>
               </div>
             </div>
+            {/* Grupos con sus totales */}
+            {pedido.grupos && pedido.grupos.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {pedido.grupos.map(({ grupo, total: gt }) => {
+                  const color = GRUPO_COLORS[grupo] ?? "#6b7280";
+                  return (
+                    <span
+                      key={grupo}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {grupo} · {formatCurrency(gt)}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-3 flex items-center gap-1 text-xs text-surface-muted">

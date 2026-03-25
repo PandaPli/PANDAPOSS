@@ -13,7 +13,7 @@ export default async function ClientesPage() {
   const [clientes, sucursales] = await Promise.all([
     prisma.cliente.findMany({
       where: {
-        activo: true,
+        // Mostrar activos Y bloqueados (activo: false), NO los eliminados
         ...(rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {}),
       },
       include: { sucursal: { select: { id: true, nombre: true } } },
@@ -29,6 +29,9 @@ export default async function ClientesPage() {
     email: c.email,
     telefono: c.telefono,
     direccion: c.direccion,
+    genero: c.genero ?? null,
+    fechaNacimiento: c.fechaNacimiento ? c.fechaNacimiento.toISOString() : null,
+    codigoCumple: (c as unknown as { codigoCumple?: string | null }).codigoCumple ?? null,
     activo: c.activo,
     sucursalId: c.sucursalId,
     sucursal: c.sucursal ?? undefined,

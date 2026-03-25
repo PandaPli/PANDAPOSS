@@ -159,7 +159,7 @@ export async function AdminGeneralView() {
         <StaggerItem>
           <div className="card p-5 border-l-4 border-amber-400 relative overflow-hidden">
              <div className="absolute -right-4 -top-4 w-16 h-16 bg-amber-400 rounded-full opacity-10 blur-xl"></div>
-            <p className="text-xs text-amber-600 font-semibold uppercase tracking-wider">Plan BASICO</p>
+            <p className="text-xs text-amber-600 font-semibold uppercase tracking-wider">Plan INICIAL</p>
             <p className="text-3xl font-bold text-surface-text mt-1">{countBasico}</p>
             <p className="text-xs text-surface-muted mt-1 font-medium">sucursales</p>
           </div>

@@ -61,11 +61,28 @@ export function PedidosClient({ pedidos: initial, rol, sucursalNombre, sucursalR
   const fetchPedidos = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
-      const res = await fetch(`/api/pedidos?estado=${filter}`);
+      // Sin filtro de estado → devuelve PENDIENTE + EN_PROCESO + LISTO
+      // así los badges de todos los tabs se mantienen correctos
+      const res = await fetch(`/api/pedidos`);
       if (res.ok) setPedidos(await res.json());
     } catch { /* ignore */ }
     finally { if (showSpinner) setRefreshing(false); }
-  }, [filter]);
+  }, []);
+
+  // Auto-seleccionar el tab con más pedidos al montar (si PENDIENTE está vacío)
+  useEffect(() => {
+    const counts: Record<KdsFilter, number> = {
+      PENDIENTE:  initial.filter(p => p.estado === "PENDIENTE").length,
+      EN_PROCESO: initial.filter(p => p.estado === "EN_PROCESO").length,
+      LISTO:      initial.filter(p => p.estado === "LISTO").length,
+    };
+    if (counts["PENDIENTE"] === 0) {
+      if (counts["EN_PROCESO"] > 0) setFilter("EN_PROCESO");
+      else if (counts["LISTO"] > 0) setFilter("LISTO");
+    }
+  // Solo al montar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchPedidos();

@@ -256,7 +256,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       .join("");
 
     printFrame(`<!DOCTYPE html><html><head><title>Ticket #${id}</title><style>
-      @page{size:80mm auto;margin:0;}
+      @page{size:80mm auto;margin:0;}@media print{@page{size:80mm auto;margin:0;}}
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:monospace;font-size:13px;width:80mm;max-width:80mm;padding:10px;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;}

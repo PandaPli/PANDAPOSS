@@ -72,6 +72,8 @@ type Toast = {
   description: string;
 };
 
+type Cargo = { id: number; nombre: string };
+
 type Props = {
   rol: Rol;
   sucursalIdSesion: number | null;
@@ -95,6 +97,7 @@ const employeeFormInitial = {
   telefono: "",
   fechaIngreso: "",
   salarioBase: "",
+  cargoId: "",
 };
 
 const attendanceFormInitial = {
@@ -128,6 +131,7 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
   const isAdminGeneral = rol === "ADMIN_GENERAL";
   const [activeTab, setActiveTab] = useState<TabKey>("empleados");
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [cargos, setCargos] = useState<Cargo[]>([]);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [search, setSearch] = useState("");
@@ -167,10 +171,14 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
     setError("");
 
     try {
-      const sucursalesRes = await fetch("/api/rrhh/sucursales", { cache: "no-store" });
+      const [sucursalesRes, cargosRes] = await Promise.all([
+        fetch("/api/rrhh/sucursales", { cache: "no-store" }),
+        fetch("/api/rrhh/cargos", { cache: "no-store" }),
+      ]);
       const sucursalesData = await sucursalesRes.json();
       if (!sucursalesRes.ok) throw new Error(getApiError(sucursalesData, "No se pudo cargar RRHH."));
       setSucursales(sucursalesData);
+      if (cargosRes.ok) setCargos(await cargosRes.json());
 
       if (isAdminGeneral && !selectedSucursal) {
         setEmpleados([]);
@@ -277,6 +285,7 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
           email: employeeForm.email || null,
           telefono: employeeForm.telefono || null,
           fechaIngreso: employeeForm.fechaIngreso || null,
+          cargoId: employeeForm.cargoId ? Number(employeeForm.cargoId) : undefined,
           salarioBase: employeeForm.salarioBase ? Number(employeeForm.salarioBase) : null,
         }),
       });
@@ -737,6 +746,19 @@ export function RrhhClient({ rol, sucursalIdSesion }: Props) {
                   <label className="label">Apellidos *</label>
                   <input className="input" value={employeeForm.apellidos} onChange={(event) => setEmployeeForm((current) => ({ ...current, apellidos: event.target.value }))} required />
                 </div>
+              </div>
+              <div>
+                <label className="label">Cargo / Puesto</label>
+                <select
+                  className="input"
+                  value={employeeForm.cargoId}
+                  onChange={(event) => setEmployeeForm((current) => ({ ...current, cargoId: event.target.value }))}
+                >
+                  <option value="">Sin cargo asignado</option>
+                  {cargos.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>

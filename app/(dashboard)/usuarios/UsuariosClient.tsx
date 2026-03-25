@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Search, Edit2, UserCog, X, Loader2, Shield, Store } from "lucide-react";
 import { normalize } from "@/lib/utils";
 
-const ROLES = [
+const ROLES_ADMIN_GENERAL = [
   { value: "ADMIN_GENERAL", label: "Admin General" },
   { value: "RESTAURANTE", label: "Admin Sucursal" },
   { value: "SECRETARY", label: "Secretaria" },
@@ -15,6 +15,18 @@ const ROLES = [
   { value: "BAR", label: "Bar" },
   { value: "DELIVERY", label: "Repartidor/a" },
 ];
+
+// Roles asignables por un admin de sucursal (no puede crear otros admins ni ver otros restaurantes)
+const ROLES_SUCURSAL = [
+  { value: "SECRETARY", label: "Secretaria" },
+  { value: "CASHIER", label: "Cajero/a" },
+  { value: "WAITER", label: "Mesero/a" },
+  { value: "CHEF", label: "Cocinero/a" },
+  { value: "BAR", label: "Bartender" },
+];
+
+// Alias para compatibilidad
+const ROLES = ROLES_ADMIN_GENERAL;
 
 const roleColors: Record<string, string> = {
   ADMIN_GENERAL: "bg-purple-50 text-purple-700 border-purple-200",
@@ -135,6 +147,7 @@ export function UsuariosClient({ usuarios: initial, sucursales, rol }: Props) {
   const [error, setError] = useState("");
 
   const isAdminGeneral = rol === "ADMIN_GENERAL";
+  const rolesDisponibles = isAdminGeneral ? ROLES_ADMIN_GENERAL : ROLES_SUCURSAL;
 
   const filtrados = useMemo(() => {
     let list = usuarios;
@@ -170,9 +183,14 @@ export function UsuariosClient({ usuarios: initial, sucursales, rol }: Props) {
     return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [filtrados, isAdminGeneral]);
 
-  function abrirFormNuevo() {
+    function abrirFormNuevo() {
     setEditando(null);
-    setForm(emptyForm);
+    // Pre-asignar sucursal si no es admin general
+    setForm({
+      ...emptyForm,
+      sucursalId: !isAdminGeneral && sucursales[0] ? String(sucursales[0].id) : "",
+      rolUsuario: !isAdminGeneral ? "WAITER" : "WAITER",
+    });
     setError("");
     setShowForm(true);
   }
@@ -363,23 +381,33 @@ export function UsuariosClient({ usuarios: initial, sucursales, rol }: Props) {
                     value={form.rolUsuario}
                     onChange={(e) => setForm({ ...form, rolUsuario: e.target.value })}
                   >
-                    {ROLES.map((r) => (
+                    {rolesDisponibles.map((r) => (
                       <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="label">Sucursal</label>
-                  <select
-                    className="input"
-                    value={form.sucursalId}
-                    onChange={(e) => setForm({ ...form, sucursalId: e.target.value })}
-                  >
-                    <option value="">Sin asignar</option>
-                    {sucursales.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
+                  {isAdminGeneral ? (
+                    <select
+                      className="input"
+                      value={form.sucursalId}
+                      onChange={(e) => setForm({ ...form, sucursalId: e.target.value })}
+                    >
+                      <option value="">Sin asignar</option>
+                      {sucursales.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    // Non-admin: sucursal fija, no editable
+                    <input
+                      className="input bg-surface-bg text-surface-muted cursor-not-allowed"
+                      value={sucursales[0]?.nombre ?? "Sin sucursal"}
+                      disabled
+                      readOnly
+                    />
+                  )}
                 </div>
               </div>
 

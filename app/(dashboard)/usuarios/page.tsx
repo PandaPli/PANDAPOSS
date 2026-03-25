@@ -19,7 +19,11 @@ export default async function UsuariosPage() {
       orderBy: { nombre: "asc" },
     }),
     prisma.sucursal.findMany({
-      where: { activa: true },
+      where: {
+        activa: true,
+        // Tenant isolation: non-admin only sees their own sucursal
+        ...(rol !== "ADMIN_GENERAL" && sucursalId ? { id: sucursalId } : {}),
+      },
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
     }),

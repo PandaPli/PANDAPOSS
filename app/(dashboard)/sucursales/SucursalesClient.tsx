@@ -311,7 +311,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                     onChange={(e) => setForm({ ...form, plan: e.target.value as "BASICO" | "PRO" | "PRIME" })}
                     className="input"
                   >
-                    <option value="BASICO">BÁSICO</option>
+                    <option value="BASICO">INICIAL</option>
                     <option value="PRO">PRO</option>
                     <option value="PRIME">👑 PRIME</option>
                     <option value="DEMO">🧪 DEMO</option>

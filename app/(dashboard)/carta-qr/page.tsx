@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FeatureGate } from "@/components/FeatureGate";
 import { CartaQRClient } from "./CartaQRClient";
+import { PLAN_LIMITS } from "@/core/billing/planConfig";
 
 export default async function CartaQRPage() {
   const user = await getFreshSessionUser();
@@ -18,10 +19,11 @@ export default async function CartaQRPage() {
   if (sucursalId && rol !== "ADMIN_GENERAL") {
     const sucursal = await prisma.sucursal.findUnique({
       where: { id: sucursalId },
-      select: { menuQR: true }
+      select: { menuQR: true, plan: true }
     });
     if (sucursal) {
-      liveMenuQR = sucursal.menuQR;
+      // Habilitado si el campo está activo O si el plan lo incluye
+      liveMenuQR = sucursal.menuQR || PLAN_LIMITS[sucursal.plan]?.menuQR === true;
     }
   }
 

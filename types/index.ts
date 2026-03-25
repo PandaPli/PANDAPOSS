@@ -98,6 +98,7 @@ export interface MesaConEstado {
     creadoEn: string;
     total: number;
     _count: { detalles: number };
+    grupos?: { grupo: string; total: number }[];
   } | null;
 }
 

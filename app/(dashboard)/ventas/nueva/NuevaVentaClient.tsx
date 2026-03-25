@@ -66,6 +66,8 @@ export function NuevaVentaClient({
   sucursalGiroComercial,
 }: Props) {
   const router = useRouter();
+  // Persiste si estamos en contexto de mesa ANTES de que clear() limpie el store
+  const esMesaRef = useRef<boolean>(!!initialOrder?.mesaId);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPrecuenta, setShowPrecuenta] = useState(false);
   const [ordenLoading, setOrdenLoading] = useState(false);
@@ -433,7 +435,7 @@ export function NuevaVentaClient({
         }),
       }).catch(() => { /* visor no crítico */ });
     }
-    router.push(mesaId ? "/mesas" : "/panel");
+    router.push(esMesaRef.current ? "/mesas" : "/panel");
   }
 
   function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
@@ -454,40 +456,28 @@ export function NuevaVentaClient({
           </div>
         </div>`)
       .join("");
-    const legalLines = [
-      sucursalNombre ? `<div class="legal-name">${sucursalNombre}</div>` : "",
-      sucursalGiroComercial ? `<div class="legal-line">${sucursalGiroComercial}</div>` : "",
-      sucursalRut ? `<div class="legal-line">RUT: ${sucursalRut}</div>` : "",
-      sucursalDireccion ? `<div class="legal-line">${sucursalDireccion}</div>` : "",
-      sucursalTelefono ? `<div class="legal-line">Tel: ${sucursalTelefono}</div>` : "",
-    ].filter(Boolean).join("");
     printFrame(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
-      @page{size:80mm auto;margin:0;}
+      @page{size:80mm auto;margin:0;}@media print{@page{size:80mm auto;margin:0;}}
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:14px;width:80mm;max-width:80mm;padding:8px;}
-      .branch{text-align:center;border-bottom:1px dashed #000;padding-bottom:6px;margin-bottom:6px;}
-      .legal-name{font-size:13px;font-weight:bold;}
-      .legal-line{font-size:11px;color:#444;margin-top:2px;}
-      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;margin-top:6px;}
+      body{font-family:'Courier New',monospace;font-size:14px;width:72mm;padding:4mm 4mm 6mm;}
+      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:6px;margin-bottom:6px;}
       .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
-      .subtitle{font-size:13px;margin-top:3px;}
-      .meta{font-size:12px;margin:6px 0;color:#333;}
-      .items{margin:10px 0;border-bottom:1px dashed #000;padding-bottom:10px;}
-      .item{display:flex;gap:10px;margin:8px 0;align-items:flex-start;}
-      .qty{font-size:20px;font-weight:bold;min-width:30px;}
+      .subtitle{font-size:12px;margin-top:3px;}
+      .meta{font-size:11px;margin:4px 0 6px;color:#333;}
+      .item{display:flex;gap:8px;margin:6px 0;align-items:flex-start;}
+      .qty{font-size:20px;font-weight:bold;min-width:28px;}
       .item-info{flex:1;}
       .nombre{font-size:15px;font-weight:bold;display:block;}
-      .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
-      .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
+      .obs{font-size:11px;color:#555;display:block;font-style:italic;margin-top:2px;}
+      hr{border:none;border-top:1px dashed #000;margin:4px 0;}
     </style></head><body>
-      ${legalLines ? `<div class="branch">${legalLines}</div>` : ""}
       <div class="header">
         <div class="title">${titulo}</div>
         <div class="subtitle">${mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${pedidoNum}</div>
       </div>
-      <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
-      <div class="items">${itemsHtml}</div>
-      <div class="footer">— PandaPoss —</div>
+      <div class="meta">${dateStr} &nbsp; ${timeStr}</div>
+      <hr/>
+      ${itemsHtml}
     </body></html>`);
   }
 
@@ -650,41 +640,59 @@ export function NuevaVentaClient({
 
       {/* ── Grupos por mesa — solo cuando hay mesaId ── */}
       {mesaId && (
-        <div className="flex flex-shrink-0 items-center gap-1 overflow-x-auto border-b border-surface-border bg-gradient-to-r from-slate-50 to-brand-50 px-3 py-2 scrollbar-hide">
+        <div className="flex flex-shrink-0 items-center gap-1.5 overflow-x-auto border-b border-surface-border bg-white px-3 py-2.5 scrollbar-hide">
           {/* Tab: Mesa completa (sin grupo) */}
-          <button
-            onClick={() => setActiveGrupo(null)}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
-              !activeGrupo
-                ? "bg-surface-text text-white shadow-sm"
-                : "border border-surface-border bg-white text-surface-muted hover:bg-surface-bg hover:text-surface-text"
-            )}
-          >
-            Mesa
-          </button>
+          {(() => {
+            const mesaCount = items.filter((i) => !i.grupo && !i.cancelado && !i.pagado).reduce((s, i) => s + i.cantidad, 0);
+            return (
+              <button
+                onClick={() => setActiveGrupo(null)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all whitespace-nowrap",
+                  !activeGrupo
+                    ? "bg-slate-800 text-white shadow-sm"
+                    : "border border-surface-border bg-white text-surface-muted hover:border-slate-300 hover:text-slate-700"
+                )}
+              >
+                <UtensilsCrossed size={11} />
+                Mesa
+                {mesaCount > 0 && (
+                  <span className={cn("flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-black", !activeGrupo ? "bg-white/30 text-white" : "bg-slate-200 text-slate-700")}>
+                    {mesaCount}
+                  </span>
+                )}
+              </button>
+            );
+          })()}
 
           {/* Separador */}
-          <div className="h-5 w-px bg-surface-border mx-0.5 shrink-0" />
+          {gruposUsados.length > 0 && <div className="h-4 w-px bg-surface-border mx-0.5 shrink-0" />}
 
           {/* Tabs de grupos existentes */}
           {gruposUsados.map((grupo) => {
             const color = ["#3b82f6","#22c55e","#f97316","#a855f7","#ec4899"][GRUPO_NUMS.indexOf(grupo)] ?? "#6b7280";
+            const count = items.filter((i) => i.grupo === grupo && !i.cancelado && !i.pagado).reduce((s, i) => s + i.cantidad, 0);
             return (
               <button
                 key={grupo}
                 onClick={() => setActiveGrupo(grupo)}
                 className={cn(
-                  "shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all",
-                  activeGrupo === grupo
-                    ? "text-white shadow-sm"
-                    : "border bg-white text-surface-muted hover:text-white"
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all whitespace-nowrap",
+                  activeGrupo === grupo ? "text-white shadow-sm" : "border bg-white"
                 )}
                 style={activeGrupo === grupo
                   ? { backgroundColor: color, borderColor: color }
                   : { borderColor: color, color }}
               >
-                Grupo {grupo}
+                {grupo}
+                {count > 0 && (
+                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-black"
+                    style={activeGrupo === grupo
+                      ? { backgroundColor: "rgba(255,255,255,0.3)", color: "white" }
+                      : { backgroundColor: color, color: "white" }}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -693,18 +701,11 @@ export function NuevaVentaClient({
           {siguienteGrupo && gruposUsados.length < 5 && (
             <button
               onClick={() => setActiveGrupo(siguienteGrupo)}
-              className="shrink-0 flex items-center gap-1 rounded-lg border border-dashed border-brand-300 bg-white px-2.5 py-1.5 text-xs font-bold text-brand-500 transition-all hover:border-brand-500 hover:bg-brand-50"
+              className="shrink-0 flex items-center gap-1 rounded-full border-2 border-dashed border-brand-300 bg-white px-3 py-2 text-xs font-bold text-brand-500 transition-all hover:border-brand-500 hover:bg-brand-50 whitespace-nowrap"
             >
               <span className="text-sm leading-none">+</span>
               {siguienteGrupo}
             </button>
-          )}
-
-          {/* Indicador activo */}
-          {activeGrupo && (
-            <span className="ml-auto shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-[11px] font-bold text-brand-700">
-              Grupo {activeGrupo}
-            </span>
           )}
         </div>
       )}
@@ -745,8 +746,19 @@ export function NuevaVentaClient({
         <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-80 xl:w-[420px]", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
           <CartPanel
             simbolo={simbolo}
-            onCheckout={() => { setCheckoutGrupo(null); setShowCheckout(true); }}
-            onCheckoutGrupo={(grupo) => { setCheckoutGrupo(grupo); setShowCheckout(true); }}
+            onCheckout={async () => {
+              // Si hay ítems sin enviar a cocina, enviarlos primero
+              const sinEnviar = items.filter((i) => !i.guardado && !i.cancelado);
+              if (sinEnviar.length > 0) await handleOrden();
+              setCheckoutGrupo(null);
+              setShowCheckout(true);
+            }}
+            onCheckoutGrupo={async (grupo) => {
+              const sinEnviar = items.filter((i) => !i.guardado && !i.cancelado);
+              if (sinEnviar.length > 0) await handleOrden();
+              setCheckoutGrupo(grupo);
+              setShowCheckout(true);
+            }}
             onOrden={handleOrden}
             onPrecuenta={handleOpenPrecuenta}
             ordenLoading={ordenLoading}

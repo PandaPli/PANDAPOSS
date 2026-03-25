@@ -345,14 +345,14 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
           <button
             onClick={() => setModoGrupos((v) => !v)}
             title={modoCuentas ? "Ver todo junto" : "Dividir por grupos"}
-            className={`ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all ${
               modoCuentas
-                ? "bg-brand-500 text-white"
-                : "bg-surface-bg border border-surface-border text-surface-muted hover:border-brand-300 hover:text-brand-500"
+                ? "bg-brand-500 text-white shadow-sm"
+                : "border border-surface-border bg-white text-surface-muted hover:border-brand-300 hover:text-brand-500"
             }`}
           >
             <Users size={12} />
-            {modoCuentas ? "Grupos" : "Dividir"}
+            Grupos
           </button>
         )}
       </div>
@@ -373,40 +373,48 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               const grupoItems = getItemsByGrupo(grupo);
               const grupoSub = getSubtotalGrupo(grupo);
               const color = getGrupoColor(grupo);
+              const activeCount = grupoItems.filter((i) => !i.cancelado && !i.pagado).length;
               return (
-                <div key={grupo}>
+                <div key={grupo} className="rounded-xl overflow-hidden border border-surface-border mb-1">
                   {/* Encabezado de grupo */}
-                  <div className="flex items-center gap-2 mb-1 px-1">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-xs font-bold text-surface-text" style={{ color }}>
-                      Grupo {grupo}
-                    </span>
-                    <span className="ml-auto text-xs font-semibold text-surface-muted">
+                  <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: `${color}18` }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white flex-shrink-0" style={{ backgroundColor: color }}>
+                      {grupo}
+                    </div>
+                    <span className="text-xs font-bold" style={{ color }}>Grupo {grupo}</span>
+                    {activeCount > 0 && (
+                      <span className="text-[10px] text-surface-muted font-medium">{activeCount} ítem{activeCount !== 1 ? "s" : ""}</span>
+                    )}
+                    <span className="ml-auto text-xs font-black" style={{ color }}>
                       {formatCurrency(grupoSub, simbolo)}
                     </span>
                   </div>
-                  <div className="space-y-1.5 pl-1 border-l-2 rounded" style={{ borderColor: color }}>
+                  {/* Items del grupo */}
+                  <div className="divide-y divide-surface-border/50 bg-white">
                     {grupoItems.map((item) => renderItem(item, true))}
                   </div>
                 </div>
               );
             })}
 
-            {/* Ítems cancelados/pagados al final */}
-            {items.filter((i) => i.cancelado || i.pagado).map((item) => renderItem(item, false))}
-
-            {/* Ítems sin grupo */}
+            {/* Ítems sin grupo — aviso visual */}
             {itemsSinGrupo.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-1 px-1">
-                  <div className="w-3 h-3 rounded-full bg-surface-muted flex-shrink-0" />
-                  <span className="text-xs font-bold text-surface-muted">Sin grupo</span>
+              <div className="rounded-xl overflow-hidden border-2 border-dashed border-amber-200 mb-1">
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50">
+                  <div className="w-5 h-5 rounded-full bg-amber-300 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-black text-white">?</span>
+                  </div>
+                  <span className="text-xs font-bold text-amber-700">Sin grupo</span>
+                  <span className="ml-auto text-[10px] font-semibold text-amber-600">Asigna un grupo →</span>
                 </div>
-                <div className="space-y-1.5 pl-1 border-l-2 border-dashed border-surface-border">
+                <div className="divide-y divide-surface-border/50 bg-white">
                   {itemsSinGrupo.map((item) => renderItem(item, true))}
                 </div>
               </div>
             )}
+
+            {/* Ítems cancelados/pagados al final */}
+            {items.filter((i) => i.cancelado || i.pagado).map((item) => renderItem(item, false))}
           </>
         ) : (
           <>
@@ -557,7 +565,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   Enviar cocina
                 </button>
               )}
-              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por grupo:</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-surface-muted">Cobrar por grupo</p>
               {grupos.map((grupo) => {
                 const grupoSub = getSubtotalGrupo(grupo);
                 const color = getGrupoColor(grupo);
@@ -565,15 +573,13 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   <button
                     key={grupo}
                     onClick={() => onCheckoutGrupo?.(grupo)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl border-2 font-semibold text-sm transition-all hover:opacity-80"
-                    style={{ borderColor: color, color, backgroundColor: `${color}15` }}
+                    className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                    style={{ borderColor: color, backgroundColor: `${color}12` }}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full text-white text-[11px] font-black flex items-center justify-center" style={{ backgroundColor: color }}>{grupo}</span>
-                      Grupo {grupo}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Receipt size={12} />
+                    <span className="w-6 h-6 rounded-full text-white text-[11px] font-black flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color }}>{grupo}</span>
+                    <span className="flex-1 text-left text-sm font-bold" style={{ color }}>Grupo {grupo}</span>
+                    <span className="flex items-center gap-1 text-sm font-black" style={{ color }}>
+                      <Receipt size={13} />
                       {formatCurrency(grupoSub, simbolo)}
                     </span>
                   </button>

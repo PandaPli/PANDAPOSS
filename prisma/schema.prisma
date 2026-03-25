@@ -243,6 +243,9 @@ model Cliente {
   email           String?            @db.VarChar(100)
   telefono        String?            @db.VarChar(20)
   direccion       String?            @db.VarChar(200)
+  genero          String?            @db.VarChar(20)
+  fechaNacimiento DateTime?
+  codigoCumple    String?            @unique @db.VarChar(20)
   activo          Boolean            @default(true)
   sucursalId      Int?
   creadoEn        DateTime           @default(now())

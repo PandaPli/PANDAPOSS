@@ -44,7 +44,9 @@ export default async function PlanesPage() {
       <div>
         <h1 className="text-2xl font-bold text-surface-text">Planes</h1>
         <p className="text-surface-muted text-sm mt-1">
-          Plan actual: <span className="font-semibold text-brand-600">{planActual}</span>
+          Plan actual: <span className="font-semibold text-brand-600">
+            {planActual === "BASICO" ? "INICIAL" : planActual}
+          </span>
         </p>
       </div>
 
@@ -56,19 +58,21 @@ export default async function PlanesPage() {
               <th className="text-left p-4 text-surface-muted font-medium w-[40%]">Característica</th>
               <th className="text-center p-4 w-[20%]">
                 <span className={planActual === "BASICO" ? "text-brand-600 font-bold" : "text-surface-text font-semibold"}>
-                  BÁSICO {planActual === "BASICO" && "✓"}
+                  INICIAL {planActual === "BASICO" && "✓"}
                 </span>
+                <span className="text-[11px] font-semibold text-surface-muted block mt-0.5">$8.990/mes</span>
               </th>
               <th className="text-center p-4 w-[20%] bg-amber-50">
                 <span className={`font-bold flex items-center justify-center gap-1.5 ${planActual === "PRO" ? "text-amber-600" : "text-amber-500"}`}>
                   <Zap size={14} /> PRO {planActual === "PRO" && "✓"}
                 </span>
+                <span className="text-[11px] font-semibold text-amber-400 block mt-0.5">$12.990/mes</span>
               </th>
               <th className="text-center p-4 w-[20%] bg-violet-50">
                 <span className={`font-bold flex items-center justify-center gap-1.5 ${planActual === "PRIME" ? "text-violet-700" : "text-violet-500"}`}>
                   <Crown size={14} /> PRIME {planActual === "PRIME" && "✓"}
                 </span>
-                <span className="text-[11px] font-semibold text-violet-400 block mt-0.5">$14.900/mes</span>
+                <span className="text-[11px] font-semibold text-violet-400 block mt-0.5">$14.990/mes</span>
               </th>
             </tr>
           </thead>
@@ -104,9 +108,9 @@ export default async function PlanesPage() {
       {isAdmin && planActual === "BASICO" && (
         <div className="card p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 flex items-center justify-between gap-4">
           <div>
-            <p className="font-bold text-surface-text">Actualiza a PRO</p>
+            <p className="font-bold text-surface-text">Estás en plan INICIAL — Actualiza a PRO</p>
             <p className="text-surface-muted text-sm mt-0.5">
-              Desbloquea Delivery, Carta QR, correo automático y más.
+              Desbloquea Delivery, Carta QR, correo automático, hasta 600 clientes y más.
             </p>
           </div>
           <a
@@ -125,14 +129,14 @@ export default async function PlanesPage() {
           <div>
             <p className="font-bold text-surface-text flex items-center gap-2">
               <Crown size={16} className="text-violet-500" />
-              Actualiza a PRIME — $14.900/mes
+              Actualiza a PRIME — $14.990/mes
             </p>
             <p className="text-surface-muted text-sm mt-0.5">
               Incluye todo PRO + Contabilidad de Propinas para tu equipo.
             </p>
           </div>
           <a
-            href="mailto:contacto@zapzappfood.com?subject=Upgrade%20a%20PRIME"
+            href="mailto:contacto@pandaposs.com?subject=Upgrade%20a%20PRIME"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm transition-colors shadow-sm whitespace-nowrap"
           >
             <Crown size={16} />

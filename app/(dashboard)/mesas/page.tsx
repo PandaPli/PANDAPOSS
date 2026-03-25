@@ -28,6 +28,7 @@ async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
             select: {
               cantidad: true,
               precio: true,                                    // precio fijo al momento de la orden
+              grupo: true,
               producto: { select: { precio: true } },         // fallback si precio no guardado
               combo:    { select: { precio: true } },
             },
@@ -56,22 +57,31 @@ export default async function MesasPage() {
     salaId: m.salaId,
     sala: m.sala,
     pedidoActivo: m.pedidos.length > 0
-      ? {
+      ? (() => {
           // id del pedido más reciente (para referencia)
-          id: m.pedidos[m.pedidos.length - 1].id,
+          const id = m.pedidos[m.pedidos.length - 1].id;
           // creadoEn del pedido más antiguo (tiempo real de ocupación)
-          creadoEn: m.pedidos[0].creadoEn.toISOString(),
+          const creadoEn = m.pedidos[0].creadoEn.toISOString();
           // Suma de ítems y total de TODOS los pedidos activos
-          _count: {
-            detalles: m.pedidos.reduce((acc, p) => acc + p._count.detalles, 0),
-          },
-          total: m.pedidos.reduce((acc, p) =>
-            acc + p.detalles.reduce((s, d) => {
-              // Usar precio fijo guardado en el detalle; fallback al precio actual del producto
+          const detalleCount = m.pedidos.reduce((acc, p) => acc + p._count.detalles, 0);
+          // Calcular total y totales por grupo en una sola pasada
+          const grupoPrices: Record<string, number> = {};
+          let total = 0;
+          for (const p of m.pedidos) {
+            for (const d of p.detalles) {
               const precio = Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0);
-              return s + precio * d.cantidad;
-            }, 0), 0),
-        }
+              const monto = precio * d.cantidad;
+              total += monto;
+              if (d.grupo) {
+                grupoPrices[d.grupo] = (grupoPrices[d.grupo] ?? 0) + monto;
+              }
+            }
+          }
+          const grupos = Object.entries(grupoPrices)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([grupo, t]) => ({ grupo, total: t }));
+          return { id, creadoEn, total, _count: { detalles: detalleCount }, grupos };
+        })()
       : null,
   }));
 
