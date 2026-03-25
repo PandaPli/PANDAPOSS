@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock, Share2, Pencil } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock, Share2 } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem, RondaPedido } from "@/types";
@@ -46,7 +46,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
-    setItemGrupo, splitItemGrupos, setItemCompartido, grupoNombres, setGrupoNombre,
+    setItemGrupo, splitItemGrupos, setItemCompartido, grupoNombres,
     getGrupos, getItemsByGrupo, getItemsCompartidos, getSubtotalGrupo,
   } = useCartStore();
 
@@ -56,7 +56,6 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   const hayCuentas = items.some((i) => (i.grupo || i.compartido) && !i.cancelado && !i.pagado);
   const [splitDialog, setSplitDialog] = useState<SplitState | null>(null);
   const [compartirDialog, setCompartirDialog] = useState<{ item: CartItem; seleccion: string[] } | null>(null);
-  const [grupoEditando, setGrupoEditando] = useState<{ grupo: string; valor: string } | null>(null);
 
   const sub  = subtotal();
   const desc = totalDescuento();
@@ -426,7 +425,6 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               const color = getGrupoColor(grupo);
               const activeCount = grupoItems.filter((i) => !i.cancelado && !i.pagado).length;
               const nombre = grupoNombres[grupo];
-              const isEditingNombre = grupoEditando?.grupo === grupo;
               return (
                 <div key={grupo} className="rounded-xl overflow-hidden border border-surface-border mb-1">
                   {/* Encabezado de grupo */}
@@ -434,27 +432,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                     <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white flex-shrink-0" style={{ backgroundColor: color }}>
                       {nombre ? nombre[0].toUpperCase() : grupo}
                     </div>
-                    {isEditingNombre ? (
-                      <input
-                        autoFocus
-                        value={grupoEditando.valor}
-                        onChange={(e) => setGrupoEditando({ grupo, valor: e.target.value })}
-                        onBlur={() => { setGrupoNombre(grupo, grupoEditando.valor.trim()); setGrupoEditando(null); }}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") { setGrupoNombre(grupo, grupoEditando.valor.trim()); setGrupoEditando(null); } }}
-                        className="text-xs font-bold bg-white border border-surface-border rounded px-1 py-0.5 w-24 focus:outline-none"
-                        style={{ color }}
-                        placeholder={`Grupo ${grupo}`}
-                      />
-                    ) : (
-                      <button
-                        onClick={() => setGrupoEditando({ grupo, valor: nombre ?? "" })}
-                        className="flex items-center gap-1 group"
-                        title="Renombrar grupo"
-                      >
-                        <span className="text-xs font-bold" style={{ color }}>{nombre || `Grupo ${grupo}`}</span>
-                        <Pencil size={9} className="opacity-0 group-hover:opacity-50 transition-opacity" style={{ color }} />
-                      </button>
-                    )}
+                    <span className="text-xs font-bold" style={{ color }}>{nombre || `Grupo ${grupo}`}</span>
                     {activeCount > 0 && (
                       <span className="text-[10px] text-surface-muted font-medium">{activeCount} ítem{activeCount !== 1 ? "s" : ""}</span>
                     )}

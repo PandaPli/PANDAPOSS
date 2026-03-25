@@ -76,8 +76,9 @@ export function NuevaVentaClient({
 
   /* ── Grupos por mesa ── */
   const [activeGrupo, setActiveGrupo] = useState<string | null>(null);
+  const [nuevoGrupoNombre, setNuevoGrupoNombre] = useState<string | null>(null);
 
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, markAsSavedWithIds, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc } = useCartStore();
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, markAsSavedWithIds, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc, setGrupoNombre, grupoNombres } = useCartStore();
 
   /* ── Cliente (opcional, por defecto CLIENTE EN MESÓN) ── */
   const [clienteNombreLocal, setClienteNombreLocal] = useState<string | null>(null);
@@ -672,6 +673,7 @@ export function NuevaVentaClient({
           {gruposUsados.map((grupo) => {
             const color = ["#3b82f6","#22c55e","#f97316","#a855f7","#ec4899"][GRUPO_NUMS.indexOf(grupo)] ?? "#6b7280";
             const count = items.filter((i) => i.grupo === grupo && !i.cancelado && !i.pagado).reduce((s, i) => s + i.cantidad, 0);
+            const nombre = grupoNombres[grupo];
             return (
               <button
                 key={grupo}
@@ -684,7 +686,7 @@ export function NuevaVentaClient({
                   ? { backgroundColor: color, borderColor: color }
                   : { borderColor: color, color }}
               >
-                {grupo}
+                {nombre || grupo}
                 {count > 0 && (
                   <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-black"
                     style={activeGrupo === grupo
@@ -697,15 +699,49 @@ export function NuevaVentaClient({
             );
           })}
 
-          {/* Botón "+" — agregar nuevo grupo (máx 5) */}
+          {/* Botón "+" — agregar nuevo grupo (máx 5) con prompt de nombre */}
           {siguienteGrupo && gruposUsados.length < 5 && (
-            <button
-              onClick={() => setActiveGrupo(siguienteGrupo)}
-              className="shrink-0 flex items-center gap-1 rounded-full border-2 border-dashed border-brand-300 bg-white px-3 py-2 text-xs font-bold text-brand-500 transition-all hover:border-brand-500 hover:bg-brand-50 whitespace-nowrap"
-            >
-              <span className="text-sm leading-none">+</span>
-              {siguienteGrupo}
-            </button>
+            nuevoGrupoNombre !== null ? (
+              <div className="shrink-0 flex items-center gap-1">
+                <input
+                  autoFocus
+                  type="text"
+                  value={nuevoGrupoNombre}
+                  onChange={(e) => setNuevoGrupoNombre(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if (nuevoGrupoNombre.trim()) setGrupoNombre(siguienteGrupo, nuevoGrupoNombre.trim());
+                      setActiveGrupo(siguienteGrupo);
+                      setNuevoGrupoNombre(null);
+                    } else if (e.key === "Escape") {
+                      setNuevoGrupoNombre(null);
+                    }
+                  }}
+                  placeholder="Nombre (ej. Roro)"
+                  className="w-28 rounded-full border-2 border-brand-400 bg-white px-3 py-1.5 text-xs font-medium text-surface-text placeholder:text-surface-muted focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    if (nuevoGrupoNombre.trim()) setGrupoNombre(siguienteGrupo, nuevoGrupoNombre.trim());
+                    setActiveGrupo(siguienteGrupo);
+                    setNuevoGrupoNombre(null);
+                  }}
+                  className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 text-xs font-black"
+                >✓</button>
+                <button
+                  onClick={() => setNuevoGrupoNombre(null)}
+                  className="w-6 h-6 rounded-full border border-surface-border text-surface-muted flex items-center justify-center hover:bg-surface-bg text-xs"
+                >✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setNuevoGrupoNombre("")}
+                className="shrink-0 flex items-center gap-1 rounded-full border-2 border-dashed border-brand-300 bg-white px-3 py-2 text-xs font-bold text-brand-500 transition-all hover:border-brand-500 hover:bg-brand-50 whitespace-nowrap"
+              >
+                <span className="text-sm leading-none">+</span>
+                Sub-mesa
+              </button>
+            )
           )}
         </div>
       )}
