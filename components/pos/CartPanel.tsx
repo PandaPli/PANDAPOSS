@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock, Share2, Pencil } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem, RondaPedido } from "@/types";
@@ -21,7 +21,10 @@ const GRUPOS_DISPONIBLES = ["A1", "A2", "A3", "A4", "A5"];
 
 /** Llama al API para persistir el cambio de un detalle en DB → KDS lo verá en próximo poll.
  *  Retorna true si tuvo éxito, false si falló. */
-async function syncDetalle(detalleId: number, patch: { cancelado?: boolean; cantidad?: number; observacion?: string | null; grupo?: string | null }): Promise<boolean> {
+async function syncDetalle(detalleId: number, patch: {
+  cancelado?: boolean; cantidad?: number; observacion?: string | null;
+  grupo?: string | null; compartido?: boolean; participantes?: string[] | null; pagado?: boolean;
+}): Promise<boolean> {
   try {
     const res = await fetch(`/api/pedidos/detalles/${detalleId}`, {
       method: "PATCH",
@@ -43,14 +46,17 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
-    setItemGrupo, splitItemGrupos, getGrupos, getItemsByGrupo, getSubtotalGrupo,
+    setItemGrupo, splitItemGrupos, setItemCompartido, grupoNombres, setGrupoNombre,
+    getGrupos, getItemsByGrupo, getItemsCompartidos, getSubtotalGrupo,
   } = useCartStore();
 
   const [dirtyObs, setDirtyObs] = useState<Record<string, string>>({});
   const [modoGrupos, setModoGrupos] = useState(false);
   // Auto-activar modo cuentas cuando hay ítems con grupo asignado
-  const hayCuentas = items.some((i) => i.grupo && !i.cancelado && !i.pagado);
+  const hayCuentas = items.some((i) => (i.grupo || i.compartido) && !i.cancelado && !i.pagado);
   const [splitDialog, setSplitDialog] = useState<SplitState | null>(null);
+  const [compartirDialog, setCompartirDialog] = useState<{ item: CartItem; seleccion: string[] } | null>(null);
+  const [grupoEditando, setGrupoEditando] = useState<{ grupo: string; valor: string } | null>(null);
 
   const sub  = subtotal();
   const desc = totalDescuento();
@@ -61,6 +67,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     item.detalleId ? `d-${item.detalleId}` : `${item.tipo}-${item.id}`;
 
   const grupos = getGrupos();
+  const todosLosGrupos = grupos; // alias para claridad en diálogos
 
   /** Anular / reactivar ítem guardado → sincroniza con KDS; hace rollback local si falla */
   const handleCancel = useCallback(async (item: CartItem) => {
@@ -93,6 +100,22 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     setItemGrupo(item.detalleId, grupo);
     await syncDetalle(item.detalleId, { grupo });
   }, [setItemGrupo]);
+
+  /** Guardar participantes de un ítem compartido */
+  const handleConfirmCompartir = useCallback(async () => {
+    if (!compartirDialog) return;
+    const { item, seleccion } = compartirDialog;
+    const detalleId = item.detalleId;
+    if (!detalleId) return;
+    const compartido = seleccion.length > 1;
+    setItemCompartido(detalleId, compartido, seleccion);
+    await syncDetalle(detalleId, {
+      compartido,
+      participantes: compartido ? seleccion : null,
+      grupo: compartido ? null : (seleccion[0] ?? null),
+    });
+    setCompartirDialog(null);
+  }, [compartirDialog, setItemCompartido]);
 
   /** Abrir diálogo de división de cantidades */
   const handleOpenSplit = (item: CartItem) => {
@@ -193,17 +216,30 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
             {item.cantidad > 1 && <span className="ml-1 text-surface-muted">({item.cantidad}x)</span>}
           </p>
 
+          {/* Badge de participantes en ítems compartidos */}
+          {item.compartido && item.participantes && item.participantes.length > 0 && (
+            <div className="mt-1 flex items-center gap-1 flex-wrap">
+              <span className="text-[10px] text-purple-500 font-bold">Compartido:</span>
+              {item.participantes.map((p) => (
+                <span key={p} className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black text-white"
+                  style={{ backgroundColor: getGrupoColor(p) }}>
+                  {grupoNombres[p] ? grupoNombres[p][0].toUpperCase() : p}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Selector de grupo en modo grupos */}
-          {modoGrupos && !item.cancelado && !item.pagado && item.detalleId && (
+          {modoCuentas && !item.cancelado && !item.pagado && item.detalleId && (
             <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-              {GRUPOS_DISPONIBLES.map((g) => {
-                const enEsteGrupo = items.filter((i) => i.grupo === g && !i.cancelado && !i.pagado).length;
+              {!item.compartido && GRUPOS_DISPONIBLES.map((g) => {
+                const enEsteGrupo = items.filter((i) => i.grupo === g && !i.compartido && !i.cancelado && !i.pagado).length;
                 const esMio = item.grupo === g;
                 return (
                   <button
                     key={g}
                     onClick={() => handleSetGrupo(item, esMio ? null : g)}
-                    title={enEsteGrupo > 0 ? `Grupo ${g} — ${enEsteGrupo} ítem(s)` : `Asignar a Grupo ${g}`}
+                    title={enEsteGrupo > 0 ? `${grupoNombres[g] || `Grupo ${g}`} — ${enEsteGrupo} ítem(s)` : `Asignar a ${grupoNombres[g] || `Grupo ${g}`}`}
                     className="relative w-6 h-6 rounded-full text-[11px] font-black border-2 transition-all flex items-center justify-center"
                     style={{
                       backgroundColor: esMio ? getGrupoColor(g) : enEsteGrupo > 0 ? `${getGrupoColor(g)}22` : "transparent",
@@ -211,7 +247,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                       color: esMio ? "white" : getGrupoColor(g),
                     }}
                   >
-                    {g}
+                    {grupoNombres[g] ? grupoNombres[g][0].toUpperCase() : g}
                     {enEsteGrupo > 0 && !esMio && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full text-[8px] font-black flex items-center justify-center text-white"
                         style={{ backgroundColor: getGrupoColor(g) }}>
@@ -221,8 +257,22 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   </button>
                 );
               })}
-              {/* Botón dividir — solo si cantidad > 1 y está guardado */}
-              {item.cantidad > 1 && item.guardado && (
+              {/* Botón compartir — solo si hay ≥2 grupos */}
+              {grupos.length >= 2 && item.guardado && (
+                <button
+                  onClick={() => setCompartirDialog({ item, seleccion: item.participantes ?? (item.grupo ? [item.grupo] : []) })}
+                  title="Marcar como compartido entre grupos"
+                  className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center ${
+                    item.compartido
+                      ? "border-purple-400 bg-purple-100 text-purple-600"
+                      : "border-surface-border text-surface-muted hover:border-purple-400 hover:text-purple-500"
+                  }`}
+                >
+                  <Share2 size={10} />
+                </button>
+              )}
+              {/* Botón dividir — solo si cantidad > 1 y está guardado y no es compartido */}
+              {item.cantidad > 1 && item.guardado && !item.compartido && (
                 <button
                   onClick={() => handleOpenSplit(item)}
                   title="Dividir entre grupos"
@@ -312,8 +362,9 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   // Ítems sin grupo asignado
   const modoCuentas = modoGrupos || hayCuentas;
   const itemsSinGrupo = modoCuentas
-    ? items.filter((i) => !i.grupo && !i.cancelado && !i.pagado)
+    ? items.filter((i) => !i.grupo && !i.compartido && !i.cancelado && !i.pagado)
     : [];
+  const itemsCompartidos = modoCuentas ? getItemsCompartidos() : [];
 
   // Separación nuevo / enviado (para vista normal, sin grupos)
   const itemsNuevos    = items.filter((i) => !i.guardado && !i.cancelado && !i.pagado);
@@ -374,14 +425,36 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               const grupoSub = getSubtotalGrupo(grupo);
               const color = getGrupoColor(grupo);
               const activeCount = grupoItems.filter((i) => !i.cancelado && !i.pagado).length;
+              const nombre = grupoNombres[grupo];
+              const isEditingNombre = grupoEditando?.grupo === grupo;
               return (
                 <div key={grupo} className="rounded-xl overflow-hidden border border-surface-border mb-1">
                   {/* Encabezado de grupo */}
                   <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: `${color}18` }}>
                     <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white flex-shrink-0" style={{ backgroundColor: color }}>
-                      {grupo}
+                      {nombre ? nombre[0].toUpperCase() : grupo}
                     </div>
-                    <span className="text-xs font-bold" style={{ color }}>Grupo {grupo}</span>
+                    {isEditingNombre ? (
+                      <input
+                        autoFocus
+                        value={grupoEditando.valor}
+                        onChange={(e) => setGrupoEditando({ grupo, valor: e.target.value })}
+                        onBlur={() => { setGrupoNombre(grupo, grupoEditando.valor.trim()); setGrupoEditando(null); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") { setGrupoNombre(grupo, grupoEditando.valor.trim()); setGrupoEditando(null); } }}
+                        className="text-xs font-bold bg-white border border-surface-border rounded px-1 py-0.5 w-24 focus:outline-none"
+                        style={{ color }}
+                        placeholder={`Grupo ${grupo}`}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setGrupoEditando({ grupo, valor: nombre ?? "" })}
+                        className="flex items-center gap-1 group"
+                        title="Renombrar grupo"
+                      >
+                        <span className="text-xs font-bold" style={{ color }}>{nombre || `Grupo ${grupo}`}</span>
+                        <Pencil size={9} className="opacity-0 group-hover:opacity-50 transition-opacity" style={{ color }} />
+                      </button>
+                    )}
                     {activeCount > 0 && (
                       <span className="text-[10px] text-surface-muted font-medium">{activeCount} ítem{activeCount !== 1 ? "s" : ""}</span>
                     )}
@@ -392,10 +465,35 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                   {/* Items del grupo */}
                   <div className="divide-y divide-surface-border/50 bg-white">
                     {grupoItems.map((item) => renderItem(item, true))}
+                    {/* Ítems compartidos que incluyen este grupo (readonly, con nota) */}
+                    {itemsCompartidos.filter(i => i.participantes?.includes(grupo)).map((item) => (
+                      <div key={`shared-${item.detalleId}-${grupo}`}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-50/60">
+                        <Share2 size={10} className="text-purple-400 flex-shrink-0" />
+                        <span className="text-xs text-surface-text truncate flex-1">{item.nombre}</span>
+                        <span className="text-xs font-bold text-purple-500">
+                          +{formatCurrency((item.precio * item.cantidad) / (item.participantes?.length ?? 1), simbolo)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
             })}
+
+            {/* Sección de ítems compartidos */}
+            {itemsCompartidos.length > 0 && (
+              <div className="rounded-xl overflow-hidden border-2 border-dashed border-purple-200 mb-1">
+                <div className="flex items-center gap-2 px-3 py-2 bg-purple-50">
+                  <Share2 size={13} className="text-purple-500 flex-shrink-0" />
+                  <span className="text-xs font-bold text-purple-700">Compartidos</span>
+                  <span className="text-[10px] text-purple-400">{itemsCompartidos.length} ítem{itemsCompartidos.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="divide-y divide-surface-border/50 bg-white">
+                  {itemsCompartidos.map((item) => renderItem(item, true))}
+                </div>
+              </div>
+            )}
 
             {/* Ítems sin grupo — aviso visual */}
             {itemsSinGrupo.length > 0 && (
@@ -498,6 +596,74 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         )}
       </div>
 
+      {/* Diálogo de ítem compartido */}
+      {compartirDialog && (
+        <div className="mx-3 mb-2 p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-purple-700 flex items-center gap-1.5">
+              <Share2 size={12} />
+              Compartir: {compartirDialog.item.nombre}
+            </p>
+            <button onClick={() => setCompartirDialog(null)} className="text-purple-400 hover:text-purple-600">
+              <X size={14} />
+            </button>
+          </div>
+          <p className="text-[10px] text-purple-500">Selecciona los grupos que comparten este ítem (costo dividido):</p>
+          <div className="flex flex-wrap gap-2">
+            {(todosLosGrupos.length > 0 ? todosLosGrupos : GRUPOS_DISPONIBLES.slice(0, 5)).map((g) => {
+              const color = getGrupoColor(g);
+              const selected = compartirDialog.seleccion.includes(g);
+              return (
+                <button
+                  key={g}
+                  onClick={() => setCompartirDialog((s) => s ? {
+                    ...s,
+                    seleccion: selected
+                      ? s.seleccion.filter((x) => x !== g)
+                      : [...s.seleccion, g],
+                  } : s)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold border-2 transition-all"
+                  style={{
+                    borderColor: color,
+                    backgroundColor: selected ? color : `${color}18`,
+                    color: selected ? "white" : color,
+                  }}
+                >
+                  {grupoNombres[g] || `Grupo ${g}`}
+                </button>
+              );
+            })}
+          </div>
+          {compartirDialog.seleccion.length >= 2 && (
+            <p className="text-[10px] text-purple-600 font-medium">
+              Cada grupo paga {formatCurrency((compartirDialog.item.precio * compartirDialog.item.cantidad) / compartirDialog.seleccion.length, simbolo)}
+            </p>
+          )}
+          <div className="flex gap-2 pt-1">
+            {compartirDialog.item.compartido && (
+              <button
+                onClick={async () => {
+                  if (!compartirDialog.item.detalleId) return;
+                  setItemCompartido(compartirDialog.item.detalleId, false, []);
+                  await syncDetalle(compartirDialog.item.detalleId, { compartido: false, participantes: null });
+                  setCompartirDialog(null);
+                }}
+                className="flex-1 px-2 py-1.5 rounded-lg border border-surface-border text-xs text-surface-muted hover:border-red-300 hover:text-red-500 transition-all"
+              >
+                Quitar
+              </button>
+            )}
+            <button
+              onClick={handleConfirmCompartir}
+              disabled={compartirDialog.seleccion.length < 2}
+              className="flex-1 px-2 py-1.5 rounded-lg bg-purple-500 text-white text-xs font-bold disabled:opacity-40 hover:bg-purple-600 transition-all"
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Diálogo de división de cantidades */}
       {splitDialog && (
         <div className="mx-3 mb-2 p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-2">
@@ -569,6 +735,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
               {grupos.map((grupo) => {
                 const grupoSub = getSubtotalGrupo(grupo);
                 const color = getGrupoColor(grupo);
+                const nombre = grupoNombres[grupo];
                 return (
                   <button
                     key={grupo}
@@ -576,8 +743,10 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                     className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 transition-all hover:opacity-90 active:scale-[0.98]"
                     style={{ borderColor: color, backgroundColor: `${color}12` }}
                   >
-                    <span className="w-6 h-6 rounded-full text-white text-[11px] font-black flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color }}>{grupo}</span>
-                    <span className="flex-1 text-left text-sm font-bold" style={{ color }}>Grupo {grupo}</span>
+                    <span className="w-6 h-6 rounded-full text-white text-[11px] font-black flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color }}>
+                      {nombre ? nombre[0].toUpperCase() : grupo}
+                    </span>
+                    <span className="flex-1 text-left text-sm font-bold" style={{ color }}>{nombre || `Grupo ${grupo}`}</span>
                     <span className="flex items-center gap-1 text-sm font-black" style={{ color }}>
                       <Receipt size={13} />
                       {formatCurrency(grupoSub, simbolo)}

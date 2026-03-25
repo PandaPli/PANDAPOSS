@@ -368,16 +368,18 @@ model Pedido {
 }
 
 model DetallePedido {
-  id          Int       @id @default(autoincrement())
-  pedidoId    Int
-  productoId  Int?
-  comboId     Int?
-  cantidad    Int       @default(1)
-  observacion String?   @db.VarChar(200)
-  cancelado   Boolean   @default(false)
-  grupo       String?   @db.VarChar(5)
-  pagado      Boolean   @default(false)
-  precio      Decimal?  @db.Decimal(10, 2)
+  id            Int       @id @default(autoincrement())
+  pedidoId      Int
+  productoId    Int?
+  comboId       Int?
+  cantidad      Int       @default(1)
+  observacion   String?   @db.VarChar(200)
+  cancelado     Boolean   @default(false)
+  grupo         String?   @db.VarChar(5)
+  pagado        Boolean   @default(false)
+  precio        Decimal?  @db.Decimal(10, 2)
+  compartido    Boolean   @default(false)
+  participantes Json?
   combo       Combo?    @relation(fields: [comboId], references: [id])
   pedido      Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   producto    Producto? @relation(fields: [productoId], references: [id])

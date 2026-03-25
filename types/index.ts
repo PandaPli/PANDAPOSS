@@ -40,8 +40,12 @@ export interface CartItem {
   pagado?: boolean;
   /** ID del DetallePedido en DB (presente cuando guardado: true) */
   detalleId?: number;
-  /** Grupo de pago asignado: "A", "B", "C", etc. */
+  /** Grupo de pago asignado: "A1", "A2", etc. */
   grupo?: string;
+  /** Ítem compartido entre varios grupos */
+  compartido?: boolean;
+  /** Grupos que comparten este ítem (proporcional) */
+  participantes?: string[];
 }
 
 export interface GrupoPago {

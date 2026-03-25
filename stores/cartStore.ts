@@ -23,6 +23,8 @@ interface CartState {
   pedidoId: number | null;
   descuento: number;
   ivaPorc: number;
+  /** Nombres personalizados para cada grupo: { A1: "Roro", A2: "María", ... } */
+  grupoNombres: Record<string, string>;
 
   addItem: (item: Omit<CartItem, "cantidad"> & { cantidad?: number }) => void;
   removeItem: (id: number, tipo: "producto" | "combo", detalleId?: number) => void;
@@ -50,6 +52,10 @@ interface CartState {
     originalDetalleId: number,
     splits: { grupo: string; cantidad: number; newDetalleId?: number }[]
   ) => void;
+  /** Marca un ítem como compartido entre varios grupos */
+  setItemCompartido: (detalleId: number, compartido: boolean, participantes: string[]) => void;
+  /** Asigna nombre personalizado a un grupo */
+  setGrupoNombre: (grupo: string, nombre: string) => void;
 
   // Calculados
   subtotal: () => number;
@@ -59,9 +65,11 @@ interface CartState {
 
   /** Lista de grupos únicos activos (con ítems asignados no pagados) */
   getGrupos: () => string[];
-  /** Ítems asignados a un grupo específico (no pagados) */
+  /** Ítems asignados a un grupo específico (no pagados, no compartidos) */
   getItemsByGrupo: (grupo: string) => CartItem[];
-  /** Subtotal de un grupo */
+  /** Ítems compartidos activos (no pagados, no cancelados) */
+  getItemsCompartidos: () => CartItem[];
+  /** Subtotal de un grupo (incluye proporción de ítems compartidos) */
   getSubtotalGrupo: (grupo: string) => number;
 }
 
@@ -72,6 +80,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   pedidoId: null,
   descuento: 0,
   ivaPorc: 0,
+  grupoNombres: {},
 
   addItem(item) {
     set((state) => {
@@ -161,12 +170,12 @@ export const useCartStore = create<CartState>((set, get) => ({
     })),
 
   setMesa: (id) => set({ mesaId: id }),
-  setMesaFresh: (id) => set({ items: [], mesaId: id, pedidoId: null, clienteId: null, descuento: 0 }),
+  setMesaFresh: (id) => set({ items: [], mesaId: id, pedidoId: null, clienteId: null, descuento: 0, grupoNombres: {} }),
   setCliente: (id) => set({ clienteId: id }),
   setPedido: (id) => set({ pedidoId: id }),
   setDescuento: (v) => set({ descuento: v }),
   setIva: (v) => set({ ivaPorc: v }),
-  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0, ivaPorc: 0 }),
+  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0, ivaPorc: 0, grupoNombres: {} }),
   setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
   // Solo marca como guardados los ítems que aún no lo estaban (los recién enviados al KDS)
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => i.guardado ? i : { ...i, guardado: true }) })),
@@ -196,9 +205,31 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   markGrupoPagado: (grupo) =>
     set((s) => ({
+      items: s.items.map((i) => {
+        // Marcar ítems del grupo como pagados
+        if (i.grupo === grupo && !i.compartido) return { ...i, pagado: true };
+        // Marcar ítems compartidos como pagados si este era el ÚNICO grupo restante no pagado
+        if (i.compartido && i.participantes?.includes(grupo)) {
+          const otrosActivos = (i.participantes ?? []).filter(
+            (p) => p !== grupo && s.items.some((x) => x.grupo === p && !x.pagado)
+          );
+          // Si todos los demás grupos ya pagaron, marcar como pagado
+          if (otrosActivos.length === 0) return { ...i, pagado: true };
+        }
+        return i;
+      }),
+    })),
+
+  setItemCompartido: (detalleId, compartido, participantes) =>
+    set((s) => ({
       items: s.items.map((i) =>
-        i.grupo === grupo ? { ...i, pagado: true } : i
+        i.detalleId === detalleId ? { ...i, compartido, participantes } : i
       ),
+    })),
+
+  setGrupoNombre: (grupo, nombre) =>
+    set((s) => ({
+      grupoNombres: { ...s.grupoNombres, [grupo]: nombre },
     })),
 
   splitItemGrupos: (originalDetalleId, splits) =>
@@ -239,16 +270,33 @@ export const useCartStore = create<CartState>((set, get) => ({
   getGrupos: () => {
     const grupos = new Set<string>();
     get().items.forEach((i) => {
-      if (i.grupo && !i.cancelado && !i.pagado) grupos.add(i.grupo);
+      if (!i.cancelado && !i.pagado) {
+        if (i.grupo && !i.compartido) grupos.add(i.grupo);
+        // Grupos que participan en ítems compartidos también cuentan
+        if (i.compartido && i.participantes) {
+          i.participantes.forEach((p) => grupos.add(p));
+        }
+      }
     });
     return Array.from(grupos).sort();
   },
 
   getItemsByGrupo: (grupo) =>
-    get().items.filter((i) => i.grupo === grupo && !i.cancelado && !i.pagado),
+    get().items.filter((i) => i.grupo === grupo && !i.compartido && !i.cancelado && !i.pagado),
 
-  getSubtotalGrupo: (grupo) =>
-    get()
-      .getItemsByGrupo(grupo)
-      .reduce((acc, i) => acc + i.precio * i.cantidad, 0),
+  getItemsCompartidos: () =>
+    get().items.filter((i) => i.compartido && !i.cancelado && !i.pagado),
+
+  getSubtotalGrupo: (grupo) => {
+    const items = get().items;
+    // Ítems directos del grupo
+    const directTotal = items
+      .filter((i) => i.grupo === grupo && !i.compartido && !i.cancelado && !i.pagado)
+      .reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    // Ítems compartidos: proporción del grupo
+    const sharedTotal = items
+      .filter((i) => i.compartido && i.participantes?.includes(grupo) && !i.cancelado && !i.pagado)
+      .reduce((acc, i) => acc + (i.precio * i.cantidad) / (i.participantes!.length), 0);
+    return directTotal + sharedTotal;
+  },
 }));

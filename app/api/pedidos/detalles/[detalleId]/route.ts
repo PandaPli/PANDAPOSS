@@ -40,6 +40,8 @@ export async function PATCH(
     observacion?: string | null;
     grupo?: string | null;
     pagado?: boolean;
+    compartido?: boolean;
+    participantes?: string[] | null;
   };
 
   // Validaciones básicas
@@ -48,11 +50,13 @@ export async function PATCH(
   }
 
   const data: Record<string, unknown> = {};
-  if (body.cancelado !== undefined)   data.cancelado   = body.cancelado;
-  if (body.cantidad !== undefined)    data.cantidad    = body.cantidad;
-  if (body.observacion !== undefined) data.observacion = body.observacion;
-  if (body.grupo !== undefined)       data.grupo       = body.grupo;
-  if (body.pagado !== undefined)      data.pagado      = body.pagado;
+  if (body.cancelado !== undefined)     data.cancelado     = body.cancelado;
+  if (body.cantidad !== undefined)      data.cantidad      = body.cantidad;
+  if (body.observacion !== undefined)   data.observacion   = body.observacion;
+  if (body.grupo !== undefined)         data.grupo         = body.grupo;
+  if (body.pagado !== undefined)        data.pagado        = body.pagado;
+  if (body.compartido !== undefined)    data.compartido    = body.compartido;
+  if (body.participantes !== undefined) data.participantes = body.participantes;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });
