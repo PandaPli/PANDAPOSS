@@ -292,6 +292,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
   const [clientFoundLabel, setClientFoundLabel] = useState("");
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [installed, setInstalled] = useState(false);
 
   const zonaSeleccionada = zonas.find((zona) => zona.id === zonaId) ?? zonas[0] ?? null;
   const paymentSeleccionado = paymentOptions.find((option) => option.id === paymentId) ?? paymentOptions[0];
@@ -334,16 +337,53 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
     setCart((prev) => prev.map((item) => item.cartKey === cartKey ? { ...item, nota } : item));
   }
 
-  // Detectar iOS sin standalone → mostrar banner de instalación
+  // Registrar Service Worker
   useEffect(() => {
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    const dismissed = sessionStorage.getItem("installBannerDismissed");
-    if (isIos && !isStandalone && !dismissed) {
-      const t = setTimeout(() => setShowInstallBanner(true), 2500);
-      return () => clearTimeout(t);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {/* silent */});
     }
   }, []);
+
+  // Detectar iOS sin standalone → mostrar banner de instalación
+  // Detectar Android/Chrome → capturar beforeinstallprompt
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+    if (isStandalone) { setInstalled(true); return; }
+
+    const dismissed = sessionStorage.getItem("installBannerDismissed");
+    if (dismissed) return;
+
+    // Android / Chrome: capturar el prompt nativo
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // iOS: mostrar instrucciones manuales
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIos) {
+      const t = setTimeout(() => setShowInstallBanner(true), 2500);
+      return () => { window.removeEventListener("beforeinstallprompt", handler); clearTimeout(t); };
+    }
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") setInstalled(true);
+      setDeferredPrompt(null);
+      setShowInstallBanner(false);
+    }
+  }
 
   useEffect(() => {
     // Si el usuario borra el telefono, limpiamos el badge
@@ -561,24 +601,48 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
         onClose={() => setViewerIndex(null)}
       />
     )}
-    {/* iOS Install Banner */}
-    {showInstallBanner && (
-      <div className="fixed bottom-24 left-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-orange-200 bg-white px-4 py-3 shadow-2xl">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white">
-          <Share2 size={18} />
+    {/* Banner de instalación PWA — Android (prompt nativo) e iOS (instrucciones) */}
+    {showInstallBanner && !installed && (
+      <div className="fixed bottom-24 left-3 right-3 z-50 overflow-hidden rounded-2xl shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:w-80"
+        style={{ border: "1.5px solid rgba(249,115,22,0.3)" }}>
+        {/* Gradiente superior */}
+        <div className="flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
+          {sucursal.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={sucursal.logoUrl} alt={sucursal.nombre}
+              className="h-10 w-10 shrink-0 rounded-xl object-cover shadow" />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 text-white font-black text-lg">
+              {sucursal.nombre.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-black text-sm leading-tight truncate">{sucursal.nombre}</p>
+            <p className="text-white/80 text-xs">Instala la app gratis 📲</p>
+          </div>
+          <button
+            onClick={() => { setShowInstallBanner(false); sessionStorage.setItem("installBannerDismissed", "1"); }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition">
+            <X size={14} />
+          </button>
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-bold text-stone-800">Instalar como app</p>
-          <p className="text-xs text-stone-500">
-            Toca <Share2 size={10} className="inline" /> y luego <strong>«Agregar a inicio»</strong>
-          </p>
+
+        {/* Cuerpo blanco */}
+        <div className="bg-white px-4 py-3">
+          {deferredPrompt ? (
+            // Android: botón directo
+            <button onClick={handleInstall}
+              className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 py-2.5 text-sm font-black text-white shadow-md shadow-orange-200/60 transition active:scale-95">
+              ⬇ Instalar {sucursal.nombre}
+            </button>
+          ) : (
+            // iOS: instrucción manual
+            <p className="text-xs text-stone-600 text-center leading-relaxed">
+              Toca <Share2 size={11} className="inline mx-0.5 text-blue-500" /> en Safari
+              y luego <strong className="text-stone-800">«Añadir a pantalla de inicio»</strong>
+            </p>
+          )}
         </div>
-        <button
-          onClick={() => { setShowInstallBanner(false); sessionStorage.setItem("installBannerDismissed", "1"); }}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100"
-        >
-          <X size={16} />
-        </button>
       </div>
     )}
 
