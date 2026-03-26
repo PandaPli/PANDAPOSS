@@ -42,6 +42,7 @@ interface Producto {
   activo: boolean;
   enMenu: boolean;
   enMenuQR: boolean;
+  enKiosko: boolean;
   ivaActivo: boolean;
   categoriaId: number | null;
   sucursalId: number | null;
@@ -174,6 +175,7 @@ const emptyForm = {
   ivaPorc: "0",
   enMenu: true,
   enMenuQR: true,
+  enKiosko: true,
 };
 
 export function ProductosClient({ productos: initial, categorias, sucursales, simbolo, rol }: Props) {
@@ -408,6 +410,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       ivaPorc: "0",
       enMenu: p.enMenu,
       enMenuQR: p.enMenuQR,
+      enKiosko: p.enKiosko ?? true,
     });
     setError("");
     setVariantesLocal([]);
@@ -514,6 +517,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       ivaPorc: Number(form.ivaPorc),
       enMenu: form.enMenu,
       enMenuQR: form.enMenuQR,
+      enKiosko: form.enKiosko,
     };
 
     try {
@@ -1186,6 +1190,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                 {[
                   { key: "enMenu",    label: "Visible en POS / App",  desc: "Aparece en ventas y punto de venta" },
                   { key: "enMenuQR",  label: "Visible en Carta QR",    desc: "Aparece en el menú digital para clientes" },
+                  { key: "enKiosko",  label: "Visible en Kiosko",      desc: "Aparece en el kiosko de autoatención" },
                   { key: "ivaActivo", label: "Aplica IVA",             desc: "Agrega el porcentaje de IVA al precio" },
                 ].map(({ key, label, desc }) => (
                   <div key={key} className="flex items-center justify-between gap-4 rounded-xl border border-surface-border bg-surface-bg/40 px-4 py-3">

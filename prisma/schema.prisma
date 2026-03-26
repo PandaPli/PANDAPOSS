@@ -162,6 +162,7 @@ model Producto {
   actualizadoEn  DateTime        @updatedAt
   tenantId       String?
   enMenuQR       Boolean         @default(true)
+  enKiosko       Boolean         @default(true)
   detallesPedido DetallePedido[]
   detallesVenta  DetalleVenta[]
   kardex         Kardex[]
