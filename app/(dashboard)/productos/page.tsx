@@ -57,6 +57,7 @@ export default async function ProductosPage() {
     activo: p.activo,
     enMenu: p.enMenu,
     enMenuQR: p.enMenuQR,
+    enKiosko: p.enKiosko,
     ivaActivo: p.ivaActivo,
     categoriaId: p.categoriaId,
     sucursalId: p.sucursalId,
