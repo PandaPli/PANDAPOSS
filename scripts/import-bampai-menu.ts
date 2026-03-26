@@ -7,9 +7,9 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const SUCURSAL_ID = 6;
 
-// Categorías existentes en BAMPAI
-const CAT_HOSOMAKI = 35;
-const CAT_TABLAS   = 25;
+// IDs se resolverán dinámicamente en runtime
+let CAT_HOSOMAKI = 0;
+let CAT_TABLAS   = 0;
 
 // Productos nuevos agrupados por categoría
 // (ya excluidos los que existen: Hosomaki Camarón, Shinchimi Fresh Rolls, todas las Tablas)
@@ -134,8 +134,9 @@ const NUEVOS: { cat: string; icono: string; productos: { nombre: string; precio:
 ];
 
 async function getOrCreateCategoria(nombre: string, icono: string): Promise<number> {
-  // Para Hosomaki reutilizamos la existente
-  if (nombre === "Hosomaki") return CAT_HOSOMAKI;
+  // Para Hosomaki/Tablas usamos la existente (o la creamos si no existe)
+  if (nombre === "Hosomaki" && CAT_HOSOMAKI > 0) return CAT_HOSOMAKI;
+  if (nombre === "Tablas Sushi" && CAT_TABLAS > 0) return CAT_TABLAS;
 
   const existing = await prisma.categoria.findFirst({ where: { nombre } });
   if (existing) return existing.id;
@@ -157,6 +158,12 @@ async function getLastBPCode(): Promise<number> {
 }
 
 async function main() {
+  // Resolver IDs de categorías existentes dinámicamente
+  const catHoso = await prisma.categoria.findFirst({ where: { nombre: "Hosomaki" } });
+  if (catHoso) { CAT_HOSOMAKI = catHoso.id; console.log(`  Hosomaki → id ${CAT_HOSOMAKI}`); }
+  const catTablas = await prisma.categoria.findFirst({ where: { nombre: "Tablas Sushi" } });
+  if (catTablas) { CAT_TABLAS = catTablas.id; console.log(`  Tablas Sushi → id ${CAT_TABLAS}`); }
+
   let counter = await getLastBPCode();
   let creados = 0;
   let omitidos = 0;

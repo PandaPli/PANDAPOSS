@@ -134,6 +134,8 @@ model Categoria {
   nombre    String     @unique @db.VarChar(80)
   icono     String?    @db.VarChar(50)
   activa    Boolean    @default(true)
+  enMenu    Boolean    @default(true)
+  enMenuQR  Boolean    @default(true)
   estacion  Estacion   @default(COCINA)
   orden     Int        @default(0)
   combos    Combo[]

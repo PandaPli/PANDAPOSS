@@ -37,7 +37,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
   const sucursalId = branch.id;
 
   const categorias = await prisma.categoria.findMany({
-    where: { activa: true },
+    where: { activa: true, enMenuQR: true },
     include: {
       productos: {
         where: {

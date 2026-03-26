@@ -30,7 +30,7 @@ const ESTACION_CONFIG: Record<Estacion, { label: string; color: string; icon: Re
   MOSTRADOR:       { label: "Mostrador",       color: "bg-purple-100 text-purple-700",  icon: <ShoppingBag size={11} /> },
 };
 
-interface Categoria { id: number; nombre: string; estacion?: Estacion; orden?: number; }
+interface Categoria { id: number; nombre: string; estacion?: Estacion; orden?: number; enMenu?: boolean; enMenuQR?: boolean; }
 interface Sucursal { id: number; nombre: string; }
 interface Producto {
   id: number;
@@ -67,11 +67,13 @@ function SortableCatCard({
   savingEstacion,
   onCambiarEstacion,
   onRename,
+  onToggleVisibilidad,
 }: {
   cat: Categoria;
   savingEstacion: number | null;
   onCambiarEstacion: (id: number, est: Estacion) => void;
   onRename: (id: number, nombre: string) => void;
+  onToggleVisibilidad: (id: number, field: "enMenu" | "enMenuQR", value: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
   const est = (cat.estacion ?? "COCINA") as Estacion;
@@ -159,6 +161,22 @@ function SortableCatCard({
         <option value="CUARTO_CALIENTE">🔥 Cuarto Caliente</option>
         <option value="MOSTRADOR">🧁 Mostrador</option>
       </select>
+      <div className="flex gap-1 mt-1">
+        <button
+          onClick={() => onToggleVisibilidad(cat.id, "enMenu", !(cat.enMenu !== false))}
+          className={`flex-1 rounded py-0.5 text-[10px] font-semibold border transition-colors ${cat.enMenu !== false ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-600 border-red-200"}`}
+          title="Visible en POS / pedidos internos"
+        >
+          {cat.enMenu !== false ? "✓ POS" : "✗ POS"}
+        </button>
+        <button
+          onClick={() => onToggleVisibilidad(cat.id, "enMenuQR", !(cat.enMenuQR !== false))}
+          className={`flex-1 rounded py-0.5 text-[10px] font-semibold border transition-colors ${cat.enMenuQR !== false ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-600 border-red-200"}`}
+          title="Visible en carta QR pública"
+        >
+          {cat.enMenuQR !== false ? "✓ QR" : "✗ QR"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -361,6 +379,17 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       const updated = prev.filter((p) => p.nombre !== nombre);
       localStorage.setItem(PLANTILLAS_KEY, JSON.stringify(updated));
       return updated;
+    });
+  }
+
+  async function toggleVisibilidadCategoria(categoriaId: number, field: "enMenu" | "enMenuQR", value: boolean) {
+    setCategoriasState((prev) =>
+      prev.map((c) => c.id === categoriaId ? { ...c, [field]: value } : c)
+    );
+    await fetch(`/api/categorias/${categoriaId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
     });
   }
 
@@ -645,6 +674,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                     savingEstacion={savingEstacion}
                     onCambiarEstacion={cambiarEstacion}
                     onRename={renombrarCategoria}
+                    onToggleVisibilidad={toggleVisibilidadCategoria}
                   />
                 ))}
               </div>
