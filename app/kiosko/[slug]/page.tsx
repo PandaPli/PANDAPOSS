@@ -51,7 +51,7 @@ export default async function KioskoPage({ params }: Props) {
         orderBy: { nombre: "asc" },
       },
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { orden: "asc" },
   });
 
   const safeCategorias = categorias

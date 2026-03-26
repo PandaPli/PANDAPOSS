@@ -47,7 +47,7 @@ export default async function MenuPage({ searchParams }: Props) {
           orderBy: { nombre: "asc" },
         },
       },
-      orderBy: { nombre: "asc" },
+      orderBy: { orden: "asc" },
     }),
   ]);
 

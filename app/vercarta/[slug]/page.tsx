@@ -58,7 +58,7 @@ export default async function VerCartaSlugPage({ params }: Props) {
         orderBy: { nombre: "asc" },
       },
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { orden: "asc" },
   });
 
   // Serializar Decimal → number para poder pasar al Client Component

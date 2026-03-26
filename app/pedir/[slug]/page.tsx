@@ -68,7 +68,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
         orderBy: { nombre: "asc" },
       },
     },
-    orderBy: { nombre: "asc" },
+    orderBy: { orden: "asc" },
   });
 
   const safeCategorias = categorias
