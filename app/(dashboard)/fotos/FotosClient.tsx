@@ -46,10 +46,10 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
     if (!selectedBlob || !selectedProducto) return;
     setSaving(true);
     try {
-      await fetch(`/api/productos/${selectedProducto.id}`, {
+      await fetch(`/api/productos`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagen: selectedBlob }),
+        body: JSON.stringify({ id: selectedProducto.id, imagen: selectedBlob }),
       });
       setSavedIds(prev => new Set([...prev, selectedProducto.id]));
       setLocalProds(prev => prev.map(p =>
