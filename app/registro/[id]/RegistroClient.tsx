@@ -588,6 +588,38 @@ export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Pro
               />
             </div>
 
+            {/* ── GÉNERO ── */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                Soy...
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: "F", label: "Mujer", emoji: "👩" },
+                  { value: "M", label: "Hombre", emoji: "👨" },
+                  { value: "O", label: "Otro", emoji: "🧑" },
+                ].map(({ value, label, emoji }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm({ ...form, genero: form.genero === value ? "" : value })}
+                    className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      form.genero === value
+                        ? value === "F"
+                          ? "border-pink-400 bg-pink-50 text-pink-700"
+                          : value === "M"
+                          ? "border-blue-400 bg-blue-50 text-blue-700"
+                          : "border-purple-400 bg-purple-50 text-purple-700"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className="text-xl">{emoji}</span>
+                    <span className="text-xs">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* ── DIRECCIÓN ── */}
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
