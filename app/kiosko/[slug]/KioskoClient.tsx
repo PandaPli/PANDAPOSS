@@ -506,7 +506,7 @@ export function KioskoClient({ sucursal, categorias }: Props) {
                 </div>
                 <div className="p-3 flex-1 flex flex-col">
                   <p className="font-black text-white text-sm leading-tight line-clamp-2 flex-1">{p.nombre}</p>
-                  {p.descripcion && <p className="text-white/30 text-xs mt-1 line-clamp-1">{p.descripcion}</p>}
+                  {p.descripcion && <p className="text-white/40 text-xs mt-1 line-clamp-2 leading-snug">{p.descripcion}</p>}
                   <div className="mt-2 flex items-center justify-between">
                     <p className="font-black text-amber-400 text-base">{formatCurrency(p.precio, sucursal.simbolo)}</p>
                     {p.variantes.length > 0 && <span className="text-[10px] text-white/30 font-semibold">+opciones</span>}
