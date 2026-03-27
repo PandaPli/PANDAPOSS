@@ -9,12 +9,15 @@
  */
 export function printFrame(html: string): void {
   // Estilos base: solo ancho, el alto se inyecta dinámicamente tras medir
-  const baseStyle = `<style>
+  const baseStyle = `<meta name="viewport" content="width=302px, initial-scale=1.0"/>
+  <style>
     html, body {
       width: 80mm !important;
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden !important;
+      -webkit-text-size-adjust: none !important;
+      text-size-adjust: none !important;
     }
   </style>`;
 
@@ -25,7 +28,7 @@ export function printFrame(html: string): void {
   const popup = window.open(
     "",
     "_blank",
-    "width=340,height=800,scrollbars=no,toolbar=no,menubar=no,location=no,status=no"
+    "width=302,height=800,scrollbars=no,toolbar=no,menubar=no,location=no,status=no"
   );
 
   if (!popup) {

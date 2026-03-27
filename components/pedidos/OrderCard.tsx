@@ -108,14 +108,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
       <title>Comanda #${pedido.numero}</title>
       <style>
         @page{size:80mm auto;margin:0}@media print{@page{size:80mm auto;margin:0}}*{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Courier New',monospace;font-size:14px;width:72mm;padding:4mm 4mm 8mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        .center{text-align:center}.bold{font-weight:bold}.big{font-size:22px;font-weight:bold}
-        .tipo-badge{display:inline-block;border:2px solid #000;padding:2px 10px;font-size:15px;font-weight:bold;letter-spacing:2px;margin:4px 0}
+        body{font-family:'Courier New',monospace;font-size:16px;width:80mm;padding:3mm 3mm 10mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .center{text-align:center}.bold{font-weight:bold}.big{font-size:26px;font-weight:bold}
+        .tipo-badge{display:inline-block;border:2px solid #000;padding:3px 12px;font-size:17px;font-weight:bold;letter-spacing:2px;margin:4px 0}
         .divider{border:none;border-top:1px dashed #000;margin:5px 0}.divider-solid{border:none;border-top:2px solid #000;margin:5px 0}
-        .meta-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
-        .item{margin:5px 0}.item-row{display:flex;align-items:baseline;gap:6px}
-        .qty{font-size:18px;font-weight:bold;min-width:28px}.item-name{font-size:15px;font-weight:bold;flex:1}
-        .item-obs{font-size:12px;margin-left:34px;font-style:italic}.obs-box{border:1px dashed #000;padding:4px 6px;font-size:12px;margin-top:6px}
+        .meta-row{display:flex;justify-content:space-between;font-size:14px;padding:2px 0}
+        .item{margin:6px 0}.item-row{display:flex;align-items:baseline;gap:6px}
+        .qty{font-size:22px;font-weight:bold;min-width:32px}.item-name{font-size:17px;font-weight:bold;flex:1}
+        .item-obs{font-size:14px;margin-left:38px;font-style:italic}.obs-box{border:1px dashed #000;padding:4px 6px;font-size:14px;margin-top:6px}
       </style></head>
       <body>
         <div class="center"><div class="tipo-badge">${tipo}</div></div>
