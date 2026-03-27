@@ -597,7 +597,7 @@ export function RegistroClient({ sucursalId, sucursalNombre, sucursalLogo }: Pro
                 {[
                   { value: "F", label: "Mujer", emoji: "👩" },
                   { value: "M", label: "Hombre", emoji: "👨" },
-                  { value: "O", label: "Otro", emoji: "🧑" },
+                  { value: "O", label: "Otro", emoji: "🐼" },
                 ].map(({ value, label, emoji }) => (
                   <button
                     key={value}
