@@ -88,6 +88,7 @@ model Usuario {
   cajas             Caja[]
   empleadoRrhh      Empleado?
   logs              Log[]
+  eventosPedido     EventoPedido[]   @relation("EventosPedido")
   movimientosCaja   MovimientoCaja[]
   pedidosRepartidor Pedido[]         @relation("PedidosRepartidor")
   pedidos           Pedido[]
@@ -352,8 +353,11 @@ model Pedido {
   telefonoCliente  String?         @db.VarChar(30)
   creadoEn         DateTime        @default(now())
   actualizadoEn    DateTime        @updatedAt
+  iniciadoEn       DateTime?
+  listoEn          DateTime?
   tenantId         String?
   detalles         DetallePedido[]
+  eventos          EventoPedido[]
   caja             Caja?           @relation(fields: [cajaId], references: [id])
   mesa             Mesa?           @relation(fields: [mesaId], references: [id])
   repartidor       Usuario?        @relation("PedidosRepartidor", fields: [repartidorId], references: [id])
@@ -473,6 +477,22 @@ model PagoVenta {
 
   @@index([ventaId], map: "pagos_ventas_ventaId_fkey")
   @@map("pagos_ventas")
+}
+
+model EventoPedido {
+  id          Int      @id @default(autoincrement())
+  pedidoId    Int
+  usuarioId   Int?
+  tipo        String   @db.VarChar(50)
+  descripcion String   @db.VarChar(500)
+  creadoEn    DateTime @default(now())
+
+  pedido  Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation("EventosPedido", fields: [usuarioId], references: [id])
+
+  @@index([pedidoId])
+  @@index([usuarioId])
+  @@map("eventos_pedido")
 }
 
 model Log {

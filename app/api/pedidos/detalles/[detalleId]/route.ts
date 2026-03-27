@@ -62,6 +62,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });
   }
 
+  const detalleAntes = await prisma.detallePedido.findUnique({
+    where: { id },
+    select: { pedidoId: true, cancelado: true, cantidad: true, producto: { select: { nombre: true } }, combo: { select: { nombre: true } } },
+  });
+
   const detalle = await prisma.detallePedido.update({
     where: { id },
     data,
@@ -70,6 +75,21 @@ export async function PATCH(
       combo:    { select: { nombre: true } },
     },
   });
+
+  // Auditoría de cancelación o modificación
+  if (detalleAntes && (body.cancelado !== undefined || body.cantidad !== undefined)) {
+    const nombreItem = detalleAntes.producto?.nombre ?? detalleAntes.combo?.nombre ?? "ítem";
+    const usuarioId  = (session.user as { id?: number }).id ?? null;
+    let desc = "";
+    if (body.cancelado && !detalleAntes.cancelado) desc = `Cancelado: "${nombreItem}"`;
+    else if (body.cantidad !== undefined && body.cantidad !== detalleAntes.cantidad)
+      desc = `Cantidad "${nombreItem}": ${detalleAntes.cantidad} → ${body.cantidad}`;
+    if (desc) {
+      await prisma.eventoPedido.create({
+        data: { pedidoId: detalleAntes.pedidoId, usuarioId: Number(usuarioId) || null, tipo: "ITEM", descripcion: desc },
+      }).catch(() => {});
+    }
+  }
 
   return NextResponse.json(detalle);
 }

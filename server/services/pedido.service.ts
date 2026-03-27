@@ -29,6 +29,7 @@ export interface UpdatePedidoInput {
   direccionEntrega?: string | null;
   telefonoCliente?: string | null;
   nuevosItems?: PedidoItem[];
+  usuarioId?: number | null;
 }
 
 // M3: Transiciones de estado válidas — máquina de estados explícita
@@ -140,7 +141,7 @@ export const PedidoService = {
     // Leer el pedido actual para validaciones
     const pedidoActual = await prisma.pedido.findUnique({
       where: { id },
-      select: { estado: true, mesaId: true, venta: { select: { id: true } } },
+      select: { estado: true, mesaId: true, venta: { select: { id: true } }, numero: true },
     });
 
     if (!pedidoActual) throw new Error("Pedido no encontrado.");
@@ -174,6 +175,11 @@ export const PedidoService = {
     if (telefonoCliente !== undefined) data.telefonoCliente = telefonoCliente ?? null;
     if (estado === "ENTREGADO") data.meseroLlamado = false;
 
+    // Capturar timestamps de preparación
+    const now = new Date();
+    if (estado === "EN_PROCESO") data.iniciadoEn = now;
+    if (estado === "LISTO")      data.listoEn    = now;
+
     if (input.nuevosItems && input.nuevosItems.length > 0) {
       data.detalles = {
         create: input.nuevosItems.map((item) => ({
@@ -190,6 +196,24 @@ export const PedidoService = {
       data,
       include: { mesa: true, detalles: true },
     });
+
+    // Registrar evento de auditoría si hubo cambio de estado
+    if (estado !== undefined) {
+      const etiquetas: Record<string, string> = {
+        EN_PROCESO: "Preparación iniciada",
+        LISTO:      "Marcado como listo",
+        ENTREGADO:  "Entregado",
+        CANCELADO:  "Cancelado",
+      };
+      await prisma.eventoPedido.create({
+        data: {
+          pedidoId:   id,
+          usuarioId:  input.usuarioId ?? null,
+          tipo:       "ESTADO",
+          descripcion: `${pedidoActual.estado} → ${estado}${etiquetas[estado] ? ` (${etiquetas[estado]})` : ""}`,
+        },
+      }).catch(() => { /* no bloquear si falla el log */ });
+    }
 
     if (input.nuevosItems && input.nuevosItems.length > 0 && pedido.mesaId) {
       await prisma.mesa.update({
