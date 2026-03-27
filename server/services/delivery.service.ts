@@ -148,16 +148,30 @@ export const DeliveryService = {
       });
 
       // 2. Crear o buscar Cliente
-      let dbCliente = await tx.cliente.findFirst({
-        where: { telefono: cliente.telefono.trim() }
-      });
+      // Solo buscamos por teléfono si es un número válido (≥12 chars: +56912345678)
+      const telefonoValido = cliente.telefono.trim().length >= 12 ? cliente.telefono.trim() : null;
+      let dbCliente = telefonoValido
+        ? await tx.cliente.findFirst({ where: { telefono: telefonoValido } })
+        : null;
+
       if (!dbCliente) {
+        // Cliente nuevo: registrar con nombre, teléfono y dirección principal
         dbCliente = await tx.cliente.create({
           data: {
-            nombre: cliente.nombre.trim(),
-            telefono: cliente.telefono.trim(),
-            sucursalId
-          }
+            nombre:    cliente.nombre.trim(),
+            telefono:  telefonoValido,
+            direccion: cliente.direccion.trim() || null,
+            sucursalId,
+          },
+        });
+      } else {
+        // Cliente existente: actualizar nombre y dirección si cambió
+        await tx.cliente.update({
+          where: { id: dbCliente.id },
+          data: {
+            nombre:    cliente.nombre.trim(),
+            direccion: cliente.direccion.trim() || null,
+          },
         });
       }
 
