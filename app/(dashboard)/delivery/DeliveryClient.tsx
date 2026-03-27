@@ -408,8 +408,8 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             onOrderCreated={(pedido) => {
               const nuevo: PedidoDelivery = {
                 id: pedido.id, estado: "PENDIENTE", trackingStage: "CONFIRMADO",
-                clienteNombre: pedido.clienteNombre, telefonoCliente: null,
-                direccionEntrega: null, referencia: null, departamento: null,
+                clienteNombre: pedido.clienteNombre, telefonoCliente: pedido.telefono,
+                direccionEntrega: pedido.direccion, referencia: pedido.referencia || null, departamento: null,
                 metodoPago: "EFECTIVO", cargoEnvio: 0, subtotal: 0, total: 0,
                 repartidorId: null, creadoEn: new Date().toISOString(), repartidor: null, detalles: [],
               };

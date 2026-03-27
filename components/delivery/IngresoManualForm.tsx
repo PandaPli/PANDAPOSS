@@ -60,7 +60,7 @@ interface Props {
   sucursalId: number | null;
   simbolo: string;
   zonasDelivery?: ZonaDelivery[];
-  onOrderCreated: (pedido: { id: number; clienteNombre: string }) => void;
+  onOrderCreated: (pedido: { id: number; clienteNombre: string; telefono: string; direccion: string; referencia: string }) => void;
 }
 
 const METODOS: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
@@ -217,7 +217,13 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
 
       const ticket = { id: data.id, clienteNombre: nombre.trim() };
       setTicketData(ticket);
-      onOrderCreated(ticket);
+      onOrderCreated({
+        id: data.id,
+        clienteNombre: nombre.trim(),
+        telefono: phone,
+        direccion: direccion.trim(),
+        referencia: referencia.trim(),
+      });
 
       // Reset form
       setCart([]);
