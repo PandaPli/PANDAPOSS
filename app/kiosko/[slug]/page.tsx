@@ -26,6 +26,7 @@ export default async function KioskoPage({ params }: Props) {
       productos: {
         where: {
           activo: true,
+          enKiosko: true,
           OR: [{ sucursalId }, { sucursalId: null }],
         },
         select: {
