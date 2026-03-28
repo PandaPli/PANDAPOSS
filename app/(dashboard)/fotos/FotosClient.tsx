@@ -29,6 +29,7 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
   const [localProds, setLocalProds] = useState<Producto[]>(productos);
   const [uploading, setUploading] = useState(false);
   const [sucursalFiltro, setSucursalFiltro] = useState<string>("todas");
+  const [soloNoAsignadas, setSoloNoAsignadas] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
 
@@ -49,9 +50,16 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
     return matchQ && matchFoto && matchSuc;
   });
 
-  const filteredBlobs = blobs.filter(b =>
-    b.pathname.toLowerCase().includes(queryBlob.toLowerCase())
-  );
+  // Set de URLs ya asignadas a algún producto
+  const assignedUrls = new Set(localProds.map(p => p.imagen).filter(Boolean) as string[]);
+
+  const filteredBlobs = blobs.filter(b => {
+    const matchQ = b.pathname.toLowerCase().includes(queryBlob.toLowerCase());
+    const matchAsig = soloNoAsignadas ? !assignedUrls.has(b.url) : true;
+    return matchQ && matchAsig;
+  });
+
+  const noAsignadasCount = blobs.filter(b => !assignedUrls.has(b.url)).length;
 
   const sinFoto = localProds.filter(p => !p.imagen).length;
   const conFoto = localProds.filter(p => !!p.imagen).length;
@@ -191,14 +199,25 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
         {/* ── IZQUIERDA: Imágenes Blob ── */}
         <div className="rounded-2xl border border-surface-border bg-surface-card flex flex-col overflow-hidden">
           {/* Header fijo */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-surface-border bg-white shrink-0">
-            <span className="text-xs font-bold text-surface-text shrink-0">📦 Blob ({filteredBlobs.length})</span>
-            <div className="relative flex-1">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-surface-border bg-white shrink-0 flex-wrap">
+            <span className="text-xs font-bold text-surface-text shrink-0">
+              📦 Blob ({filteredBlobs.length})
+            </span>
+            <div className="relative flex-1 min-w-[120px]">
               <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-muted" />
               <input value={queryBlob} onChange={e => setQueryBlob(e.target.value)}
                 placeholder="Filtrar por nombre..."
                 className="w-full border border-surface-border rounded-lg pl-6 pr-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400" />
             </div>
+            {/* Toggle no asignadas */}
+            <label className="flex items-center gap-1 text-[11px] cursor-pointer shrink-0 select-none">
+              <input type="checkbox" checked={soloNoAsignadas}
+                onChange={e => setSoloNoAsignadas(e.target.checked)}
+                className="rounded accent-brand-500" />
+              <span className={soloNoAsignadas ? "text-brand-600 font-bold" : "text-surface-muted"}>
+                No asignadas ({noAsignadasCount})
+              </span>
+            </label>
             {selectedBlob && (
               <button onClick={() => setSelectedBlob(null)}
                 className="text-xs text-red-400 hover:text-red-600 flex items-center gap-0.5 shrink-0">
@@ -225,6 +244,7 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 xl:grid-cols-7 gap-1.5">
                 {filteredBlobs.map(b => {
                   const isSel = selectedBlob === b.url;
+                  const isAsigned = assignedUrls.has(b.url);
                   return (
                     <button key={b.url} onClick={() => handleBlobClick(b.url)} title={b.pathname}
                       className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all group ${
@@ -232,11 +252,21 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
                           ? "border-brand-500 ring-2 ring-brand-300 scale-95"
                           : hasProd
                           ? "border-emerald-300 hover:scale-95 hover:border-emerald-500"
+                          : isAsigned
+                          ? "border-emerald-400/60 hover:border-brand-300 hover:scale-95"
                           : "border-surface-border hover:border-brand-300 hover:scale-95"
                       }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={b.url} alt="" className="w-full h-full object-cover" />
+
+                      {/* Indicador: ya asignada */}
+                      {isAsigned && !isSel && (
+                        <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shadow">
+                          <Check size={9} className="text-white" />
+                        </div>
+                      )}
+
                       {isSel && (
                         <div className="absolute inset-0 bg-brand-500/25 flex items-center justify-center">
                           <div className="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center shadow">
