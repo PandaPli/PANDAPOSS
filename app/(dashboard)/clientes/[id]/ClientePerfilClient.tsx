@@ -6,6 +6,7 @@ import {
   ArrowLeft, Phone, Mail, MapPin, Cake, User,
   ShoppingBag, TrendingUp, CreditCard, Banknote,
   ArrowLeftRight, CheckCircle2, XCircle, Loader2, Hash,
+  Gift, Send, Copy,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,8 @@ interface ClienteDetalle {
   direccion: string | null;
   genero: string | null;
   fechaNacimiento: string | null;
+  codigoCumple: string | null;
+  sucursalId: number | null;
   activo: boolean;
   creadoEn: string;
   direcciones: Direccion[];
@@ -79,6 +82,9 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
   const [cliente, setCliente] = useState<ClienteDetalle | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedVenta, setExpandedVenta] = useState<number | null>(null);
+  const [enviandoCupon, setEnviandoCupon] = useState(false);
+  const [cuponMsg, setCuponMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
     fetch(`/api/clientes/${clienteId}`)
@@ -103,6 +109,39 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
       </div>
     );
   }
+
+  async function enviarCupon() {
+    if (!cliente?.codigoCumple || !cliente?.email || !cliente?.sucursalId) return;
+    setEnviandoCupon(true);
+    setCuponMsg(null);
+    try {
+      const r = await fetch("/api/public/registro/enviar-cupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cliente?.email, codigoCumple: cliente?.codigoCumple, sucursalId: cliente?.sucursalId }),
+      });
+      const d = await r.json();
+      setCuponMsg(r.ok ? { ok: true, text: "Cupón enviado por email ✓" } : { ok: false, text: d.error ?? "Error al enviar" });
+    } catch {
+      setCuponMsg({ ok: false, text: "Error de conexión" });
+    } finally {
+      setEnviandoCupon(false);
+    }
+  }
+
+  function copiarCodigo() {
+    if (!cliente?.codigoCumple) return;
+    navigator.clipboard.writeText(cliente.codigoCumple);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  const esCumpleHoy = (() => {
+    if (!cliente.fechaNacimiento) return false;
+    const hoy = new Date();
+    const nac = new Date(cliente.fechaNacimiento);
+    return hoy.getDate() === nac.getDate() && hoy.getMonth() === nac.getMonth();
+  })();
 
   const edad = cliente.fechaNacimiento
     ? new Date().getFullYear() - new Date(cliente.fechaNacimiento).getFullYear()
@@ -185,11 +224,15 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
                           {v.detalles.length} producto{v.detalles.length !== 1 ? "s" : ""}
                         </p>
                       </div>
-                      <div className="flex flex-shrink-0 items-center gap-2">
-                        <span className="flex items-center gap-1 text-xs text-stone-400">
-                          {METODO_ICON[v.metodoPago]}
-                        </span>
+                      <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
                         <span className="text-sm font-black text-stone-800">{fmt(v.total)}</span>
+                        <span className="flex items-center gap-1 text-[10px] font-semibold text-stone-400">
+                          {METODO_ICON[v.metodoPago]}
+                          {v.metodoPago === "EFECTIVO" ? "Efectivo"
+                            : v.metodoPago === "TARJETA" ? "Tarjeta"
+                            : v.metodoPago === "TRANSFERENCIA" ? "Transferencia"
+                            : v.metodoPago}
+                        </span>
                       </div>
                     </button>
 
@@ -260,6 +303,63 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
               </div>
             </div>
           </div>
+
+          {/* Descuento cumpleaños */}
+          {cliente.codigoCumple && (
+            <div className={cn(
+              "rounded-2xl border p-4",
+              esCumpleHoy ? "border-amber-300 bg-amber-50" : "border-stone-200 bg-white"
+            )}>
+              <div className="mb-3 flex items-center gap-2">
+                <Gift size={15} className={esCumpleHoy ? "text-amber-500" : "text-stone-400"} />
+                <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400">
+                  Descuento Cumpleaños
+                </h2>
+                {esCumpleHoy && (
+                  <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-black text-white">
+                    ¡HOY!
+                  </span>
+                )}
+              </div>
+
+              {/* Código */}
+              <div className="mb-3 flex items-center gap-2 rounded-xl bg-stone-100 px-3 py-2">
+                <span className="flex-1 font-mono text-sm font-bold tracking-widest text-stone-800">
+                  {cliente.codigoCumple}
+                </span>
+                <button
+                  onClick={copiarCodigo}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold text-stone-500 hover:bg-stone-200 transition"
+                >
+                  <Copy size={11} />
+                  {copiado ? "¡Copiado!" : "Copiar"}
+                </button>
+              </div>
+
+              {/* Enviar por email */}
+              {cliente.email ? (
+                <button
+                  onClick={enviarCupon}
+                  disabled={enviandoCupon}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-stone-700 disabled:opacity-50"
+                >
+                  {enviandoCupon ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  {enviandoCupon ? "Enviando..." : `Enviar a ${cliente.email}`}
+                </button>
+              ) : (
+                <p className="text-xs text-stone-400">Sin email registrado para enviar</p>
+              )}
+
+              {cuponMsg && (
+                <p className={cn(
+                  "mt-2 text-xs font-semibold",
+                  cuponMsg.ok ? "text-emerald-600" : "text-red-500"
+                )}>
+                  {cuponMsg.text}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Direcciones registradas */}
           <div className="rounded-2xl border border-stone-200 bg-white p-4">
