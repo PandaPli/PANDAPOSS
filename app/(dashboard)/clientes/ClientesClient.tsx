@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Plus, Search, Edit2, Users, X, Loader2,
   Phone, Mail, MapPin, Cake, Gift, UserRound,
-  Ban, Trash2, ShieldCheck, AlertTriangle,
+  Ban, Trash2, ShieldCheck, AlertTriangle, Eye,
 } from "lucide-react";
 import { normalize } from "@/lib/utils";
 
@@ -306,6 +307,13 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
         )}
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
+            <Link
+              href={`/clientes/${c.id}`}
+              className="p-1.5 text-surface-muted hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+              title="Ver perfil"
+            >
+              <Eye size={15} />
+            </Link>
             {c.activo && (
               <button
                 onClick={() => abrirFormEditar(c)}
