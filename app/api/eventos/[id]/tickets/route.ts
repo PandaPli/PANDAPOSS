@@ -5,11 +5,12 @@ import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 import QRCode from "qrcode";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const eventoId = parseInt(params.id);
+  const { id } = await params;
+  const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const tickets = await prisma.ticketEvento.findMany({
@@ -23,8 +24,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(tickets);
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const eventoId = parseInt(params.id);
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const body = await req.json();
@@ -76,11 +78,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
     clienteId = cliente.id;
   } catch {
-    // If client creation fails (e.g. rut conflict), proceed without clienteId
     clienteId = null;
   }
 
-  // Create a temporary ticket to get the ID, then generate token
   const ticket = await prisma.ticketEvento.create({
     data: {
       token: "TEMP",
@@ -96,20 +96,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   });
 
-  // Generate JWT token
   const token = jwt.sign(
     { ticketId: ticket.id, eventoId, sucursalId: evento.sucursalId },
     process.env.NEXTAUTH_SECRET!,
     { expiresIn: "30d" }
   );
 
-  // Update ticket with real token
   const updatedTicket = await prisma.ticketEvento.update({
     where: { id: ticket.id },
     data: { token },
   });
 
-  // Generate QR code
   const qrDataUrl = await QRCode.toDataURL(token);
 
   return NextResponse.json({ ...updatedTicket, qrDataUrl }, { status: 201 });

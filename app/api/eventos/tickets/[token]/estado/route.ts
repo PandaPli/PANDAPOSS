@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
 
-export async function PATCH(req: NextRequest, { params }: { params: { token: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { token: str
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const token = params.token;
+  const { token } = await params;
   const body = await req.json();
   const { estado } = body;
 

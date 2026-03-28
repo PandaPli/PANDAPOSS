@@ -8,14 +8,15 @@ import { CalendarDays, MapPin, ScanLine, ArrowLeft, Ticket } from "lucide-react"
 import type { Rol } from "@/types";
 import { TicketEstadoButton } from "./TicketEstadoButton";
 
-export default async function EventoDetailPage({ params }: { params: { id: string } }) {
+export default async function EventoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
   const rol = (session.user as { rol: Rol }).rol;
   if (rol !== "ADMIN_GENERAL" && rol !== "RESTAURANTE") redirect("/panel");
 
-  const eventoId = parseInt(params.id);
+  const { id } = await params;
+  const eventoId = parseInt(id);
   if (isNaN(eventoId)) notFound();
 
   const evento = await prisma.evento.findUnique({

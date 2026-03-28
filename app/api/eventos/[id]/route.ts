@@ -4,11 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const eventoId = parseInt(params.id);
+  const { id } = await params;
+  const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const evento = await prisma.evento.findUnique({
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(evento);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -33,7 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const eventoId = parseInt(params.id);
+  const { id } = await params;
+  const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const body = await req.json();
@@ -56,7 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(evento);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -65,15 +67,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  const eventoId = parseInt(params.id);
+  const { id } = await params;
+  const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
-  // Check for paid/validated tickets
   const paidTickets = await prisma.ticketEvento.count({
-    where: {
-      eventoId,
-      estado: { in: ["PAGADO", "VALIDADO"] },
-    },
+    where: { eventoId, estado: { in: ["PAGADO", "VALIDADO"] } },
   });
 
   if (paidTickets > 0) {

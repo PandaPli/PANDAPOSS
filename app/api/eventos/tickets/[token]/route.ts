@@ -3,8 +3,8 @@ import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 import QRCode from "qrcode";
 
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
-  const token = params.token;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
 
   try {
     jwt.verify(token, process.env.NEXTAUTH_SECRET!);

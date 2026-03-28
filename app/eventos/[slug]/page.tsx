@@ -4,9 +4,10 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { CalendarDays, MapPin, Users, Ticket } from "lucide-react";
 
-export default async function EventosPublicosPage({ params }: { params: { slug: string } }) {
+export default async function EventosPublicosPage({ params }: { params: Promise<{ slug: string }> }) {
   // Find sucursal by id or nombre slug
-  const slugOrId = params.slug;
+  const { slug } = await params;
+  const slugOrId = slug;
   const numId = parseInt(slugOrId);
 
   const sucursal = isNaN(numId)

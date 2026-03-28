@@ -4,8 +4,9 @@ import { formatCurrency } from "@/lib/utils";
 import { CalendarDays, MapPin } from "lucide-react";
 import { CompraTicketClient } from "./CompraTicketClient";
 
-export default async function CompraTicketPage({ params }: { params: { slug: string; eventoId: string } }) {
-  const eventoId = parseInt(params.eventoId);
+export default async function CompraTicketPage({ params }: { params: Promise<{ slug: string; eventoId: string }> }) {
+  const { eventoId: eventoIdStr } = await params;
+  const eventoId = parseInt(eventoIdStr);
   if (isNaN(eventoId)) notFound();
 
   const evento = await prisma.evento.findUnique({

@@ -4,11 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import jwt from "jsonwebtoken";
 
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const token = params.token;
+  const { token } = await params;
 
   let decoded: { ticketId: number; eventoId: number; sucursalId: number };
   try {
@@ -16,6 +16,8 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
   } catch {
     return NextResponse.json({ error: "Token inválido o expirado" }, { status: 400 });
   }
+
+  void decoded;
 
   const ticket = await prisma.ticketEvento.findUnique({
     where: { token },
