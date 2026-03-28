@@ -13,6 +13,7 @@ model Tenant {
   plan       PlanTipo   @default(BASICO)
   creadoEn   DateTime   @default(now())
   clientes   Cliente[]
+  eventos    Evento[]
   pedidos    Pedido[]
   productos  Producto[]
   sucursales Sucursal[]
@@ -61,6 +62,7 @@ model Sucursal {
   cupones       Cupon[]
   departamentos Departamento[]
   empleados     Empleado[]
+  eventos       Evento[]
   ingredientes  Ingrediente[]
   permisosRrhh  PermisoRrhh[]
   productos     Producto[]
@@ -261,6 +263,7 @@ model Cliente {
   Tenant          Tenant?            @relation(fields: [tenantId], references: [id])
   direcciones     DireccionCliente[]
   pedidosDelivery PedidoDelivery[]
+  tickets         TicketEvento[]
   ventas          Venta[]
 
   @@index([sucursalId], map: "clientes_sucursalId_fkey")
@@ -853,4 +856,53 @@ model Cupon {
   @@unique([sucursalId, codigo])
   @@index([sucursalId], map: "cupones_sucursalId_fkey")
   @@map("cupones")
+}
+
+model Evento {
+  id          Int            @id @default(autoincrement())
+  nombre      String         @db.VarChar(150)
+  descripcion String?        @db.Text
+  fecha       DateTime
+  lugar       String?        @db.VarChar(200)
+  precio      Decimal        @db.Decimal(10, 2)
+  capacidad   Int            @default(0)
+  imagenUrl   String?        @db.VarChar(500)
+  activo      Boolean        @default(true)
+  sucursalId  Int
+  tenantId    String
+  creadoEn    DateTime       @default(now())
+  sucursal    Sucursal       @relation(fields: [sucursalId], references: [id])
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  tickets     TicketEvento[]
+
+  @@map("eventos")
+}
+
+model TicketEvento {
+  id               Int          @id @default(autoincrement())
+  token            String       @unique @db.VarChar(600)
+  eventoId         Int
+  clienteId        Int?
+  clienteNombre    String       @db.VarChar(150)
+  clienteEmail     String       @db.VarChar(150)
+  clienteTelefono  String?      @db.VarChar(20)
+  metodoPago       MetodoPago   @default(EFECTIVO)
+  estado           EstadoTicket @default(PENDIENTE_PAGO)
+  usosMax          Int          @default(1)
+  usosRealizados   Int          @default(0)
+  monto            Decimal      @db.Decimal(10, 2)
+  referenciaPago   String?      @db.VarChar(200)
+  creadoEn         DateTime     @default(now())
+  validadoEn       DateTime?
+  evento           Evento       @relation(fields: [eventoId], references: [id])
+  cliente          Cliente?     @relation(fields: [clienteId], references: [id])
+
+  @@map("tickets_evento")
+}
+
+enum EstadoTicket {
+  PENDIENTE_PAGO
+  PAGADO
+  VALIDADO
+  EXPIRADO
 }
