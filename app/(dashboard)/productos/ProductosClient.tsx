@@ -215,6 +215,11 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [categoriasState, setCategoriasState] = useState(categorias);
   const [showEstaciones, setShowEstaciones] = useState(false);
   const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
+  const [showNuevaCat, setShowNuevaCat] = useState(false);
+  const [nuevaCatNombre, setNuevaCatNombre] = useState("");
+  const [nuevaCatEstacion, setNuevaCatEstacion] = useState<Estacion>("COCINA");
+  const [savingNuevaCat, setSavingNuevaCat] = useState(false);
+  const [nuevaCatError, setNuevaCatError] = useState("");
   const [variantesLocal, setVariantesLocal] = useState<VGrupo[]>([]);
   const [variantesLoading, setVariantesLoading] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
@@ -410,6 +415,30 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       );
     } finally {
       setSavingEstacion(null);
+    }
+  }
+
+  async function crearCategoria() {
+    const nombre = nuevaCatNombre.trim();
+    if (!nombre) { setNuevaCatError("Escribe un nombre"); return; }
+    setSavingNuevaCat(true);
+    setNuevaCatError("");
+    try {
+      const res = await fetch("/api/categorias", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, estacion: nuevaCatEstacion }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setNuevaCatError(data.error ?? "Error al crear"); return; }
+      setCategoriasState((prev) => [...prev, { id: data.id, nombre: data.nombre, estacion: data.estacion, orden: data.orden, enMenu: true, enMenuQR: true }]);
+      setNuevaCatNombre("");
+      setNuevaCatEstacion("COCINA");
+      setShowNuevaCat(false);
+    } catch {
+      setNuevaCatError("Error de conexión");
+    } finally {
+      setSavingNuevaCat(false);
     }
   }
 
@@ -734,16 +763,22 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
       {/* Panel de estaciones por categoría */}
       <div className="card overflow-hidden">
-        <button
-          onClick={() => setShowEstaciones((v) => !v)}
-          className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-surface-text hover:bg-surface-bg transition-colors"
-        >
-          <span className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => setShowEstaciones((v) => !v)}
+            className="flex flex-1 items-center gap-2 text-sm font-semibold text-surface-text"
+          >
             <ChefHat size={15} className="text-orange-500" />
             Estaciones por Categoría
-          </span>
-          <ChevronDown size={15} className={`text-surface-muted transition-transform ${showEstaciones ? "rotate-180" : ""}`} />
-        </button>
+            <ChevronDown size={15} className={`text-surface-muted transition-transform ${showEstaciones ? "rotate-180" : ""}`} />
+          </button>
+          <button
+            onClick={() => { setShowEstaciones(true); setShowNuevaCat((v) => !v); setNuevaCatError(""); }}
+            className="flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 transition-colors"
+          >
+            <Plus size={13} /> Nueva Categoría
+          </button>
+        </div>
         {showEstaciones && (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={categoriasState.map((c) => c.id)} strategy={rectSortingStrategy}>
@@ -758,6 +793,45 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                     onToggleVisibilidad={toggleVisibilidadCategoria}
                   />
                 ))}
+                {showNuevaCat && (
+                  <div className="flex flex-col gap-2 rounded-xl border-2 border-dashed border-brand-300 bg-brand-50 p-3">
+                    <span className="text-xs font-semibold text-brand-600">Nueva categoría</span>
+                    <input
+                      autoFocus
+                      value={nuevaCatNombre}
+                      onChange={(e) => { setNuevaCatNombre(e.target.value); setNuevaCatError(""); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") crearCategoria(); if (e.key === "Escape") { setShowNuevaCat(false); setNuevaCatNombre(""); } }}
+                      placeholder="Nombre de la categoría"
+                      className="rounded border border-brand-300 px-2 py-1 text-xs outline-none focus:border-brand-500"
+                    />
+                    <select
+                      value={nuevaCatEstacion}
+                      onChange={(e) => setNuevaCatEstacion(e.target.value as Estacion)}
+                      className="rounded border border-surface-border bg-white px-2 py-1 text-xs"
+                    >
+                      <option value="COCINA">🍳 Cocina</option>
+                      <option value="BARRA">🍹 Barra</option>
+                      <option value="CUARTO_CALIENTE">🔥 Cuarto Caliente</option>
+                      <option value="MOSTRADOR">🧁 Mostrador</option>
+                    </select>
+                    {nuevaCatError && <p className="text-[10px] text-red-500">{nuevaCatError}</p>}
+                    <div className="flex gap-1">
+                      <button
+                        onClick={crearCategoria}
+                        disabled={savingNuevaCat}
+                        className="flex-1 flex items-center justify-center gap-1 rounded bg-brand-500 py-1 text-[11px] font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+                      >
+                        {savingNuevaCat ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Crear
+                      </button>
+                      <button
+                        onClick={() => { setShowNuevaCat(false); setNuevaCatNombre(""); setNuevaCatError(""); }}
+                        className="rounded bg-surface-bg px-2 py-1 text-[11px] text-surface-muted hover:text-red-500"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </SortableContext>
           </DndContext>
