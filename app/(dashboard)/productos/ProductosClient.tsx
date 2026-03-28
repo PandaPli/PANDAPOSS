@@ -3,7 +3,7 @@
 import { useRef, useState, useMemo, useCallback } from "react";
 import ImageCropModal from "@/components/ui/ImageCropModal";
 import { useRouter } from "next/navigation";
-import { Bookmark, BookmarkCheck, Check, Edit2, ImagePlus, Loader2, Package, Pencil, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
+import { Bookmark, BookmarkCheck, Check, Edit2, Images, ImagePlus, Loader2, Package, Pencil, Plus, Search, Trash2, X, ChefHat, Wine, Flame, ShoppingBag, ChevronDown, Wand2, CheckCircle2, AlertCircle, GripVertical } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import {
   DndContext,
@@ -217,6 +217,10 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [savingEstacion, setSavingEstacion] = useState<number | null>(null);
   const [variantesLocal, setVariantesLocal] = useState<VGrupo[]>([]);
   const [variantesLoading, setVariantesLoading] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryBlobs, setGalleryBlobs] = useState<{ url: string; pathname: string }[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryQuery, setGalleryQuery] = useState("");
   const PLANTILLAS_KEY = "pp_variant_plantillas";
   const [plantillas, setPlantillas] = useState<VGrupo[]>(() => {
     try { return JSON.parse(localStorage.getItem(PLANTILLAS_KEY) ?? "[]"); } catch { return []; }
@@ -509,6 +513,25 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  async function openGallery() {
+    setShowGallery(true);
+    setGalleryQuery("");
+    if (galleryBlobs.length > 0) return; // ya cargadas
+    setGalleryLoading(true);
+    try {
+      const res = await fetch("/api/blob/list");
+      const data = await res.json();
+      setGalleryBlobs(data);
+    } finally {
+      setGalleryLoading(false);
+    }
+  }
+
+  function selectFromGallery(url: string) {
+    setForm((current) => ({ ...current, imagen: url }));
+    setShowGallery(false);
+  }
+
   async function handleDelete() {
     if (!confirmDelete) return;
     setDeleteLoading(true);
@@ -602,6 +625,64 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
           onConfirm={handleCropConfirm}
           onCancel={() => { setCropSrc(null); URL.revokeObjectURL(cropSrc); }}
         />
+      )}
+
+      {/* ── Picker de galería blob ── */}
+      {showGallery && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
+              <div>
+                <h3 className="font-bold text-surface-text">Seleccionar imagen</h3>
+                <p className="text-xs text-surface-muted">Haz clic en la foto para usarla</p>
+              </div>
+              <button onClick={() => setShowGallery(false)} className="text-surface-muted hover:text-surface-text">
+                <X size={20} />
+              </button>
+            </div>
+            {/* Buscador */}
+            <div className="px-4 py-3 border-b border-surface-border">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
+                <input value={galleryQuery} onChange={e => setGalleryQuery(e.target.value)}
+                  placeholder="Filtrar por nombre..."
+                  className="w-full border border-surface-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+              </div>
+            </div>
+            {/* Grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {galleryLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 size={24} className="animate-spin text-surface-muted" />
+                </div>
+              ) : galleryBlobs.length === 0 ? (
+                <p className="text-center text-surface-muted text-sm py-16">No hay imágenes en la galería</p>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                  {galleryBlobs
+                    .filter(b => b.pathname.toLowerCase().includes(galleryQuery.toLowerCase()))
+                    .map(b => (
+                      <button key={b.url} onClick={() => selectFromGallery(b.url)} title={b.pathname}
+                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all hover:scale-95 hover:border-brand-400 ${
+                          form.imagen === b.url ? "border-brand-500 ring-2 ring-brand-300" : "border-surface-border"
+                        }`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={b.url} alt="" className="w-full h-full object-cover" />
+                        {form.imagen === b.url && (
+                          <div className="absolute inset-0 bg-brand-500/20 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center">
+                              <Check size={13} className="text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex items-center justify-between">
@@ -1082,12 +1163,16 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                       {form.imagen ? "Imagen cargada" : "Sin imagen"}
                     </p>
                     <p className="mt-0.5 text-xs text-surface-muted">JPG, PNG o WebP. Aparece en menú y carta QR.</p>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex gap-2 flex-wrap">
                       <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-white border border-surface-border px-3 py-1.5 text-xs font-medium text-surface-text hover:bg-surface-bg transition-colors">
                         {uploadingImage ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
                         {uploadingImage ? "Subiendo..." : form.imagen ? "Cambiar" : "Cargar foto"}
                         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                       </label>
+                      <button type="button" onClick={openGallery}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors">
+                        <Images size={13} /> Usar foto existente
+                      </button>
                       {form.imagen && (
                         <button type="button" onClick={removeImage} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-red-500 hover:bg-red-50 transition-colors">
                           <Trash2 size={12} /> Quitar
