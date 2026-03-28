@@ -40,6 +40,8 @@ model Sucursal {
   cartaBg       String?        @db.VarChar(255)
   cartaTagline  String?        @db.VarChar(150)
   cartaSaludo   String?        @db.VarChar(300)
+  flayerUrl     String?        @db.VarChar(500)
+  flayerActivo  Boolean        @default(false)
   orden         Int            @default(0)
   tenantId      String?
   printerPath     String?        @default("/dev/usb/lp0") @db.VarChar(50)

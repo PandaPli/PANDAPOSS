@@ -48,9 +48,11 @@ interface Props {
   sucursalSocialYoutube?: string | null;
   sucursalSocialTiktok?: string | null;
   sucursalSocialTwitter?: string | null;
+  sucursalFlayerUrl?: string | null;
+  sucursalFlayerActivo?: boolean;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -111,6 +113,13 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   });
   const [socialLoading, setSocialLoading] = useState(false);
   const [socialMsg, setSocialMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // --- Estado flayer popup ---
+  const [flayerUrl, setFlayerUrl] = useState<string | null>(sucursalFlayerUrl ?? null);
+  const [flayerActivo, setFlayerActivo] = useState<boolean>(sucursalFlayerActivo ?? false);
+  const [flayerLoading, setFlayerLoading] = useState(false);
+  const [flayerMsg, setFlayerMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const flayerRef = useRef<HTMLInputElement>(null);
 
   // --- Estado zonas de delivery ---
   const [zonas, setZonas] = useState<ZonaDelivery[]>(
@@ -422,6 +431,77 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
     }
   }
 
+  async function handleFlayerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!sucursalId) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFlayerLoading(true);
+    setFlayerMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const upRes = await fetch("/api/upload", { method: "POST", body: fd });
+      const upData = await upRes.json();
+      if (!upRes.ok) throw new Error(upData.error ?? "Error al subir imagen");
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flayerUrl: upData.url }),
+      });
+      if (!res.ok) throw new Error("Error al guardar flayer");
+      setFlayerUrl(upData.url);
+      setFlayerMsg({ type: "ok", text: "Flayer actualizado." });
+      router.refresh();
+    } catch (err) {
+      setFlayerMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setFlayerLoading(false);
+      if (flayerRef.current) flayerRef.current.value = "";
+    }
+  }
+
+  async function handleFlayerToggle(activo: boolean) {
+    if (!sucursalId) return;
+    setFlayerLoading(true);
+    setFlayerMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flayerActivo: activo }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar estado del flayer");
+      setFlayerActivo(activo);
+      setFlayerMsg({ type: "ok", text: activo ? "Flayer activado." : "Flayer desactivado." });
+    } catch (err) {
+      setFlayerMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setFlayerLoading(false);
+    }
+  }
+
+  async function handleFlayerRemove() {
+    if (!sucursalId) return;
+    setFlayerLoading(true);
+    setFlayerMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flayerUrl: null, flayerActivo: false }),
+      });
+      if (!res.ok) throw new Error("Error al quitar flayer");
+      setFlayerUrl(null);
+      setFlayerActivo(false);
+      setFlayerMsg({ type: "ok", text: "Flayer eliminado." });
+      router.refresh();
+    } catch (err) {
+      setFlayerMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setFlayerLoading(false);
+    }
+  }
+
   // --- Vista RESTAURANTE: solo card de logo y links ---
   if (esAdminSucursal) {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -631,6 +711,70 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
                 Guardar textos
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* ── Flayer Popup ─────────────────────── */}
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-gradient-to-br from-surface-bg to-white">
+          <div className="flex items-center gap-3 border-b border-surface-border bg-white px-6 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white">
+              <ImageIcon size={17} />
+            </div>
+            <div>
+              <h2 className="font-semibold text-surface-text">Flayer Popup</h2>
+              <p className="text-xs text-surface-muted">Imagen promocional que aparece al abrir tu carta pública</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {flayerMsg && (
+              <div className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${flayerMsg.type === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                {flayerMsg.text}
+              </div>
+            )}
+
+            {/* Preview */}
+            <div className="flex items-start gap-4">
+              <div className="w-32 h-32 rounded-xl border-2 border-dashed border-surface-border flex items-center justify-center bg-surface-bg flex-shrink-0 overflow-hidden">
+                {flayerUrl ? (
+                  <img src={flayerUrl} alt="Flayer" className="w-full h-full object-contain p-1" />
+                ) : (
+                  <ImageIcon size={28} className="text-surface-muted opacity-30" />
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <p className="text-xs text-surface-muted">Sube una imagen de promoción (JPG, PNG, WEBP). Se mostrará como popup al entrar a la carta. El cliente puede cerrarlo con la X.</p>
+                <div className="flex gap-2 flex-wrap">
+                  <input ref={flayerRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFlayerUpload} />
+                  <button type="button" onClick={() => flayerRef.current?.click()} disabled={flayerLoading} className="btn-primary text-sm">
+                    {flayerLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {flayerUrl ? "Cambiar flayer" : "Subir flayer"}
+                  </button>
+                  {flayerUrl && (
+                    <button type="button" onClick={handleFlayerRemove} disabled={flayerLoading} className="btn-secondary text-sm">
+                      <X size={14} /> Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Toggle activo/inactivo */}
+            {flayerUrl && (
+              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-surface-text">Mostrar flayer</p>
+                  <p className="text-xs text-surface-muted">{flayerActivo ? "El popup está activo — los clientes lo verán al abrir la carta" : "El popup está oculto — los clientes no lo verán"}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleFlayerToggle(!flayerActivo)}
+                  disabled={flayerLoading}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${flayerActivo ? "bg-emerald-500" : "bg-gray-300"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${flayerActivo ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -58,6 +58,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (socialYoutube   !== undefined) data.socialYoutube   = (socialYoutube   as string)?.trim() || null;
     if (socialTiktok    !== undefined) data.socialTiktok    = (socialTiktok    as string)?.trim() || null;
     if (socialTwitter   !== undefined) data.socialTwitter   = (socialTwitter   as string)?.trim() || null;
+    if (flayerUrl    !== undefined) data.flayerUrl    = (flayerUrl    as string)?.trim() || null;
+    if (flayerActivo !== undefined) data.flayerActivo = Boolean(flayerActivo);
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();
@@ -73,6 +75,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
       data.plan = plan;
     }
+    if (flayerUrl    !== undefined) data.flayerUrl    = (flayerUrl    as string)?.trim() || null;
+    if (flayerActivo !== undefined) data.flayerActivo = Boolean(flayerActivo);
   }
 
   try {

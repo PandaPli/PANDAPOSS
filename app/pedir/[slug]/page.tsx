@@ -25,6 +25,8 @@ export default async function PedirDeliveryPage({ params }: Props) {
       cartaSaludo: true,
       simbolo: true,
       zonasDelivery: true,
+      flayerUrl: true,
+      flayerActivo: true,
     },
   });
 
@@ -107,6 +109,8 @@ export default async function PedirDeliveryPage({ params }: Props) {
       categorias={safeCategorias}
       slug={slug}
       zonas={zonas}
+      flayerUrl={branch.flayerUrl ?? null}
+      flayerActivo={branch.flayerActivo ?? false}
     />
   );
 }

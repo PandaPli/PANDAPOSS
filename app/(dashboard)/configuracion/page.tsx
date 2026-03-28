@@ -40,6 +40,8 @@ export default async function ConfiguracionPage() {
   let sucursalSocialYoutube:   string | null = null;
   let sucursalSocialTiktok:    string | null = null;
   let sucursalSocialTwitter:   string | null = null;
+  let sucursalFlayerUrl:       string | null = null;
+  let sucursalFlayerActivo:    boolean       = false;
 
   if (rol === "RESTAURANTE" && sucursalId) {
     const suc = await prisma.sucursal.findUnique({
@@ -50,6 +52,7 @@ export default async function ConfiguracionPage() {
         telefono: true, direccion: true, zonasDelivery: true,
         socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
         socialYoutube: true, socialTiktok: true, socialTwitter: true,
+        flayerUrl: true, flayerActivo: true,
       },
     });
     if (suc) {
@@ -70,6 +73,8 @@ export default async function ConfiguracionPage() {
       sucursalSocialYoutube   = suc.socialYoutube;
       sucursalSocialTiktok    = suc.socialTiktok;
       sucursalSocialTwitter   = suc.socialTwitter;
+      sucursalFlayerUrl       = suc.flayerUrl;
+      sucursalFlayerActivo    = suc.flayerActivo;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -112,6 +117,8 @@ export default async function ConfiguracionPage() {
         sucursalSocialYoutube={sucursalSocialYoutube}
         sucursalSocialTiktok={sucursalSocialTiktok}
         sucursalSocialTwitter={sucursalSocialTwitter}
+        sucursalFlayerUrl={sucursalFlayerUrl}
+        sucursalFlayerActivo={sucursalFlayerActivo}
       />
     </div>
   );

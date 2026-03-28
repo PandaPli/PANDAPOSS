@@ -72,6 +72,8 @@ interface Props {
   categorias: Categoria[];
   slug: string;
   zonas: ZonaDelivery[];
+  flayerUrl?: string | null;
+  flayerActivo?: boolean;
 }
 
 const paymentOptions: { id: string; label: string; method: MetodoPago; detail: string }[] = [
@@ -269,9 +271,10 @@ function ProductoOpcionesModal({
   );
 }
 
-export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props) {
+export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [flayerCerrado, setFlayerCerrado] = useState(false);
   const [categoriaActiva, setCategoriaActiva] = useState<number | null>(categorias[0]?.id ?? null);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -570,6 +573,33 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas }: Props
 
   return (
     <>
+    {/* Flayer popup promocional */}
+    {flayerActivo && flayerUrl && !flayerCerrado && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+        onClick={() => setFlayerCerrado(true)}
+      >
+        <div
+          className="relative max-w-lg w-full"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setFlayerCerrado(true)}
+            className="absolute -top-3 -right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-lg hover:bg-gray-100 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={flayerUrl}
+            alt="Promoción"
+            className="w-full rounded-2xl shadow-2xl object-contain max-h-[80vh]"
+          />
+        </div>
+      </div>
+    )}
+
     {/* Modal de opciones/variantes */}
     {opcionesModal && (
       <ProductoOpcionesModal
