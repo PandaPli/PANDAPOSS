@@ -10,6 +10,7 @@ import {
   Bike,
   BriefcaseBusiness,
   Building2,
+  CalendarDays,
   ChevronDown,
   ClipboardList,
   GripVertical,
@@ -51,7 +52,7 @@ import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
 
-type FeatureKey = "delivery" | "menuQR" | "kiosko" | "cupones";
+type FeatureKey = "delivery" | "menuQR" | "kiosko" | "cupones" | "eventos";
 type ModuleCategory = "operacion" | "gestion" | "configuracion";
 
 interface AppModule {
@@ -85,6 +86,8 @@ const modules: AppModule[] = [
   { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gradient-to-br from-slate-500 to-gray-700", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
   { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-gradient-to-br from-teal-500 to-emerald-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil.", featureKey: "kiosko" },
   { label: "Carta QR", href: "/carta-qr", icon: QrCode, color: "bg-gradient-to-br from-purple-500 to-violet-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Menu publico y QR.", featureKey: "menuQR" },
+  { label: "Aplicaciones", href: "/aplicaciones", icon: LayoutGrid, color: "bg-gradient-to-br from-violet-500 to-fuchsia-600", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Modulos premium disponibles." },
+  { label: "Eventos", href: "/eventos", icon: CalendarDays, color: "bg-gradient-to-br from-violet-600 to-indigo-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "gestion", description: "Gestion de eventos con tickets QR.", featureKey: "eventos" },
 ];
 
 const categoryMeta: Record<ModuleCategory, { title: string; subtitle: string }> = {
@@ -204,11 +207,13 @@ export function PandaNavbar() {
   const [reordering, setReordering] = useState(false);
   const ORDER_KEY = "pp_apps_order";
   const plan = (session?.user as { plan?: string })?.plan ?? "BASICO";
+  const isPrime = plan === "PRIME" || plan === "DEMO";
   const features: Record<FeatureKey, boolean> = {
     delivery: (session?.user as { delivery?: boolean })?.delivery ?? false,
     menuQR:   (session?.user as { menuQR?: boolean })?.menuQR ?? false,
     kiosko:   (session?.user as { kioskActivo?: boolean })?.kioskActivo ?? false,
     cupones:  (session?.user as { cupones?: boolean })?.cupones ?? false,
+    eventos:  isPrime,
   };
 
   const visibleBase = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);
