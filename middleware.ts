@@ -45,12 +45,15 @@ export default withAuth(
     callbacks: {
       authorized: ({ token }) => !!token,
     },
+    pages: {
+      signIn: "/login",
+    },
   }
 );
 
 export const config = {
   matcher: [
-    "/((?!login|home|menu|pedir|vercarta|kiosko|track|visor|registro|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    "/((?!login|home|menu|pedir|vercarta|kiosko|track|visor|registro|eventos|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };
 
