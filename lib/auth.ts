@@ -13,6 +13,18 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
+  cookies: {
+    sessionToken: {
+      name: "__Secure-next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: true,
+        domain: ".pandaposs.com",
+      },
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "credentials",
