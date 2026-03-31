@@ -287,7 +287,7 @@ export function CajaBasicaClient({
       {/* ── Top bar ── */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 shadow-sm">
         <Link
-          href="/panel"
+          href="/ventas/caja"
           className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-semibold text-stone-600 shadow-sm hover:bg-stone-50 transition"
         >
           <ArrowLeft size={14} />

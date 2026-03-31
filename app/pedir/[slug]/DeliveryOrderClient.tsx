@@ -291,6 +291,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
   const [opcionesModal, setOpcionesModal] = useState<Producto | null>(null);
   const [modoRetiro, setModoRetiro] = useState(false);
 
+  const [showCheckoutSheet, setShowCheckoutSheet] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [clientFoundLabel, setClientFoundLabel] = useState("");
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
@@ -678,9 +679,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
 
     <main className="carta-body min-h-screen bg-[#f4efe7] text-stone-900">
       {/* Padding inferior en mobile para que el bottom bar no tape el contenido */}
-      <div className="mx-auto max-w-7xl px-3 py-2 pb-28 sm:px-6 sm:py-4 lg:px-8 xl:pb-6">
-        <div className="grid gap-2 sm:gap-5 xl:grid-cols-[1.2fr_420px]">
-          <section className="space-y-3 sm:space-y-5">
+      <div className="mx-auto max-w-7xl px-3 py-2 pb-28 sm:px-6 sm:py-4 lg:px-8 lg:pb-6">
+        <div className="grid gap-2 sm:gap-5 lg:grid-cols-[1.2fr_400px]">
+          <section className="min-w-0 space-y-3 sm:space-y-5">
             {/* ═══ HERO ═══ */}
             <div className="relative overflow-hidden rounded-2xl sm:rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.45)]">
               {/* Fondo */}
@@ -870,7 +871,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
             })()}
           </section>
 
-          <aside className="xl:sticky xl:top-6 xl:h-fit">
+          <aside className="hidden lg:block lg:sticky lg:top-6 lg:h-fit">
             <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-[0_35px_100px_-60px_rgba(0,0,0,0.45)]">
               <div className="border-b border-white/5 bg-gradient-to-r from-orange-600 to-amber-500 px-4 py-3 text-white sm:px-5 sm:py-4">
                 <div className="flex items-center justify-between">
@@ -1132,11 +1133,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
         </div>
       </div>
 
-      {/* Bottom action bar — solo mobile/tablet, con botón confirmar integrado */}
-      {/* ── Bottom bar mobile ── */}
-      <div className={`fixed bottom-0 left-0 right-0 z-40 xl:hidden transition-all duration-300 ${cart.length > 0 ? "translate-y-0" : "translate-y-full"}`}>
+      {/* Bottom action bar — solo mobile/tablet */}
+      <div className={`fixed bottom-0 left-0 right-0 z-40 lg:hidden transition-all duration-300 ${cart.length > 0 ? "translate-y-0" : "translate-y-full"}`}>
         <div className="bg-stone-950/95 backdrop-blur-md px-4 pb-safe pt-3 shadow-[0_-12px_48px_-8px_rgba(0,0,0,0.6)]">
-          {/* Resumen compacto */}
           <div className="mb-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-sm font-black text-white shadow">
@@ -1145,26 +1144,192 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
               <span className="text-xs font-semibold text-white/50">{totalItems === 1 ? "producto" : "productos"}</span>
             </div>
             <div className="text-right">
-              <p className="text-xs text-white/30">Total</p>
+              <p className="text-xs text-white/30">Total estimado</p>
               <p className="text-xl font-black text-white">{formatCurrency(total, sucursal.simbolo)}</p>
             </div>
           </div>
-          {error && (
-            <p className="mb-2 rounded-xl bg-red-500/20 px-3 py-2 text-xs font-bold text-red-300">{error}</p>
-          )}
           <button
-            onClick={handleSubmit}
-            disabled={submitting || cart.length === 0}
-            className="mb-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-4 text-base font-black text-white shadow-lg shadow-orange-500/30 transition-all active:scale-95 disabled:opacity-50"
+            onClick={() => setShowCheckoutSheet(true)}
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-4 text-base font-black text-white shadow-lg shadow-orange-500/30 transition-all active:scale-95"
           >
-            {submitting
-              ? <Loader2 size={20} className="animate-spin" />
-              : <span className="text-xl">🔥</span>
-            }
-            {submitting ? "Enviando pedido..." : "Confirmar pedido"}
+            <ShoppingBag size={20} />
+            Ver pedido y confirmar
           </button>
         </div>
       </div>
+
+      {/* ── Mobile checkout sheet ── */}
+      {showCheckoutSheet && (
+        <div className="fixed inset-0 z-50 lg:hidden" style={{ isolation: "isolate" }}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCheckoutSheet(false)} />
+          <div className="absolute bottom-0 left-0 right-0 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-[2rem] bg-[#f4efe7]">
+
+            {/* Header */}
+            <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
+              <div>
+                <h2 className="text-lg font-black text-stone-900">Tu pedido</h2>
+                <p className="text-xs text-stone-400">{totalItems} {totalItems === 1 ? "producto" : "productos"}</p>
+              </div>
+              <button onClick={() => setShowCheckoutSheet(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-500 transition hover:bg-stone-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-6">
+
+              {/* Modo toggle */}
+              <div className="flex rounded-2xl bg-stone-200 p-1">
+                <button onClick={() => setModoRetiro(false)} className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black transition-all ${!modoRetiro ? "bg-white text-orange-600 shadow" : "text-stone-500"}`}>🛵 Delivery</button>
+                <button onClick={() => setModoRetiro(true)} className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-black transition-all ${modoRetiro ? "bg-white text-orange-600 shadow" : "text-stone-500"}`}>🏪 Retiro</button>
+              </div>
+
+              {/* Resumen carrito */}
+              <div className="rounded-[1.5rem] bg-white p-4 space-y-2 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Productos</p>
+                {cart.map((item) => (
+                  <div key={item.cartKey} className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-stone-800">{item.nombre}</p>
+                      {item.opciones && item.opciones.length > 0 && <p className="text-xs text-orange-500 truncate">{item.opciones.map(o => o.opcionNombre).join(", ")}</p>}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex items-center gap-1 rounded-full bg-stone-100 px-2 py-1">
+                        <button onClick={() => { const items = cart.filter(i => i.id === item.id); if (items.length > 0) removeItem(items[items.length - 1].cartKey); }} className="flex h-5 w-5 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-200"><Minus size={11} /></button>
+                        <span className="min-w-[16px] text-center text-xs font-black">{item.cantidad}</span>
+                        <button onClick={() => addItem({ id: item.id, nombre: item.nombre, precio: item.precio, imagen: item.imagen, descripcion: null, variantes: item.variantes })} className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white transition"><Plus size={11} /></button>
+                      </div>
+                      <span className="text-sm font-black text-orange-600">{formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-t border-stone-100 pt-2 flex items-center justify-between">
+                  <span className="text-sm text-stone-500">Subtotal</span>
+                  <span className="text-sm font-bold">{formatCurrency(subtotal, sucursal.simbolo)}</span>
+                </div>
+                {!modoRetiro && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-stone-500">Despacho{zonaSeleccionada ? ` · ${zonaSeleccionada.nombre}` : ""}</span>
+                    <span className="text-sm font-bold">{formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
+                  <span className="text-sm font-black text-white/80 uppercase tracking-wide">Total</span>
+                  <span className="text-xl font-black text-white">{formatCurrency(total, sucursal.simbolo)}</span>
+                </div>
+              </div>
+
+              {/* Formulario */}
+              <div className="rounded-[1.5rem] bg-white p-4 space-y-3 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">{modoRetiro ? "Tus datos" : "Datos de despacho"}</p>
+
+                {modoRetiro && sucursal.direccion && (
+                  <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                    <span className="text-lg">📍</span>
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800">Retira en:</p>
+                      <p className="text-sm font-semibold text-stone-700">{sucursal.nombre}</p>
+                      <p className="text-xs text-stone-500">{sucursal.direccion}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Teléfono */}
+                <div className="relative">
+                  <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">+56 9</div>
+                  <input
+                    value={telefono}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/\D/g, "");
+                      if (val.length > 8) {
+                        if (val.startsWith("569") && val.length === 11) val = val.slice(-8);
+                        else if (val.startsWith("9") && val.length === 9) val = val.slice(-8);
+                        else val = val.slice(0, 8);
+                      }
+                      setTelefono(val);
+                    }}
+                    type="tel" placeholder="1234 5678" maxLength={11}
+                    className="w-full rounded-2xl border border-stone-200 bg-stone-50 py-3 pl-[4.5rem] pr-10 text-sm outline-none transition focus:border-amber-400 font-mono tracking-wider"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {isSearchingClient ? <Loader2 size={16} className="animate-spin text-amber-500" /> : clientFoundLabel ? <UserCheck size={18} className="text-emerald-500" /> : null}
+                  </div>
+                </div>
+                {clientFoundLabel && <p className="text-[13px] font-bold text-emerald-600 px-2">{clientFoundLabel}</p>}
+
+                <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
+
+                {!modoRetiro && (
+                  <>
+                    <AddressAutocomplete
+                      value={direccion}
+                      onChange={setDireccion}
+                      onSelect={({ direccion: d, lat, lng }) => {
+                        setDireccion(d); setGeoLat(lat); setGeoLng(lng);
+                        if (lat !== null && lng !== null) {
+                          const matched = zonas.find(z => z.polygon?.length && pointInPolygon(lat, lng, z.polygon));
+                          if (matched) setZonaId(matched.id);
+                        }
+                      }}
+                      placeholder="Dirección de entrega"
+                    />
+                    {sugerenciaDireccion && (!direccion || direccion !== sugerenciaDireccion.calle) && (
+                      <div className="flex items-start gap-2 rounded-xl bg-emerald-50 p-2.5 px-3">
+                        <MapPin size={14} className="mt-0.5 text-emerald-600 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-emerald-800">Guardada: <b>{sugerenciaDireccion.calle}</b></p>
+                          <button type="button" onClick={() => { setDireccion(sugerenciaDireccion.calle); if (sugerenciaDireccion.referencia) setReferencia(sugerenciaDireccion.referencia); }} className="mt-1 text-xs font-bold text-emerald-700 bg-emerald-100/50 hover:bg-emerald-200 rounded px-2 py-1 transition">Usar esta dirección</button>
+                        </div>
+                      </div>
+                    )}
+                    <input value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Referencia (ej: portón negro)" className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
+                    <input value={departamento} onChange={(e) => setDepartamento(e.target.value)} placeholder="Departamento (opcional)" className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
+                  </>
+                )}
+              </div>
+
+              {/* Zona */}
+              {!modoRetiro && zonas.length > 0 && (
+                <div className="rounded-[1.5rem] bg-white p-4 space-y-2 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Zona de despacho</p>
+                  {zonas.map((zona) => (
+                    <button key={zona.id} onClick={() => setZonaId(zona.id)}
+                      className={`w-full rounded-2xl border px-4 py-3 text-left transition ${zonaId === zona.id ? "border-orange-400 bg-orange-50" : "border-stone-200 bg-white/70"}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-stone-900">{zona.nombre}</span>
+                        <span className="font-bold text-stone-900">{formatCurrency(zona.precio, sucursal.simbolo)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Pago */}
+              <div className="rounded-[1.5rem] bg-white p-4 space-y-2 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Método de pago</p>
+                {paymentOptions.map((option) => (
+                  <button key={option.id} onClick={() => setPaymentId(option.id)}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${paymentId === option.id ? "border-orange-500 bg-orange-50" : "border-stone-200 bg-white/70"}`}>
+                    <p className="font-bold text-stone-900">{option.label}</p>
+                    <p className="text-xs text-stone-500">{option.detail}</p>
+                  </button>
+                ))}
+              </div>
+
+              {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+
+              <button
+                onClick={async () => { await handleSubmit(); if (!error) setShowCheckoutSheet(false); }}
+                disabled={submitting || cart.length === 0}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-4 text-base font-black text-white shadow-lg shadow-orange-500/30 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {submitting ? <Loader2 size={20} className="animate-spin" /> : <span className="text-xl">🔥</span>}
+                {submitting ? "Enviando pedido..." : `Confirmar · ${formatCurrency(total, sucursal.simbolo)}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
     </>
   );

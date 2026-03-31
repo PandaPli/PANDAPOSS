@@ -165,6 +165,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       cajaNombre={cajaAbierta?.nombre}
       meseroNombre={meseroNombre}
       initialOrder={pedidoInfo}
+      initialMesaId={mesaId}
       logoUrl={logoUrl}
       mesaNombre={mesaInfo?.nombre ?? undefined}
       sucursalId={sucursalId}

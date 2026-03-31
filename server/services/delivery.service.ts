@@ -33,8 +33,11 @@ export const DeliveryService = {
     metodoPago: MetodoPago;
     cargoEnvio?: number;
     zonaDelivery?: string;
+    descuento?: number;
+    cuponId?: number | null;
+    cuponCodigo?: string | null;
   }) {
-    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0, zonaDelivery } = input;
+    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0, zonaDelivery, descuento = 0, cuponId = null, cuponCodigo = null } = input;
 
     if (!allowedPayments.includes(metodoPago)) {
       throw new Error("Selecciona un metodo de pago valido.");
@@ -133,6 +136,8 @@ export const DeliveryService = {
             departamento: cliente.departamento,
             metodoPago,
             cargoEnvio,
+            descuento,
+            cuponCodigo,
           }),
           detalles: {
             create: items.map((item) => ({
@@ -250,7 +255,8 @@ export const DeliveryService = {
       estado: result.estado,
       subtotal,
       cargoEnvio,
-      total: subtotal + cargoEnvio,
+      descuento,
+      total: Math.max(0, subtotal + cargoEnvio - descuento),
       estimadoMinutos,
       trackingUrl: `/track/${result.id}`,
     };

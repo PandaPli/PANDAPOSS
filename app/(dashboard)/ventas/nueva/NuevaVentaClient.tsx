@@ -37,6 +37,7 @@ interface Props {
   cajaNombre?: string;
   meseroNombre?: string;
   initialOrder?: { id: number; mesaId: number | null; items: CartItem[]; rondas?: RondaPedido[] } | null;
+  initialMesaId?: number; // mesaId desde URL param (para mesas nuevas sin pedido activo)
   logoUrl?: string | null;
   mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
   sucursalId?: number | null;
@@ -56,6 +57,7 @@ export function NuevaVentaClient({
   cajaNombre,
   meseroNombre,
   initialOrder,
+  initialMesaId,
   logoUrl,
   mesaNombre,
   sucursalId,
@@ -67,7 +69,8 @@ export function NuevaVentaClient({
 }: Props) {
   const router = useRouter();
   // Persiste si estamos en contexto de mesa ANTES de que clear() limpie el store
-  const esMesaRef = useRef<boolean>(!!initialOrder?.mesaId);
+  // initialMesaId cubre el caso de mesas nuevas sin pedido activo (initialOrder === null)
+  const esMesaRef = useRef<boolean>(!!initialOrder?.mesaId || !!initialMesaId);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPrecuenta, setShowPrecuenta] = useState(false);
   const [ordenLoading, setOrdenLoading] = useState(false);
@@ -436,7 +439,7 @@ export function NuevaVentaClient({
         }),
       }).catch(() => { /* visor no crítico */ });
     }
-    router.push(esMesaRef.current ? "/mesas" : "/panel");
+    router.push(esMesaRef.current ? "/mesas" : "/ventas/nueva");
   }
 
   function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
@@ -513,7 +516,7 @@ export function NuevaVentaClient({
             <span>Volver a Mesas</span>
           </button>
         ) : (
-          <button onClick={() => router.push("/panel")} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-white px-3 py-1.5 text-sm font-semibold text-surface-text hover:bg-surface-bg active:scale-95 transition-all">
+          <button onClick={() => router.push("/ventas/nueva")} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-white px-3 py-1.5 text-sm font-semibold text-surface-text hover:bg-surface-bg active:scale-95 transition-all">
             <ArrowLeft size={15} />
           </button>
         )}

@@ -6,6 +6,8 @@ interface DeliveryMetaInput {
   departamento?: string | null;
   metodoPago: MetodoPago;
   cargoEnvio?: number;
+  descuento?: number;
+  cuponCodigo?: string | null;
 }
 
 interface DeliveryMetaParsed {
@@ -14,6 +16,8 @@ interface DeliveryMetaParsed {
   departamento: string | null;
   metodoPago: MetodoPago;
   cargoEnvio: number;
+  descuento: number;
+  cuponCodigo: string | null;
 }
 
 const DELIVERY_PREFIX = "[DELIVERY]";
@@ -25,6 +29,8 @@ export function buildDeliveryObservation(input: DeliveryMetaInput) {
     departamento: input.departamento ?? null,
     metodoPago: input.metodoPago,
     cargoEnvio: Number(input.cargoEnvio ?? 0),
+    descuento: Number(input.descuento ?? 0),
+    cuponCodigo: input.cuponCodigo ?? null,
   };
 
   return `${DELIVERY_PREFIX}${JSON.stringify(payload)}`;
@@ -38,6 +44,8 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
       departamento: null,
       metodoPago: "EFECTIVO",
       cargoEnvio: 0,
+      descuento: 0,
+      cuponCodigo: null,
     };
   }
 
@@ -49,6 +57,8 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
       departamento: parsed.departamento ?? null,
       metodoPago: (parsed.metodoPago as MetodoPago) ?? "EFECTIVO",
       cargoEnvio: Number(parsed.cargoEnvio ?? 0),
+      descuento: Number((parsed as { descuento?: number }).descuento ?? 0),
+      cuponCodigo: (parsed as { cuponCodigo?: string | null }).cuponCodigo ?? null,
     };
   } catch {
     return {
@@ -57,6 +67,8 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
       departamento: null,
       metodoPago: "EFECTIVO",
       cargoEnvio: 0,
+      descuento: 0,
+      cuponCodigo: null,
     };
   }
 }

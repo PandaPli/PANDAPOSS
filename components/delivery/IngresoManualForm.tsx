@@ -16,6 +16,9 @@ import {
   ArrowLeftRight,
   Truck,
   ChevronDown,
+  Tag,
+  Percent,
+  Gift,
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -48,6 +51,16 @@ interface ClienteEncontrado {
 }
 
 type MetodoPago = "EFECTIVO" | "TARJETA" | "TRANSFERENCIA";
+
+interface CuponAplicado {
+  id: number;
+  codigo: string;
+  tipo: "PORCENTAJE" | "MONTO";
+  valor: number;
+  descripcion: string | null;
+  descuentoAplicado: number;
+  esCumple?: boolean;
+}
 
 interface ZonaDelivery {
   id: number;
@@ -97,6 +110,13 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [libreNombre, setLibreNombre] = useState("");
   const [librePrecio, setLibrePrecio] = useState("");;
 
+  /* ── Descuentos ── */
+  const [descPorcentaje, setDescPorcentaje] = useState(0);
+  const [codigoCupon, setCodigoCupon] = useState("");
+  const [cuponAplicado, setCuponAplicado] = useState<CuponAplicado | null>(null);
+  const [cuponLoading, setCuponLoading] = useState(false);
+  const [cuponError, setCuponError] = useState("");
+
   /* ── Submit ── */
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -121,7 +141,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   }, [productos, searchProd]);
 
   const subtotal = cart.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-  const totalConEnvio = subtotal + cargoEnvio;
+  const descuentoPorcentajeMonto = Math.round((subtotal * Math.min(100, Math.max(0, descPorcentaje))) / 100);
+  const descuentoCuponMonto = cuponAplicado?.descuentoAplicado ?? 0;
+  const descuentoTotal = descuentoPorcentajeMonto + descuentoCuponMonto;
+  const totalConEnvio = Math.max(0, subtotal + cargoEnvio - descuentoTotal);
   const phone = `+569${phoneDigits.replace(/\s/g, "")}`;
 
   /* ── Phone search ── */
@@ -157,6 +180,34 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     setNombre("");
     setDireccion("");
     setReferencia("");
+  }
+
+  /* ── Cupones ── */
+  async function aplicarCupon() {
+    const codigo = codigoCupon.trim().toUpperCase();
+    if (!codigo) return;
+    setCuponLoading(true);
+    setCuponError("");
+    try {
+      const res = await fetch("/api/cupones/validar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo, sucursalId, subtotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Cupón inválido");
+      setCuponAplicado(data as CuponAplicado);
+      setCodigoCupon("");
+    } catch (e) {
+      setCuponError((e as Error).message);
+    } finally {
+      setCuponLoading(false);
+    }
+  }
+
+  function quitarCupon() {
+    setCuponAplicado(null);
+    setCuponError("");
   }
 
   /* ── Cart ── */
@@ -209,6 +260,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           metodoPago: metodo,
           cargoEnvio,
           zonaDelivery: zonaSeleccionada?.nombre ?? undefined,
+          descuento: descuentoTotal,
+          cuponId: cuponAplicado?.id && cuponAplicado.id > 0 ? cuponAplicado.id : null,
+          cuponCodigo: cuponAplicado?.codigo ?? null,
         }),
       });
 
@@ -235,6 +289,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       setReferencia("");
       setMetodo("EFECTIVO");
       setZonaId(zonasDelivery.length > 0 ? zonasDelivery[0].id : null);
+      setDescPorcentaje(0);
+      setCodigoCupon("");
+      setCuponAplicado(null);
+      setCuponError("");
     } catch (e) {
       setErrorMsg((e as Error).message);
     } finally {
@@ -290,6 +348,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       <div class="items">${itemsHtml}</div>
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed #ccc;"><span>Subtotal</span><span>${formatCurrency(subtotal, simbolo)}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Envío${zonaSeleccionada ? ` (${zonaSeleccionada.nombre})` : ""}</span><span>${cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"}</span></div>
+      ${descuentoTotal > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#16a34a;"><span>Descuento${cuponAplicado?.esCumple ? " 🎂 Cumpleaños" : cuponAplicado ? ` (${cuponAplicado.codigo})` : descPorcentaje > 0 ? ` (${descPorcentaje}%)` : ""}</span><span>-${formatCurrency(descuentoTotal, simbolo)}</span></div>` : ""}
       <div class="total-row"><span>TOTAL</span><span>${formatCurrency(totalConEnvio, simbolo)}</span></div>
       <div class="metodo">Pago: ${metodo}</div>
       <div class="divider"></div>
@@ -475,6 +534,91 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 ))}
               </div>
             </div>
+
+            {/* ── Descuentos ── */}
+            <div className="rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 flex items-center gap-1.5">
+                <Tag size={12} />
+                Descuentos
+              </p>
+
+              {/* % descuento manual */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">Descuento %</label>
+                <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
+                  <Percent size={14} className="flex-shrink-0 text-stone-400" />
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={descPorcentaje || ""}
+                    onChange={(e) => setDescPorcentaje(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                    placeholder="0"
+                    className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
+                  />
+                  {descPorcentaje > 0 && (
+                    <span className="text-xs font-bold text-emerald-600">
+                      -{formatCurrency(descuentoPorcentajeMonto, simbolo)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Cupón */}
+              {cuponAplicado ? (
+                <div className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5",
+                  cuponAplicado.esCumple
+                    ? "border-pink-200 bg-pink-50"
+                    : "border-emerald-200 bg-emerald-50"
+                )}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {cuponAplicado.esCumple
+                      ? <Gift size={15} className="flex-shrink-0 text-pink-500" />
+                      : <Tag size={15} className="flex-shrink-0 text-emerald-600" />
+                    }
+                    <div className="min-w-0">
+                      <p className={cn("text-xs font-bold truncate", cuponAplicado.esCumple ? "text-pink-700" : "text-emerald-700")}>
+                        {cuponAplicado.esCumple ? "🎂 Descuento Cumpleaños" : cuponAplicado.codigo}
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={quitarCupon} className="flex-shrink-0 rounded-lg p-1 hover:bg-white transition">
+                    <X size={14} className="text-stone-400" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-stone-500">Código de cupón</label>
+                  <div className="flex gap-2">
+                    <div className="flex flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
+                      <Tag size={14} className="flex-shrink-0 text-stone-400" />
+                      <input
+                        type="text"
+                        value={codigoCupon}
+                        onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setCuponError(""); }}
+                        onKeyDown={(e) => e.key === "Enter" && aplicarCupon()}
+                        placeholder="CODIGO o CUMPLEAÑOS"
+                        className="flex-1 bg-transparent text-sm font-semibold uppercase outline-none placeholder:normal-case placeholder:font-normal placeholder:text-stone-300"
+                      />
+                    </div>
+                    <button
+                      onClick={aplicarCupon}
+                      disabled={!codigoCupon.trim() || cuponLoading || !subtotal}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-40 active:scale-95"
+                    >
+                      {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
+                    </button>
+                  </div>
+                  {cuponError && (
+                    <p className="mt-1.5 text-xs font-semibold text-red-500">{cuponError}</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -646,6 +790,23 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                     {cargoEnvio > 0 ? formatCurrency(cargoEnvio, simbolo) : "GRATIS"}
                   </span>
                 </div>
+
+                {/* Descuento */}
+                {descuentoTotal > 0 && (
+                  <div className="flex items-center justify-between rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-2.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                      {cuponAplicado?.esCumple ? <Gift size={11} /> : <Tag size={11} />}
+                      {cuponAplicado?.esCumple
+                        ? "Cumpleaños"
+                        : cuponAplicado
+                          ? cuponAplicado.codigo
+                          : `Descuento ${descPorcentaje}%`}
+                    </span>
+                    <span className="text-sm font-bold text-emerald-700">
+                      -{formatCurrency(descuentoTotal, simbolo)}
+                    </span>
+                  </div>
+                )}
 
                 {/* Total */}
                 <div className="flex items-center justify-between rounded-2xl bg-stone-900 px-4 py-3">
