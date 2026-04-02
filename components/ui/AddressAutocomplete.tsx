@@ -29,27 +29,33 @@ export default function AddressAutocomplete({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const onChangeRef = useRef(onChange);
+  const onSelectRef = useRef(onSelect);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
+  // Mantener refs actualizadas sin re-crear el Autocomplete
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
+
+  // Cargar librería Google Places una sola vez
   useEffect(() => {
-    if (!apiKey) return; // sin key → input normal
-
+    if (!apiKey) return;
     setOptions({ key: apiKey, v: "weekly", language: "es", region: "CL" });
-
     importLibrary("places")
       .then(() => setLoaded(true))
       .catch(() => setError(true));
   }, []);
 
+  // Crear Autocomplete una sola vez cuando la librería está lista
   useEffect(() => {
-    if (!loaded || !inputRef.current) return;
+    if (!loaded || !inputRef.current || autocompleteRef.current) return;
 
     autocompleteRef.current = new google.maps.places.Autocomplete(
       inputRef.current,
       {
         types: ["address"],
-        componentRestrictions: { country: "cl" }, // Chile — cambiar si necesario
+        componentRestrictions: { country: "cl" },
         fields: ["formatted_address", "geometry"],
       }
     );
@@ -59,14 +65,10 @@ export default function AddressAutocomplete({
       const formatted = place.formatted_address ?? "";
       const lat = place.geometry?.location?.lat() ?? null;
       const lng = place.geometry?.location?.lng() ?? null;
-      onChange(formatted);
-      onSelect({ direccion: formatted, lat, lng });
+      onChangeRef.current(formatted);
+      onSelectRef.current({ direccion: formatted, lat, lng });
     });
-
-    return () => {
-      google.maps.event.clearInstanceListeners(autocompleteRef.current!);
-    };
-  }, [loaded, onChange, onSelect]);
+  }, [loaded]);
 
   return (
     <div className="relative">
@@ -83,7 +85,6 @@ export default function AddressAutocomplete({
         autoComplete="off"
         className={`w-full rounded-2xl border border-stone-200 bg-white py-3 pl-11 pr-10 text-sm outline-none transition focus:border-amber-400 ${className}`}
       />
-      {/* Indicador de carga */}
       {apiKey && !loaded && !error && (
         <Loader2
           size={14}
