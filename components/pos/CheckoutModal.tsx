@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X, Users } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
+import { openPrintWindow, THERMAL_CSS } from "@/lib/print";
 import type { CartItem, MetodoPago, PagoItem } from "@/types";
 
 interface ReceiptItem {
@@ -134,19 +135,20 @@ export function CheckoutModal({
     const now = new Date();
     const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
     const hora = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-
-    const printWindow = window.open("", "_blank", "width=360,height=820");
-    if (!printWindow) {
-      finalizeFlow();
-      return;
-    }
-
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
 
+    const itemsHtml = completedSale.items
+      .map((item, i) => `
+        <div class="item"${i < completedSale.items.length - 1 ? ' style="border-bottom:1px dotted #000;"' : ""}>
+          <div class="iname">${item.nombre}</div>
+          <div class="idetail"><span>${item.cantidad} x ${formatCurrency(item.precio, simbolo)}</span><span>${formatCurrency(item.precio * item.cantidad, simbolo)}</span></div>
+        </div>`)
+      .join("");
+
     const pagosHtml = completedSale.pagos
-      .map((pago) => {
-        const metodo = metodos.find((item) => item.key === pago.metodoPago)?.label ?? pago.metodoPago;
-        return `<div class="row"><span>${metodo}</span><span style="font-weight:bold;color:#000;">${formatCurrency(pago.monto, simbolo)}</span></div>`;
+      .map((p) => {
+        const label = metodos.find((m) => m.key === p.metodoPago)?.label ?? p.metodoPago;
+        return `<div class="row"><span>${label}</span><span><b>${formatCurrency(p.monto, simbolo)}</b></span></div>`;
       })
       .join("");
 
@@ -154,90 +156,50 @@ export function CheckoutModal({
     const tip15 = completedSale.total * 1.15;
     const tip20 = completedSale.total * 1.2;
 
-    const itemsHtml = completedSale.items
-      .map(
-        (item, index) => `
-        <div class="item" style="${index < completedSale.items.length - 1 ? "border-bottom:1px dotted #eee;" : ""}">
-          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="flex:1;">${item.nombre}</span></div>
-          <div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#666;margin-top:2px;">
-            <span>${item.cantidad} x ${formatCurrency(item.precio, simbolo)}</span>
-            <span style="font-weight:bold;color:#000;">${formatCurrency(item.precio * item.cantidad, simbolo)}</span>
-          </div>
-        </div>`
-      )
-      .join("");
-
-    const grupoLabel = completedSale.grupoNombre ? `<div class="row"><span>Grupo:</span><span style="font-weight:bold;">${completedSale.grupoNombre}</span></div>` : "";
-
     const html = `
       <div class="ticket">
-        <div class="logo-wrap">
-          ${printableLogoUrl ? `<img src="${printableLogoUrl}" alt="Logo" class="logo" />` : ""}
-          <p class="title">Boleta</p>
-          <p class="subtitle">Comprobante de pago</p>
-          <p class="subtitle">Venta #${completedSale.ventaId}</p>
+        <div class="hdr">
+          ${printableLogoUrl ? `<img src="${printableLogoUrl}" class="logo" alt="Logo"/>` : ""}
+          <p class="type">Boleta</p>
+          <p class="num">Comprobante de pago · N° ${completedSale.ventaId}</p>
         </div>
-        <div class="divider"></div>
-        <div class="section-block">
-          ${completedSale.mesaLabel ? `<div class="row"><span>Mesa:</span><span style="font-weight:bold;">${completedSale.mesaLabel}</span></div>` : ""}
-          ${grupoLabel}
-          ${meseroNombre ? `<div class="row"><span>Mesero:</span><span>${meseroNombre}</span></div>` : ""}
-          <div class="row"><span>Fecha:</span><span>${fecha} ${hora}</span></div>
+        <hr class="cut"/>
+        <div class="meta">
+          ${completedSale.mesaLabel ? `<div class="row"><span>Mesa</span><span><b>${completedSale.mesaLabel}</b></span></div>` : ""}
+          ${completedSale.grupoNombre ? `<div class="row"><span>Cuenta</span><span><b>${completedSale.grupoNombre}</b></span></div>` : ""}
+          ${meseroNombre ? `<div class="row"><span>Atendió</span><span>${meseroNombre}</span></div>` : ""}
+          <div class="row"><span>Fecha</span><span>${fecha} ${hora}</span></div>
         </div>
-        <div class="divider"></div>
-        <div>${itemsHtml}</div>
-        <div class="divider"></div>
-        <div class="section-block">
+        <hr class="cut"/>
+        ${itemsHtml}
+        <hr class="cut"/>
+        <div class="meta">
           <div class="row"><span>Subtotal</span><span>${formatCurrency(completedSale.subtotal, simbolo)}</span></div>
-          ${completedSale.descuentoMonto > 0 ? `<div class="row row-green"><span>Descuento (${completedSale.descuentoPorcentaje}%)</span><span>- ${formatCurrency(completedSale.descuentoMonto, simbolo)}</span></div>` : ""}
+          ${completedSale.descuentoMonto > 0 ? `<div class="row"><span>Descuento (${completedSale.descuentoPorcentaje}%)</span><span>- ${formatCurrency(completedSale.descuentoMonto, simbolo)}</span></div>` : ""}
           ${completedSale.impuestoMonto > 0 ? `<div class="row"><span>IVA (${completedSale.impuestoPorcentaje}%)</span><span>${formatCurrency(completedSale.impuestoMonto, simbolo)}</span></div>` : ""}
-          <div class="divider divider-tight"></div>
-          <div class="total-box">
-            <div class="total-row"><span>TOTAL PAGADO</span><span>${formatCurrency(completedSale.total, simbolo)}</span></div>
-          </div>
         </div>
-        <div class="divider"></div>
-        <div class="suggested-box">
-          <p class="suggested-label">Total sugerido con propina 10%</p>
-          <p class="suggested-total">${formatCurrency(tip10, simbolo)}</p>
-        </div>
-        <div class="section-block" style="margin-bottom:6px;">
-          <p class="section-title">Otras propinas sugeridas</p>
-          <div class="row"><span>15% Maravilloso</span><span style="font-weight:bold;">${formatCurrency(tip15, simbolo)}</span></div>
-          <div class="row"><span>20% Extraordinario</span><span style="font-weight:bold;">${formatCurrency(tip20, simbolo)}</span></div>
-        </div>
-        <div class="divider"></div>
-        <div class="section-block">
-          <p class="section-title">Detalle de pago</p>
-          ${pagosHtml}
-          ${vueltoFinal > 0 ? `<div class="row row-green"><span>Vuelto</span><span style="font-weight:bold;">${formatCurrency(vueltoFinal, simbolo)}</span></div>` : ""}
-        </div>
-        <div class="footer-note">Gracias por tu visita</div>
-        <div class="document-note">Documento no fiscal</div>
+        <hr class="cut2"/>
+        <div class="row total"><span>TOTAL PAGADO</span><span>${formatCurrency(completedSale.total, simbolo)}</span></div>
+        <hr class="cut"/>
+        <p class="sec-title">Propina sugerida</p>
+        <div class="row"><span>10%</span><span><b>${formatCurrency(tip10, simbolo)}</b></span></div>
+        <div class="row"><span>15%</span><span><b>${formatCurrency(tip15, simbolo)}</b></span></div>
+        <div class="row"><span>20%</span><span><b>${formatCurrency(tip20, simbolo)}</b></span></div>
+        <hr class="cut"/>
+        <p class="sec-title">Forma de pago</p>
+        ${pagosHtml}
+        ${vueltoFinal > 0 ? `<div class="row"><span>Vuelto</span><span><b>${formatCurrency(vueltoFinal, simbolo)}</b></span></div>` : ""}
+        <p class="footer">Gracias por tu visita</p>
+        <p class="footer-sub">Documento no fiscal</p>
       </div>`;
 
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
-      *{margin:0;padding:0;box-sizing:border-box;}
-      @page{size:80mm auto;margin:0;}
-      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
-      .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
-      .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
-      .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}
-      .divider{border-top:1px dashed #ccc;margin:8px 0;}.divider-tight{margin:6px 0;}
-      .section-block{font-size:12px;}.section-title{text-align:center;font-size:11px;font-weight:bold;color:#444;margin-bottom:6px;text-transform:uppercase;}
-      .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}.row-green{color:#059669;}
-      .item{padding:4px 0;}.total-box{margin-top:6px;border:1px dashed #2563eb;border-radius:8px;padding:8px;background:#eff6ff;}
-      .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
-      .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
-      .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
-      .suggested-box{margin:6px 0;border:1px dashed #000;padding:6px;text-align:center;}
-      .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
-      .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
-    </style></head><body>${html}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    const win = window.open("", "_blank", "width=360,height=820");
+    if (!win) { finalizeFlow(); return; }
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boleta</title><style>${THERMAL_CSS}</style></head><body>${html}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
 
     finalizeFlow();
   }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, X, Package, Loader2, Receipt, Printer } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { THERMAL_CSS } from "@/lib/print";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,78 +92,56 @@ function reimprimir(venta: VentaDetalle, simbolo: string) {
     .map((d, i) => {
       const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "Item";
       return `
-        <div class="item" style="${i < venta.detalles.length - 1 ? "border-bottom:1px dotted #eee;" : ""}">
-          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="flex:1;">${nombre}</span></div>
-          <div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#666;margin-top:2px;">
-            <span>${d.cantidad} x ${formatCurrency(Number(d.precio), sim)}</span>
-            <span style="font-weight:bold;color:#000;">${formatCurrency(Number(d.subtotal), sim)}</span>
-          </div>
+        <div class="item"${i < venta.detalles.length - 1 ? ' style="border-bottom:1px dotted #000;"' : ""}>
+          <div class="iname">${nombre}</div>
+          <div class="idetail"><span>${d.cantidad} x ${formatCurrency(Number(d.precio), sim)}</span><span>${formatCurrency(Number(d.subtotal), sim)}</span></div>
         </div>`;
     })
     .join("");
 
   const pagosHtml = venta.pagos
-    .map((p) => `<div class="row"><span>${metodoPagoImpresion[p.metodoPago] ?? p.metodoPago}</span><span style="font-weight:bold;color:#000;">${formatCurrency(Number(p.monto), sim)}</span></div>`)
+    .map((p) => `<div class="row"><span>${metodoPagoImpresion[p.metodoPago] ?? p.metodoPago}</span><span><b>${formatCurrency(Number(p.monto), sim)}</b></span></div>`)
     .join("");
 
   const mesaLabel = venta.pedido?.mesa?.nombre;
 
   const html = `
     <div class="ticket">
-      <div class="logo-wrap">
-        ${printableLogoUrl ? `<img src="${printableLogoUrl}" alt="Logo" class="logo" />` : ""}
-        <p class="title">Boleta</p>
-        <p class="subtitle">Comprobante de pago</p>
-        <p class="subtitle">Venta #${venta.id}</p>
+      <div class="hdr">
+        ${printableLogoUrl ? `<img src="${printableLogoUrl}" class="logo" alt="Logo"/>` : ""}
+        <p class="type">Boleta</p>
+        <p class="num">Comprobante de pago · N° ${venta.id}</p>
       </div>
-      <div class="divider"></div>
-      <div class="section-block">
-        ${mesaLabel ? `<div class="row"><span>Mesa:</span><span style="font-weight:bold;">${mesaLabel}</span></div>` : ""}
-        <div class="row"><span>Vendedor:</span><span>${venta.usuario.nombre}</span></div>
-        <div class="row"><span>Fecha:</span><span>${fecha} ${hora}</span></div>
+      <hr class="cut"/>
+      <div class="meta">
+        ${mesaLabel ? `<div class="row"><span>Mesa</span><span><b>${mesaLabel}</b></span></div>` : ""}
+        <div class="row"><span>Atendió</span><span>${venta.usuario.nombre}</span></div>
+        <div class="row"><span>Fecha</span><span>${fecha} ${hora}</span></div>
       </div>
-      <div class="divider"></div>
-      <div>${itemsHtml}</div>
-      <div class="divider"></div>
-      <div class="section-block">
+      <hr class="cut"/>
+      ${itemsHtml}
+      <hr class="cut"/>
+      <div class="meta">
         <div class="row"><span>Subtotal</span><span>${formatCurrency(Number(venta.subtotal), sim)}</span></div>
-        ${Number(venta.descuento) > 0 ? `<div class="row row-green"><span>Descuento</span><span>- ${formatCurrency(Number(venta.descuento), sim)}</span></div>` : ""}
+        ${Number(venta.descuento) > 0 ? `<div class="row"><span>Descuento</span><span>- ${formatCurrency(Number(venta.descuento), sim)}</span></div>` : ""}
         ${Number(venta.impuesto) > 0 ? `<div class="row"><span>Impuesto</span><span>${formatCurrency(Number(venta.impuesto), sim)}</span></div>` : ""}
-        <div class="divider divider-tight"></div>
-        <div class="total-box">
-          <div class="total-row"><span>TOTAL PAGADO</span><span>${formatCurrency(Number(venta.total), sim)}</span></div>
-        </div>
       </div>
-      <div class="divider"></div>
-      <div class="section-block">
-        <p class="section-title">Detalle de pago</p>
-        ${pagosHtml}
-      </div>
-      <div class="footer-note">Gracias por tu visita</div>
-      <div class="document-note">Documento no fiscal · Reimpresión</div>
+      <hr class="cut2"/>
+      <div class="row total"><span>TOTAL PAGADO</span><span>${formatCurrency(Number(venta.total), sim)}</span></div>
+      <hr class="cut"/>
+      <p class="sec-title">Forma de pago</p>
+      ${pagosHtml}
+      <p class="footer">Gracias por tu visita</p>
+      <p class="footer-sub">Documento no fiscal · Reimpresión</p>
     </div>`;
 
-  const printWindow = window.open("", "_blank", "width=360,height=820");
-  if (!printWindow) return;
-  printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta #${venta.id}</title><style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    @page{size:80mm auto;margin:0;}
-    body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
-    .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
-    .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
-    .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}
-    .divider{border-top:1px dashed #ccc;margin:8px 0;}.divider-tight{margin:6px 0;}
-    .section-block{font-size:12px;}.section-title{text-align:center;font-size:11px;font-weight:bold;color:#444;margin-bottom:6px;text-transform:uppercase;}
-    .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}.row-green{color:#059669;}
-    .item{padding:4px 0;}.total-box{margin-top:6px;border:1px dashed #2563eb;border-radius:8px;padding:8px;background:#eff6ff;}
-    .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
-    .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
-    .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
-  </style></head><body>${html}</body></html>`);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
+  const win = window.open("", "_blank", "width=360,height=820");
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boleta #${venta.id}</title><style>${THERMAL_CSS}</style></head><body>${html}</body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+  win.close();
 }
 
 function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo: string; onClose: () => void }) {
