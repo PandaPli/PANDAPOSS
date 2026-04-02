@@ -225,65 +225,53 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
     )}>
       {/* Banner llamada al mesero */}
       {pedido.meseroLlamado && (
-        <div className="flex items-center gap-2 bg-amber-400 px-4 py-1.5 text-white text-xs font-bold">
-          <Bell size={13} className="animate-bounce" />
-          Mesero solicitado — pendiente de retirar
+        <div className="flex items-center gap-1.5 bg-amber-400 px-3 py-1 text-white text-xs font-bold">
+          <Bell size={12} className="animate-bounce" />
+          Mesero solicitado
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div>
-          <h4 className="font-bold text-surface-text text-base">
+      {/* Header compacto */}
+      <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+        <div className="min-w-0 flex-1">
+          <h4 className="font-bold text-surface-text text-sm leading-tight truncate">
             {cardTitle}
           </h4>
-          <div className="flex items-center gap-1.5 text-xs text-surface-muted mt-0.5">
-            <UtensilsCrossed size={11} />
-            <span>
-              {pedido.tipo === "COCINA" ? "Pedido de comida"
-                : pedido.tipo === "BAR" ? "Pedido de bebidas"
-                : pedido.tipo === "REPOSTERIA" ? "Pedido reposteria"
-                : pedido.tipo === "DELIVERY" ? "Pedido delivery"
-                : "Pedido mostrador"}
-            </span>
-          </div>
           {pedido.usuario && (
-            <div className="text-xs text-surface-muted mt-0.5">
+            <div className="text-[11px] text-surface-muted mt-0.5">
               👤 {pedido.usuario.nombre}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 text-xs text-surface-muted">
-          <Clock size={12} />
-          <span>Hace {tiempoStr}</span>
+        <div className="flex items-center gap-1 text-[11px] text-surface-muted ml-2 shrink-0">
+          <Clock size={11} />
+          <span>{tiempoStr}</span>
         </div>
       </div>
 
       {/* Productos */}
-      <div className="px-4 pb-3 space-y-1.5">
+      <div className="px-3 pb-2 space-y-1">
         {pedido.detalles.map((d) => (
           <div
             key={d.id}
-            className={`flex items-start gap-2 rounded-lg px-3 py-2 ${
-              d.cancelado
-                ? "bg-gray-100 opacity-60"
-                : "bg-surface-bg"
+            className={`flex items-start gap-2 rounded px-2 py-1 ${
+              d.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"
             }`}
           >
-            <span className={`font-bold text-sm flex-shrink-0 ${d.cancelado ? "text-gray-400 line-through" : "text-brand-600"}`}>
+            <span className={`font-bold text-sm shrink-0 w-7 ${d.cancelado ? "text-gray-400 line-through" : "text-brand-600"}`}>
               {d.cantidad}x
             </span>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className={`text-sm font-semibold ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className={`text-sm font-semibold leading-tight ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
                   {d.producto?.nombre ?? d.combo?.nombre ?? "—"}
                 </p>
                 {d.cancelado && (
-                  <span className="bg-red-100 text-red-500 text-[10px] px-1.5 py-0.5 rounded font-bold">ANULADO</span>
+                  <span className="bg-red-100 text-red-500 text-[10px] px-1 rounded font-bold">ANULADO</span>
                 )}
               </div>
               {d.observacion && !d.cancelado && (
-                <p className="text-xs text-surface-muted italic mt-0.5">{d.observacion}</p>
+                <p className="text-[11px] text-amber-600 italic mt-0.5">→ {d.observacion}</p>
               )}
             </div>
           </div>
@@ -292,7 +280,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
 
       {/* Observacion general */}
       {cleanObservation && (
-        <div className="mx-4 mb-3 text-xs text-surface-muted bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <div className="mx-3 mb-2 text-[11px] text-surface-muted bg-amber-50 border border-amber-200 rounded px-2 py-1">
           📝 {cleanObservation}
         </div>
       )}
@@ -305,18 +293,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
               onClick={handleUpdate}
               disabled={loading}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all",
+                "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-bold transition-all",
                 pedido.estado === "PENDIENTE" && "bg-brand-500 hover:bg-brand-600 text-white",
                 pedido.estado === "EN_PROCESO" && "bg-amber-500 hover:bg-amber-600 text-white",
                 pedido.estado === "LISTO" && "bg-emerald-500 hover:bg-emerald-600 text-white",
                 "disabled:opacity-50"
               )}
             >
-              {loading ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <CheckCircle2 size={15} />
-              )}
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
               {nextLabel[pedido.estado]}
             </button>
           )}
@@ -324,25 +308,19 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             onClick={handleLlamarMesero}
             disabled={loadingMesero || pedido.meseroLlamado}
             className={cn(
-              "px-4 py-3 text-sm font-medium transition-all border-l border-surface-border flex items-center gap-1.5 disabled:opacity-50",
-              pedido.meseroLlamado
-                ? "bg-amber-50 text-amber-600"
-                : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
+              "px-3 py-2.5 text-xs font-medium transition-all border-l border-surface-border flex items-center gap-1 disabled:opacity-50",
+              pedido.meseroLlamado ? "bg-amber-50 text-amber-600" : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
             )}
           >
-            {loadingMesero ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Bell size={14} className={pedido.meseroLlamado ? "animate-bounce" : ""} />
-            )}
-            {pedido.meseroLlamado ? "Llamado" : "Llamar Mesero"}
+            {loadingMesero ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} className={pedido.meseroLlamado ? "animate-bounce" : ""} />}
+            {pedido.meseroLlamado ? "Llamado" : "Mesero"}
           </button>
           <button
             onClick={handlePrint}
             title="Imprimir comanda"
-            className="px-3 py-3 text-surface-muted hover:text-brand-600 hover:bg-brand-50 transition-all border-l border-surface-border flex items-center justify-center"
+            className="px-3 py-2.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 transition-all border-l border-surface-border flex items-center justify-center"
           >
-            <Printer size={15} />
+            <Printer size={14} />
           </button>
         </div>
       )}

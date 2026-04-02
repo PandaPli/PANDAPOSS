@@ -67,24 +67,8 @@ export default async function PedidosPage() {
   const welcome = rol ? WELCOME[rol] : null;
 
   return (
-    <div className="space-y-6">
-      {/* Header con micro-mensaje */}
-      {welcome ? (
-        <div className="bg-gradient-to-r from-brand-500 to-brand-400 rounded-2xl p-5 flex items-center gap-4 shadow-md">
-          <span className="text-4xl">{welcome.emoji}</span>
-          <div>
-            <h1 className="text-xl font-bold text-white">Buen turno!</h1>
-            <p className="text-brand-100 text-sm">{welcome.msg}</p>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <h1 className="text-2xl font-bold text-surface-text">Pedidos</h1>
-          <p className="text-surface-muted text-sm mt-1">Sistema de visualizacion de cocina (KDS)</p>
-        </div>
-      )}
-
-      <PedidosClient pedidos={data} rol={rol} />
+    <div className="-m-6 p-3">
+      <PedidosClient pedidos={data} rol={rol} welcome={welcome} />
     </div>
   );
 }
