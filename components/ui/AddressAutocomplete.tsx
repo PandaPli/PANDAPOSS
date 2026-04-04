@@ -38,6 +38,15 @@ export default function AddressAutocomplete({
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
   useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
 
+  // Google Places manipula el valor del input directamente.
+  // Sincronizamos el DOM con el estado externo sin volverlo controlado.
+  useEffect(() => {
+    if (!inputRef.current) return;
+    if (inputRef.current.value !== value) {
+      inputRef.current.value = value;
+    }
+  }, [value]);
+
   // Cargar librería Google Places una sola vez
   useEffect(() => {
     if (!apiKey) return;
@@ -79,7 +88,7 @@ export default function AddressAutocomplete({
       <input
         ref={inputRef}
         type="text"
-        value={value}
+        defaultValue={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
