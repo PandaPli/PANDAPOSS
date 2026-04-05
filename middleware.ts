@@ -4,7 +4,7 @@ import type { Rol } from "@/types";
 
 const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/rrhh", "/compras", "/reportes", "/configuracion", "/perfil", "/delivery", "/carta-qr", "/kiosko-admin", "/cupones", "/planes", "/fotos"],
+  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/rrhh", "/compras", "/reportes", "/configuracion", "/perfil", "/delivery", "/carta-qr", "/kiosko-admin", "/cupones", "/planes", "/fotos", "/agente"],
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/rrhh", "/cupones", "/cotizaciones", "/perfil"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas", "/perfil"],
   WAITER: ["/panel", "/mesas", "/pedidos", "/ventas", "/perfil"],
