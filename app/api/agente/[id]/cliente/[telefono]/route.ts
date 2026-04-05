@@ -9,8 +9,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const cliente = await prisma.agenteCliente.findUnique({
     where: { agenteId_telefono: { agenteId: Number(id), telefono } },
     include: {
-      preferencias: { where: { activa: true }, orderBy: { peso: "desc" } },
-      direcciones: { where: { activa: true }, orderBy: [{ esFavorita: "desc" }, { creadoEn: "desc" }] },
+      preferencias: true,
+      direcciones: true,
     },
   });
   if (!cliente) return NextResponse.json(null);

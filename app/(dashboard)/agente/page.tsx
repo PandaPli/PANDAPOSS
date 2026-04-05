@@ -69,7 +69,7 @@ export default async function AgentePage() {
           Bot de ventas con IA para cada sucursal — responde pedidos, consultas y aprende de tus clientes.
         </p>
       </div>
-      <AgenteClient sucursales={sucursales} />
+      <AgenteClient sucursales={sucursales as any} />
     </div>
   );
 }

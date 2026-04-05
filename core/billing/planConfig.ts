@@ -11,6 +11,8 @@ export interface PlanFeatures {
   rrhh: boolean;
   propinas: boolean;
   agenteWsp: boolean;
+  kiosko: boolean;
+  cupones: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
@@ -25,6 +27,8 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     rrhh: false,
     propinas: false,
     agenteWsp: false,
+    kiosko: false,
+    cupones: false,
   },
   PRO: {
     usuarios: 20,
@@ -37,6 +41,8 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     rrhh: true,
     propinas: false,
     agenteWsp: false,
+    kiosko: true,
+    cupones: true,
   },
   PRIME: {
     usuarios: 50,
@@ -49,6 +55,8 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     rrhh: true,
     propinas: true,
     agenteWsp: true,
+    kiosko: true,
+    cupones: true,
   },
   DEMO: {
     usuarios: 99999,
@@ -61,5 +69,7 @@ export const PLAN_LIMITS: Record<PlanTipo, PlanFeatures> = {
     rrhh: true,
     propinas: true,
     agenteWsp: true,
+    kiosko: true,
+    cupones: true,
   },
 };

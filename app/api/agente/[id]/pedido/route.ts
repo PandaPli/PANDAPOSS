@@ -10,9 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!agente) return NextResponse.json({ error: "Agente no encontrado" }, { status: 404 });
 
   const body = await req.json();
-  // body: { items, cliente: { telefono, nombre, direccion, referencia }, metodoPago, cargoEnvio, zonaDelivery, total }
 
-  // Forward to the delivery order endpoint
   const res = await fetch(`${process.env.NEXTAUTH_URL ?? "https://pandaposs.com"}/api/delivery/order`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,26 +26,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const data = await res.json();
 
-  // Update AgenteCliente metrics after order
-  if (res.ok && body.cliente?.telefono && body.total) {
+  if (res.ok && body.cliente?.telefono) {
     try {
-      const existing = await prisma.agenteCliente.findUnique({
+      const cliente = await prisma.agenteCliente.findUnique({
         where: { agenteId_telefono: { agenteId: Number(id), telefono: body.cliente.telefono } },
       });
-      if (existing) {
-        const newFreq = existing.frecuenciaCompra + 1;
-        const newTotal = Number(existing.totalGastado) + Number(body.total);
+      if (cliente) {
         await prisma.agenteCliente.update({
-          where: { id: existing.id },
-          data: {
-            frecuenciaCompra: newFreq,
-            totalGastado: newTotal,
-            ticketPromedio: newTotal / newFreq,
-            ultimaCompra: new Date(),
-          },
+          where: { id: cliente.id },
+          data: { totalPedidos: { increment: 1 }, ultimoPedido: new Date() },
         });
         await prisma.agenteEvento.create({
-          data: { clienteId: existing.id, tipo: "PEDIDO_CONFIRMADO", data: { pedidoId: data.pedidoId, total: body.total } },
+          data: { agenteId: Number(id), tipo: "PEDIDO_CONFIRMADO", payload: { pedidoId: data.pedidoId, total: body.total } },
         });
       }
     } catch (e) {
