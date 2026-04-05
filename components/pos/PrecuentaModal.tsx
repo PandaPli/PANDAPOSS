@@ -57,8 +57,8 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             body {
               font-family: 'Courier New', Courier, monospace;
               font-size: 13px;
-              width: 72mm;
-              padding: 4mm 4mm 8mm 4mm;
+              width: 80mm;
+              padding: 3mm 3mm 10mm 3mm;
               color: #000;
               background: #fff;
               -webkit-print-color-adjust: exact;

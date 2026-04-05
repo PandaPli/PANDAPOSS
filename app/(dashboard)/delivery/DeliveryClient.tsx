@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Bike, CheckCircle2, ChevronDown, ChevronUp, Clock3, MapPin, Package2,
+  Bike, CheckCircle2, ChevronDown, ChevronUp, MapPin,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
   Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star, ArrowRight,
+  Package2,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
@@ -76,16 +77,17 @@ interface Props {
 type FilterKey = "todos" | "pendiente" | "en_proceso" | "listo";
 
 const STAGE_STYLE = {
-  PENDIENTE:  { border: "border-l-amber-400",   dot: "bg-amber-400",   badge: "bg-amber-100 text-amber-800",   headerBg: "bg-amber-50/60"  },
-  EN_PROCESO: { border: "border-l-blue-400",    dot: "bg-blue-500",    badge: "bg-blue-100 text-blue-800",     headerBg: "bg-blue-50/60"   },
-  LISTO:      { border: "border-l-violet-500",  dot: "bg-violet-500",  badge: "bg-violet-100 text-violet-800", headerBg: "bg-violet-50/60" },
-  ENTREGADO:  { border: "border-l-emerald-400", dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-800", headerBg: "bg-emerald-50/60" },
-  CANCELADO:  { border: "border-l-rose-400",    dot: "bg-rose-400",    badge: "bg-rose-100 text-rose-800",     headerBg: "bg-rose-50/60"   },
+  PENDIENTE:  { border: "border-amber-300",   dot: "bg-amber-400",   badge: "bg-amber-100 text-amber-800",   ring: "ring-amber-300",  cardBg: "bg-amber-50/40"  },
+  EN_PROCESO: { border: "border-blue-300",    dot: "bg-blue-500",    badge: "bg-blue-100 text-blue-800",     ring: "ring-blue-300",   cardBg: "bg-blue-50/40"   },
+  LISTO:      { border: "border-violet-400",  dot: "bg-violet-500",  badge: "bg-violet-100 text-violet-800", ring: "ring-violet-300", cardBg: "bg-violet-50/40" },
+  ENTREGADO:  { border: "border-emerald-300", dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-800", ring: "ring-emerald-300", cardBg: "bg-emerald-50/40" },
+  CANCELADO:  { border: "border-rose-300",    dot: "bg-rose-400",    badge: "bg-rose-100 text-rose-800",     ring: "ring-rose-300",   cardBg: "bg-rose-50/40"   },
 } as const;
 
 export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, productos, sucursalId, simbolo, zonasDelivery, logoUrl, sucursalNombre, stats }: Props) {
   const [pedidos, setPedidos]                   = useState(initialPedidos);
   const [activeFilter, setActiveFilter]         = useState<FilterKey>("todos");
+  const [selectedId, setSelectedId]             = useState<number | null>(null);
   const [showIngreso, setShowIngreso]           = useState(false);
   const [showFinalizados, setShowFinalizados]   = useState(false);
   const [showRepartidores, setShowRepartidores] = useState(false);
@@ -111,6 +113,22 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     activeFilter === "en_proceso" ? activos.filter((p) => p.estado === "EN_PROCESO") :
                                     activos.filter((p) => p.estado === "LISTO");
 
+  const selectedOrder = selectedId != null ? pedidos.find((p) => p.id === selectedId) ?? null : null;
+
+  /* ── Auto-seleccionar el primer activo si no hay seleccionado ── */
+  useEffect(() => {
+    if (selectedId == null && filteredActivos.length > 0) {
+      setSelectedId(filteredActivos[0].id);
+    }
+  }, []);
+
+  /* ── Si el pedido seleccionado ya no está en la lista filtrada, limpiar ── */
+  useEffect(() => {
+    if (selectedId != null && !activos.find((p) => p.id === selectedId)) {
+      setSelectedId(activos.length > 0 ? activos[0].id : null);
+    }
+  }, [pedidos]);
+
   /* ── Polling ── */
   const poll = useCallback(async () => {
     try {
@@ -122,8 +140,8 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       if (incoming.length > 0) {
         setNewOrderAlert(incoming[0]);
         incoming.forEach((p) => knownIdsRef.current.add(p.id));
-        setPedidos(fresh);
       }
+      setPedidos(fresh);
     } catch { /* ignore */ }
   }, []);
 
@@ -171,39 +189,106 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     } finally { setLoadingPedidoId(null); }
   }
 
-  function renderPedidoCard(pedido: PedidoDelivery) {
-    const loading = loadingPedidoId === pedido.id;
-    const style = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
-    const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  /* ── Compact card (estilo mesa) ── */
+  function renderCompactCard(pedido: PedidoDelivery) {
+    const style   = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
+    const isSelected = selectedId === pedido.id;
+    const hora    = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
 
     return (
-      <article key={pedido.id} className={cn(
-        "relative overflow-hidden rounded-2xl border border-surface-border/80 bg-white shadow-sm border-l-[5px] flex flex-col",
-        style.border
-      )}>
-
-        {/* ── Header ── */}
-        <div className={cn("flex items-center justify-between gap-3 px-5 py-3.5 border-b border-surface-border/50", style.headerBg)}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", style.dot)} />
-            <span className="font-mono text-sm font-black text-surface-muted shrink-0">#{pedido.id}</span>
-            <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider shrink-0", style.badge)}>
+      <button
+        key={pedido.id}
+        onClick={() => setSelectedId(isSelected ? null : pedido.id)}
+        className={cn(
+          "relative w-full text-left rounded-2xl border-2 bg-white shadow-sm transition-all duration-150 hover:shadow-md active:scale-[0.98] p-4 flex flex-col gap-2",
+          isSelected ? cn("shadow-md ring-2", style.ring, style.border) : "border-surface-border/60 hover:border-surface-border"
+        )}
+      >
+        {/* Status dot + badge */}
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className={cn("h-2 w-2 rounded-full shrink-0", style.dot)} />
+            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider leading-none", style.badge)}>
               {pedido.estado.replace("_", " ")}
             </span>
           </div>
-          <div className="flex items-center gap-2.5 shrink-0">
+          <span className="text-[10px] text-surface-muted tabular-nums">{hora}</span>
+        </div>
+
+        {/* ID */}
+        <p className="font-mono text-[11px] font-bold text-surface-muted leading-none">#{pedido.id}</p>
+
+        {/* Cliente */}
+        <p className="font-black text-surface-text text-sm leading-tight line-clamp-2">{pedido.clienteNombre}</p>
+
+        {/* Total */}
+        <p className="text-base font-black text-surface-text leading-none mt-auto">{formatCurrency(pedido.total)}</p>
+
+        {/* Indicador repartidor */}
+        {pedido.repartidor && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Bike size={10} className="shrink-0 text-brand-400" />
+            <span className="text-[10px] text-surface-muted truncate">{pedido.repartidor.nombre}</span>
+          </div>
+        )}
+      </button>
+    );
+  }
+
+  /* ── Panel de detalle (visor) ── */
+  function renderDetailPanel() {
+    if (!selectedOrder) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 rounded-2xl border-2 border-dashed border-surface-border bg-white text-center px-6">
+          <Package2 size={32} className="mb-3 text-surface-muted/30" />
+          <p className="text-sm font-semibold text-surface-muted">Selecciona un pedido para ver los detalles</p>
+        </div>
+      );
+    }
+
+    const pedido  = selectedOrder;
+    const loading = loadingPedidoId === pedido.id;
+    const style   = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
+    const hora    = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+
+    return (
+      <div className="rounded-2xl border border-surface-border bg-white shadow-sm overflow-hidden">
+
+        {/* Header del visor */}
+        <div className={cn("px-5 py-4 border-b border-surface-border/50 flex items-center justify-between gap-3")}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className={cn("h-3 w-3 rounded-full shrink-0", style.dot)} />
+            <span className="font-mono text-sm font-black text-surface-muted">#{pedido.id}</span>
+            <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider", style.badge)}>
+              {pedido.estado.replace("_", " ")}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs text-surface-muted">{hora}</span>
-            <span className="text-lg font-black text-surface-text">{formatCurrency(pedido.total)}</span>
+            <button
+              onClick={() => setSelectedId(null)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-surface-muted hover:bg-surface-bg transition"
+            >
+              <X size={14} />
+            </button>
           </div>
         </div>
 
-        {/* ── Cuerpo ── */}
-        <div className="flex flex-col flex-1 p-5 gap-4">
+        <div className="p-5 flex flex-col gap-4">
 
-          {/* Cliente + stage */}
+          {/* Cliente */}
           <div>
-            <p className="text-xl font-black text-surface-text leading-tight">{pedido.clienteNombre}</p>
+            <p className="text-2xl font-black text-surface-text leading-tight">{pedido.clienteNombre}</p>
             <p className="text-sm text-surface-muted mt-0.5">{getDeliveryStageLabel(pedido.trackingStage)}</p>
+            {pedido.telefonoCliente && (
+              <a
+                href={`tel:${pedido.telefonoCliente}`}
+                className="inline-flex items-center gap-1.5 mt-1.5 text-sm font-semibold text-brand-600 hover:underline"
+              >
+                <Phone size={13} />
+                {pedido.telefonoCliente}
+              </a>
+            )}
           </div>
 
           {/* Dirección */}
@@ -212,17 +297,18 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             <p className="text-sm text-surface-muted leading-snug">
               {pedido.direccionEntrega ?? "Sin dirección"}
               {pedido.referencia ? <span className="text-surface-muted/60"> · {pedido.referencia}</span> : null}
+              {pedido.departamento ? <span className="text-surface-muted/60"> · {pedido.departamento}</span> : null}
             </p>
           </div>
 
           {/* Pago + repartidor */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-4 py-3">
-              <Wallet size={14} className="shrink-0 text-brand-400" />
+            <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
+              <Wallet size={13} className="shrink-0 text-brand-400" />
               <span className="text-sm font-semibold text-surface-text truncate">{pedido.metodoPago}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-4 py-3">
-              <Bike size={14} className="shrink-0 text-brand-400" />
+            <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
+              <Bike size={13} className="shrink-0 text-brand-400" />
               <span className={cn("text-sm truncate", pedido.repartidor ? "font-semibold text-surface-text" : "italic text-surface-muted/60")}>
                 {pedido.repartidor?.nombre ?? "Sin repartidor"}
               </span>
@@ -241,11 +327,24 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             </div>
           )}
 
-          {/* ── Acciones touch-friendly ── */}
-          {(isAdmin || rol === "DELIVERY") && pedido.estado !== "ENTREGADO" && (
-            <div className="flex flex-col gap-3 pt-1">
+          {/* Totales */}
+          <div className="rounded-xl bg-surface-bg px-4 py-3 flex flex-col gap-1.5">
+            {pedido.cargoEnvio > 0 && (
+              <div className="flex items-center justify-between text-sm text-surface-muted">
+                <span>Cargo envío</span>
+                <span>{formatCurrency(pedido.cargoEnvio)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-surface-text">Total</span>
+              <span className="text-xl font-black text-surface-text">{formatCurrency(pedido.total)}</span>
+            </div>
+          </div>
 
-              {/* Selector de repartidor — grande y táctil */}
+          {/* Acciones */}
+          {(isAdmin || rol === "DELIVERY") && pedido.estado !== "ENTREGADO" && (
+            <div className="flex flex-col gap-3">
+
               {isAdmin && (
                 <select
                   value={pedido.repartidorId ?? ""}
@@ -262,7 +361,6 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                 </select>
               )}
 
-              {/* Botón de acción — full width, alto, táctil */}
               {pedido.estado === "PENDIENTE" && (
                 <button
                   onClick={() => void updateStatus(pedido.id, "EN_PROCESO")}
@@ -305,7 +403,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             </div>
           )}
         </div>
-      </article>
+      </div>
     );
   }
 
@@ -319,38 +417,57 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             <Bell size={22} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-black text-surface-text">🔔 Nuevo pedido #{newOrderAlert.id}</p>
+            <p className="font-black text-surface-text">Nuevo pedido #{newOrderAlert.id}</p>
             <p className="text-sm text-surface-muted truncate">{newOrderAlert.clienteNombre} · {formatCurrency(newOrderAlert.total)}</p>
           </div>
-          <button onClick={() => setNewOrderAlert(null)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-surface-muted hover:bg-surface-bg transition">
+          <button
+            onClick={() => { setNewOrderAlert(null); setSelectedId(newOrderAlert.id); }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-surface-muted hover:bg-surface-bg transition"
+          >
             <X size={16} />
           </button>
         </div>
       )}
 
-      {/* ── Stats ── */}
-      <div className="grid grid-cols-3 gap-3 xl:grid-cols-6">
+      {/* ── Panel de resumen (estilo mesas) ── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          { label: "Entrando",   value: counts.pendiente,          color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-400"   },
+          { label: "En Cocina",  value: counts.en_proceso,         color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",    dot: "bg-blue-500"    },
+          { label: "En Ruta",    value: counts.listo,              color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200",  dot: "bg-violet-500"  },
+          { label: "Entregados", value: stats.entregados,          color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500" },
+        ].map(({ label, value, color, bg, border, dot }) => (
+          <div key={label} className={cn("rounded-2xl border-2 px-5 py-4 shadow-sm", bg, border)}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn("h-2.5 w-2.5 rounded-full", dot)} />
+              <p className={cn("text-sm font-bold", color)}>{label}</p>
+            </div>
+            <p className={cn("text-4xl font-black leading-none", color)}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Stats secundarias (colapsibles) ── */}
+      <div className="grid grid-cols-3 gap-3 xl:grid-cols-3">
         {[
           { label: "Hoy",         value: stats.pedidosHoy,                    icon: Star,        color: "text-brand-500",   bg: "bg-brand-50"   },
-          { label: "Activos",     value: stats.activos,                        icon: Flame,       color: "text-amber-500",   bg: "bg-amber-50"   },
-          { label: "En camino",   value: stats.enCamino,                       icon: Truck,       color: "text-violet-500",  bg: "bg-violet-50"  },
           { label: "Tiempo prom", value: `${stats.tiempoPromedio} min`,        icon: Timer,       color: "text-blue-500",    bg: "bg-blue-50"    },
-          { label: "Entregados",  value: stats.entregados,                     icon: CheckCircle2,color: "text-emerald-500", bg: "bg-emerald-50" },
-          { label: "Ventas",      value: formatCurrency(stats.ventasDelivery), icon: TrendingUp,  color: "text-rose-500",    bg: "bg-rose-50"    },
+          { label: "Ventas hoy",  value: formatCurrency(stats.ventasDelivery), icon: TrendingUp,  color: "text-rose-500",    bg: "bg-rose-50"    },
         ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="rounded-2xl border border-surface-border bg-white px-4 py-3.5 shadow-sm">
-            <div className={cn("mb-2 flex h-8 w-8 items-center justify-center rounded-xl", bg)}>
+          <div key={label} className="rounded-2xl border border-surface-border bg-white px-4 py-3 shadow-sm flex items-center gap-3">
+            <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", bg)}>
               <Icon size={15} className={color} />
             </div>
-            <p className="text-2xl font-black text-surface-text leading-none">{value}</p>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-surface-muted">{label}</p>
+            <div>
+              <p className="text-lg font-black text-surface-text leading-none">{value}</p>
+              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-surface-muted">{label}</p>
+            </div>
           </div>
         ))}
       </div>
 
       {/* ── Toolbar: filtros + ingreso manual ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Filtros — grandes para touch */}
         <div className="flex flex-wrap gap-2">
           {([
             { key: "todos",      label: "Todos",     icon: LayoutList, activeClass: "bg-slate-800 text-white shadow-md",       inactiveClass: "bg-white border border-surface-border text-surface-muted hover:bg-surface-bg" },
@@ -378,7 +495,6 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           ))}
         </div>
 
-        {/* Ingreso manual — grande y visible */}
         <button
           onClick={() => setShowIngreso((v) => !v)}
           className={cn(
@@ -415,23 +531,37 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
               };
               knownIdsRef.current.add(pedido.id);
               setPedidos((prev) => [nuevo, ...prev]);
+              setSelectedId(pedido.id);
               setShowIngreso(false);
             }}
           />
         </div>
       )}
 
-      {/* ── Pedidos activos ── */}
-      {filteredActivos.length > 0 ? (
-        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-          {filteredActivos.map((pedido) => renderPedidoCard(pedido))}
+      {/* ── Grid compacto + Visor de detalle ── */}
+      <div className="flex gap-4 items-start">
+
+        {/* Grid de tarjetas compactas */}
+        <div className="flex-1 min-w-0">
+          {filteredActivos.length > 0 ? (
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              {filteredActivos.map((pedido) => renderCompactCard(pedido))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-surface-border bg-white p-14 text-center">
+              <Bike size={32} className="mx-auto mb-3 text-surface-muted/40" />
+              <p className="text-sm font-semibold text-surface-muted">
+                No hay pedidos {activeFilter !== "todos" ? "en este estado" : "activos"} en este momento.
+              </p>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-surface-border bg-white p-14 text-center">
-          <Bike size={32} className="mx-auto mb-3 text-surface-muted/40" />
-          <p className="text-sm font-semibold text-surface-muted">No hay pedidos {activeFilter !== "todos" ? "en este estado" : "activos"} en este momento.</p>
+
+        {/* Visor de detalle — sticky */}
+        <div className="w-80 xl:w-96 shrink-0 sticky top-4">
+          {renderDetailPanel()}
         </div>
-      )}
+      </div>
 
       {/* ── Repartidores (colapsible) ── */}
       {repartidores.length > 0 && (

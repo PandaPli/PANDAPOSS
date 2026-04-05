@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  ArrowRight, Store, QrCode, CookingPot, Truck, 
-  PackageSearch, MapPin, CheckCircle2, ChevronRight, 
-  Wallet, Users, ChefHat, Wine, ServerCog, BarChart3, 
-  BellRing, Laptop, MessageCircle, ArrowUpRight
+import {
+  ArrowRight, Store, QrCode, CookingPot, Truck,
+  PackageSearch, MapPin, CheckCircle2, ChevronRight,
+  Wallet, Users, ChefHat, Wine, ServerCog, BarChart3,
+  BellRing, Laptop, MessageCircle, ArrowUpRight,
+  Monitor, Ticket, ShoppingBag, Sparkles, Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,142 @@ const Hero = () => (
         <CheckCircle2 className="text-emerald-500" size={16} /> Más ventas. 
         <CheckCircle2 className="text-emerald-500" size={16} /> Más control.
       </p>
+    </div>
+  </section>
+);
+
+// ── SECCIÓN ESTRELLA ──────────────────────────────────────────────────────────
+const SectionStarFeatures = () => (
+  <section className="py-20 bg-[#06060f] relative overflow-hidden">
+    {/* Fondo animado */}
+    <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-violet-600/15 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[200px] bg-brand-600/10 rounded-full blur-3xl" />
+    </div>
+
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="text-center mb-14">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-sm font-bold mb-6">
+          <Sparkles size={14} className="text-amber-400" />
+          Funciones que marcan la diferencia
+        </div>
+        <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4">
+          Más canales.{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-amber-400 to-brand-400">
+            Más ventas.
+          </span>
+        </h2>
+        <p className="text-white/50 text-lg max-w-2xl mx-auto">
+          Cada función es un canal extra para que tus clientes te compren cuando, donde y como quieran.
+        </p>
+      </div>
+
+      {/* Grid principal — 2x2 en desktop, 1 col en mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* ── KIOSKO ── */}
+        <div className="group relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-violet-950 to-[#0d0520] border border-violet-500/30 p-8 flex flex-col gap-6 hover:border-violet-400/60 hover:shadow-[0_0_60px_rgba(139,92,246,0.25)] transition-all duration-500">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl group-hover:bg-violet-500/30 transition-all duration-700" />
+          <div className="flex items-start justify-between relative z-10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-500/20 border border-violet-500/30">
+              <Monitor size={32} className="text-violet-300" />
+            </div>
+            <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-xs font-black tracking-widest uppercase">PRIME</span>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-3xl font-black text-white mb-2">Kiosko<br />de Autoservicio</h3>
+            <p className="text-violet-200/70 text-base leading-relaxed">
+              Tus clientes piden solos desde una pantalla táctil. Menos filas, más ventas, tickets más altos.
+            </p>
+          </div>
+          <div className="relative z-10 flex flex-wrap gap-2">
+            {["Sin filas", "Ticket promedio +35%", "Clientes frecuentes"].map(t => (
+              <span key={t} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-semibold">{t}</span>
+            ))}
+          </div>
+          <Link href="/login" className="relative z-10 inline-flex items-center gap-2 self-start px-6 py-3 rounded-xl bg-violet-500 hover:bg-violet-400 text-white font-bold text-sm transition-all group-hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] active:scale-95">
+            <Zap size={15} /> Activar Kiosko <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {/* ── EVENTOS ── */}
+        <div className="group relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-rose-950 to-[#150510] border border-rose-500/30 p-8 flex flex-col gap-6 hover:border-rose-400/60 hover:shadow-[0_0_60px_rgba(244,63,94,0.25)] transition-all duration-500">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-rose-600/20 rounded-full blur-3xl group-hover:bg-rose-500/30 transition-all duration-700" />
+          <div className="flex items-start justify-between relative z-10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/30">
+              <Ticket size={32} className="text-rose-300" />
+            </div>
+            <span className="px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-black tracking-widest uppercase">PRIME</span>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-3xl font-black text-white mb-2">Venta de<br />Eventos & Tickets</h3>
+            <p className="text-rose-200/70 text-base leading-relaxed">
+              Crea eventos, vende tickets con QR y valídalos en puerta. Todo desde PandaPoss, sin apps externas.
+            </p>
+          </div>
+          <div className="relative z-10 flex flex-wrap gap-2">
+            {["Tickets QR", "Validación en puerta", "Pago online"].map(t => (
+              <span key={t} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-semibold">{t}</span>
+            ))}
+          </div>
+          <Link href="/login" className="relative z-10 inline-flex items-center gap-2 self-start px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm transition-all group-hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] active:scale-95">
+            <Zap size={15} /> Crear Evento <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {/* ── PEDIR DESDE CASA ── */}
+        <div className="group relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-amber-950 to-[#150900] border border-amber-500/30 p-8 flex flex-col gap-6 hover:border-amber-400/60 hover:shadow-[0_0_60px_rgba(245,158,11,0.25)] transition-all duration-500">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-600/20 rounded-full blur-3xl group-hover:bg-amber-500/30 transition-all duration-700" />
+          <div className="flex items-start justify-between relative z-10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/30">
+              <ShoppingBag size={32} className="text-amber-300" />
+            </div>
+            <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-black tracking-widest uppercase">PRO</span>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-3xl font-black text-white mb-2">Pedir<br />desde Casa</h3>
+            <p className="text-amber-200/70 text-base leading-relaxed">
+              Tu propio canal de delivery sin comisiones. Los clientes piden desde tu carta web y tú recibes todo directo.
+            </p>
+          </div>
+          <div className="relative z-10 flex flex-wrap gap-2">
+            {["0% comisión", "Delivery o retiro", "Pago online"].map(t => (
+              <span key={t} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-semibold">{t}</span>
+            ))}
+          </div>
+          <Link href="/pedir" className="relative z-10 inline-flex items-center gap-2 self-start px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-all group-hover:shadow-[0_0_20px_rgba(245,158,11,0.5)] active:scale-95">
+            <Zap size={15} /> Ver Demo Delivery <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {/* ── CARTA ONLINE ── */}
+        <div className="group relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-emerald-950 to-[#040f09] border border-emerald-500/30 p-8 flex flex-col gap-6 hover:border-emerald-400/60 hover:shadow-[0_0_60px_rgba(16,185,129,0.25)] transition-all duration-500">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-all duration-700" />
+          <div className="flex items-start justify-between relative z-10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 border border-emerald-500/30">
+              <QrCode size={32} className="text-emerald-300" />
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-black tracking-widest uppercase">BÁSICO</span>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-3xl font-black text-white mb-2">Carta Digital<br />QR Online</h3>
+            <p className="text-emerald-200/70 text-base leading-relaxed">
+              Tu menú en un QR. Los clientes lo escanean desde la mesa y piden directo a cocina sin esperar al mesero.
+            </p>
+          </div>
+          <div className="relative z-10 flex flex-wrap gap-2">
+            {["Siempre actualizada", "Pedido directo", "Sin papel"].map(t => (
+              <span key={t} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs font-semibold">{t}</span>
+            ))}
+          </div>
+          <Link href="/pedir/vercarta" className="relative z-10 inline-flex items-center gap-2 self-start px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition-all group-hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95">
+            <Zap size={15} /> Ver Carta Demo <ArrowRight size={15} />
+          </Link>
+        </div>
+
+      </div>
     </div>
   </section>
 );
@@ -272,13 +409,24 @@ const PRO_FEATURES = [
   "RRHH Y TURNOS",
 ];
 
+const PRIME_FEATURES = [
+  "TODO LO DEL PLAN PRO",
+  "KIOSKO DE AUTOSERVICIO",
+  "VENTA DE EVENTOS & TICKETS",
+  "CARTA QR + PEDIDO ONLINE",
+  "CUPONES Y DESCUENTOS",
+  "CLIENTES FRECUENTES",
+  "REPORTES PREMIUM",
+  "SOPORTE PRIORITARIO",
+];
+
 const SectionPlans = () => (
   <section id="planes" className="py-24 bg-[#0a0b14] relative overflow-hidden">
     {/* Background glow */}
     <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
     <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-    <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-14">
         <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
           TODO TU RESTAURANTE<br />
@@ -294,7 +442,7 @@ const SectionPlans = () => (
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+      <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
         {/* PLAN BÁSICO */}
         <div className="relative rounded-3xl overflow-hidden border border-cyan-500/30 bg-[#0f1120] flex flex-col">
           {/* Header */}
@@ -382,6 +530,55 @@ const SectionPlans = () => (
             </p>
           </div>
         </div>
+        {/* PLAN PRIME */}
+        <div className="relative rounded-3xl overflow-hidden border border-violet-500/50 bg-[#0f1120] flex flex-col shadow-[0_0_80px_rgba(139,92,246,0.2)]">
+          {/* Badge destacado */}
+          <div className="absolute top-4 right-4 z-10">
+            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-black tracking-widest uppercase shadow-lg">✦ MÁS COMPLETO</span>
+          </div>
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#1a0a3a] to-[#0d0520] px-8 pt-8 pb-6 border-b border-violet-500/20">
+            <p className="text-violet-400 text-xs font-black tracking-[0.3em] uppercase mb-1">PLAN</p>
+            <div className="flex items-center gap-3 mb-1">
+              <h3 className="text-4xl font-black text-violet-400 tracking-tight">PRIME</h3>
+              <span className="text-2xl">🐼</span>
+            </div>
+            <div className="flex items-baseline gap-1 mb-3">
+              <span className="text-white text-3xl font-black">$14.900</span>
+              <span className="text-violet-400/70 text-sm font-semibold">/mes</span>
+            </div>
+            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-violet-500/20 border border-violet-500/40">
+              <span className="text-violet-300 text-xs font-black tracking-widest uppercase">⚡ TODO INCLUIDO</span>
+            </div>
+          </div>
+
+          {/* Features */}
+          <div className="px-8 py-6 flex-1 space-y-3">
+            {PRIME_FEATURES.map((f) => (
+              <div key={f} className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-violet-500/20 border border-violet-500/50 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 size={12} className="text-violet-400" />
+                </div>
+                <span className={`font-bold text-sm tracking-wide ${f === "TODO LO DEL PLAN PRO" ? "text-violet-300" : "text-white"}`}>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="px-8 pb-8">
+            <Link
+              href="https://wa.me/56999011141?text=Hola%2C%20quiero%20contratar%20PandaPoss%20PRIME"
+              target="_blank"
+              className="block w-full py-4 rounded-2xl font-black text-center text-sm tracking-widest uppercase transition-all bg-gradient-to-r from-violet-600 to-purple-500 text-white hover:from-violet-500 hover:to-purple-400 shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:shadow-[0_0_40px_rgba(139,92,246,0.6)]"
+            >
+              CONTRATAR PRIME
+            </Link>
+            <p className="text-center mt-4 text-xs text-gray-500 flex items-center justify-center gap-3 font-semibold">
+              <span>🐼 PREMIUM</span><span>•</span><span>🔒 SEGURO</span><span>•</span><span>🚀 COMPLETO</span>
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -491,6 +688,7 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+        <SectionStarFeatures />
         <SectionWhatIs />
         <SectionWorkflow />
         <SectionRoles />

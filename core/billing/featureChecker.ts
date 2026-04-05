@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, type PlanTipo } from "./planConfig";
 
-export type BillingFeature = "delivery" | "menuQR" | "correo" | "rrhh" | "propinas";
+export type BillingFeature = "delivery" | "menuQR" | "correo" | "rrhh" | "propinas" | "agenteWsp";
 
 /**
  * Verifica si una feature está disponible en el plan y activa en la sucursal.
@@ -36,7 +36,7 @@ export async function checkFeature(
   }
 
   // features gateadas solo por plan (sin toggle por sucursal)
-  if (feature === "rrhh" || feature === "propinas") return { allowed: true };
+  if (feature === "rrhh" || feature === "propinas" || feature === "agenteWsp") return { allowed: true };
 
   const active =
     feature === "delivery"  ? sucursal.delivery :

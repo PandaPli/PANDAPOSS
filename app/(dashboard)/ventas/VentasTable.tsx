@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Eye, X, Package, Loader2, Receipt, Search } from "lucide-react";
-import { formatCurrency, formatDateTime, normalize } from "@/lib/utils";
+import { useState } from "react";
+import { Eye, X, Package, Loader2, Receipt, Printer } from "lucide-react";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { THERMAL_CSS } from "@/lib/print";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,11 @@ interface DetalleDetalle {
   combo:    { nombre: string } | null;
 }
 
+interface PagoDetalle {
+  metodoPago: string;
+  monto: number;
+}
+
 interface VentaDetalle {
   id: number;
   numero: string;
@@ -41,8 +47,10 @@ interface VentaDetalle {
   observacion: string | null;
   cliente:  { nombre: string; telefono?: string | null } | null;
   usuario:  { nombre: string };
-  caja:     { nombre: string; sucursal: { nombre: string } | null } | null;
+  caja:     { nombre: string; sucursal: { nombre: string; simbolo: string; logoUrl: string | null } | null } | null;
   detalles: DetalleDetalle[];
+  pagos:    PagoDetalle[];
+  pedido:   { mesa: { nombre: string } | null } | null;
 }
 
 interface Props {
@@ -53,61 +61,92 @@ interface Props {
 // ─── Static maps ─────────────────────────────────────────────────────────────
 
 const estadoBadge: Record<string, string> = {
-  PAGADA:    "bg-emerald-50 text-emerald-700 border-emerald-200",
-  PENDIENTE: "bg-amber-50 text-amber-700 border-amber-200",
-  ANULADA:   "bg-red-50 text-red-700 border-red-200",
+  PAGADA:   "bg-emerald-50 text-emerald-700 border-emerald-200",
+  PENDIENTE:"bg-amber-50 text-amber-700 border-amber-200",
+  ANULADA:  "bg-red-50 text-red-700 border-red-200",
 };
 const estadoLabel: Record<string, string> = {
   PAGADA: "Pagada", PENDIENTE: "Pendiente", ANULADA: "Anulada",
 };
-
 const metodoPagoLabel: Record<string, string> = {
   EFECTIVO: "Efectivo", TARJETA: "Tarjeta",
   TRANSFERENCIA: "Transferencia", CREDITO: "Crédito", MIXTO: "Mixto",
 };
-const metodoBadge: Record<string, string> = {
-  EFECTIVO:      "bg-emerald-50 text-emerald-700",
-  TARJETA:       "bg-blue-50 text-blue-700",
-  TRANSFERENCIA: "bg-purple-50 text-purple-700",
-  CREDITO:       "bg-amber-50 text-amber-700",
-  MIXTO:         "bg-slate-50 text-slate-600",
-};
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatFecha(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now   = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-
-  if (isToday) {
-    return `Hoy ${date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`;
-  }
-
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) {
-    return `Ayer ${date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`;
-  }
-
-  return date.toLocaleDateString("es-CL", {
-    day: "2-digit", month: "2-digit", year: "2-digit",
-  }) + ` ${date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`;
-}
-
-function shortNumero(numero: string): string {
-  // VTA-MMQH7U43ZDC0 → muestra solo últimos 8 chars
-  return numero.length > 10 ? "…" + numero.slice(-8) : numero;
-}
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
+const metodoPagoImpresion: Record<string, string> = {
+  EFECTIVO: "Efectivo", TARJETA: "Tarjeta",
+  TRANSFERENCIA: "Transferencia", CREDITO: "Crédito", MIXTO: "Mixto",
+};
+
+function reimprimir(venta: VentaDetalle, simbolo: string) {
+  const sim = venta.caja?.sucursal?.simbolo ?? simbolo;
+  const logoUrl = venta.caja?.sucursal?.logoUrl ?? null;
+  const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
+
+  const fecha = new Date(venta.creadoEn).toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const hora  = new Date(venta.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+
+  const itemsHtml = venta.detalles
+    .map((d, i) => {
+      const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "Item";
+      return `
+        <div class="item"${i < venta.detalles.length - 1 ? ' style="border-bottom:1px dotted #000;"' : ""}>
+          <div class="iname">${nombre}</div>
+          <div class="idetail"><span>${d.cantidad} x ${formatCurrency(Number(d.precio), sim)}</span><span>${formatCurrency(Number(d.subtotal), sim)}</span></div>
+        </div>`;
+    })
+    .join("");
+
+  const pagosHtml = venta.pagos
+    .map((p) => `<div class="row"><span>${metodoPagoImpresion[p.metodoPago] ?? p.metodoPago}</span><span><b>${formatCurrency(Number(p.monto), sim)}</b></span></div>`)
+    .join("");
+
+  const mesaLabel = venta.pedido?.mesa?.nombre;
+
+  const html = `
+    <div class="ticket">
+      <div class="hdr">
+        ${printableLogoUrl ? `<img src="${printableLogoUrl}" class="logo" alt="Logo"/>` : ""}
+        <p class="type">Boleta</p>
+        <p class="num">Comprobante de pago · N° ${venta.id}</p>
+      </div>
+      <hr class="cut"/>
+      <div class="meta">
+        ${mesaLabel ? `<div class="row"><span>Mesa</span><span><b>${mesaLabel}</b></span></div>` : ""}
+        <div class="row"><span>Atendió</span><span>${venta.usuario.nombre}</span></div>
+        <div class="row"><span>Fecha</span><span>${fecha} ${hora}</span></div>
+      </div>
+      <hr class="cut"/>
+      ${itemsHtml}
+      <hr class="cut"/>
+      <div class="meta">
+        <div class="row"><span>Subtotal</span><span>${formatCurrency(Number(venta.subtotal), sim)}</span></div>
+        ${Number(venta.descuento) > 0 ? `<div class="row"><span>Descuento</span><span>- ${formatCurrency(Number(venta.descuento), sim)}</span></div>` : ""}
+        ${Number(venta.impuesto) > 0 ? `<div class="row"><span>Impuesto</span><span>${formatCurrency(Number(venta.impuesto), sim)}</span></div>` : ""}
+      </div>
+      <hr class="cut2"/>
+      <div class="row total"><span>TOTAL PAGADO</span><span>${formatCurrency(Number(venta.total), sim)}</span></div>
+      <hr class="cut"/>
+      <p class="sec-title">Forma de pago</p>
+      ${pagosHtml}
+      <p class="footer">Gracias por tu visita</p>
+      <p class="footer-sub">Documento no fiscal · Reimpresión</p>
+    </div>`;
+
+  const win = window.open("", "_blank", "width=360,height=820");
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Boleta #${venta.id}</title><style>${THERMAL_CSS}</style></head><body>${html}</body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+  win.close();
+}
+
 function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo: string; onClose: () => void }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 backdrop-blur-sm sm:items-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 backdrop-blur-sm sm:items-center">
       <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl">
 
         {/* Header */}
@@ -121,10 +160,18 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
               <p className="text-xs text-surface-muted">{formatDateTime(new Date(venta.creadoEn))}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold border ${estadoBadge[venta.estado] ?? ""}`}>
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${estadoBadge[venta.estado] ?? ""}`}>
               {estadoLabel[venta.estado] ?? venta.estado}
             </span>
+            <button
+              onClick={() => reimprimir(venta, simbolo)}
+              className="flex items-center gap-1.5 rounded-xl border border-surface-border px-3 py-1.5 text-xs font-medium text-surface-muted hover:bg-brand-50 hover:text-brand-600 transition-colors"
+              title="Reimprimir boleta"
+            >
+              <Printer size={13} />
+              Reimprimir
+            </button>
             <button
               onClick={onClose}
               className="p-2 rounded-lg text-surface-muted hover:bg-surface-bg hover:text-surface-text transition-colors"
@@ -137,13 +184,13 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* Info grid */}
+          {/* Info */}
           <div className="grid grid-cols-2 gap-px border-b border-surface-border bg-surface-border">
             {[
-              { label: "Cliente",  value: venta.cliente?.nombre ?? "Consumidor Final" },
-              { label: "Vendedor", value: venta.usuario.nombre },
-              { label: "Método",   value: metodoPagoLabel[venta.metodoPago] ?? venta.metodoPago },
-              { label: "Caja",     value: venta.caja?.nombre ?? "—" },
+              { label: "Cliente",    value: venta.cliente?.nombre ?? "Consumidor Final" },
+              { label: "Vendedor",   value: venta.usuario.nombre },
+              { label: "Método",     value: metodoPagoLabel[venta.metodoPago] ?? venta.metodoPago },
+              { label: "Caja",       value: venta.caja?.nombre ?? "—" },
             ].map((item) => (
               <div key={item.label} className="bg-white px-4 py-3">
                 <p className="text-xs text-surface-muted">{item.label}</p>
@@ -157,11 +204,11 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
             <p className="text-xs font-semibold text-surface-muted uppercase tracking-wide mb-3">
               Productos ({venta.detalles.length})
             </p>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {venta.detalles.map((d) => {
                 const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "Item";
                 return (
-                  <div key={d.id} className="flex items-center gap-3 py-2 rounded-xl hover:bg-surface-bg px-2 transition-colors">
+                  <div key={d.id} className="flex items-center gap-3 py-2">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-surface-border bg-surface-bg overflow-hidden">
                       {d.producto?.imagen ? (
                         <img src={d.producto.imagen} alt={nombre} className="h-full w-full object-cover" />
@@ -207,7 +254,7 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
                 <span>{formatCurrency(Number(venta.impuesto), simbolo)}</span>
               </div>
             )}
-            <div className="flex justify-between text-base font-bold text-surface-text pt-1.5 border-t border-surface-border">
+            <div className="flex justify-between text-base font-bold text-surface-text pt-1 border-t border-surface-border">
               <span>Total</span>
               <span className="text-brand-600">{formatCurrency(Number(venta.total), simbolo)}</span>
             </div>
@@ -227,20 +274,8 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function VentasTable({ ventas, simbolo }: Props) {
-  const [detalle, setDetalle]     = useState<VentaDetalle | null>(null);
+  const [detalle, setDetalle]   = useState<VentaDetalle | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
-  const [query, setQuery]         = useState("");
-
-  const filtered = useMemo(() => {
-    const q = normalize(query.trim());
-    if (!q) return ventas;
-    return ventas.filter((v) =>
-      normalize(v.numero).includes(q) ||
-      normalize(v.cliente?.nombre ?? "consumidor final").includes(q) ||
-      normalize(v.usuario.nombre).includes(q) ||
-      normalize(metodoPagoLabel[v.metodoPago] ?? v.metodoPago).includes(q)
-    );
-  }, [ventas, query]);
 
   async function verDetalle(id: number) {
     setLoadingId(id);
@@ -256,97 +291,53 @@ export function VentasTable({ ventas, simbolo }: Props) {
   return (
     <>
       <div className="card overflow-hidden">
-
-        {/* Table header */}
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-surface-border">
-          <div>
-            <h3 className="text-sm font-semibold text-surface-text">Historial de ventas</h3>
-            <p className="text-xs text-surface-muted mt-0.5">
-              {filtered.length} de {ventas.length} registros
-            </p>
-          </div>
-          <div className="relative w-56">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar por N°, cliente…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-lg border border-surface-border bg-surface-bg py-2 pl-8 pr-3 text-sm text-surface-text placeholder:text-surface-muted focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
+        <div className="px-4 pt-4 pb-2">
+          <h3 className="text-sm font-semibold text-surface-text">Últimas 50 ventas</h3>
         </div>
-
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border bg-surface-bg">
-                <th className="text-left px-5 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide">N°</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide">Fecha</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide hidden md:table-cell">Vendedor</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide">Método</th>
-                <th className="text-right px-4 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide">Total</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-muted text-xs uppercase tracking-wide">Estado</th>
-                <th className="px-4 py-3 w-10" />
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">N°</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Fecha</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Cliente</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Vendedor</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Método</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Items</th>
+                <th className="text-right px-4 py-3 font-medium text-surface-muted">Total</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-border">
-              {filtered.length === 0 ? (
+              {ventas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-14 text-center">
-                    <div className="flex flex-col items-center gap-2 text-surface-muted">
-                      <Search size={22} className="opacity-40" />
-                      <p className="text-sm">
-                        {query ? `Sin resultados para "${query}"` : "Sin ventas registradas"}
-                      </p>
-                    </div>
+                  <td colSpan={9} className="px-4 py-12 text-center text-surface-muted">
+                    Sin ventas registradas
                   </td>
                 </tr>
               ) : (
-                filtered.map((v) => (
-                  <tr
-                    key={v.id}
-                    className="hover:bg-surface-bg transition-colors cursor-pointer group"
-                    onClick={() => verDetalle(v.id)}
-                  >
-                    <td className="px-5 py-3">
-                      <span
-                        className="font-mono text-xs font-semibold text-surface-muted bg-surface-bg px-2 py-1 rounded-md"
-                        title={v.numero}
-                      >
-                        {shortNumero(v.numero)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-surface-muted whitespace-nowrap">
-                      {formatFecha(v.creadoEn)}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-surface-text">
-                      {v.cliente?.nombre ?? (
-                        <span className="text-surface-muted italic">Consumidor Final</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-surface-muted hidden md:table-cell">
-                      {v.usuario.nombre}
+                ventas.map((v) => (
+                  <tr key={v.id} className="hover:bg-surface-bg transition-colors">
+                    <td className="px-4 py-3 font-mono font-medium text-surface-text">{v.numero}</td>
+                    <td className="px-4 py-3 text-surface-muted">{formatDateTime(new Date(v.creadoEn))}</td>
+                    <td className="px-4 py-3 text-surface-text">{v.cliente?.nombre ?? "Consumidor Final"}</td>
+                    <td className="px-4 py-3 text-surface-muted">{v.usuario.nombre}</td>
+                    <td className="px-4 py-3 text-surface-muted">{metodoPagoLabel[v.metodoPago] ?? v.metodoPago}</td>
+                    <td className="px-4 py-3 text-surface-muted">{v._count.detalles}</td>
+                    <td className="px-4 py-3 text-right font-bold text-brand-500">
+                      {formatCurrency(Number(v.total), simbolo)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${metodoBadge[v.metodoPago] ?? "bg-surface-bg text-surface-muted"}`}>
-                        {metodoPagoLabel[v.metodoPago] ?? v.metodoPago}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-brand-600 whitespace-nowrap">
-                      {formatCurrency(v.total, simbolo)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${estadoBadge[v.estado] ?? ""}`}>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${estadoBadge[v.estado] ?? ""}`}>
                         {estadoLabel[v.estado] ?? v.estado}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={(e) => { e.stopPropagation(); verDetalle(v.id); }}
+                        onClick={() => verDetalle(v.id)}
                         disabled={loadingId === v.id}
-                        className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                        className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Ver detalle"
                       >
                         {loadingId === v.id

@@ -414,9 +414,7 @@ export function NuevaVentaClient({
         mesa: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : null),
         items: nuevosItems,
       };
-      // Imprimir automáticamente al enviar — sin requerir click manual
-      printKitchenTicket(newTicket);
-      // El dialog queda disponible para re-imprimir si se necesita
+      // Mostrar dialog de confirmación — el usuario decide si imprimir
       setTicketData(newTicket);
     } catch (e) {
       setOrdenMsg((e as Error).message);
@@ -463,7 +461,7 @@ export function NuevaVentaClient({
     printFrame(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       @page{size:80mm auto;margin:0;}@media print{@page{size:80mm auto;margin:0;}}
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:'Courier New',monospace;font-size:14px;width:72mm;padding:4mm 4mm 6mm;}
+      body{font-family:'Courier New',monospace;font-size:14px;width:80mm;padding:3mm 3mm 10mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:6px;margin-bottom:6px;}
       .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
       .subtitle{font-size:12px;margin-top:3px;}
@@ -966,7 +964,7 @@ export function NuevaVentaClient({
                   {ticketData.mesa ? ` · ${ticketData.mesa}` : ""}
                 </p>
                 <p className="mt-0.5 text-sm text-surface-muted">
-                  Comanda impresa automáticamente. ¿Re-imprimir?
+                  ¿Imprimir comanda?
                 </p>
               </div>
             </div>
@@ -1002,7 +1000,7 @@ export function NuevaVentaClient({
                 className="btn-primary flex-1 justify-center py-2.5 text-sm"
               >
                 <Printer size={15} />
-                Re-imprimir
+                Sí, imprimir
               </button>
               <button
                 onClick={() => setTicketData(null)}

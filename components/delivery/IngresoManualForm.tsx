@@ -322,7 +322,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     printFrame(`<!DOCTYPE html><html><head><title>Ticket #${id}</title><style>
       @page{size:80mm auto;margin:0;}@media print{@page{size:80mm auto;margin:0;}}
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:13px;width:80mm;max-width:80mm;padding:10px;}
+      body{font-family:'Courier New',monospace;font-size:13px;width:80mm;padding:3mm 3mm 10mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;}
       .title{font-size:18px;font-weight:bold;letter-spacing:2px;}
       .ticket-num{font-size:28px;font-weight:900;margin-top:4px;}

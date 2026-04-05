@@ -8,6 +8,7 @@ import type { Rol } from "@/types";
 const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {
   CHEF:    { emoji: "🍳", msg: "Hoy saldran platos perfectos." },
   BAR:     { emoji: "🍹", msg: "A mezclar felicidad!" },
+  PASTRY:  { emoji: "🧁", msg: "Endulzando el dia!" },
 };
 
 async function getPedidos(rol: Rol | undefined, sucursalId: number | null) {
@@ -37,20 +38,12 @@ export default async function PedidosPage() {
   const session = await getServerSession(authOptions);
   const rol = (session?.user as { rol?: Rol })?.rol;
   const sucursalId = (session?.user as { sucursalId?: number | null })?.sucursalId ?? null;
-  const [pedidos, sucursal] = await Promise.all([
-    getPedidos(rol, sucursalId),
-    sucursalId
-      ? prisma.sucursal.findUnique({
-          where: { id: sucursalId },
-          select: { nombre: true, rut: true, telefono: true, direccion: true, giroComercial: true },
-        })
-      : null,
-  ]);
+  const pedidos = await getPedidos(rol, sucursalId);
 
   const data = pedidos.map((p) => ({
     id: p.id,
     numero: p.id,
-    tipo: p.tipo as "COCINA" | "BAR" | "DELIVERY" | "MOSTRADOR",
+    tipo: p.tipo as "COCINA" | "BAR" | "REPOSTERIA" | "DELIVERY" | "MOSTRADOR",
     estado: p.estado as "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO",
     observacion: p.observacion,
     meseroLlamado: p.meseroLlamado,
@@ -74,32 +67,8 @@ export default async function PedidosPage() {
   const welcome = rol ? WELCOME[rol] : null;
 
   return (
-    <div className="space-y-6">
-      {/* Header con micro-mensaje */}
-      {welcome ? (
-        <div className="bg-gradient-to-r from-brand-500 to-brand-400 rounded-2xl p-5 flex items-center gap-4 shadow-md">
-          <span className="text-4xl">{welcome.emoji}</span>
-          <div>
-            <h1 className="text-xl font-bold text-white">Buen turno!</h1>
-            <p className="text-brand-100 text-sm">{welcome.msg}</p>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <h1 className="text-2xl font-bold text-surface-text">Pedidos</h1>
-          <p className="text-surface-muted text-sm mt-1">Sistema de visualizacion de cocina (KDS)</p>
-        </div>
-      )}
-
-      <PedidosClient
-        pedidos={data}
-        rol={rol}
-        sucursalNombre={sucursal?.nombre ?? null}
-        sucursalRut={sucursal?.rut ?? null}
-        sucursalTelefono={sucursal?.telefono ?? null}
-        sucursalDireccion={sucursal?.direccion ?? null}
-        sucursalGiroComercial={sucursal?.giroComercial ?? null}
-      />
+    <div className="-m-6 p-3">
+      <PedidosClient pedidos={data} rol={rol} welcome={welcome} />
     </div>
   );
 }
