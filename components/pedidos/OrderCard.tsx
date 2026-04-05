@@ -15,13 +15,12 @@ interface OrderCardProps {
 const nextEstado: Partial<Record<EstadoPedido, EstadoPedido>> = {
   PENDIENTE: "EN_PROCESO",
   EN_PROCESO: "LISTO",
-  LISTO: "ENTREGADO",
+  // LISTO es estado final en cocina — el cajero cierra la mesa
 };
 
 const nextLabel: Partial<Record<EstadoPedido, string>> = {
   PENDIENTE: "Iniciar Preparacion",
   EN_PROCESO: "Marcar como listo",
-  LISTO: "Listo!",
 };
 
 const tipoLabel: Record<string, string> = {
