@@ -686,8 +686,8 @@ model PedidoDelivery {
   repartidorId   Int?
   direccionId    Int
   referencia     String?        @db.VarChar(200)
-  lat            Float
-  lng            Float
+  lat            Float?
+  lng            Float?
   costoEnvio     Decimal        @db.Decimal(10, 2)
   tiempoEstimado Int // en minutos
   estado         EstadoDelivery @default(CREADO)
@@ -708,8 +708,8 @@ model DireccionCliente {
   calle      String  @db.VarChar(200)
   numero     String? @db.VarChar(50)
   referencia String? @db.VarChar(200)
-  lat        Float
-  lng        Float
+  lat        Float?
+  lng        Float?
 
   cliente Cliente          @relation(fields: [clienteId], references: [id])
   pedidos PedidoDelivery[]
