@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   Bike,
+  Bot,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -53,7 +54,7 @@ import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
 
-type FeatureKey = "delivery" | "menuQR" | "kiosko" | "cupones" | "eventos";
+type FeatureKey = "delivery" | "menuQR" | "kiosko" | "cupones" | "eventos" | "agenteWsp";
 type ModuleCategory = "operacion" | "gestion" | "configuracion";
 
 interface AppModule {
@@ -74,7 +75,8 @@ const modules: AppModule[] = [
   { label: "Caja Rápida", href: "/ventas/caja", icon: ShoppingCart, color: "bg-gradient-to-br from-rose-500 to-red-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "operacion", description: "Venta directa sin mesa.", featured: true },
   { label: "Mesas", href: "/mesas", icon: UtensilsCrossed, color: "bg-gradient-to-br from-orange-400 to-rose-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER"], category: "operacion", description: "Mesas, sala y servicio.", featured: true },
   { label: "Delivery", href: "/delivery", icon: Bike, color: "bg-gradient-to-br from-amber-400 to-orange-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "DELIVERY"], category: "operacion", description: "Despachos y repartos.", featureKey: "delivery", featured: true },
-  { label: "Pedidos", href: "/pedidos", icon: ClipboardList, color: "bg-gradient-to-br from-yellow-400 to-amber-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Flujo activo de comandas.", featured: true },
+  { label: "KDS", href: "/pedidos", icon: ClipboardList, color: "bg-gradient-to-br from-yellow-400 to-amber-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"], category: "operacion", description: "Flujo activo de comandas.", featured: true },
+  { label: "Agente", href: "/agente", icon: Bot, color: "bg-gradient-to-br from-emerald-400 to-teal-600", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "operacion", description: "Bot WhatsApp con IA para pedidos.", featureKey: "agenteWsp", featured: true },
   { label: "Ventas", href: "/ventas", icon: BarChart3, color: "bg-gradient-to-br from-cyan-400 to-blue-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Historial y rendimiento." },
   { label: "Reportes", href: "/reportes", icon: BarChart3, color: "bg-gradient-to-br from-violet-500 to-indigo-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Cierre de caja, auditoría y tiempos KDS." },
   { label: "Productos", href: "/productos", icon: Package, color: "bg-gradient-to-br from-indigo-500 to-purple-600", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Carta, stock y precios." },
@@ -212,8 +214,9 @@ export function PandaNavbar() {
     delivery: (session?.user as { delivery?: boolean })?.delivery ?? false,
     menuQR:   (session?.user as { menuQR?: boolean })?.menuQR ?? false,
     kiosko:   (session?.user as { kioskActivo?: boolean })?.kioskActivo ?? false,
-    cupones:  (session?.user as { cupones?: boolean })?.cupones ?? false,
-    eventos:  isPrime,
+    cupones:   (session?.user as { cupones?: boolean })?.cupones ?? false,
+    eventos:   isPrime,
+    agenteWsp: isPrime,
   };
 
   const visibleBase = useMemo(() => modules.filter((mod) => !rol || mod.roles.includes(rol)), [rol]);
