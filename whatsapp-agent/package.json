@@ -1,0 +1,21 @@
+{
+  "name": "pandaposs-whatsapp-agent",
+  "version": "1.0.0",
+  "description": "Agente WhatsApp multi-sucursal para PandaPoss (plan PRIME)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "@whiskeysockets/baileys": "^6.7.0",
+    "dotenv": "^16.0.0",
+    "node-fetch": "^2.7.0",
+    "pino": "^8.0.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
