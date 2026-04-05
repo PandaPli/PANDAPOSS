@@ -71,7 +71,10 @@ export default function AddressAutocomplete({
 
     autocompleteRef.current.addListener("place_changed", () => {
       const place = autocompleteRef.current!.getPlace();
-      const formatted = place.formatted_address ?? "";
+      // place_changed se dispara aunque el usuario no seleccione nada.
+      // Sin selección real, formatted_address viene undefined → no resetear el campo.
+      if (!place.formatted_address) return;
+      const formatted = place.formatted_address;
       const lat = place.geometry?.location?.lat() ?? null;
       const lng = place.geometry?.location?.lng() ?? null;
       onChangeRef.current(formatted);
