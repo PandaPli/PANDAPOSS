@@ -32,12 +32,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const sesion = await prisma.agenteSesion.upsert({
     where: { clienteId: cliente.id },
     update: {
+      estado: body.estado,
       carritoJson: body.carritoJson,
       contextoJson: body.contextoJson,
       historialJson: body.historialJson,
     },
     create: {
       clienteId: cliente.id,
+      estado: body.estado,
       carritoJson: body.carritoJson,
       contextoJson: body.contextoJson,
       historialJson: body.historialJson,

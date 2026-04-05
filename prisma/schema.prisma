@@ -989,12 +989,13 @@ model AgenteEvento {
 }
 
 model AgenteSesion {
-  id           Int      @id @default(autoincrement())
-  clienteId    Int
-  carritoJson  Json?
-  contextoJson Json?
+  id            Int      @id @default(autoincrement())
+  clienteId     Int
+  estado        String?
+  carritoJson   Json?
+  contextoJson  Json?
   historialJson Json?
-  updatedAt    DateTime @default(now()) @updatedAt
+  updatedAt     DateTime @default(now()) @updatedAt
 
   cliente AgenteCliente @relation(fields: [clienteId], references: [id])
 

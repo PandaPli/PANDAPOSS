@@ -128,9 +128,8 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
           cantidad: i.cantidad,
         })),
         cliente: { telefono, nombre: cliente?.nombre, direccion: sesion.contextoJson?.direccionEntrega },
+        tipoEntrega: sesion.contextoJson?.tipoEntrega ?? 'retiro',
         metodoPago: 'EFECTIVO',
-        cargoEnvio: sesion.contextoJson?.tipoEntrega === 'delivery' ? 0 : 0,
-        zonaDelivery: sesion.contextoJson?.tipoEntrega === 'delivery' ? 'WhatsApp' : null,
         total: calcularTotal(sesion.carritoJson),
       });
       // Save address if delivery

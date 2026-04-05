@@ -35,6 +35,7 @@ async function obtenerSesion(agenteId, telefono) {
     };
   } else {
     // Deserialize JSON fields
+    sesion.estado = sesion.estado || ESTADOS.NUEVO;
     sesion.carritoJson = sesion.carritoJson || [];
     sesion.contextoJson = sesion.contextoJson || { tipoEntrega: null, direccionEntrega: null, preguntasPendientes: [] };
     sesion.historialJson = sesion.historialJson || [];
