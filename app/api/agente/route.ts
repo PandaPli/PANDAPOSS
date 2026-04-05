@@ -8,6 +8,18 @@ function isPrime(plan: string) {
 }
 
 export async function GET(req: NextRequest) {
+  // Autenticación por bot key (servicio local)
+  const botKey = req.headers.get("x-agente-key");
+  if (botKey && botKey === process.env.AGENTE_API_KEY) {
+    // El bot obtiene solo los agentes activos de sucursales PRIME
+    const agentes = await prisma.agenteWsp.findMany({
+      where: { activo: true },
+      include: { sucursal: { select: { nombre: true, plan: true, simbolo: true } } },
+      orderBy: { id: "asc" },
+    });
+    return NextResponse.json(agentes);
+  }
+
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const user = session.user as { rol?: string; sucursalId?: number };
