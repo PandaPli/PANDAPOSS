@@ -160,6 +160,7 @@ model Sucursal {
   permisosRrhh  PermisoRrhh[]
   vacaciones    Vacacion[]
   tenant        Tenant?        @relation(fields: [tenantId], references: [id])
+  agente        AgenteWsp?
 
   @@map("sucursales")
 }
@@ -740,4 +741,114 @@ model EventoDelivery {
   delivery PedidoDelivery @relation(fields: [pedidoDeliveryId], references: [id])
 
   @@map("eventos_delivery")
+}
+
+// ─── AGENTE WHATSAPP MODELS ───────────────────────────────────
+
+enum EstadoAgente {
+  DESCONECTADO
+  ESPERANDO_QR
+  CONECTADO
+  ERROR
+}
+
+model AgenteWsp {
+  id          Int          @id @default(autoincrement())
+  sucursalId  Int          @unique
+  activo      Boolean      @default(false)
+  estado      EstadoAgente @default(DESCONECTADO)
+  telefono    String?      @db.VarChar(50)
+  qrBase64    String?      @db.Text
+  qrExpiresAt DateTime?
+  ultimaConex DateTime?
+  creadoEn    DateTime     @default(now())
+
+  sucursal  Sucursal       @relation(fields: [sucursalId], references: [id])
+  clientes  AgenteCliente[]
+  sesiones  AgenteSesion[]
+
+  @@map("agente_wsp")
+}
+
+model AgenteCliente {
+  id               Int       @id @default(autoincrement())
+  agenteId         Int
+  telefono         String    @db.VarChar(30)
+  nombre           String?   @db.VarChar(100)
+  totalGastado     Decimal   @default(0) @db.Decimal(12, 2)
+  frecuenciaCompra Int       @default(0)
+  ticketPromedio   Decimal   @default(0) @db.Decimal(12, 2)
+  ultimaCompra     DateTime?
+  creadoEn         DateTime  @default(now())
+
+  agente       AgenteWsp          @relation(fields: [agenteId], references: [id])
+  preferencias AgentePreferencia[]
+  direcciones  AgenteDireccion[]
+  eventos      AgenteEvento[]
+
+  @@unique([agenteId, telefono])
+  @@map("agente_clientes")
+}
+
+model AgenteDireccion {
+  id         Int           @id @default(autoincrement())
+  clienteId  Int
+  alias      String?       @db.VarChar(50)
+  direccion  String        @db.VarChar(200)
+  referencia String?       @db.VarChar(200)
+  esFavorita Boolean       @default(false)
+  activa     Boolean       @default(true)
+  creadoEn   DateTime      @default(now())
+
+  cliente AgenteCliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("agente_direcciones")
+}
+
+model AgentePreferencia {
+  id        Int           @id @default(autoincrement())
+  clienteId Int
+  tipo      String        @db.VarChar(50)
+  clave     String        @db.VarChar(100)
+  valor     String        @db.VarChar(50)
+  peso      Int           @default(1)
+  origen    String        @default("aprendido") @db.VarChar(20)
+  activa    Boolean       @default(true)
+  creadoEn  DateTime      @default(now())
+
+  cliente AgenteCliente @relation(fields: [clienteId], references: [id])
+
+  @@unique([clienteId, tipo, clave])
+  @@index([clienteId])
+  @@map("agente_preferencias")
+}
+
+model AgenteEvento {
+  id        Int           @id @default(autoincrement())
+  clienteId Int
+  tipo      String        @db.VarChar(50)
+  data      Json?
+  creadoEn  DateTime      @default(now())
+
+  cliente AgenteCliente @relation(fields: [clienteId], references: [id])
+
+  @@index([clienteId])
+  @@map("agente_eventos")
+}
+
+model AgenteSesion {
+  id            Int       @id @default(autoincrement())
+  agenteId      Int
+  telefono      String    @db.VarChar(30)
+  estado        String    @default("NUEVO") @db.VarChar(30)
+  carritoJson   Json?
+  contextoJson  Json?
+  historialJson Json?
+  ultimaActiv   DateTime  @default(now()) @updatedAt
+
+  agente AgenteWsp @relation(fields: [agenteId], references: [id])
+
+  @@unique([agenteId, telefono])
+  @@map("agente_sesiones")
 }
