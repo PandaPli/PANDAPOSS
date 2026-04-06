@@ -22,7 +22,7 @@ const MSGS = {
 
   pedirObservacion: (carrito) => {
     const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
-    return `Anotado! 🐼\n${lista}\n\n¿Alguna observación? (envolturas, salsas, sin picante, etc.)\nO escribe *no* para continuar 👇`;
+    return `Anotado! 🐼\n${lista}\n\n¿Alguna observación? (salsas, sin alga, sin picante, etc.)\nO escribe *no* para continuar 👇`;
   },
 
   preguntarEntrega: () =>
@@ -30,8 +30,9 @@ const MSGS = {
 
   pedirDireccion: () => `¿A qué dirección te lo enviamos? 📍`,
 
-  preguntarPago: () =>
-    `Okis! ¿Método de pago? 💳\n*Efectivo* · *Transferencia* · *Débito*`,
+  preguntarPago: (total) => total
+    ? `Serian un total de *$${Number(total).toLocaleString('es-CL')}* 💰\n¿Cómo pagás? *Efectivo* · *Transferencia* · *Débito*`
+    : `Okis! ¿Método de pago? 💳\n*Efectivo* · *Transferencia* · *Débito*`,
 
   datosBancarios: () =>
     `Transferencia a 👇\n• N° cuenta: *1022193723*\n• Rut: *767871538*\n• Banco: Mercado Pago\n• Tipo: Vista\n• Titular: Panda Gastronómico\n\nEnvíanos el comprobante 📸`,
@@ -48,7 +49,8 @@ const MSGS = {
   },
 
   pedidoEnviado: () =>
-    `✅ *ATENCION estamos haciendo tu pedido* 🐼❤️\nTe avisamos cuando esté listo!`,
+    [`✅ *ATENCION estamos haciendo tu pedido* 🐼❤️\nTe avisamos cuando esté listo!`,
+     `Maraviloso!! 🐼❤️ *estamos preparando tu pedido*\nTe avisamos cuando esté listo para retiro/despacho!`],
 
   agradecimiento: () =>
     [`Okis! 🐼❤️`, `Con gusto *#BamPaiLovers*! 🐼`, `Siempre! 🐼❤️`],

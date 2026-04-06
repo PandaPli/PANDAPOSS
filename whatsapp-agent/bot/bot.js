@@ -165,7 +165,8 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
     if (intencion === INTENCIONES.RETIRO || /^1$/.test(texto.trim())) {
       await actualizarContexto(agenteId, telefono, { tipoEntrega: 'retiro' });
       await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PAGO);
-      const r = msg('preguntarPago');
+      const totalRetiro = calcularTotal(sesion.carritoJson);
+      const r = msg('preguntarPago', totalRetiro);
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
@@ -186,7 +187,8 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   if (sesion.estado === ESTADOS.CONFIRMANDO_DIRECCION) {
     await actualizarContexto(agenteId, telefono, { direccionEntrega: texto.trim() });
     await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PAGO);
-    const r = msg('preguntarPago');
+    const totalDelivery = calcularTotal(sesion.carritoJson);
+    const r = msg('preguntarPago', totalDelivery);
     await agregarAlHistorial(agenteId, telefono, 'assistant', r);
     return r;
   }
