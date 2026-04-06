@@ -455,21 +455,8 @@ export function PandaNavbar() {
           <div className="relative z-10 flex-1 overflow-y-auto">
             <div className="mx-auto max-w-5xl px-8 py-10 space-y-10">
 
-              {/* ── Modo reordenamiento ── */}
-              {reordering && (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={visible.map(m => m.href)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
-                      {visible.map((mod) => (
-                        <SortableAppCard key={mod.href} mod={mod} />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              )}
-
-              {/* ── Modo normal: agrupación inteligente ── */}
-              {!reordering && (
+              {/* Búsqueda activa: grid plano sin secciones */}
+              {searchApp && (
                 <>
                   {filtered.length === 0 && (
                     <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
@@ -478,9 +465,7 @@ export function PandaNavbar() {
                       <p className="text-xs text-violet-700/40">Prueba con otra palabra clave.</p>
                     </div>
                   )}
-
-                  {/* Si hay búsqueda activa: grid plano sin secciones */}
-                  {searchApp && filtered.length > 0 && (
+                  {filtered.length > 0 && (
                     <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
                       {filtered.map((mod) => {
                         const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
@@ -492,35 +477,53 @@ export function PandaNavbar() {
                       })}
                     </div>
                   )}
-
-                  {/* Sin búsqueda: secciones agrupadas por categoría */}
-                  {!searchApp && (Object.keys(categoryMeta) as ModuleCategory[]).map((cat) => {
-                    const items = filtered.filter(m => m.category === cat);
-                    if (items.length === 0) return null;
-                    return (
-                      <section key={cat}>
-                        {/* Separador de sección */}
-                        <div className="mb-5 flex items-center gap-3">
-                          <span className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-slate-500">
-                            {categoryMeta[cat].title}
-                          </span>
-                          <div className="h-px flex-1 bg-violet-200/50" />
-                        </div>
-                        <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
-                          {items.map((mod) => {
-                            const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
-                            const locked = !!mod.featureKey && !features[mod.featureKey] && !isAdmin;
-                            return (
-                              <AppIconCard key={mod.href} mod={mod} active={active} locked={locked}
-                                onClick={() => setShowApps(false)} />
-                            );
-                          })}
-                        </div>
-                      </section>
-                    );
-                  })}
                 </>
               )}
+
+              {/* Sin búsqueda: secciones por categoría — con o sin DnD */}
+              {!searchApp && (Object.keys(categoryMeta) as ModuleCategory[]).map((cat) => {
+                const items = visible.filter(m => m.category === cat);
+                if (items.length === 0) return null;
+                const meta = categoryMeta[cat];
+                return (
+                  <section key={cat}>
+                    <div className="mb-5 flex items-center gap-3">
+                      <div>
+                        <span className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-slate-500">
+                          {meta.title}
+                        </span>
+                        {reordering && (
+                          <span className="ml-2 text-[10px] text-slate-400">· reordenable</span>
+                        )}
+                      </div>
+                      <div className="h-px flex-1 bg-violet-200/50" />
+                    </div>
+
+                    {reordering ? (
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={items.map(m => m.href)} strategy={rectSortingStrategy}>
+                          <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
+                            {items.map((mod) => (
+                              <SortableAppCard key={mod.href} mod={mod} />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
+                        {items.map((mod) => {
+                          const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
+                          const locked = !!mod.featureKey && !features[mod.featureKey] && !isAdmin;
+                          return (
+                            <AppIconCard key={mod.href} mod={mod} active={active} locked={locked}
+                              onClick={() => setShowApps(false)} />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
             </div>
           </div>
         </motion.div>
