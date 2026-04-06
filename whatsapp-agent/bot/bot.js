@@ -81,7 +81,7 @@ const TABLAS = {
 
 function detectarTabla(texto) {
   const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const match = t.match(/tabla\s*(?:bampai\s*)?(\d+)/);
+  const match = t.match(/tabla\s*(?:bampai\s*|panda\s*)?(\d+)/);
   if (!match) return null;
   const piezas = parseInt(match[1], 10);
   return TABLAS[piezas] ? piezas : null;
