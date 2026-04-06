@@ -5,7 +5,7 @@ import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, MapPin,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
   Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star, ArrowRight,
-  Package2,
+  Package2, Printer, XCircle,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
@@ -189,6 +189,62 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     } finally { setLoadingPedidoId(null); }
   }
 
+  function imprimirPrecuenta(pedido: PedidoDelivery) {
+    const fmt = (n: number) => formatCurrency(n, simbolo);
+    const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const itemsHtml = pedido.detalles.map((d) => `
+      <div class="item">
+        <div class="item-row">
+          <span class="qty">${d.cantidad}x</span>
+          <span class="item-name">${d.nombre}</span>
+          <span class="item-price">${fmt(d.precio * d.cantidad)}</span>
+        </div>
+      </div>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+      <style>
+        @page { size: 80mm auto; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; font-size: 13px; width: 72mm; padding: 4mm 4mm 10mm 4mm; color: #000; background: #fff; }
+        .center { text-align: center; }
+        .divider { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+        .divider-solid { border: none; border-top: 2px solid #000; margin: 5px 0; }
+        .big-name { font-size: 26px; font-weight: 900; text-align: center; line-height: 1.1; margin: 6px 0; word-break: break-word; }
+        .pedido-num { font-size: 20px; font-weight: 900; text-align: center; letter-spacing: 2px; margin-bottom: 4px; }
+        .badge { display: inline-block; border: 2px solid #000; padding: 2px 10px; font-size: 13px; font-weight: 900; letter-spacing: 2px; }
+        .meta { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+        .item { margin: 4px 0; }
+        .item-row { display: flex; align-items: baseline; gap: 4px; }
+        .qty { font-size: 16px; font-weight: 900; min-width: 26px; }
+        .item-name { font-size: 13px; font-weight: 700; flex: 1; }
+        .item-price { font-size: 12px; text-align: right; white-space: nowrap; }
+        .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 6px; }
+        .label { font-size: 11px; color: #555; }
+        .precuenta-tag { text-align: center; font-size: 10px; letter-spacing: 3px; font-weight: 700; margin-bottom: 4px; }
+      </style></head><body>
+      <div class="precuenta-tag">— PRECUENTA —</div>
+      <div class="center"><span class="badge">DELIVERY</span></div>
+      <hr class="divider"/>
+      <div class="pedido-num">Pedido #${pedido.id}</div>
+      <div class="big-name">${pedido.clienteNombre}</div>
+      <hr class="divider-solid"/>
+      <div class="meta"><span class="label">Hora:</span><span>${hora}</span></div>
+      <div class="meta"><span class="label">Pago:</span><span>${pedido.metodoPago}</span></div>
+      ${pedido.direccionEntrega ? `<div class="meta"><span class="label">Dir:</span><span style="text-align:right;flex:1;padding-left:4px">${pedido.direccionEntrega}</span></div>` : ""}
+      <hr class="divider"/>
+      ${itemsHtml}
+      <hr class="divider-solid"/>
+      ${pedido.cargoEnvio > 0 ? `<div class="meta"><span>Envío</span><span>${fmt(pedido.cargoEnvio)}</span></div>` : ""}
+      <div class="total-row"><span>TOTAL</span><span>${fmt(pedido.total)}</span></div>
+      <script>window.onload=function(){window.print();window.close();}<\/script>
+    </body></html>`;
+
+    const win = window.open("", "_blank", "width=320,height=600");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+  }
+
   /* ── Compact card (estilo mesa) ── */
   function renderCompactCard(pedido: PedidoDelivery) {
     const style   = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
@@ -362,14 +418,33 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
               )}
 
               {pedido.estado === "PENDIENTE" && (
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => void updateStatus(pedido.id, "EN_PROCESO")}
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 py-4 text-base font-bold text-white shadow-sm transition active:scale-95 hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {loading ? <RefreshCw size={18} className="animate-spin" /> : <ChefHat size={18} />}
+                    Aceptar → Enviar a Cocina
+                    {!loading && <ArrowRight size={16} className="ml-auto opacity-60" />}
+                  </button>
+                  <button
+                    onClick={() => void updateStatus(pedido.id, "CANCELADO")}
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-rose-200 bg-rose-50 py-3 text-sm font-bold text-rose-700 transition active:scale-95 hover:bg-rose-100 disabled:opacity-50"
+                  >
+                    <XCircle size={16} />
+                    Rechazar pedido
+                  </button>
+                </div>
+              )}
+              {(pedido.estado === "EN_PROCESO" || pedido.estado === "LISTO") && (
                 <button
-                  onClick={() => void updateStatus(pedido.id, "EN_PROCESO")}
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-600 py-4 text-base font-bold text-white shadow-sm transition active:scale-95 hover:bg-blue-700 disabled:opacity-50"
+                  onClick={() => imprimirPrecuenta(pedido)}
+                  className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-surface-border bg-white py-3 text-sm font-bold text-surface-text transition active:scale-95 hover:bg-surface-bg"
                 >
-                  {loading ? <RefreshCw size={18} className="animate-spin" /> : <ChefHat size={18} />}
-                  Pasar a cocina
-                  {!loading && <ArrowRight size={16} className="ml-auto opacity-60" />}
+                  <Printer size={16} />
+                  Imprimir Precuenta
                 </button>
               )}
               {pedido.estado === "EN_PROCESO" && (
@@ -432,7 +507,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       {/* ── Panel de resumen (estilo mesas) ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Entrando",   value: counts.pendiente,          color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-400"   },
+          { label: "Por Aceptar", value: counts.pendiente,          color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-400"   },
           { label: "En Cocina",  value: counts.en_proceso,         color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",    dot: "bg-blue-500"    },
           { label: "En Ruta",    value: counts.listo,              color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200",  dot: "bg-violet-500"  },
           { label: "Entregados", value: stats.entregados,          color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500" },
@@ -471,7 +546,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         <div className="flex flex-wrap gap-2">
           {([
             { key: "todos",      label: "Todos",     icon: LayoutList, activeClass: "bg-slate-800 text-white shadow-md",       inactiveClass: "bg-white border border-surface-border text-surface-muted hover:bg-surface-bg" },
-            { key: "pendiente",  label: "Entrando",  icon: Flame,      activeClass: "bg-amber-500 text-white shadow-md",       inactiveClass: "bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100"  },
+            { key: "pendiente",  label: "Por Aceptar", icon: Flame,    activeClass: "bg-amber-500 text-white shadow-md",       inactiveClass: "bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100"  },
             { key: "en_proceso", label: "En Cocina", icon: ChefHat,    activeClass: "bg-blue-600 text-white shadow-md",        inactiveClass: "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"   },
             { key: "listo",      label: "En Ruta",   icon: Truck,      activeClass: "bg-violet-600 text-white shadow-md",      inactiveClass: "bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100" },
           ] as const).map(({ key, label, icon: Icon, activeClass, inactiveClass }) => (
