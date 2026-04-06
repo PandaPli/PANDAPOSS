@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const tipoEntrega: string = body.tipoEntrega ?? "retiro";
   const metodoPago = (body.metodoPago ?? "EFECTIVO") as MetodoPago;
   const cliente = body.cliente ?? {};
-  const rawItems: Array<{ nombre: string; precio: number; cantidad: number }> = body.items ?? [];
+  const rawItems: Array<{ productoId?: number | null; nombre: string; precio: number; cantidad: number; observacion?: string }> = body.items ?? [];
 
   try {
     let pedidoId: number;
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // — DELIVERY: DeliveryService handles PedidoDelivery + cliente records —
       const result = await DeliveryService.createPublicOrder({
         sucursalId,
-        items: rawItems.map((i) => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
+        items: rawItems.map((i) => ({ productoId: i.productoId ?? null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad, observacion: i.observacion })),
         cliente: {
           nombre: cliente.nombre ?? "Cliente WhatsApp",
           telefono: cliente.telefono ?? "",

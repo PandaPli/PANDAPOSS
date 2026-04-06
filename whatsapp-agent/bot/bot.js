@@ -127,6 +127,7 @@ async function agregarTablaAlCarrito(agenteId, telefono, piezas, envoltorio, rel
   if (tablaProducto) {
     // Producto único "Tabla N" con observacion del envoltorio + relleno
     await agregarAlCarrito(agenteId, telefono, {
+      producto_id: tablaProducto.id,
       nombre_producto: tablaProducto.nombre,
       precio_unitario: Number(tablaProducto.precio),
       cantidad: 1,
@@ -142,6 +143,7 @@ async function agregarTablaAlCarrito(agenteId, telefono, piezas, envoltorio, rel
       });
       if (prod) {
         await agregarAlCarrito(agenteId, telefono, {
+          producto_id: prod.id,
           nombre_producto: prod.nombre,
           precio_unitario: Number(prod.precio),
           cantidad,
@@ -245,6 +247,7 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
       const prod = encontrarProducto(item.texto, productos);
       if (prod) {
         await agregarAlCarrito(agenteId, telefono, {
+          producto_id: prod.id,
           nombre_producto: prod.nombre,
           precio_unitario: Number(prod.precio),
           cantidad: item.cantidad || 1,
@@ -289,7 +292,7 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
       // Agregar otros items mencionados en el mismo mensaje
       for (const item of extraerItemsPedido(texto)) {
         const prod = encontrarProducto(item.texto, productos);
-        if (prod) await agregarAlCarrito(agenteId, telefono, { nombre_producto: prod.nombre, precio_unitario: Number(prod.precio), cantidad: item.cantidad || 1 });
+        if (prod) await agregarAlCarrito(agenteId, telefono, { producto_id: prod.id, nombre_producto: prod.nombre, precio_unitario: Number(prod.precio), cantidad: item.cantidad || 1 });
       }
 
       await actualizarEstado(agenteId, telefono, ESTADOS.ORDENANDO);
@@ -426,9 +429,11 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
 
       await api.crearPedido(agenteId, {
         items: sesion.carritoJson.map(i => ({
+          productoId: i.producto_id ?? null,
           nombre: i.nombre_producto,
           precio: i.precio_unitario,
           cantidad: i.cantidad,
+          observacion: i.observacion ?? undefined,
         })),
         cliente: {
           telefono,

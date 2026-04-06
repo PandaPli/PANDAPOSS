@@ -21,9 +21,10 @@ function generarCodigoEntrega(): string {
 
 interface DeliveryItemInput {
   productoId?: number | null;
-  nombre?: string;   // solo para productos libres
-  precio?: number;   // solo para productos libres
+  nombre?: string;       // solo para productos libres
+  precio?: number;       // solo para productos libres
   cantidad: number;
+  observacion?: string;  // opciones / nota del ítem
 }
 
 interface DeliveryScope {
@@ -157,7 +158,9 @@ export const DeliveryService = {
               precio: item.productoId
                 ? Number(productosMap.get(Number(item.productoId))?.precio ?? 0)
                 : Number(item.precio ?? 0),
-              observacion: !item.productoId && item.nombre ? `[LIBRE] ${item.nombre.trim()}` : undefined,
+              observacion: !item.productoId && item.nombre
+                ? `[LIBRE] ${item.nombre.trim()}`
+                : item.observacion?.trim() || undefined,
             }))
           }
         }
