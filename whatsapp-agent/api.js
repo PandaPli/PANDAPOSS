@@ -1,6 +1,7 @@
 // api.js — Cliente para la API de PandaPoss
 require('dotenv').config();
-const fetch = require('node-fetch');
+// Node 18+ tiene fetch nativo; evitar node-fetch v2 que falla DNS en Node 24/Windows
+const _fetch = globalThis.fetch ?? require('node-fetch');
 
 const BASE = process.env.PANDAPOSS_URL || 'https://pandaposs.com';
 const KEY  = process.env.AGENTE_API_KEY || '';
@@ -10,7 +11,7 @@ function headers() {
 }
 
 async function req(method, path, body) {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await _fetch(`${BASE}${path}`, {
     method,
     headers: headers(),
     ...(body ? { body: JSON.stringify(body) } : {}),
