@@ -92,10 +92,10 @@ const modules: AppModule[] = [
   { label: "Eventos", href: "/eventos", icon: Ticket, color: "bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "operacion", description: "Gestion de eventos y venta de tickets QR.", featureKey: "eventos" },
 ];
 
-const categoryMeta: Record<ModuleCategory, { title: string; subtitle: string }> = {
-  operacion: { title: "Operacion diaria", subtitle: "Lo que se usa durante el servicio." },
-  gestion: { title: "Gestion", subtitle: "Control comercial y administrativo." },
-  configuracion: { title: "Configuracion", subtitle: "Estructura, permisos y extras." },
+const categoryMeta: Record<ModuleCategory, { title: string; subtitle: string; badge: string; badgeColor: string }> = {
+  operacion:     { title: "Operacion diaria", subtitle: "Lo que se usa durante el servicio.", badge: "Operación", badgeColor: "bg-violet-100 text-violet-600" },
+  gestion:       { title: "Gestion",          subtitle: "Control comercial y administrativo.", badge: "Gestión",   badgeColor: "bg-sky-100 text-sky-600" },
+  configuracion: { title: "Configuracion",    subtitle: "Estructura, permisos y extras.",     badge: "Config",    badgeColor: "bg-slate-100 text-slate-500" },
 };
 
 const roleLabels: Record<Rol, string> = {
@@ -117,6 +117,7 @@ interface AppIconCardProps {
   onClick?: () => void;
   // drag props (solo en modo reordenar)
   sortable?: boolean;
+  showCategory?: boolean;
   dragRef?: (node: HTMLElement | null) => void;
   dragStyle?: React.CSSProperties;
   dragAttrs?: React.HTMLAttributes<HTMLElement>;
@@ -124,7 +125,7 @@ interface AppIconCardProps {
   isDragging?: boolean;
 }
 
-function AppIconCard({ mod, active, locked, onClick, sortable, dragRef, dragStyle, dragAttrs, dragListeners, isDragging }: AppIconCardProps) {
+function AppIconCard({ mod, active, locked, onClick, sortable, showCategory, dragRef, dragStyle, dragAttrs, dragListeners, isDragging }: AppIconCardProps) {
   const Icon = mod.icon;
   const inner = (
     <div
@@ -165,7 +166,12 @@ function AppIconCard({ mod, active, locked, onClick, sortable, dragRef, dragStyl
         "w-[88px] text-center text-[12px] font-bold leading-tight drop-shadow-sm",
         locked ? "text-slate-400" : active ? "text-violet-900" : "text-slate-700"
       )}>{mod.label}</p>
-      {sortable && <GripVertical size={11} className="text-slate-400" />}
+      {showCategory && (
+        <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-semibold", categoryMeta[mod.category].badgeColor)}>
+          {categoryMeta[mod.category].badge}
+        </span>
+      )}
+      {sortable && !showCategory && <GripVertical size={11} className="text-slate-400" />}
     </div>
   );
 
@@ -184,6 +190,7 @@ function SortableAppCard({ mod }: { mod: AppModule }) {
     <AppIconCard
       mod={mod}
       sortable
+      showCategory
       dragRef={setNodeRef}
       dragStyle={{ transform: CSS.Transform.toString(transform), transition }}
       dragAttrs={attributes}
