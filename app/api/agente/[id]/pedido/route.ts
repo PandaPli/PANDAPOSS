@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           nombre: cliente.nombre ?? "Cliente WhatsApp",
           telefono: cliente.telefono ?? "",
           direccion: cliente.direccion ?? "",
+          referencia: cliente.referencia ?? undefined,
         },
         metodoPago,
         cargoEnvio: 0,
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const obsLines = [
         `Cliente: ${cliente.nombre ?? "WhatsApp"} (${cliente.telefono ?? ""})`,
         `Pago: ${metodoPago}`,
+        ...(cliente.referencia ? [`Notas: ${cliente.referencia}`] : []),
         ...(unmatchedLines.length > 0 ? [`Items sin ID: ${unmatchedLines.join(", ")}`] : []),
       ];
 

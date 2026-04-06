@@ -5,11 +5,12 @@ const ESTADOS = {
   NUEVO: 'NUEVO',
   SALUDO: 'SALUDO',
   ORDENANDO: 'ORDENANDO',
-  ESPERANDO_OBSERVACION: 'ESPERANDO_OBSERVACION',
+  ESPERANDO_OBSERVACION: 'ESPERANDO_OBSERVACION', // legacy — se mantiene para sesiones antiguas
   RETIRO_O_DELIVERY: 'RETIRO_O_DELIVERY',
   CONFIRMANDO_DIRECCION: 'CONFIRMANDO_DIRECCION',
-  ESPERANDO_PAGO: 'ESPERANDO_PAGO',
+  ESPERANDO_SALSAS: 'ESPERANDO_SALSAS',
   ESPERANDO_PALITOS: 'ESPERANDO_PALITOS',
+  ESPERANDO_PAGO: 'ESPERANDO_PAGO',
   CONFIRMANDO_PEDIDO: 'CONFIRMANDO_PEDIDO',
   COMPLETADO: 'COMPLETADO',
 };
@@ -30,13 +31,13 @@ async function obtenerSesion(agenteId, telefono) {
     sesion = {
       estado: ESTADOS.NUEVO,
       carritoJson: [],
-      contextoJson: { tipoEntrega: null, direccionEntrega: null, metodoPago: null, palitos: null, observacion: null },
+      contextoJson: { tipoEntrega: null, direccionEntrega: null, metodoPago: null, palitos: null, salsas: null },
       historialJson: [],
     };
   } else {
     sesion.estado = sesion.estado || ESTADOS.NUEVO;
     sesion.carritoJson = sesion.carritoJson || [];
-    sesion.contextoJson = sesion.contextoJson || { tipoEntrega: null, direccionEntrega: null, metodoPago: null, palitos: null, observacion: null };
+    sesion.contextoJson = sesion.contextoJson || { tipoEntrega: null, direccionEntrega: null, metodoPago: null, palitos: null, salsas: null };
     sesion.historialJson = sesion.historialJson || [];
   }
   _cache.set(key, { data: sesion, ts: Date.now() });
@@ -86,7 +87,7 @@ async function limpiarSesion(agenteId, telefono) {
   const sesion = {
     estado: ESTADOS.SALUDO,
     carritoJson: [],
-    contextoJson: { tipoEntrega: null, direccionEntrega: null, metodoPago: null, palitos: null, observacion: null },
+    contextoJson: { tipoEntrega: null, direccionEntrega: null, metodoPago: null, palitos: null, salsas: null },
     historialJson: [],
   };
   await guardarSesion(agenteId, telefono, sesion);

@@ -66,6 +66,14 @@ function detectarMetodoPago(texto) {
   return null;
 }
 
+// Construye el string de referencia con salsas + palitos para enviar al KDS
+function buildReferencia(ctx) {
+  const partes = [];
+  if (ctx.salsas) partes.push(`Salsas: ${ctx.salsas}`);
+  if (ctx.palitos) partes.push(`Palitos: ${ctx.palitos}p`);
+  return partes.join(' | ') || null;
+}
+
 // ── Procesador principal ──────────────────────────────────────────────────────
 async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   const sesion   = await obtenerSesion(agenteId, telefono);
@@ -128,7 +136,6 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   if (intencion === INTENCIONES.HACER_PEDIDO || intencion === INTENCIONES.OPCION_PEDIR ||
       sesion.estado === ESTADOS.SALUDO || sesion.estado === ESTADOS.ORDENANDO) {
     const items = extraerItemsPedido(texto);
-    let agregados = 0;
     for (const item of items) {
       const prod = encontrarProducto(item.texto, productos);
       if (prod) {
@@ -137,23 +144,19 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
           precio_unitario: Number(prod.precio),
           cantidad: item.cantidad || 1,
         });
-        agregados++;
       }
     }
     const updatedSesion = await obtenerSesion(agenteId, telefono);
     if (updatedSesion.carritoJson.length > 0) {
-      await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_OBSERVACION);
-      const r = msg('pedirObservacion', updatedSesion.carritoJson);
+      await actualizarEstado(agenteId, telefono, ESTADOS.RETIRO_O_DELIVERY);
+      const r = msg('preguntarEntrega');
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
   }
 
-  // ── ESPERANDO OBSERVACIÓN ─────────────────────────────────────────────────
+  // ── LEGACY: ESPERANDO OBSERVACIÓN (sesiones antiguas) ────────────────────
   if (sesion.estado === ESTADOS.ESPERANDO_OBSERVACION) {
-    const esNo = /^no$|^nada$|^sin obs|^sin nada|^ok$|^oki$|^dale$/i.test(texto.trim());
-    const observacion = esNo ? null : texto.trim();
-    await actualizarContexto(agenteId, telefono, { observacion });
     await actualizarEstado(agenteId, telefono, ESTADOS.RETIRO_O_DELIVERY);
     const r = msg('preguntarEntrega');
     await agregarAlHistorial(agenteId, telefono, 'assistant', r);
@@ -164,9 +167,8 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   if (sesion.estado === ESTADOS.RETIRO_O_DELIVERY) {
     if (intencion === INTENCIONES.RETIRO || /^1$/.test(texto.trim())) {
       await actualizarContexto(agenteId, telefono, { tipoEntrega: 'retiro' });
-      await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PAGO);
-      const totalRetiro = calcularTotal(sesion.carritoJson);
-      const r = msg('preguntarPago', totalRetiro);
+      await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_SALSAS);
+      const r = msg('preguntarSalsas');
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
@@ -177,7 +179,6 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
-    // No entendió — preguntar de nuevo
     const r = msg('preguntarEntrega');
     await agregarAlHistorial(agenteId, telefono, 'assistant', r);
     return r;
@@ -186,9 +187,31 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   // ── CONFIRMANDO DIRECCIÓN ─────────────────────────────────────────────────
   if (sesion.estado === ESTADOS.CONFIRMANDO_DIRECCION) {
     await actualizarContexto(agenteId, telefono, { direccionEntrega: texto.trim() });
+    await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_SALSAS);
+    const r = msg('preguntarSalsas');
+    await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+    return r;
+  }
+
+  // ── ESPERANDO SALSAS ──────────────────────────────────────────────────────
+  if (sesion.estado === ESTADOS.ESPERANDO_SALSAS) {
+    const esNo = /^no$|^nada$|^sin salsa|^sin nada|^ok$|^oki$|^dale$/i.test(texto.trim());
+    const salsas = esNo ? null : texto.trim();
+    await actualizarContexto(agenteId, telefono, { salsas });
+    await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PALITOS);
+    const r = msg('preguntarPalitos');
+    await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+    return r;
+  }
+
+  // ── ESPERANDO PALITOS ─────────────────────────────────────────────────────
+  if (sesion.estado === ESTADOS.ESPERANDO_PALITOS) {
+    const esNo = /^no$|^nada$|^sin palito|^sin nada|^ok$|^oki$|^dale$|^0$/i.test(texto.trim());
+    const palitos = esNo ? null : (extraerNumero(texto) ?? texto.trim());
+    await actualizarContexto(agenteId, telefono, { palitos });
     await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PAGO);
-    const totalDelivery = calcularTotal(sesion.carritoJson);
-    const r = msg('preguntarPago', totalDelivery);
+    const total = calcularTotal(sesion.carritoJson);
+    const r = msg('preguntarPago', total);
     await agregarAlHistorial(agenteId, telefono, 'assistant', r);
     return r;
   }
@@ -198,50 +221,36 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
     const metodoPago = detectarMetodoPago(texto);
     if (metodoPago) {
       await actualizarContexto(agenteId, telefono, { metodoPago });
+      const updSesion = await obtenerSesion(agenteId, telefono);
+      const ctx = updSesion.contextoJson;
 
-      // Si es transferencia → mostrar datos bancarios
       if (metodoPago === 'Transferencia') {
-        await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PALITOS);
-        const ctx = sesion.contextoJson;
-        const respPago = msg('datosBancarios');
-        await agregarAlHistorial(agenteId, telefono, 'assistant', respPago);
-        await new Promise(r => setTimeout(r, 500));
-        // Si es retiro preguntamos palitos después, si delivery pasamos a confirmar
-        if (ctx.tipoEntrega === 'retiro') {
-          const r2 = msg('preguntarPalitos');
-          await agregarAlHistorial(agenteId, telefono, 'assistant', r2);
-          return `${respPago}\n\n${r2}`;
-        }
-        // delivery: ir a confirmar
+        // Mostrar datos bancarios y luego la confirmación del pedido
         await actualizarEstado(agenteId, telefono, ESTADOS.CONFIRMANDO_PEDIDO);
-        const updSesion = await obtenerSesion(agenteId, telefono);
-        const r2 = msg('confirmarPedido',
+        const respBanco = msg('datosBancarios');
+        const respConf  = msg('confirmarPedido',
           updSesion.carritoJson,
           calcularTotal(updSesion.carritoJson),
-          updSesion.contextoJson.tipoEntrega,
-          updSesion.contextoJson.direccionEntrega,
-          metodoPago, null);
-        await agregarAlHistorial(agenteId, telefono, 'assistant', r2);
-        return `${respPago}\n\n${r2}`;
+          ctx.tipoEntrega,
+          ctx.direccionEntrega,
+          metodoPago,
+          ctx.palitos,
+          ctx.salsas);
+        await agregarAlHistorial(agenteId, telefono, 'assistant', respBanco);
+        await agregarAlHistorial(agenteId, telefono, 'assistant', respConf);
+        return `${respBanco}\n\n${respConf}`;
       }
 
-      // Si es retiro → preguntar palitos
-      if (sesion.contextoJson.tipoEntrega === 'retiro') {
-        await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_PALITOS);
-        const r = msg('preguntarPalitos');
-        await agregarAlHistorial(agenteId, telefono, 'assistant', r);
-        return r;
-      }
-
-      // Delivery → confirmar pedido
+      // Efectivo / Débito → directo a confirmar
       await actualizarEstado(agenteId, telefono, ESTADOS.CONFIRMANDO_PEDIDO);
-      const updSesion = await obtenerSesion(agenteId, telefono);
       const r = msg('confirmarPedido',
         updSesion.carritoJson,
         calcularTotal(updSesion.carritoJson),
-        updSesion.contextoJson.tipoEntrega,
-        updSesion.contextoJson.direccionEntrega,
-        metodoPago, null);
+        ctx.tipoEntrega,
+        ctx.direccionEntrega,
+        metodoPago,
+        ctx.palitos,
+        ctx.salsas);
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
@@ -251,47 +260,39 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
     return r;
   }
 
-  // ── ESPERANDO PALITOS ─────────────────────────────────────────────────────
-  if (sesion.estado === ESTADOS.ESPERANDO_PALITOS) {
-    const palitos = extraerNumero(texto) ?? texto.trim();
-    await actualizarContexto(agenteId, telefono, { palitos });
-    await actualizarEstado(agenteId, telefono, ESTADOS.CONFIRMANDO_PEDIDO);
-    const updSesion = await obtenerSesion(agenteId, telefono);
-    const r = msg('confirmarPedido',
-      updSesion.carritoJson,
-      calcularTotal(updSesion.carritoJson),
-      updSesion.contextoJson.tipoEntrega,
-      updSesion.contextoJson.direccionEntrega,
-      updSesion.contextoJson.metodoPago,
-      palitos);
-    await agregarAlHistorial(agenteId, telefono, 'assistant', r);
-    return r;
-  }
-
   // ── CONFIRMAR PEDIDO ──────────────────────────────────────────────────────
   if (sesion.estado === ESTADOS.CONFIRMANDO_PEDIDO && intencion === INTENCIONES.CONFIRMAR) {
     try {
       const ctx = sesion.contextoJson;
+      const referencia = buildReferencia(ctx);
+
       await api.crearPedido(agenteId, {
         items: sesion.carritoJson.map(i => ({
           nombre: i.nombre_producto,
           precio: i.precio_unitario,
           cantidad: i.cantidad,
         })),
-        cliente: { telefono, nombre: cliente?.nombre, direccion: ctx.direccionEntrega },
+        cliente: {
+          telefono,
+          nombre: cliente?.nombre,
+          direccion: ctx.direccionEntrega,
+          referencia,
+        },
         tipoEntrega: ctx.tipoEntrega ?? 'retiro',
         metodoPago: ctx.metodoPago === 'Efectivo' ? 'EFECTIVO'
           : ctx.metodoPago === 'Transferencia' ? 'TRANSFERENCIA'
           : ctx.metodoPago === 'Débito' ? 'TARJETA' : 'EFECTIVO',
         total: calcularTotal(sesion.carritoJson),
       });
-      // Guardar dirección si es delivery
+
+      // Guardar dirección del cliente si es delivery
       if (ctx.direccionEntrega && ctx.tipoEntrega === 'delivery') {
         api.upsertCliente(agenteId, {
           telefono,
           direccion: { direccion: ctx.direccionEntrega },
         }).catch(() => {});
       }
+
       await limpiarSesion(agenteId, telefono);
       const r = msg('pedidoEnviado');
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);

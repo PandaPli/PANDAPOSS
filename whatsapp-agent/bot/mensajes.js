@@ -15,20 +15,15 @@ const MSGS = {
   verMenu: () =>
     `Aquí nuestra carta 🍣 👉 pandaposs.com/pedir/BamPai`,
 
-  pedidoRecibido: (carrito) => {
-    const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
-    return `Okis! Tengo anotado 🐼:\n${lista}\n\n¿Lo pedimos para *delivery* o *retiro* en el local? 🛵🏪`;
-  },
-
-  pedirObservacion: (carrito) => {
-    const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
-    return `Anotado! 🐼\n${lista}\n\n¿Alguna observación? (salsas, sin alga, sin picante, etc.)\nO escribe *no* para continuar 👇`;
-  },
-
   preguntarEntrega: () =>
     `¿Cómo lo quieres? 🐼\n*1* - Retiro en Aromos 371\n*2* - Delivery (te lo llevamos)`,
 
   pedirDireccion: () => `¿A qué dirección te lo enviamos? 📍`,
+
+  preguntarSalsas: () =>
+    `🫙 ¿Quieres agregarle salsas?\n(ej: soya, teriyaki, spicy, mayo)\nO escribe *no* para continuar`,
+
+  preguntarPalitos: () => `🥢 ¿Palitos para cuántas personas?`,
 
   preguntarPago: (total) => total
     ? `Serian un total de *$${Number(total).toLocaleString('es-CL')}* 💰\n¿Cómo pagás? *Efectivo* · *Transferencia* · *Débito*`
@@ -37,20 +32,43 @@ const MSGS = {
   datosBancarios: () =>
     `Transferencia a 👇\n• N° cuenta: *1022193723*\n• Rut: *767871538*\n• Banco: Mercado Pago\n• Tipo: Vista\n• Titular: Panda Gastronómico\n\nEnvíanos el comprobante 📸`,
 
-  preguntarPalitos: () => `🥢 palitos para cuántas personas va a necesitar?`,
+  confirmarPedido: (carrito, total, tipoEntrega, direccion, pago, palitos, salsas) => {
+    const fmt = (n) => `$${Number(n).toLocaleString('es-CL')}`;
+    const lista = carrito.map(i => {
+      const subtotal = fmt(Number(i.precio_unitario) * Number(i.cantidad));
+      return `• ${i.nombre_producto} x${i.cantidad} — ${subtotal}`;
+    }).join('\n');
 
-  confirmarPedido: (carrito, total, tipoEntrega, direccion, pago, palitos) => {
-    const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
     const entrega = tipoEntrega === 'retiro'
       ? `🏪 Retiro en Aromos 371`
       : `🛵 Delivery a ${direccion}`;
-    const palosTexto = palitos ? `\n🥢 Palitos para: ${palitos} personas` : '';
-    return `Confirmemos tu pedido 🐼:\n${lista}\n\nTotal: *$${Number(total).toLocaleString('es-CL')}*\n${entrega}\nPago: *${pago || 'a confirmar'}*${palosTexto}\n\n¿Confirmamos? Responde *sí* ✅`;
+
+    const extras = [];
+    if (salsas) extras.push(`🫙 Salsas: ${salsas}`);
+    if (palitos) extras.push(`🥢 Palitos para: ${palitos} personas`);
+
+    return [
+      `*Mi pedido es:*\n`,
+      lista,
+      ``,
+      entrega,
+      `💳 ${pago || 'a confirmar'}`,
+      extras.length ? extras.join('\n') : null,
+      ``,
+      `*Total: ${fmt(total)}*`,
+      ``,
+      `¿Confirmamos? Responde *sí* ✅`,
+    ].filter(l => l !== null).join('\n');
   },
 
+  // Mensaje inmediato al cliente tras confirmar (antes de que el humano acepte)
   pedidoEnviado: () =>
-    [`✅ *ATENCION estamos haciendo tu pedido* 🐼❤️\nTe avisamos cuando esté listo!`,
-     `Maraviloso!! 🐼❤️ *estamos preparando tu pedido*\nTe avisamos cuando esté listo para retiro/despacho!`],
+    [`Recibimos tu pedido! 🐼❤️ En breve lo confirmamos, gracias por tu paciencia.`,
+     `Anotado! 🐼 Estamos revisando tu pedido y te avisamos en un momento.`],
+
+  // Mensaje que llega al cliente CUANDO el humano acepta desde el panel
+  pedidoAceptado: () =>
+    `¡Aceptamos tu pedido! 🐼❤️ Estamos preparándolo, te avisamos cuando esté listo.`,
 
   agradecimiento: () =>
     [`Okis! 🐼❤️`, `Con gusto *#BamPaiLovers*! 🐼`, `Siempre! 🐼❤️`],

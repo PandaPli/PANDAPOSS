@@ -133,6 +133,21 @@ async function iniciarAgente(agente) {
       }
     }
   });
+
+  // ── Poller: mensajes salientes (humano confirmó pedido) ───────────────────
+  const notifInterval = setInterval(async () => {
+    const sock2 = instances.get(agenteId);
+    if (!sock2) { clearInterval(notifInterval); return; }
+    try {
+      const data = await api.getMensajesPendientes(agenteId);
+      const mensajes = data?.mensajes ?? [];
+      for (const { telefono, mensaje, pedidoId } of mensajes) {
+        const jid = `${telefono}@s.whatsapp.net`;
+        await sock2.sendMessage(jid, { text: mensaje });
+        console.log(`[WA ${agenteId}] ✅ Ack enviado a ${telefono} (pedido #${pedidoId})`);
+      }
+    } catch { /* no crítico */ }
+  }, 30_000);
 }
 
 async function detenerAgente(agenteId) {

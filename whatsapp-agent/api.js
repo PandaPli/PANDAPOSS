@@ -42,4 +42,7 @@ module.exports = {
 
   // Pedidos
   crearPedido: (agenteId, data) => req('POST', `/api/agente/${agenteId}/pedido`, data),
+
+  // Notificaciones WhatsApp salientes (mensajes para enviar al cliente)
+  getMensajesPendientes: (agenteId) => req('GET', `/api/agente/${agenteId}/notificar`),
 };
