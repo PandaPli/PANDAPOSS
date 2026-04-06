@@ -1,9 +1,16 @@
 "use client";
 
-import { CheckCircle2, Clock, UtensilsCrossed, Loader2, Bell, Printer } from "lucide-react";
+import { CheckCircle2, Clock, UtensilsCrossed, Loader2, Bell, Printer, Bot } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
 import { useState } from "react";
+
+function detectarOrigen(pedido: PedidoConDetalles): "chatbot" | "mesa" | "pos" {
+  if (pedido.delivery?.zonaDelivery === "WhatsApp") return "chatbot";
+  if (pedido.observacion?.includes("[WSP]")) return "chatbot";
+  if (pedido.mesa) return "mesa";
+  return "pos";
+}
 
 interface OrderCardProps {
   pedido: PedidoConDetalles;
@@ -170,6 +177,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
 
   const siguiente = nextEstado[pedido.estado];
   const tiempoStr = timeAgo(pedido.creadoEn);
+  const origen = detectarOrigen(pedido);
 
   let customerName = "";
   let cleanObservation = pedido.observacion || "";
@@ -189,11 +197,13 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       cleanObservation = notes.join(" | ");
     } catch (e) {}
   } else if (cleanObservation) {
-    const match = cleanObservation.match(/Cliente:\s*([^,\n]+)/i);
+    // Limpiar tag [WSP] de pedidos WhatsApp
+    cleanObservation = cleanObservation.replace(/\[WSP\]\s*\|?\s*/g, "").trim();
+    const match = cleanObservation.match(/Cliente:\s*([^,\n|]+)/i);
     if (match) {
-      customerName = match[1].trim();
+      customerName = match[1].replace(/\(.*?\)/, "").trim();
       cleanObservation = cleanObservation.replace(match[0], "").trim();
-      cleanObservation = cleanObservation.replace(/^[-,\s]+|[-,\s]+$/g, "");
+      cleanObservation = cleanObservation.replace(/^[-|,\s]+|[-|,\s]+$/g, "");
     }
   }
 
@@ -220,8 +230,17 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
   return (
     <div className={cn(
       "card p-0 overflow-hidden animate-fade-in",
-      pedido.meseroLlamado && "ring-2 ring-amber-400"
+      pedido.meseroLlamado && "ring-2 ring-amber-400",
+      origen === "chatbot" && "ring-2 ring-emerald-400"
     )}>
+      {/* Banner ChatBot WhatsApp */}
+      {origen === "chatbot" && (
+        <div className="flex items-center gap-1.5 bg-emerald-500 px-3 py-1 text-white text-xs font-bold">
+          <Bot size={12} />
+          🐼 ChatBot WhatsApp
+        </div>
+      )}
+
       {/* Banner llamada al mesero */}
       {pedido.meseroLlamado && (
         <div className="flex items-center gap-1.5 bg-amber-400 px-3 py-1 text-white text-xs font-bold">

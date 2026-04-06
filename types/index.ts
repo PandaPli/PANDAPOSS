@@ -122,6 +122,7 @@ export interface PedidoConDetalles {
   mesa?: { nombre: string } | null;
   usuario: { nombre: string };
   repartidor?: { nombre: string } | null;
+  delivery?: { zonaDelivery?: string | null } | null;
   detalles: {
     id: number;
     cantidad: number;

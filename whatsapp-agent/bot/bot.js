@@ -12,6 +12,7 @@ const TEST = process.env.TEST_MODE === 'true';
 // ── Horario BamPai ────────────────────────────────────────────────────────────
 // Lunes: cerrado | Mar-Jue: 12-23 | Vie-Sáb: 12-00 | Dom: 12-18
 function estaAbierto() {
+  if (TEST) return true; // TEST_MODE ignora horario
   const ahora = new Date();
   const dia  = ahora.getDay(); // 0=dom, 1=lun, ..., 6=sáb
   const mins = ahora.getHours() * 60 + ahora.getMinutes();
@@ -262,6 +263,8 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
 
   // ── CONFIRMAR PEDIDO ──────────────────────────────────────────────────────
   if (sesion.estado === ESTADOS.CONFIRMANDO_PEDIDO && intencion === INTENCIONES.CONFIRMAR) {
+    // Bloquear estado ANTES de crear → evita doble pedido si llegan dos "si" rápido
+    await actualizarEstado(agenteId, telefono, ESTADOS.COMPLETADO);
     try {
       const ctx = sesion.contextoJson;
       const referencia = buildReferencia(ctx);

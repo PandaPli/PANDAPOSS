@@ -88,6 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       // Build observacion: include client name, payment method, and any unmatched items
       const obsLines = [
+        `[WSP]`,
         `Cliente: ${cliente.nombre ?? "WhatsApp"} (${cliente.telefono ?? ""})`,
         `Pago: ${metodoPago}`,
         ...(cliente.referencia ? [`Notas: ${cliente.referencia}`] : []),

@@ -23,6 +23,7 @@ export const PedidoRepo = {
         mesa: { select: { nombre: true } },
         usuario: { select: { nombre: true } },
         repartidor: { select: { nombre: true } },
+        delivery: { select: { zonaDelivery: true } },
         detalles: {
           include: {
             producto: { select: { nombre: true } },
