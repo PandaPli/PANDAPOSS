@@ -98,26 +98,38 @@ async function iniciarAgente(agente) {
     }
   });
 
+  const TEST = process.env.TEST_MODE === 'true';
+
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (TEST) console.log(`[TEST][WA ${agenteId}] upsert type=${type} msgs=${messages.length}`);
     if (type !== 'notify') return;
     for (const msg of messages) {
+      if (TEST) console.log(`[TEST][WA ${agenteId}] fromMe=${msg.key.fromMe} jid=${msg.key.remoteJid}`);
       if (msg.key.fromMe) continue;
-      if (!msg.key.remoteJid?.endsWith('@s.whatsapp.net')) continue; // skip groups
+      const jid = msg.key.remoteJid ?? '';
+      // Aceptar @s.whatsapp.net y @lid (nuevo formato WhatsApp LID)
+      const isIndividual = jid.endsWith('@s.whatsapp.net') || jid.endsWith('@lid');
+      if (!isIndividual) continue; // skip groups y broadcasts
 
       const texto = await extraerTexto(msg);
+      if (TEST) console.log(`[TEST][WA ${agenteId}] texto extraído:`, texto);
       if (!texto || texto.trim().length === 0) continue;
 
-      const telefono = msg.key.remoteJid.replace('@s.whatsapp.net', '');
-      console.log(`[WA ${agenteId}] Msg de ${telefono}: ${texto.slice(0, 60)}`);
+      // Extraer número de teléfono: preferir participant (en LID), sino el jid
+      const rawId = msg.key.participant ?? jid;
+      const telefono = rawId.replace(/@s\.whatsapp\.net|@lid/, '');
+      console.log(`[WA ${agenteId}] Msg de ${telefono}: ${texto.slice(0, 80)}`);
 
       try {
         await sock.sendPresenceUpdate('composing', msg.key.remoteJid);
         const respuesta = await procesarMensaje({ agenteId, sucursal, telefono, texto });
+        if (TEST) console.log(`[TEST][WA ${agenteId}] respuesta:`, respuesta?.slice(0, 120));
         if (respuesta) {
           await sock.sendMessage(msg.key.remoteJid, { text: respuesta });
+          console.log(`[WA ${agenteId}] → enviado a ${telefono}`);
         }
       } catch (e) {
-        console.error(`[WA ${agenteId}] Error procesando mensaje:`, e.message);
+        console.error(`[WA ${agenteId}] Error procesando mensaje:`, e.message, e.stack?.split('\n')[1]);
       }
     }
   });
