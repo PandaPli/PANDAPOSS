@@ -1,35 +1,60 @@
-// mensajes.js — Plantillas de respuesta genéricas
+// mensajes.js — Personalidad BamPai Sushi 🐼❤️
+'use strict';
+
 const MSGS = {
   bienvenida: (nombre) => nombre
-    ? [`Hola ${nombre}! 👋 Qué gusto verte de nuevo. ¿Qué se te antoja hoy? 😊`]
-    : [`Hola! 👋 Bienvenid@ ¿En qué te puedo ayudar hoy?`, `Hola! 😊 ¿Qué se te antoja hoy?`],
+    ? `Hola ${nombre}! 🐼❤️ qué gusto verte de nuevo *#BamPaiLovers*! ¿Qué se te antoja hoy?`
+    : `Hola! Bienvenid@ a *BamPai Sushi* 🐼❤️\n¿En qué te puedo ayudar?`,
 
-  verMenu: (menuUrl) => menuUrl
-    ? `Aquí puedes ver nuestro menú completo 👉 ${menuUrl}`
-    : `¿Qué se te antoja? Cuéntame qué buscas y te ayudo 😊`,
+  cerrado: () =>
+    `(ZzZzZzZ pandita duerme) 😴\nHola *#BamPaiLovers* Por el Momento no estamos Disponibles.\nAgradecemos tu preferencia, te avisaremos apenas abramos nuestras puertas 🐼❤️`,
+
+  horario: () =>
+    `Nuestro horario ⏰:\n• Lunes: *Cerrado*\n• Mar-Jue: 12:00 – 23:00\n• Vie-Sáb: 12:00 – 00:00\n• Dom: 12:00 – 18:00`,
+
+  verMenu: () =>
+    `Aquí nuestra carta 🍣 👉 pandaposs.com/pedir/BamPai`,
 
   pedidoRecibido: (carrito) => {
-    const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto} — $${Number(i.precio_unitario * i.cantidad).toLocaleString('es-CL')}`).join('\n');
-    return `Perfecto! Tengo anotado:\n${lista}\n\n¿Lo pedimos para delivery o retiro en el local? 🛵🏪`;
+    const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
+    return `Okis! Tengo anotado 🐼:\n${lista}\n\n¿Lo pedimos para *delivery* o *retiro* en el local? 🛵🏪`;
   },
 
-  preguntarEntrega: () => `¿Cómo lo quieres?\n1️⃣ Delivery (te lo llevamos)\n2️⃣ Retiro en el local`,
+  pedirObservacion: (carrito) => {
+    const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
+    return `Anotado! 🐼\n${lista}\n\n¿Alguna observación? (envolturas, salsas, sin picante, etc.)\nO escribe *no* para continuar 👇`;
+  },
+
+  preguntarEntrega: () =>
+    `¿Cómo lo quieres? 🐼\n*1* - Retiro en Aromos 371\n*2* - Delivery (te lo llevamos)`,
 
   pedirDireccion: () => `¿A qué dirección te lo enviamos? 📍`,
 
-  confirmarPedido: (carrito, total, tipoEntrega, direccion) => {
+  preguntarPago: () =>
+    `Okis! ¿Método de pago? 💳\n*Efectivo* · *Transferencia* · *Débito*`,
+
+  datosBancarios: () =>
+    `Transferencia a 👇\n• N° cuenta: *1022193723*\n• Rut: *767871538*\n• Banco: Mercado Pago\n• Tipo: Vista\n• Titular: Panda Gastronómico\n\nEnvíanos el comprobante 📸`,
+
+  preguntarPalitos: () => `🥢 palitos para cuántas personas va a necesitar?`,
+
+  confirmarPedido: (carrito, total, tipoEntrega, direccion, pago, palitos) => {
     const lista = carrito.map(i => `• ${i.cantidad}x ${i.nombre_producto}`).join('\n');
-    const entrega = tipoEntrega === 'retiro' ? '🏪 Retiro en local' : `🛵 Delivery a ${direccion}`;
-    return `Confirmemos tu pedido:\n${lista}\n\nTotal: $${Number(total).toLocaleString('es-CL')}\n${entrega}\n\n¿Confirmamos? Responde *SÍ* para enviar ✅`;
+    const entrega = tipoEntrega === 'retiro'
+      ? `🏪 Retiro en Aromos 371`
+      : `🛵 Delivery a ${direccion}`;
+    const palosTexto = palitos ? `\n🥢 Palitos para: ${palitos} personas` : '';
+    return `Confirmemos tu pedido 🐼:\n${lista}\n\nTotal: *$${Number(total).toLocaleString('es-CL')}*\n${entrega}\nPago: *${pago || 'a confirmar'}*${palosTexto}\n\n¿Confirmamos? Responde *sí* ✅`;
   },
 
-  pedidoEnviado: () => `✅ Pedido confirmado! Ya lo estamos preparando. Te avisamos cuando esté listo 🍽️`,
+  pedidoEnviado: () =>
+    `✅ *ATENCION estamos haciendo tu pedido* 🐼❤️\nTe avisamos cuando esté listo!`,
 
-  noEntendido: () => [`No entendí bien, ¿me lo puedes repetir?`, `Hmm, ¿podrías decirme eso de otra forma?`],
+  agradecimiento: () =>
+    [`Okis! 🐼❤️`, `Con gusto *#BamPaiLovers*! 🐼`, `Siempre! 🐼❤️`],
 
-  horarioCerrado: (msg) => msg || `Por ahora estamos cerrados. Te esperamos pronto! 🕐`,
-
-  carritoVacio: () => `Tu carrito está vacío. ¿Qué te gustaría pedir? 😊`,
+  noEntendido: () =>
+    [`Hmm no te entendí bien, ¿me lo repites? 🐼`, `¿Cómo así? cuéntame más 😊`],
 };
 
 function random(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
