@@ -70,6 +70,32 @@ const MSGS = {
   pedidoAceptado: () =>
     `¡Aceptamos tu pedido! 🐼❤️ Estamos preparándolo, te avisamos cuando esté listo.`,
 
+  // ── TABLAS ──────────────────────────────────────────────────────────────────
+  tablaInicio: (piezas, schema) => {
+    const lineas = [`Perfecto para pedir tu *tabla ${piezas}* 🍣 tienes que escoger:`];
+    lineas.push(`• 1 *Avocado*`);
+    lineas.push(`• 1 *California* ← necesito 2 datos:`);
+    lineas.push(`  🌯 *Envoltorio* (incluido): sésamo · Ciboulet · Merkén · Amapola · CocoMerkén`);
+    lineas.push(`  _(cambiar a otro envoltorio: +$3.000)_`);
+    lineas.push(`  🥗 *Relleno*: tori(pollo) · sake(salmón) · ebi(camarón) · fungi(champiñón) · kani(kanikama) · Aceitunas · Palmito · Choclo · Almendras · Palta`);
+    if (schema.chesse)    lineas.push(`• 1 *Chesse Creme*`);
+    if (schema.sake)      lineas.push(`• 1 *Sake*`);
+    if (schema.hosomaki)  lineas.push(`• 1 *Hosomaki*`);
+    if (schema.futomaki)  lineas.push(`• 1 *Futomaki*`);
+    if (schema.hotrolls)  lineas.push(`• ${schema.hotrolls} *HotRolls*`);
+    lineas.push(`\nEjemplo: _"sésamo con salmón"_ 👇`);
+    return lineas.join('\n');
+  },
+
+  tablaFaltaEnvoltorio: () =>
+    `¿Con qué envoltorio quieres el California? 🌯\n_sésamo · Ciboulet · Merkén · Amapola · CocoMerkén_`,
+
+  tablaFaltaRelleno: (envoltorio) =>
+    `Okis ${envoltorio}! 🐼 ¿Y el relleno del California? 🥗\n_tori(pollo) · sake(salmón) · ebi(camarón) · fungi(champiñón) · kani(kanikama) · Aceitunas · Palmito · Choclo · Almendras · Palta_`,
+
+  tablaCaliforniaOk: (piezas, envoltorio, relleno) =>
+    `Okis! 🐼 *Tabla ${piezas}* con California *${envoltorio}* + *${relleno}*. Anotado!\n¿Algo más o continuamos con el pedido?`,
+
   agradecimiento: () =>
     [`Okis! 🐼❤️`, `Con gusto *#BamPaiLovers*! 🐼`, `Siempre! 🐼❤️`],
 

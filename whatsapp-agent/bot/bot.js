@@ -67,6 +67,98 @@ function detectarMetodoPago(texto) {
   return null;
 }
 
+// ── Configuración de tablas BamPai ────────────────────────────────────────────
+const TABLAS = {
+  20:  { avocado: 1, calif: 1, chesse: 0, sake: 0, hosomaki: 0, futomaki: 0, hotrolls: 0 },
+  30:  { avocado: 1, calif: 1, chesse: 0, sake: 0, hosomaki: 0, futomaki: 0, hotrolls: 1 },
+  40:  { avocado: 1, calif: 1, chesse: 1, sake: 0, hosomaki: 0, futomaki: 0, hotrolls: 1 },
+  50:  { avocado: 1, calif: 1, chesse: 1, sake: 0, hosomaki: 0, futomaki: 0, hotrolls: 2 },
+  60:  { avocado: 1, calif: 1, chesse: 1, sake: 0, hosomaki: 0, futomaki: 0, hotrolls: 3 },
+  70:  { avocado: 1, calif: 1, chesse: 1, sake: 0, hosomaki: 0, futomaki: 0, hotrolls: 4 },
+  80:  { avocado: 1, calif: 1, chesse: 1, sake: 0, hosomaki: 0, futomaki: 1, hotrolls: 4 },
+  101: { avocado: 1, calif: 1, chesse: 1, sake: 1, hosomaki: 1, futomaki: 1, hotrolls: 4 },
+};
+
+function detectarTabla(texto) {
+  const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const match = t.match(/tabla\s*(?:bampai\s*)?(\d+)/);
+  if (!match) return null;
+  const piezas = parseInt(match[1], 10);
+  return TABLAS[piezas] ? piezas : null;
+}
+
+function detectarEnvolturaCalif(texto) {
+  const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/sesamo/.test(t))        return 'Sésamo';
+  if (/ciboulet/.test(t))      return 'Ciboulet';
+  if (/coco.?merken/.test(t))  return 'CocoMerkén';
+  if (/merken/.test(t))        return 'Merkén';
+  if (/amapola/.test(t))       return 'Amapola';
+  return null;
+}
+
+function detectarRellenoCalif(texto) {
+  const t = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/\btori\b|pollo/.test(t))               return 'Tori (pollo)';
+  if (/\bsake\b|salmon|salmón/.test(t))       return 'Sake (salmón)';
+  if (/\bebi\b|camaron|camarón/.test(t))      return 'Ebi (camarón)';
+  if (/\bfungi\b|champinon|champiñon/.test(t))return 'Fungi (champiñón)';
+  if (/\bkani\b|kanikama/.test(t))            return 'Kani (kanikama)';
+  if (/aceituna/.test(t))                     return 'Aceitunas';
+  if (/palmito/.test(t))                      return 'Palmito';
+  if (/choclo/.test(t))                       return 'Choclo';
+  if (/almendra/.test(t))                     return 'Almendras';
+  if (/palta|aguacate/.test(t))               return 'Palta';
+  return null;
+}
+
+// Agrega items de la tabla al carrito con sus observaciones
+async function agregarTablaAlCarrito(agenteId, telefono, piezas, envoltorio, relleno, productos) {
+  const schema = TABLAS[piezas];
+  if (!schema) return;
+  const obsCalif = `${envoltorio} + ${relleno}`;
+
+  // Buscar "tabla X" como producto en catálogo (fallback: nombre libre)
+  const tablaKey = `tabla ${piezas}`;
+  const tablaProducto = productos.find(p =>
+    p.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(tablaKey)
+  );
+
+  if (tablaProducto) {
+    // Producto único "Tabla N" con observacion del envoltorio + relleno
+    await agregarAlCarrito(agenteId, telefono, {
+      nombre_producto: tablaProducto.nombre,
+      precio_unitario: Number(tablaProducto.precio),
+      cantidad: 1,
+      observacion: `California: ${obsCalif}`,
+    });
+  } else {
+    // No existe como producto → agregar piezas individuales
+    const agregar = async (nombreBuscar, cantidad, obs) => {
+      const prod = productos.find(p => {
+        const n = p.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const k = nombreBuscar.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return n.includes(k);
+      });
+      if (prod) {
+        await agregarAlCarrito(agenteId, telefono, {
+          nombre_producto: prod.nombre,
+          precio_unitario: Number(prod.precio),
+          cantidad,
+          observacion: obs || null,
+        });
+      }
+    };
+    if (schema.avocado)   await agregar('avocado',      schema.avocado,  null);
+    if (schema.calif)     await agregar('california',   schema.calif,    obsCalif);
+    if (schema.chesse)    await agregar('chesse creme', schema.chesse,   null);
+    if (schema.sake)      await agregar('sake',         schema.sake,     null);
+    if (schema.hosomaki)  await agregar('hosomaki',     schema.hosomaki, null);
+    if (schema.futomaki)  await agregar('futomaki',     schema.futomaki, null);
+    if (schema.hotrolls)  await agregar('hot',          schema.hotrolls, null);
+  }
+}
+
 // Construye el string de referencia con salsas + palitos para enviar al KDS
 function buildReferencia(ctx) {
   const partes = [];
@@ -136,6 +228,18 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   // ── HACER PEDIDO (desde cualquier estado) ─────────────────────────────────
   if (intencion === INTENCIONES.HACER_PEDIDO || intencion === INTENCIONES.OPCION_PEDIR ||
       sesion.estado === ESTADOS.SALUDO || sesion.estado === ESTADOS.ORDENANDO) {
+
+    // — Detectar TABLA primero (tiene flujo especial de preguntas) —
+    const piezasTabla = detectarTabla(texto);
+    if (piezasTabla) {
+      await actualizarContexto(agenteId, telefono, { tablaActiva: piezasTabla });
+      await actualizarEstado(agenteId, telefono, ESTADOS.ARMANDO_TABLA);
+      const r = msg('tablaInicio', piezasTabla, TABLAS[piezasTabla]);
+      await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+      return r;
+    }
+
+    // — Productos normales —
     const items = extraerItemsPedido(texto);
     for (const item of items) {
       const prod = encontrarProducto(item.texto, productos);
@@ -154,6 +258,57 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
+  }
+
+  // ── ARMANDO TABLA (esperando envoltorio + relleno del California) ──────────
+  if (sesion.estado === ESTADOS.ARMANDO_TABLA) {
+    const ctx  = sesion.contextoJson;
+    const piezas = ctx.tablaActiva;
+
+    // Mencionó otra tabla → nueva tabla (reemplaza la actual)
+    const nuevaPiezas = detectarTabla(texto);
+    if (nuevaPiezas && nuevaPiezas !== piezas) {
+      await actualizarContexto(agenteId, telefono, { tablaActiva: nuevaPiezas, tablaEnvoltorio: null, tablaRelleno: null });
+      const r = msg('tablaInicio', nuevaPiezas, TABLAS[nuevaPiezas]);
+      await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+      return r;
+    }
+
+    // Detectar datos recibidos en este mensaje
+    const envoltorio = detectarEnvolturaCalif(texto) ?? ctx.tablaEnvoltorio ?? null;
+    const relleno    = detectarRellenoCalif(texto)   ?? ctx.tablaRelleno   ?? null;
+
+    // Guardar lo que se tenga hasta ahora
+    await actualizarContexto(agenteId, telefono, { tablaEnvoltorio: envoltorio, tablaRelleno: relleno });
+
+    // ¿Tenemos ambos datos?
+    if (envoltorio && relleno) {
+      await agregarTablaAlCarrito(agenteId, telefono, piezas, envoltorio, relleno, productos);
+      await actualizarContexto(agenteId, telefono, { tablaActiva: null, tablaEnvoltorio: null, tablaRelleno: null });
+
+      // Agregar otros items mencionados en el mismo mensaje
+      for (const item of extraerItemsPedido(texto)) {
+        const prod = encontrarProducto(item.texto, productos);
+        if (prod) await agregarAlCarrito(agenteId, telefono, { nombre_producto: prod.nombre, precio_unitario: Number(prod.precio), cantidad: item.cantidad || 1 });
+      }
+
+      await actualizarEstado(agenteId, telefono, ESTADOS.ORDENANDO);
+      const r = msg('tablaCaliforniaOk', piezas, envoltorio, relleno);
+      await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+      return r;
+    }
+
+    // Falta el envoltorio → preguntar
+    if (!envoltorio) {
+      const r = msg('tablaFaltaEnvoltorio');
+      await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+      return r;
+    }
+
+    // Falta el relleno → preguntar
+    const r = msg('tablaFaltaRelleno', envoltorio);
+    await agregarAlHistorial(agenteId, telefono, 'assistant', r);
+    return r;
   }
 
   // ── LEGACY: ESPERANDO OBSERVACIÓN (sesiones antiguas) ────────────────────
