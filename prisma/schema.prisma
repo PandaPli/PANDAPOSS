@@ -674,8 +674,10 @@ model PedidoDelivery {
   lat            Float?
   lng            Float?
   costoEnvio     Decimal          @db.Decimal(10, 2)
+  pagoRider      Decimal?         @db.Decimal(10, 2)
   zonaDelivery   String?          @db.VarChar(100)
   tiempoEstimado Int
+  codigoEntrega  String?          @db.VarChar(8)
   estado         EstadoDelivery   @default(CREADO)
   creadoEn       DateTime         @default(now())
   eventos        EventoDelivery[]

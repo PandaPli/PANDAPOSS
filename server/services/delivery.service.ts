@@ -8,6 +8,17 @@ import type { DeliveryCustomerInput, EstadoPedido, MetodoPago, Rol } from "@/typ
 import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
 import { effectiveFeature } from "@/lib/plan";
 
+interface ZonaConfig {
+  nombre: string;
+  costoCliente: number;
+  pagoRider: number;
+}
+
+function generarCodigoEntrega(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
 interface DeliveryItemInput {
   productoId?: number | null;
   nombre?: string;   // solo para productos libres
@@ -380,6 +391,44 @@ export const DeliveryService = {
     }
 
     const updated = await DispatchService.assignOrder(input.pedidoId, repartidorId);
+
+    // Al asignar un rider: generar código de entrega y setear pagoRider desde zona
+    if (repartidorId) {
+      const delivery = await prisma.pedidoDelivery.findUnique({
+        where: { pedidoId: input.pedidoId },
+        select: { id: true, zonaDelivery: true, codigoEntrega: true },
+      });
+
+      if (delivery) {
+        // Generar código solo si no tiene uno aún
+        const codigoEntrega = delivery.codigoEntrega ?? generarCodigoEntrega();
+
+        // Buscar pagoRider desde la config de zonas de la sucursal
+        let pagoRider: number | undefined;
+        if (delivery.zonaDelivery) {
+          const sucursalId = pedido.usuario.sucursalId;
+          if (sucursalId) {
+            const sucursal = await prisma.sucursal.findUnique({
+              where: { id: sucursalId },
+              select: { zonasDelivery: true },
+            });
+            const zonas = (sucursal?.zonasDelivery as ZonaConfig[] | null) ?? [];
+            const zona = zonas.find((z) => z.nombre === delivery.zonaDelivery);
+            if (zona?.pagoRider) pagoRider = zona.pagoRider;
+          }
+        }
+
+        await prisma.pedidoDelivery.update({
+          where: { id: delivery.id },
+          data: {
+            codigoEntrega,
+            ...(pagoRider !== undefined ? { pagoRider } : {}),
+            repartidorId: await prisma.repartidor.findUnique({ where: { usuarioId: repartidorId } }).then((r) => r?.id ?? undefined),
+          },
+        });
+      }
+    }
+
     return {
       id: updated.id,
       repartidorId: updated.repartidorId,
@@ -390,7 +439,10 @@ export const DeliveryService = {
   async updateStatus(input: { pedidoId: number; estado: EstadoPedido; rol: Rol; sucursalId: number | null; userId: number }) {
     const pedido = await prisma.pedido.findUnique({
       where: { id: input.pedidoId },
-      include: { usuario: { select: { sucursalId: true } } },
+      include: {
+        usuario: { select: { sucursalId: true } },
+        delivery: { select: { zonaDelivery: true } },
+      },
     });
 
     if (!pedido || pedido.tipo !== "DELIVERY") {
@@ -407,12 +459,15 @@ export const DeliveryService = {
 
     const updated = await PedidoService.update(input.pedidoId, { estado: input.estado });
     const meta = parseDeliveryObservation(updated.observacion);
+    const esWhatsApp = pedido.delivery?.zonaDelivery === "WhatsApp";
 
     await NotificationService.notifyDeliveryStatusChange({
       pedidoId: updated.id,
       status: updated.estado,
       customerName: meta.clienteNombre,
       telefono: updated.telefonoCliente,
+      sucursalId: pedido.usuario.sucursalId,
+      esWhatsApp,
     });
 
     return { id: updated.id, estado: updated.estado };

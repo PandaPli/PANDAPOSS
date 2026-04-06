@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bike, Clock3, MapPin, PackageCheck, RefreshCw } from "lucide-react";
+import { Bike, Clock3, MapPin, PackageCheck, RefreshCw, ShieldCheck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { getDeliveryProgressValue, getDeliveryStageLabel } from "@/lib/delivery";
 import type { DeliveryPedidoPublico } from "@/types";
@@ -107,6 +107,18 @@ export function TrackOrderClient({ initialData }: Props) {
                 </div>
               </div>
             </div>
+
+            {/* Código de entrega — visible cuando el rider está en camino */}
+            {"codigoEntrega" in data && data.codigoEntrega && (
+              <div className="mt-4 rounded-[1.5rem] border border-amber-400/40 bg-amber-400/15 p-5 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <ShieldCheck size={18} className="text-amber-300" />
+                  <p className="text-xs uppercase tracking-[0.25em] font-bold text-amber-300">Tu código de entrega</p>
+                </div>
+                <p className="text-4xl font-black tracking-[0.4em] text-white mt-1">{data.codigoEntrega}</p>
+                <p className="text-xs text-white/60 mt-3">Entrega este código al repartidor cuando llegue a tu puerta</p>
+              </div>
+            )}
           </section>
 
           <aside className="rounded-[2rem] border border-white/10 bg-white/8 p-6 shadow-[0_45px_120px_-70px_rgba(0,0,0,0.7)] backdrop-blur-xl">

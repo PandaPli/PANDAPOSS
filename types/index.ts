@@ -154,6 +154,7 @@ export interface DeliveryPedidoPublico {
   cargoEnvio: number;
   total: number;
   repartidorNombre?: string | null;
+  codigoEntrega?: string | null;
   creadoEn: string;
   estimadoMinutos: number;
   detalles: {

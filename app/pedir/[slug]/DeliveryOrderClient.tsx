@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2, MapPin, Minus, Phone, Plus, ReceiptText, Share2, ShoppingBag, Sparkles, UserCheck, X } from "lucide-react";
 import ProductoViewer from "./ProductoViewer";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
@@ -295,6 +295,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [clientFoundLabel, setClientFoundLabel] = useState("");
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
+  const direccionRef = useRef(direccion);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -389,6 +390,9 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
     }
   }
 
+  // Mantener ref de direccion actualizado para leerlo dentro de efectos sin incluirlo como dep
+  useEffect(() => { direccionRef.current = direccion; }, [direccion]);
+
   useEffect(() => {
     // Si el usuario borra el telefono, limpiamos el badge
     if (telefono.length < 8) {
@@ -417,8 +421,8 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
 
               if (data.direccion) {
                 setSugerenciaDireccion({ calle: data.direccion, referencia: data.referencia || "" });
-                // Solo autocompletamos directo si el campo estaba vacio o tenia algo generico
-                if (!direccion.trim()) {
+                // Solo autocompletamos directo si el campo estaba vacio al momento del fetch
+                if (!direccionRef.current.trim()) {
                   setDireccion(data.direccion);
                   setReferencia(data.referencia || "");
                 }
@@ -441,7 +445,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
         controller.abort();
       };
     }
-  }, [telefono, sucursal.id, direccion]);
+  }, [telefono, sucursal.id]);
 
   async function handleSubmit() {
     if (cart.length === 0) {
