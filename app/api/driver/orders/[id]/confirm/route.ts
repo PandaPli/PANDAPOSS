@@ -6,7 +6,7 @@ import type { Rol } from "@/types";
 
 // POST /api/driver/orders/[id]/confirm
 // Rider entrega el código que recibió del cliente para confirmar la entrega
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -14,7 +14,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (rol !== "DELIVERY") return NextResponse.json({ error: "Solo para repartidores" }, { status: 403 });
 
   const userId = (session.user as { id: number }).id;
-  const pedidoId = Number(params.id);
+  const { id } = await params;
+  const pedidoId = Number(id);
   const body = await req.json();
   const { codigo } = body as { codigo: string };
 

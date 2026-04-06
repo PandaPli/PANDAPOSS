@@ -7,7 +7,7 @@ import type { Rol } from "@/types";
 const VALID_ESTADOS = ["EN_PROCESO", "LISTO", "ENTREGADO"] as const;
 
 // PATCH /api/driver/orders/[id]/status
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
@@ -15,7 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (rol !== "DELIVERY") return NextResponse.json({ error: "Solo para repartidores" }, { status: 403 });
 
   const userId = (session.user as { id: number }).id;
-  const pedidoId = Number(params.id);
+  const { id } = await params;
+  const pedidoId = Number(id);
   const body = await req.json();
   const { estado } = body as { estado: string };
 

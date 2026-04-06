@@ -7,14 +7,15 @@ import { ActiveDeliveryClient } from "./ActiveDeliveryClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function ActiveDeliveryPage({ params }: { params: { id: string } }) {
+export default async function ActiveDeliveryPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
   const user = session.user as { id: number; rol: string };
   if (user.rol !== "DELIVERY") redirect("/");
 
-  const pedidoId = Number(params.id);
+  const { id } = await params;
+  const pedidoId = Number(id);
   if (!pedidoId) notFound();
 
   const pedido = await prisma.pedido.findUnique({
