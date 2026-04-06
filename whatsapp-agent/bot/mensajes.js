@@ -16,7 +16,7 @@ const MSGS = {
     `Aquí nuestra carta 🍣 👉 https://www.pandaposs.com/pedir/bampai`,
 
   preguntarEntrega: () =>
-    `¿Cómo lo quieres? 🐼\n*1* - Retiro en Aromos 371\n*2* - Delivery (te lo llevamos)`,
+    `¿Cómo lo quieres? 🐼\n🏪 *Retiro* en Aromos 371\n🛵 *Delivery* (te lo llevamos)`,
 
   pedirDireccion: () => `¿A qué dirección te lo enviamos? 📍`,
 

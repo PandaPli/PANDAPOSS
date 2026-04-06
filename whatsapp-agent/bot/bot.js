@@ -324,14 +324,14 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
 
   // ── RETIRO O DELIVERY ─────────────────────────────────────────────────────
   if (sesion.estado === ESTADOS.RETIRO_O_DELIVERY) {
-    if (intencion === INTENCIONES.RETIRO || /^1$/.test(texto.trim())) {
+    if (intencion === INTENCIONES.RETIRO) {
       await actualizarContexto(agenteId, telefono, { tipoEntrega: 'retiro' });
       await actualizarEstado(agenteId, telefono, ESTADOS.ESPERANDO_SALSAS);
       const r = msg('preguntarSalsas');
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     }
-    if (intencion === INTENCIONES.DELIVERY || /^2$/.test(texto.trim())) {
+    if (intencion === INTENCIONES.DELIVERY) {
       await actualizarContexto(agenteId, telefono, { tipoEntrega: 'delivery' });
       await actualizarEstado(agenteId, telefono, ESTADOS.CONFIRMANDO_DIRECCION);
       const r = msg('pedirDireccion');
