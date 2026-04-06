@@ -13,7 +13,7 @@ const MSGS = {
     `Nuestro horario ⏰:\n• Lunes: *Cerrado*\n• Mar-Jue: 12:00 – 23:00\n• Vie-Sáb: 12:00 – 00:00\n• Dom: 12:00 – 18:00`,
 
   verMenu: () =>
-    `Aquí nuestra carta 🍣 👉 pandaposs.com/pedir/BamPai`,
+    `Aquí nuestra carta 🍣 👉 https://www.pandaposs.com/pedir/bampai`,
 
   preguntarEntrega: () =>
     `¿Cómo lo quieres? 🐼\n*1* - Retiro en Aromos 371\n*2* - Delivery (te lo llevamos)`,
@@ -21,7 +21,7 @@ const MSGS = {
   pedirDireccion: () => `¿A qué dirección te lo enviamos? 📍`,
 
   preguntarSalsas: () =>
-    `🫙 ¿Quieres agregarle salsas?\n(ej: soya, teriyaki, spicy, mayo)\nO escribe *no* para continuar`,
+    ` ¿Soya, Agridulce o Ambas?\n(ajam)\nO escribe *no* para continuar`,
 
   preguntarPalitos: () => `🥢 ¿Palitos para cuántas personas?`,
 
@@ -62,9 +62,29 @@ const MSGS = {
   },
 
   // Mensaje inmediato al cliente tras confirmar (antes de que el humano acepte)
-  pedidoEnviado: () =>
-    [`Recibimos tu pedido! 🐼❤️ En breve lo confirmamos, gracias por tu paciencia.`,
-     `Anotado! 🐼 Estamos revisando tu pedido y te avisamos en un momento.`],
+  pedidoEnviado: (carrito, total, tipoEntrega, direccion, pago, nombre) => {
+    const fmt = (n) => `$${Number(n).toLocaleString('es-CL')}`;
+    const lista = carrito.map(i => {
+      const subtotal = fmt(Number(i.precio_unitario) * Number(i.cantidad));
+      const obs = i.observacion ? ` _(${i.observacion})_` : '';
+      return `• ${i.nombre_producto} x${i.cantidad} — ${subtotal}${obs}`;
+    }).join('\n');
+    const entrega = tipoEntrega === 'retiro'
+      ? `🏪 Retiro en Aromos 371`
+      : `🛵 Delivery a ${direccion}`;
+    const lines = [
+      `✅ *¡Pedido recibido!* 🐼❤️`,
+      ``,
+      lista,
+      ``,
+      entrega,
+    ];
+    if (nombre) lines.push(`👤 A nombre de: *${nombre}*`);
+    lines.push(`💳 Pago: *${pago || 'a confirmar'}*`);
+    lines.push(`*Total: ${fmt(total)}*`);
+    lines.push(`\nEn breve lo confirmamos, gracias por tu paciencia 🐼`);
+    return lines.join('\n');
+  },
 
   // Mensaje que llega al cliente CUANDO el humano acepta desde el panel
   pedidoAceptado: () =>

@@ -457,7 +457,14 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
       }
 
       await limpiarSesion(agenteId, telefono);
-      const r = msg('pedidoEnviado');
+      const r = msg('pedidoEnviado',
+        sesion.carritoJson,
+        calcularTotal(sesion.carritoJson),
+        ctx.tipoEntrega ?? 'retiro',
+        ctx.direccionEntrega,
+        ctx.metodoPago,
+        cliente?.nombre,
+      );
       await agregarAlHistorial(agenteId, telefono, 'assistant', r);
       return r;
     } catch (e) {
