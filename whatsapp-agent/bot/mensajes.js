@@ -120,7 +120,7 @@ const MSGS = {
     [`Okis! 🐼❤️`, `Con gusto *#BamPaiLovers*! 🐼`, `Siempre! 🐼❤️`],
 
   noEntendido: () =>
-    [`Hmm no te entendí bien, ¿me lo repites? 🐼`, `¿Cómo así? cuéntame más 😊`],
+    `Aquí nuestra carta 🍣 👉 https://www.pandaposs.com/pedir/bampai`,
 };
 
 function random(arr) { return arr[Math.floor(Math.random() * arr.length)]; }

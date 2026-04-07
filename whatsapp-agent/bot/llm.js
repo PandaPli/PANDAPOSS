@@ -43,7 +43,7 @@ HORARIO:
 MENÚ ACTUAL:
 ${menu}
 
-VER CARTA COMPLETA: pandaposs.com/pedir/BamPai
+VER CARTA COMPLETA: https://www.pandaposs.com/pedir/bampai
 
 DATOS BANCARIOS (si preguntan por transferencia):
 • N° cuenta: 1022193723 · Rut: 767871538
@@ -57,7 +57,7 @@ ESTADO ACTUAL DEL CLIENTE:
 REGLAS CRÍTICAS:
 - Solo menciona productos que están en el menú
 - No inventes precios ni promociones
-- Si no sabes algo, di que van a consultar y sugiere escribir directamente
+- Si no sabes algo o no entiendes la pregunta, responde ÚNICAMENTE con: "Aquí nuestra carta 🍣 👉 https://www.pandaposs.com/pedir/bampai"
 - Responde siempre en español chileno informal`;
 }
 
