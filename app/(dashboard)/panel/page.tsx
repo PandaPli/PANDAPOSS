@@ -41,8 +41,9 @@ export default async function PanelPage() {
     // Roles operativos sin dashboard financiero (KDS / Logistics)
     case "CHEF":
     case "BAR":
-    case "DELIVERY":
       redirect("/pedidos");
+    case "DELIVERY":
+      redirect("/delivery");
       
     // Cajero (Vista por defecto similar al admin sucursal antiguo pero limitada)
     case "CASHIER":
