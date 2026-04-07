@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { DeliveryClient } from "./DeliveryClient";
+import { RepartidorView } from "./RepartidorView";
 import { estimateDeliveryMinutes, getDeliveryTrackingStage, parseDeliveryObservation } from "@/lib/delivery";
 import type { Rol } from "@/types";
 
@@ -17,11 +18,64 @@ export default async function DeliveryPage() {
 
   if (rol !== "ADMIN_GENERAL" && !deliveryEnabled && rol !== "DELIVERY") redirect("/panel");
 
+  // ── Vista repartidor ───────────────────────────────────────────────────────
+  if (rol === "DELIVERY") {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const riderPedidos = await prisma.pedido.findMany({
+      where: { tipo: "DELIVERY", repartidorId: userId },
+      include: {
+        delivery: { select: { costoEnvio: true, pagoRider: true } },
+        detalles: {
+          include: {
+            producto: { select: { precio: true } },
+            combo:    { select: { precio: true } },
+          },
+        },
+      },
+      orderBy: { creadoEn: "desc" },
+      take: 100,
+    });
+
+    const riderNombre = (session.user as { nombre?: string; name?: string })?.nombre
+      ?? (session.user as { name?: string })?.name
+      ?? "Repartidor";
+    const simbolo = (session.user as { simbolo?: string })?.simbolo ?? "$";
+
+    const pedidosRider = riderPedidos.map((p) => {
+      const meta = parseDeliveryObservation(p.observacion);
+      const subtotal = p.detalles.reduce(
+        (acc, d) => acc + Number(d.producto?.precio ?? d.combo?.precio ?? 0) * d.cantidad,
+        0
+      );
+      return {
+        id:               p.id,
+        estado:           p.estado,
+        clienteNombre:    meta.clienteNombre,
+        telefonoCliente:  p.telefonoCliente,
+        direccionEntrega: p.direccionEntrega,
+        metodoPago:       meta.metodoPago,
+        cargoEnvio:       Number(p.delivery?.costoEnvio ?? 0),
+        pagoRider:        Number(p.delivery?.pagoRider  ?? 0),
+        total:            subtotal + Number(p.delivery?.costoEnvio ?? 0),
+        creadoEn:         p.creadoEn.toISOString(),
+      };
+    });
+
+    return (
+      <RepartidorView
+        pedidos={pedidosRider}
+        simbolo={simbolo}
+        riderNombre={riderNombre}
+      />
+    );
+  }
+  // ── Fin vista repartidor ───────────────────────────────────────────────────
+
   const pedidoWhere = {
     tipo: "DELIVERY" as const,
-    ...(rol === "DELIVERY"
-      ? { repartidorId: userId }
-      : rol !== "ADMIN_GENERAL" && sucursalId
+    ...(rol !== "ADMIN_GENERAL" && sucursalId
       ? { usuario: { sucursalId } }
       : {}),
   };
