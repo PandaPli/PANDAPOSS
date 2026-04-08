@@ -5,12 +5,13 @@ import { prisma } from "@/lib/db";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const sucursalId = parseInt(params.id);
+  const { id } = await params;
+  const sucursalId = parseInt(id);
   if (isNaN(sucursalId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const sucursal = await prisma.sucursal.findUnique({
@@ -29,12 +30,13 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const sucursalId = parseInt(params.id);
+  const { id } = await params;
+  const sucursalId = parseInt(id);
   if (isNaN(sucursalId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const body = await req.json();

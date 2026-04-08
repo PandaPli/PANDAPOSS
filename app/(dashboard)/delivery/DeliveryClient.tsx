@@ -618,6 +618,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                 direccionEntrega: pedido.direccion, referencia: pedido.referencia || null, departamento: null,
                 metodoPago: "EFECTIVO", cargoEnvio: 0, subtotal: 0, total: 0,
                 repartidorId: null, creadoEn: new Date().toISOString(), repartidor: null, detalles: [],
+                meseroLlamado: false, llamadoTipo: null,
               };
               knownIdsRef.current.add(pedido.id);
               setPedidos((prev) => [nuevo, ...prev]);

@@ -46,6 +46,7 @@ export default async function PedidosPage() {
     estado: p.estado as "PENDIENTE" | "EN_PROCESO" | "LISTO" | "ENTREGADO" | "CANCELADO",
     observacion: p.observacion,
     meseroLlamado: p.meseroLlamado,
+    llamadoTipo: p.llamadoTipo ?? null,
     direccionEntrega: p.direccionEntrega,
     telefonoCliente: p.telefonoCliente,
     repartidorId: p.repartidorId,

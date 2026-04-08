@@ -176,6 +176,8 @@ export default async function DeliveryPage() {
       repartidorId: pedido.repartidorId,
       creadoEn: pedido.creadoEn.toISOString(),
       repartidor: pedido.repartidor,
+      meseroLlamado: pedido.meseroLlamado ?? false,
+      llamadoTipo: pedido.llamadoTipo ?? null,
       detalles: pedido.detalles.map((detalle) => ({
         id: detalle.id,
         cantidad: detalle.cantidad,

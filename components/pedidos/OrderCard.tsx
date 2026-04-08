@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { CheckCircle2, Clock, UtensilsCrossed, Loader2, Bell, Printer, Bot } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
@@ -283,40 +284,41 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       {/* Productos */}
       <div className="px-3 pb-2 space-y-1">
         {pedido.detalles.map((d) => (
-          <div
-            key={d.id}
-            className={`flex items-start gap-2 rounded px-2 py-1 ${
-              d.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"
-            }`}
-          >
-            <span className={`font-bold text-sm shrink-0 w-7 ${d.cancelado ? "text-gray-400 line-through" : "text-brand-600"}`}>
-              {d.cantidad}x
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <p className={`text-sm font-semibold leading-tight ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
-                  {d.producto?.nombre ?? d.combo?.nombre ?? "—"}
-                </p>
-                {d.cancelado && (
-                  <span className="bg-red-100 text-red-500 text-[10px] px-1 rounded font-bold">ANULADO</span>
+          <React.Fragment key={d.id}>
+            <div
+              className={`flex items-start gap-2 rounded px-2 py-1 ${
+                d.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"
+              }`}
+            >
+              <span className={`font-bold text-sm shrink-0 w-7 ${d.cancelado ? "text-gray-400 line-through" : "text-brand-600"}`}>
+                {d.cantidad}x
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`text-sm font-semibold leading-tight ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+                    {d.producto?.nombre ?? d.combo?.nombre ?? "—"}
+                  </p>
+                  {d.cancelado && (
+                    <span className="bg-red-100 text-red-500 text-[10px] px-1 rounded font-bold">ANULADO</span>
+                  )}
+                </div>
+                {d.observacion && !d.cancelado && (
+                  <p className="text-[11px] text-amber-600 italic mt-0.5">→ {d.observacion}</p>
                 )}
               </div>
-              {d.observacion && !d.cancelado && (
-                <p className="text-[11px] text-amber-600 italic mt-0.5">→ {d.observacion}</p>
-              )}
             </div>
-          </div>
-          {esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && !d.cancelado && (
-            <div className="mt-1 px-1">
-              <textarea
-                rows={2}
-                placeholder="Nota cocina: envoltorio, relleno..."
-                value={tablaNotas[d.id] ?? ""}
-                onChange={(e) => setTablaNotas((prev) => ({ ...prev, [d.id]: e.target.value }))}
-                className="w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 placeholder-amber-400 resize-none focus:outline-none focus:border-amber-500"
-              />
-            </div>
-          )}
+            {esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && !d.cancelado && (
+              <div className="mt-1 px-1">
+                <textarea
+                  rows={2}
+                  placeholder="Nota cocina: envoltorio, relleno..."
+                  value={tablaNotas[d.id] ?? ""}
+                  onChange={(e) => setTablaNotas((prev) => ({ ...prev, [d.id]: e.target.value }))}
+                  className="w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 placeholder-amber-400 resize-none focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            )}
+          </React.Fragment>
         ))}
       </div>
 
