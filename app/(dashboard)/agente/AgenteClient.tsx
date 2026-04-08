@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Bot, Wifi, WifiOff, QrCode, Users, RefreshCw, Power, AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { Bot, Wifi, WifiOff, QrCode, Users, RefreshCw, Power, AlertCircle, CheckCircle2, Clock, Loader2, Download, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type EstadoAgente = "DESCONECTADO" | "ESPERANDO_QR" | "CONECTADO" | "ERROR";
@@ -146,9 +146,9 @@ function AgenteCard({ sucursal, onRefresh }: { sucursal: Sucursal; onRefresh: ()
         <div className="p-4 bg-blue-50 border-b border-blue-100 text-center">
           <div className="flex items-center justify-center gap-2 text-blue-600 text-xs font-medium">
             <Loader2 size={13} className="animate-spin" />
-            Esperando que el servicio local se conecte…
+            Esperando que la app local se conecte…
           </div>
-          <p className="text-[11px] text-blue-500 mt-1">Asegúrate de que <code className="bg-blue-100 px-1 rounded">pm2 start index.js</code> esté corriendo</p>
+          <p className="text-[11px] text-blue-500 mt-1">Abre <strong>PandaPoss Bot Smart</strong> en tu PC y presiona <strong>Activar Bot</strong></p>
         </div>
       )}
 
@@ -182,16 +182,47 @@ export function AgenteClient({ sucursales }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Info banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 p-5 text-white flex items-start gap-4">
-        <Bot size={32} className="shrink-0 mt-0.5 opacity-90" />
-        <div>
-          <p className="font-bold text-base">¿Cómo funciona?</p>
-          <p className="text-brand-100 text-sm mt-1">
-            1. Activa el agente para tu sucursal →
-            2. Arranca el servicio local: <code className="bg-white/20 px-1.5 py-0.5 rounded text-xs">pm2 start whatsapp-agent/index.js</code> →
-            3. Escanea el QR que aparece aquí con WhatsApp
-          </p>
+      {/* Download banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 p-5 text-white">
+        <div className="flex items-start gap-4">
+          <Bot size={32} className="shrink-0 mt-0.5 opacity-90" />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-base">🐼 PandaPoss Bot Smart</p>
+            <p className="text-brand-100 text-sm mt-1">
+              Descarga la app, inicia sesión con tu cuenta y activa tu bot de WhatsApp con un click.
+              No necesitas instalar nada más.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 mt-4">
+              <a
+                href="https://drive.google.com/uc?export=download&id=1Quf4mOsmSg5r5O4oBIwpUJ-m5YcsNvvV"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-white text-brand-600 font-bold text-sm px-4 py-2 rounded-xl hover:bg-brand-50 transition-colors shadow"
+              >
+                <Download size={16} />
+                Descargar para Windows (.exe)
+              </a>
+              <span className="flex items-center gap-1.5 text-brand-100 text-xs">
+                <Monitor size={13} />
+                Windows 10 / 11 · 64 bits · ~100 MB
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* Steps */}
+        <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-3 text-center text-xs text-brand-100">
+          <div className="flex flex-col items-center gap-1">
+            <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-white text-[11px]">1</span>
+            Descarga e instala la app
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-white text-[11px]">2</span>
+            Inicia sesión con tu cuenta
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-white text-[11px]">3</span>
+            Activa el bot y escanea el QR
+          </div>
         </div>
       </div>
 
@@ -208,22 +239,14 @@ export function AgenteClient({ sucursales }: Props) {
         </div>
       )}
 
-      {/* Setup guide */}
-      <div className="card p-5 space-y-3">
-        <p className="font-semibold text-surface-text text-sm flex items-center gap-2">
-          <CheckCircle2 size={16} className="text-brand-500" />
-          Configuración del servicio local
-        </p>
-        <div className="space-y-2 text-xs text-surface-muted font-mono bg-surface-bg rounded-xl p-4">
-          <p><span className="text-emerald-600"># Ir a la carpeta del agente</span></p>
-          <p>cd whatsapp-agent</p>
-          <p className="mt-2"><span className="text-emerald-600"># Instalar dependencias (primera vez)</span></p>
-          <p>npm install</p>
-          <p className="mt-2"><span className="text-emerald-600"># Copiar y editar configuración</span></p>
-          <p>cp .env.example .env</p>
-          <p className="mt-2"><span className="text-emerald-600"># Arrancar con PM2 (persistente)</span></p>
-          <p>pm2 start index.js --name pandaposs-wsp</p>
-          <p>pm2 save && pm2 startup</p>
+      {/* Help note */}
+      <div className="card p-4 flex items-start gap-3">
+        <CheckCircle2 size={16} className="text-brand-500 shrink-0 mt-0.5" />
+        <div className="text-xs text-surface-muted space-y-1">
+          <p className="font-semibold text-surface-text">¿Problemas para conectar?</p>
+          <p>• Asegúrate de que la app esté abierta y el bot activado antes de escanear el QR.</p>
+          <p>• El QR se muestra tanto en la app como aquí en el dashboard.</p>
+          <p>• Cada local necesita su propia instalación de la app en su PC.</p>
         </div>
       </div>
     </div>
