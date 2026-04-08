@@ -108,7 +108,10 @@ export default async function DeliveryPage() {
 
   const [pedidos, repartidores, productos] = await Promise.all([
     prisma.pedido.findMany({
-      where: pedidoWhere,
+      where: {
+        ...pedidoWhere,
+        creadoEn: { gte: startOfToday },   // solo pedidos de hoy
+      },
       include: {
         usuario: { select: { nombre: true, sucursalId: true } },
         repartidor: { select: { nombre: true } },

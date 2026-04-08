@@ -17,6 +17,8 @@ interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: 
 interface PedidoDelivery {
   id: number;
   estado: EstadoPedido;
+  meseroLlamado: boolean;
+  llamadoTipo: string | null;
   trackingStage: "CONFIRMADO" | "PREPARANDO" | "EN_CAMINO" | "ENTREGADO" | "CANCELADO";
   clienteNombre: string;
   telefonoCliente: string | null;
@@ -97,8 +99,13 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
 
   const isAdmin = ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"].includes(rol);
 
-  const activos    = pedidos.filter((p) => p.estado !== "ENTREGADO" && p.estado !== "CANCELADO");
-  const entregados = pedidos.filter((p) => p.estado === "ENTREGADO");
+  // Pedidos activos: solo los de HOY (evita que órdenes viejas no cerradas contaminen la vista)
+  const inicioHoy = new Date(); inicioHoy.setHours(0, 0, 0, 0);
+  const activos    = pedidos.filter((p) =>
+    p.estado !== "ENTREGADO" && p.estado !== "CANCELADO" &&
+    new Date(p.creadoEn) >= inicioHoy
+  );
+  const entregados = pedidos.filter((p) => p.estado === "ENTREGADO" && new Date(p.creadoEn) >= inicioHoy);
 
   const counts: Record<FilterKey, number> = {
     todos:      activos.length,
@@ -309,6 +316,14 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
 
     return (
       <div className="rounded-2xl border border-surface-border bg-white shadow-sm overflow-hidden">
+
+        {/* Banner Rider listo */}
+        {pedido.meseroLlamado && pedido.llamadoTipo === "RIDER" && (
+          <div className="flex items-center gap-2 bg-blue-500 px-4 py-2 text-white text-xs font-bold">
+            <Bell size={13} className="animate-bounce" />
+            Pedido listo — avisale al Rider que puede retirar
+          </div>
+        )}
 
         {/* Header del visor */}
         <div className={cn("px-5 py-4 border-b border-surface-border/50 flex items-center justify-between gap-3")}>
