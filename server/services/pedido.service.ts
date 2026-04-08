@@ -25,6 +25,7 @@ export interface CreatePedidoInput {
 export interface UpdatePedidoInput {
   estado?: string;
   meseroLlamado?: boolean;
+  llamadoTipo?: string | null;
   repartidorId?: number | null;
   direccionEntrega?: string | null;
   telefonoCliente?: string | null;
@@ -136,7 +137,7 @@ export const PedidoService = {
   },
 
   async update(id: number, input: UpdatePedidoInput) {
-    const { estado, meseroLlamado, repartidorId, direccionEntrega, telefonoCliente } = input;
+    const { estado, meseroLlamado, llamadoTipo, repartidorId, direccionEntrega, telefonoCliente } = input;
 
     // Leer el pedido actual para validaciones
     const pedidoActual = await prisma.pedido.findUnique({
@@ -170,10 +171,11 @@ export const PedidoService = {
     const data: Prisma.PedidoUncheckedUpdateInput = {};
     if (estado !== undefined) data.estado = estado as EstadoPedido;
     if (meseroLlamado !== undefined) data.meseroLlamado = meseroLlamado;
+    if (llamadoTipo !== undefined) data.llamadoTipo = llamadoTipo ?? null;
     if (repartidorId !== undefined) data.repartidorId = repartidorId ?? null;
     if (direccionEntrega !== undefined) data.direccionEntrega = direccionEntrega ?? null;
     if (telefonoCliente !== undefined) data.telefonoCliente = telefonoCliente ?? null;
-    if (estado === "ENTREGADO") data.meseroLlamado = false;
+    if (estado === "ENTREGADO") { data.meseroLlamado = false; data.llamadoTipo = null; }
 
     // Capturar timestamps de preparación
     const now = new Date();

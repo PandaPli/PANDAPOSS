@@ -38,9 +38,14 @@ const tipoLabel: Record<string, string> = {
   MOSTRADOR: "MOSTRADOR",
 };
 
+function esTabla(nombre: string) {
+  return /^tabla\b/i.test(nombre.trim());
+}
+
 export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
+  const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
 
   async function handleUpdate() {
     const next = nextEstado[pedido.estado];
@@ -77,6 +82,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
           </div>
         `;
       }
+      const notaTabla = esTabla(nombre) && tablaNotas[d.id] ? tablaNotas[d.id].trim() : null;
       return `
         <div class="item">
           <div class="item-row">
@@ -84,6 +90,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             <span class="item-name">${nombre}</span>
           </div>
           ${d.observacion ? `<div class="item-obs">➜ ${d.observacion}</div>` : ""}
+          ${notaTabla ? `<div class="item-obs" style="font-weight:bold;font-style:normal;">★ ${notaTabla}</div>` : ""}
         </div>
       `;
     }).join("");
@@ -179,6 +186,12 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
   const tiempoStr = timeAgo(pedido.creadoEn);
   const origen = detectarOrigen(pedido);
 
+  // Determinar a quién llamar según tipo de pedido
+  const callTipo = pedido.tipo === "DELIVERY" ? "RIDER" : pedido.mesa ? "MESERO" : "CAJERO";
+  const callLabel = callTipo === "RIDER" ? "Rider" : callTipo === "CAJERO" ? "Cajero" : "Mesero";
+  const callBannerText = pedido.llamadoTipo === "RIDER" ? "Listo para Rider" : pedido.llamadoTipo === "CAJERO" ? "Listo para Cajero" : "Mesero solicitado";
+  const callBannerColor = pedido.llamadoTipo === "RIDER" ? "bg-blue-500" : pedido.llamadoTipo === "CAJERO" ? "bg-purple-500" : "bg-amber-400";
+
   let customerName = "";
   let cleanObservation = pedido.observacion || "";
 
@@ -241,11 +254,11 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
         </div>
       )}
 
-      {/* Banner llamada al mesero */}
+      {/* Banner llamada al mesero/cajero/rider */}
       {pedido.meseroLlamado && (
-        <div className="flex items-center gap-1.5 bg-amber-400 px-3 py-1 text-white text-xs font-bold">
+        <div className={`flex items-center gap-1.5 ${callBannerColor} px-3 py-1 text-white text-xs font-bold`}>
           <Bell size={12} className="animate-bounce" />
-          Mesero solicitado
+          {callBannerText}
         </div>
       )}
 
@@ -293,6 +306,17 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
               )}
             </div>
           </div>
+          {esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && !d.cancelado && (
+            <div className="mt-1 px-1">
+              <textarea
+                rows={2}
+                placeholder="Nota cocina: envoltorio, relleno..."
+                value={tablaNotas[d.id] ?? ""}
+                onChange={(e) => setTablaNotas((prev) => ({ ...prev, [d.id]: e.target.value }))}
+                className="w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 placeholder-amber-400 resize-none focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          )}
         ))}
       </div>
 
@@ -331,7 +355,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             )}
           >
             {loadingMesero ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} className={pedido.meseroLlamado ? "animate-bounce" : ""} />}
-            {pedido.meseroLlamado ? "Llamado" : "Mesero"}
+            {pedido.meseroLlamado ? "Llamado" : callLabel}
           </button>
           <button
             onClick={handlePrint}

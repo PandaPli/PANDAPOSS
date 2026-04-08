@@ -39,6 +39,9 @@ export default async function CajaBasicaPage() {
             telefono: true,
             direccion: true,
             giroComercial: true,
+            puntosActivo: true,
+            puntosPorMil: true,
+            valorPunto: true,
           },
         })
       : null,
@@ -58,11 +61,21 @@ export default async function CajaBasicaPage() {
       cajaId={cajaAbierta?.id}
       cajaNombre={cajaAbierta?.nombre}
       usuarioId={usuarioId}
+      sucursalId={sucursalId}
       sucursalNombre={sucursal?.nombre ?? null}
       sucursalRut={sucursal?.rut ?? null}
       sucursalTelefono={sucursal?.telefono ?? null}
       sucursalDireccion={sucursal?.direccion ?? null}
       sucursalGiroComercial={sucursal?.giroComercial ?? null}
+      puntosConfig={
+        sucursal?.puntosActivo
+          ? {
+              activo: true,
+              puntosPorMil: Number(sucursal.puntosPorMil),
+              valorPunto: Number(sucursal.valorPunto),
+            }
+          : { activo: false, puntosPorMil: 0, valorPunto: 0 }
+      }
     />
   );
 }

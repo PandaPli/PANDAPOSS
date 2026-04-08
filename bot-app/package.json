@@ -1,0 +1,56 @@
+{
+  "name": "pandaposs-bot-smart",
+  "version": "1.0.0",
+  "description": "PandaPoss Bot Smart — Agente WhatsApp para restaurantes",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --win",
+    "dev": "electron . --dev"
+  },
+  "build": {
+    "appId": "com.pandaposs.botsmart",
+    "productName": "PandaPoss Bot Smart",
+    "copyright": "Copyright © 2025 PandaPoss",
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "../whatsapp-agent",
+        "to": "whatsapp-agent",
+        "filter": [
+          "**/*",
+          "!.auth",
+          "!.auth/**",
+          "!*.log",
+          "!bot.log",
+          "!node_modules/.cache/**",
+          "!node_modules/**/test/**",
+          "!node_modules/**/tests/**",
+          "!node_modules/**/*.md",
+          "!node_modules/**/.git/**"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
+    "electron-store": "^8.1.0",
+    "express": "^5.2.1",
+    "node-fetch": "^2.7.0",
+    "prisma": "^7.7.0"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  }
+}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   Plus, Search, Edit2, Users, X, Loader2,
   Phone, Mail, MapPin, Cake, Gift, UserRound,
-  Ban, Trash2, ShieldCheck, AlertTriangle, Eye,
+  Ban, Trash2, ShieldCheck, AlertTriangle, Eye, Star,
 } from "lucide-react";
 import { normalize } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ interface Cliente {
   codigoCumple?: string | null;
   activo: boolean;
   sucursalId: number | null;
+  puntos: number;
   sucursal?: { id: number; nombre: string };
 }
 
@@ -295,6 +296,16 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
         </td>
         <td className="px-4 py-3 text-surface-muted text-sm max-w-36 truncate">
           {c.direccion ? <span className="flex items-center gap-1"><MapPin size={13} />{c.direccion}</span> : "—"}
+        </td>
+        <td className="px-4 py-3">
+          {c.puntos > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700 border border-amber-200">
+              <Star size={10} />
+              {c.puntos} pts
+            </span>
+          ) : (
+            <span className="text-xs text-surface-muted">—</span>
+          )}
         </td>
         {isPandaAdmin && (
           <td className="px-4 py-3">

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PandaPoss Bot Smart</title>
+  <style>
+    /* ── Reset & Base ────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0a0a14;
+      --card:        #12122b;
+      --card2:       #1a1a38;
+      --border:      #2a2a50;
+      --green:       #22c55e;
+      --green-dim:   #166534;
+      --yellow:      #eab308;
+      --red:         #ef4444;
+      --purple:      #a855f7;
+      --purple-dim:  #581c87;
+      --text:        #f1f5f9;
+      --muted:       #94a3b8;
+      --radius:      14px;
+      --radius-sm:   8px;
+      --transition:  0.25s ease;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Drag region for frameless window ───────────────────────────────── */
+    .titlebar {
+      -webkit-app-region: drag;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 0;
+      height: 44px;
+    }
+    .titlebar-title {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .titlebar-controls {
+      -webkit-app-region: no-drag;
+      display: flex;
+      gap: 8px;
+    }
+    .win-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      transition: opacity var(--transition);
+      background: var(--card2);
+      color: var(--muted);
+    }
+    .win-btn:hover { opacity: 0.75; }
+    .win-btn.minimize { color: var(--yellow); }
+    .win-btn.close    { color: var(--red); }
+
+    /* ── Shared layout ───────────────────────────────────────────────────── */
+    .view {
+      display: none;
+      flex-direction: column;
+      height: calc(100vh - 44px);
+      overflow-y: auto;
+      padding: 0 24px 24px;
+    }
+    .view.active { display: flex; }
+
+    /* ── Scrollbar ───────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── INPUT / BUTTON base ─────────────────────────────────────────────── */
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--card2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    input:focus { border-color: var(--purple); }
+    input::placeholder { color: var(--muted); }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       LOGIN VIEW
+    ════════════════════════════════════════════════════════════════════════ */
+    #view-login {
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .login-logo .panda-emoji {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 12px rgba(168,85,247,0.4));
+    }
+    .login-logo .brand {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a855f7, #22c55e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    .login-logo .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.03em;
+      box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+    }
+    .btn-login:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(34,197,94,0.45);
+    }
+    .btn-login:active:not(:disabled) { transform: translateY(0); }
+    .btn-login:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #login-error {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: #fca5a5;
+      font-size: 13px;
+      text-align: center;
+      display: none;
+    }
+    #login-error.visible { display: block; }
+
+    .login-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: -4px;
+    }
+    .login-footer a {
+      color: var(--purple);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .login-footer a:hover { text-decoration: underline; }
+
+    /* ════════════════════════════════════════════════════════════════════════
+       DASHBOARD VIEW
+    ════════════════════════════════════════════════════════════════════════ */
+    #view-dashboard { gap: 16px; }
+
+    /* Top bar */
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-top: 8px;
+    }
+    .dash-header-left { display: flex; align-items: center; gap: 12px; }
+    .dash-avatar {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--purple-dim), var(--purple));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .dash-restaurant { font-weight: 700; font-size: 15px; }
+    .dash-plan {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--purple);
+      background: rgba(168,85,247,0.12);
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(168,85,247,0.25);
+      margin-top: 2px;
+    }
+
+    /* Status card */
+    .status-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-orb-wrap {
+      position: relative;
+      width: 80px; height: 80px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .status-orb {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 20px var(--red);
+      transition: background var(--transition), box-shadow var(--transition);
+      position: relative;
+      z-index: 1;
+    }
+    .status-orb.connected {
+      background: var(--green);
+      box-shadow: 0 0 28px rgba(34,197,94,0.6);
+    }
+    .status-orb.waiting_qr {
+      background: var(--yellow);
+      box-shadow: 0 0 28px rgba(234,179,8,0.6);
+    }
+
+    /* Pulse ring */
+    .status-orb::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      opacity: 0;
+      animation: none;
+    }
+    .status-orb.connected { color: var(--green); }
+    .status-orb.connected::after { animation: pulse-ring 2s ease-out infinite; }
+    .status-orb.waiting_qr { color: var(--yellow); }
+    .status-orb.waiting_qr::after { animation: pulse-ring 1.2s ease-out infinite; }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(1); opacity: 0.7; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .status-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color var(--transition);
+    }
+    .status-label.connected  { color: var(--green); }
+    .status-label.waiting_qr { color: var(--yellow); }
+    .status-label.disconnected { color: var(--red); }
+
+    /* Toggle button */
+    .btn-toggle {
+      width: 100%;
+      padding: 15px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: var(--radius-sm);
+      transition: all 0.3s ease;
+    }
+    .btn-toggle.off {
+      background: linear-gradient(135deg, #166534, #22c55e);
+      color: white;
+      box-shadow: 0 4px 20px rgba(34,197,94,0.25);
+    }
+    .btn-toggle.off:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(34,197,94,0.4);
+    }
+    .btn-toggle.on {
+      background: linear-gradient(135deg, #7f1d1d, #ef4444);
+      color: white;
+      box-shadow: 0 4px 20px rgba(239,68,68,0.25);
+    }
+    .btn-toggle.on:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(239,68,68,0.4);
+    }
+    .btn-toggle:active { transform: translateY(0) !important; }
+    .btn-toggle.active-pulse {
+      animation: btn-pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes btn-pulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(239,68,68,0.25); }
+      50%       { box-shadow: 0 8px 36px rgba(239,68,68,0.55); }
+    }
+
+    /* QR section */
+    #qr-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      animation: fade-in 0.35s ease;
+    }
+    #qr-section.visible { display: flex; }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .qr-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--yellow);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .qr-title::before { content: '⚡'; }
+
+    #qr-image {
+      width: 200px; height: 200px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--yellow);
+      box-shadow: 0 0 20px rgba(234,179,8,0.2);
+      background: white;
+      object-fit: contain;
+    }
+    .qr-hint {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* Log section */
+    .log-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .log-header {
+      padding: 10px 16px;
+      background: var(--card2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .log-header::before { content: '●'; color: var(--green); font-size: 8px; }
+    #log-output {
+      height: 80px;
+      overflow-y: auto;
+      padding: 10px 16px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 11px;
+      color: #6ee7b7;
+      line-height: 1.6;
+    }
+
+    /* Bottom actions */
+    .bottom-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .btn-web {
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      border: 1.5px solid var(--purple);
+      color: var(--purple);
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-web:hover {
+      background: rgba(168,85,247,0.1);
+      transform: translateY(-1px);
+    }
+
+    .logout-row {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .logout-link {
+      color: var(--red);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 12px;
+      text-decoration: underline;
+      padding: 0;
+      font-weight: 500;
+    }
+    .logout-link:hover { opacity: 0.75; }
+
+    /* ── Loading spinner ────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- ── Title bar (always visible) ──────────────────────────────────────── -->
+  <div class="titlebar">
+    <span class="titlebar-title">🐼 PandaPoss Bot Smart</span>
+    <div class="titlebar-controls">
+      <button class="win-btn minimize" id="btn-minimize" title="Minimizar">−</button>
+      <button class="win-btn close"    id="btn-close"    title="Minimizar a bandeja">✕</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       LOGIN VIEW
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="view" id="view-login">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="panda-emoji">🐼</span>
+        <div class="brand">PandaPoss</div>
+        <div class="subtitle">Bot Smart</div>
+      </div>
+
+      <div class="form-group">
+        <label for="login-email">Correo electrónico</label>
+        <input
+          type="email"
+          id="login-email"
+          placeholder="tu@restaurante.com"
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="login-password">Contraseña</label>
+        <input
+          type="password"
+          id="login-password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <div id="login-error"></div>
+
+      <button class="btn-login" id="btn-login">Iniciar sesión</button>
+
+      <div class="login-footer">
+        <a id="link-forgot" onclick="window.bot.openExternal('https://www.pandaposs.com/login')">
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       DASHBOARD VIEW
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="view" id="view-dashboard">
+
+    <!-- Header -->
+    <div class="dash-header">
+      <div class="dash-header-left">
+        <div class="dash-avatar">🏪</div>
+        <div>
+          <div class="dash-restaurant" id="dash-restaurant">Restaurante</div>
+          <div class="dash-plan" id="dash-plan">PRIME</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-card">
+      <div class="status-orb-wrap">
+        <div class="status-orb disconnected" id="status-orb"></div>
+      </div>
+      <div class="status-label disconnected" id="status-label">DESCONECTADO</div>
+
+      <button class="btn-toggle off" id="btn-toggle">
+        ▶ ACTIVAR BOT
+      </button>
+    </div>
+
+    <!-- QR code section -->
+    <div id="qr-section">
+      <div class="qr-title">Escanear código QR</div>
+      <img id="qr-image" src="" alt="QR Code" />
+      <div class="qr-hint">
+        Abre WhatsApp en tu teléfono<br>
+        Ve a <strong>Dispositivos vinculados</strong> y escanea este código
+      </div>
+    </div>
+
+    <!-- Agent log -->
+    <div class="log-card">
+      <div class="log-header">Registro del agente</div>
+      <div id="log-output">Esperando actividad…</div>
+    </div>
+
+    <!-- Bottom actions -->
+    <div class="bottom-actions">
+      <button class="btn-web" id="btn-open-web">
+        🌐 Abrir Panel Web
+      </button>
+      <div class="logout-row">
+        <button class="logout-link" id="btn-logout">Cerrar sesión</button>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <script src="app.js"></script>
+</body>
+</html>

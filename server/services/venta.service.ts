@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { MetodoPago } from "@/types";
+import { PuntosService, calcularPuntosGanados, calcularDescuentoPuntos } from "./puntos.service";
 
 const globalForSocket = global as unknown as { io?: import("socket.io").Server };
 
@@ -50,6 +51,8 @@ export interface CreateVentaInput {
   /** Cupón de descuento aplicado */
   cuponId?: number | null;
   cuponCodigo?: string | null;
+  /** Puntos que el cliente desea canjear (requiere clienteId) */
+  puntosCanjeados?: number | null;
 }
 
 function generateVentaNumero() {
@@ -158,7 +161,10 @@ export const VentaService = {
       modoGrupo,
       cuponId,
       cuponCodigo,
+      puntosCanjeados: puntosCanjeadosInput,
     } = input;
+
+    const puntosCanjeados = puntosCanjeadosInput ?? 0;
 
     // ── V3: Recalcular totales en el servidor ────────────────────────────────
     // Nunca confiar en subtotal/total enviados por el cliente
@@ -166,8 +172,30 @@ export const VentaService = {
       (acc, item) => acc + Number(item.precio) * Number(item.cantidad),
       0
     );
+
+    // Obtener configuración de puntos de la sucursal (si aplica)
+    let puntosPorMil = 0;
+    let valorPunto = 0;
+    let puntosActivo = false;
+    if (sucursalId) {
+      const sucursal = await prisma.sucursal.findUnique({
+        where: { id: sucursalId },
+        select: { puntosActivo: true, puntosPorMil: true, valorPunto: true },
+      });
+      if (sucursal?.puntosActivo) {
+        puntosActivo = true;
+        puntosPorMil = Number(sucursal.puntosPorMil);
+        valorPunto = Number(sucursal.valorPunto);
+      }
+    }
+
+    // Descuento por canje de puntos
+    const descuentoPuntos = puntosActivo && clienteId && puntosCanjeados > 0
+      ? calcularDescuentoPuntos(puntosCanjeados, valorPunto)
+      : 0;
+
     const serverTotal =
-      Math.round((serverSubtotal - Number(descuento) + Number(impuesto)) * 100) / 100;
+      Math.round((serverSubtotal - Number(descuento) - descuentoPuntos + Number(impuesto)) * 100) / 100;
 
     // Tolerancia de 2 centavos para errores de punto flotante en el cliente
     if (Math.abs(serverSubtotal - Number(input.subtotal)) > 0.02) {
@@ -226,6 +254,7 @@ export const VentaService = {
               estado: "PAGADA",
               cuponId: cuponId ?? null,
               cuponCodigo: cuponCodigo ?? null,
+              puntosCanjeados: puntosCanjeados,
               detalles: {
                 create: items.map((item) => ({
                   productoId: item.productoId ?? null,
@@ -253,6 +282,23 @@ export const VentaService = {
             await tx.pagoVenta.create({
               data: { ventaId: v.id, metodoPago, monto: serverTotal },
             });
+          }
+
+          // ── PUNTOS: canjear primero, luego ganar ─────────────────────────────
+          if (puntosActivo && clienteId) {
+            if (puntosCanjeados > 0) {
+              await PuntosService.canjearPuntos(tx, clienteId, v.id, puntosCanjeados, descuentoPuntos);
+            }
+
+            // Puntos ganados se calculan sobre el total pagado (ya con descuento)
+            const puntosGanados = calcularPuntosGanados(serverTotal, puntosPorMil);
+            if (puntosGanados > 0) {
+              await PuntosService.ganarPuntos(tx, clienteId, v.id, puntosGanados, serverTotal);
+              await tx.venta.update({
+                where: { id: v.id },
+                data: { puntosGanados },
+              });
+            }
           }
 
           // Incrementar uso del cupón si aplica
@@ -433,6 +479,11 @@ export const VentaService = {
         where: { id: ventaId },
         data: { estado: "ANULADA" },
       });
+    });
+
+    // 4. Revertir puntos si aplica (fuera de la tx principal)
+    await PuntosService.revertirPorAnulacion(ventaId).catch((err) => {
+      console.error("[VentaService] revertirPuntos:", err);
     });
 
     return { id: ventaId, estado: "ANULADA" };

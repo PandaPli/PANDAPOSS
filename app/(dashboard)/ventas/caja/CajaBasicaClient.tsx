@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -19,9 +19,12 @@ import {
   ChevronRight,
   ShoppingCart,
   Tag,
+  Star,
+  UserCircle,
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { NotificacionesCajero } from "@/components/pedidos/NotificacionesCajero";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 type LineItem = {
@@ -45,17 +48,32 @@ interface Producto {
   categoria?: { nombre: string };
 }
 
+interface ClienteResultado {
+  id: number;
+  nombre: string;
+  telefono: string | null;
+  puntos: number;
+}
+
+interface PuntosConfig {
+  activo: boolean;
+  puntosPorMil: number;
+  valorPunto: number;
+}
+
 interface Props {
   productos: Producto[];
   simbolo: string;
   cajaId?: number;
   cajaNombre?: string;
   usuarioId: number;
+  sucursalId?: number | null;
   sucursalNombre?: string | null;
   sucursalRut?: string | null;
   sucursalTelefono?: string | null;
   sucursalDireccion?: string | null;
   sucursalGiroComercial?: string | null;
+  puntosConfig?: PuntosConfig;
 }
 
 let _cnt = 0;
@@ -86,11 +104,20 @@ export function CajaBasicaClient({
   sucursalTelefono,
   sucursalDireccion,
   sucursalGiroComercial,
+  puntosConfig,
 }: Props) {
   /* ── State ── */
   const [items, setItems] = useState<LineItem[]>([]);
   const [search, setSearch] = useState("");
   const [mobileTab, setMobileTab] = useState<"productos" | "ticket">("productos");
+
+  // Cliente seleccionado
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [clienteResultados, setClienteResultados] = useState<ClienteResultado[]>([]);
+  const [clienteBuscando, setClienteBuscando] = useState(false);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteResultado | null>(null);
+  const [puntosACanjear, setPuntosACanjear] = useState(0);
+  const clienteSearchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Inline price editing
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -112,7 +139,7 @@ export function CajaBasicaClient({
   const [efectivoStr, setEfectivoStr] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [success, setSuccess] = useState<{ numero: string; total: number } | null>(null);
+  const [success, setSuccess] = useState<{ numero: string; total: number; puntosGanados?: number } | null>(null);
 
   /* ── Derived ── */
   const productosFiltrados = useMemo(() => {
@@ -139,12 +166,58 @@ export function CajaBasicaClient({
 
   const subtotal = items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const totalOverride = overrideTotal && manualTotal ? parseMonto(manualTotal) : null;
-  const totalFinal = totalOverride !== null ? Math.min(subtotal, Math.max(0, totalOverride)) : subtotal;
-  const descuento = subtotal - totalFinal;
+  const totalSinPuntos = totalOverride !== null ? Math.min(subtotal, Math.max(0, totalOverride)) : subtotal;
+  const descuentoManual = subtotal - totalSinPuntos;
+
+  // Descuento por canje de puntos
+  const descuentoPuntos =
+    puntosConfig?.activo && clienteSeleccionado && puntosACanjear > 0
+      ? puntosACanjear * puntosConfig.valorPunto
+      : 0;
+
+  const totalFinal = Math.max(0, totalSinPuntos - descuentoPuntos);
+  const descuento = descuentoManual + descuentoPuntos;
+
+  // Puntos que ganará en esta compra
+  const puntosAGanar =
+    puntosConfig?.activo && clienteSeleccionado
+      ? Math.floor((totalFinal * puntosConfig.puntosPorMil) / 1000)
+      : 0;
+
   const vuelto =
     metodo === "EFECTIVO" && efectivoStr
       ? Math.max(0, parseMonto(efectivoStr) - totalFinal)
       : 0;
+
+  /* ── Client search ── */
+  const buscarCliente = useCallback((q: string) => {
+    if (clienteSearchRef.current) clearTimeout(clienteSearchRef.current);
+    if (!q.trim()) { setClienteResultados([]); return; }
+    clienteSearchRef.current = setTimeout(async () => {
+      setClienteBuscando(true);
+      try {
+        const res = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setClienteResultados(Array.isArray(data) ? data.slice(0, 5) : []);
+      } catch {
+        setClienteResultados([]);
+      } finally {
+        setClienteBuscando(false);
+      }
+    }, 300);
+  }, []);
+
+  function seleccionarCliente(c: ClienteResultado) {
+    setClienteSeleccionado(c);
+    setClienteSearch("");
+    setClienteResultados([]);
+    setPuntosACanjear(0);
+  }
+
+  function quitarCliente() {
+    setClienteSeleccionado(null);
+    setPuntosACanjear(0);
+  }
 
   /* ── Cart operations ── */
   function addProduct(p: Producto) {
@@ -210,6 +283,10 @@ export function CajaBasicaClient({
     setSuccess(null);
     setErrorMsg("");
     setMobileTab("productos");
+    setClienteSeleccionado(null);
+    setPuntosACanjear(0);
+    setClienteSearch("");
+    setClienteResultados([]);
   }
 
   /* ── Checkout ── */
@@ -234,18 +311,20 @@ export function CajaBasicaClient({
           items: ventaItems,
           cajaId,
           usuarioId,
+          clienteId: clienteSeleccionado?.id ?? null,
           subtotal,
           descuento,
           impuesto: 0,
           total: totalFinal,
           metodoPago: metodo,
           pagos: [{ metodoPago: metodo, monto: totalFinal }],
+          puntosCanjeados: puntosACanjear > 0 ? puntosACanjear : null,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al registrar venta");
-      setSuccess({ numero: data.numero ?? `#${data.id}`, total: totalFinal });
+      setSuccess({ numero: data.numero ?? `#${data.id}`, total: totalFinal, puntosGanados: puntosAGanar });
       setShowPago(false);
     } catch (e) {
       setErrorMsg((e as Error).message);
@@ -267,6 +346,14 @@ export function CajaBasicaClient({
           <p className="text-2xl font-black text-stone-800">¡Venta registrada!</p>
           <p className="mt-1 text-sm text-stone-500">{success.numero}</p>
           <p className="mt-2 text-3xl font-black text-stone-900">{formatCurrency(success.total, simbolo)}</p>
+          {success.puntosGanados && success.puntosGanados > 0 ? (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2">
+              <Star size={16} className="text-amber-500" />
+              <span className="text-sm font-bold text-amber-700">
+                +{success.puntosGanados} puntos ganados
+              </span>
+            </div>
+          ) : null}
         </div>
         <button
           onClick={resetVenta}
@@ -283,6 +370,7 @@ export function CajaBasicaClient({
   ══════════════════════════════════════════════════════════ */
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col bg-[#f8f9fb]">
+      <NotificacionesCajero />
 
       {/* ── Top bar ── */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 shadow-sm">
@@ -442,6 +530,116 @@ export function CajaBasicaClient({
             <p className="text-sm font-bold text-stone-700">Ticket</p>
           </div>
 
+          {/* ── Cliente (solo si puntosConfig.activo) ── */}
+          {puntosConfig?.activo && (
+            <div className="flex-shrink-0 border-b border-stone-100 bg-white px-3 py-2">
+              {clienteSeleccionado ? (
+                <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+                  <UserCircle size={16} className="text-amber-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-stone-800 truncate">{clienteSeleccionado.nombre}</p>
+                    <div className="flex items-center gap-1">
+                      <Star size={10} className="text-amber-500" />
+                      <span className="text-xs text-amber-700 font-semibold">{clienteSeleccionado.puntos} pts disponibles</span>
+                    </div>
+                  </div>
+                  <button onClick={quitarCliente} className="rounded-lg p-1 hover:bg-amber-100 transition">
+                    <X size={13} className="text-stone-400" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <UserCircle size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente por nombre o teléfono..."
+                    value={clienteSearch}
+                    onChange={(e) => {
+                      setClienteSearch(e.target.value);
+                      buscarCliente(e.target.value);
+                    }}
+                    className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-xs outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  />
+                  {clienteSearch && (
+                    <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden">
+                      {clienteBuscando ? (
+                        <p className="px-3 py-2 text-xs text-stone-400">Buscando...</p>
+                      ) : clienteResultados.length === 0 ? (
+                        <p className="px-3 py-2 text-xs text-stone-400">Sin resultados</p>
+                      ) : (
+                        clienteResultados.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => seleccionarCliente(c)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-stone-50 transition border-b border-stone-100 last:border-0"
+                          >
+                            <UserCircle size={14} className="text-stone-400 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-stone-800 truncate">{c.nombre}</p>
+                              {c.telefono && <p className="text-[10px] text-stone-400">{c.telefono}</p>}
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              <Star size={10} className="text-amber-500" />
+                              <span className="text-[10px] font-bold text-amber-600">{c.puntos}</span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Canje de puntos */}
+              {clienteSeleccionado && clienteSeleccionado.puntos > 0 && items.length > 0 && (
+                <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 px-3 py-2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-stone-600">Canjear puntos</span>
+                    <span className="text-[10px] text-stone-400">
+                      1 pt = {formatCurrency(puntosConfig.valorPunto, simbolo)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPuntosACanjear((p) => Math.max(0, p - 10))}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-200 text-stone-600 font-bold hover:bg-stone-300 transition"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={0}
+                      max={clienteSeleccionado.puntos}
+                      value={puntosACanjear}
+                      onChange={(e) => {
+                        const v = Math.min(clienteSeleccionado.puntos, Math.max(0, parseInt(e.target.value) || 0));
+                        setPuntosACanjear(v);
+                      }}
+                      className="w-16 rounded-lg border border-stone-200 bg-white px-2 py-1 text-center text-sm font-bold outline-none focus:border-amber-400"
+                    />
+                    <button
+                      onClick={() => setPuntosACanjear((p) => Math.min(clienteSeleccionado.puntos, p + 10))}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-200 text-stone-600 font-bold hover:bg-stone-300 transition"
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => setPuntosACanjear(clienteSeleccionado.puntos)}
+                      className="ml-auto text-[10px] font-bold text-amber-600 hover:underline"
+                    >
+                      Usar todos
+                    </button>
+                  </div>
+                  {puntosACanjear > 0 && (
+                    <p className="mt-1.5 text-xs text-emerald-600 font-semibold">
+                      Descuento: −{formatCurrency(descuentoPuntos, simbolo)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Items */}
           <div className="flex-1 overflow-y-auto px-3 py-3">
             {items.length === 0 ? (
@@ -551,6 +749,28 @@ export function CajaBasicaClient({
                 <span>Subtotal</span>
                 <span className="font-semibold text-stone-700">{formatCurrency(subtotal, simbolo)}</span>
               </div>
+
+              {/* Descuento por puntos */}
+              {descuentoPuntos > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-1 text-amber-600">
+                    <Star size={12} />
+                    Canje {puntosACanjear} pts
+                  </span>
+                  <span className="font-semibold text-emerald-600">−{formatCurrency(descuentoPuntos, simbolo)}</span>
+                </div>
+              )}
+
+              {/* Puntos a ganar */}
+              {puntosAGanar > 0 && (
+                <div className="flex justify-between text-xs text-amber-600">
+                  <span className="flex items-center gap-1">
+                    <Star size={10} />
+                    Ganarás
+                  </span>
+                  <span className="font-bold">+{puntosAGanar} pts</span>
+                </div>
+              )}
 
               {/* Override total */}
               <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
@@ -683,10 +903,25 @@ export function CajaBasicaClient({
             </div>
 
             {/* Total reminder */}
-            <div className="mb-5 rounded-2xl bg-stone-900 px-5 py-4 text-center">
+            <div className="mb-4 rounded-2xl bg-stone-900 px-5 py-4 text-center">
               <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide">Total a cobrar</p>
               <p className="mt-1 text-3xl font-black text-white">{formatCurrency(totalFinal, simbolo)}</p>
+              {descuentoPuntos > 0 && (
+                <p className="mt-1 text-xs text-amber-300">
+                  Incl. descuento {formatCurrency(descuentoPuntos, simbolo)} por {puntosACanjear} pts
+                </p>
+              )}
             </div>
+
+            {/* Puntos a ganar */}
+            {puntosAGanar > 0 && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+                <Star size={14} className="text-amber-500" />
+                <span className="text-xs font-semibold text-amber-700">
+                  {clienteSeleccionado?.nombre} ganará +{puntosAGanar} puntos
+                </span>
+              </div>
+            )}
 
             {/* Method */}
             <div className="mb-4 grid grid-cols-3 gap-2">

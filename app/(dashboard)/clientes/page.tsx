@@ -34,6 +34,7 @@ export default async function ClientesPage() {
     codigoCumple: (c as unknown as { codigoCumple?: string | null }).codigoCumple ?? null,
     activo: c.activo,
     sucursalId: c.sucursalId,
+    puntos: (c as unknown as { puntos?: number }).puntos ?? 0,
     sucursal: c.sucursal ?? undefined,
   }));
 

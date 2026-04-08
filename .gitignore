@@ -12,3 +12,6 @@ build/
 .clone/
 scripts/userOutput*.json
 .vercel
+bot-app/dist/
+bot-app/node_modules/
+bot-app/package-lock.json

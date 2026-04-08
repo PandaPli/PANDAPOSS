@@ -30,6 +30,13 @@ export async function GET(req: NextRequest) {
         : {}),
     },
     orderBy: { nombre: "asc" },
+    select: {
+      id: true, nombre: true, email: true, telefono: true,
+      direccion: true, genero: true, fechaNacimiento: true,
+      codigoCumple: true, activo: true, sucursalId: true,
+      puntos: true, rut: true,
+      sucursal: { select: { id: true, nombre: true } },
+    },
   });
 
   return NextResponse.json(clientes);

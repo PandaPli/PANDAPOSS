@@ -185,7 +185,7 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
   // ── CANCELAR ──────────────────────────────────────────────────────────────
   if (intencion === INTENCIONES.CANCELAR && sesion.estado !== ESTADOS.NUEVO && sesion.estado !== ESTADOS.SALUDO) {
     await limpiarSesion(agenteId, telefono);
-    const r = '¡Listo! Cancelé el pedido. ¿En qué más te puedo ayudar? 🐼';
+    const r = '¡Listo! Cancelé el pedido. ¿En qué más te puedo ayudar?';
     await agregarAlHistorial(agenteId, telefono, 'assistant', r);
     return r;
   }
@@ -469,7 +469,7 @@ async function procesarMensaje({ agenteId, sucursal, telefono, texto }) {
       return r;
     } catch (e) {
       console.error('[bot] Error al crear pedido:', e.message);
-      return 'Hubo un problema al confirmar el pedido. Por favor escríbenos directamente 🙏';
+      return 'Hubo un problema al confirmar el pedido. Por favor escríbenos directamente.';
     }
   }
 

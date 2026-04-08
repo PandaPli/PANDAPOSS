@@ -115,6 +115,7 @@ export interface PedidoConDetalles {
   estado: EstadoPedido;
   observacion: string | null;
   meseroLlamado: boolean;
+  llamadoTipo: string | null;
   direccionEntrega: string | null;
   telefonoCliente: string | null;
   repartidorId: number | null;

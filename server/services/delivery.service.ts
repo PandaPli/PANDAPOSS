@@ -334,6 +334,8 @@ export const DeliveryService = {
       return {
         id: pedido.id,
         estado: pedido.estado,
+        meseroLlamado: pedido.meseroLlamado,
+        llamadoTipo: pedido.llamadoTipo ?? null,
         trackingStage,
         trackingLabel: getDeliveryStageLabel(trackingStage),
         clienteNombre: meta.clienteNombre,

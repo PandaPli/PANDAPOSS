@@ -503,26 +503,29 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
       const zonaSnap = modoRetiro ? null : zonas.find((z) => z.id === zonaId);
       const subtotalSnap = cartSnapshot.reduce((a, i) => a + i.precio * i.cantidad, 0);
       const totalSnap = subtotalSnap + (modoRetiro ? 0 : (zonaSnap?.precio ?? 0));
-      let waMsg = `Mi pedido es:\n`;
+      let waMsg = `*Pedido #${data.id}*\n\n`;
+      waMsg += `Mi pedido es:\n`;
       cartSnapshot.forEach((item) => {
-        waMsg += `• ${item.nombre} x${item.cantidad} — ${formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}`;
+        waMsg += `- ${item.nombre} x${item.cantidad} - ${formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}`;
         if (item.opciones && item.opciones.length > 0) {
           waMsg += ` (${item.opciones.map(o => o.opcionNombre).join(", ")})`;
         }
         waMsg += "\n";
       });
+      waMsg += `\n`;
       if (modoRetiro) {
-        waMsg += `📦 Retiro en local\n`;
+        waMsg += `📦 Retiro en Aromos 371\n`;
       } else {
-        waMsg += `🛵 Delivery`;
-        if (zonaSnap) waMsg += ` — ${zonaSnap.nombre}: ${formatCurrency(zonaSnap.precio, sucursal.simbolo)}`;
+        waMsg += `🛵 Delivery a ${direccion}`;
+        if (zonaSnap) waMsg += ` (${zonaSnap.nombre}: ${formatCurrency(zonaSnap.precio, sucursal.simbolo)})`;
         waMsg += "\n";
       }
+      if (nombre.trim()) waMsg += `👤 A nombre de: *${nombre.trim()}*\n`;
+      waMsg += `💳 Pago: *${paymentSeleccionado.label}*\n`;
       waMsg += `*Total: ${formatCurrency(totalSnap, sucursal.simbolo)}*`;
-      waMsg += `\n\n`;
-      if (nombre.trim()) waMsg += `👤 A nombre de: ${nombre.trim()}\n`;
-      waMsg += `💳 Pago: ${paymentSeleccionado.label}`;
-      waMsg += `\nPedido #${data.id}`;
+      if (paymentSeleccionado.id === "transferencia") {
+        waMsg += `\n\nDatos de transferencia:\n- Cuenta: 1022193723\n- Rut: 767871538\n- Banco: Mercado Pago\n- Tipo: Vista\n- Titular: Panda Gastronomico\nEnvianos el comprobante 📸`;
+      }
 
       const rawPhone = (sucursal.telefono ?? "").replace(/\D/g, "");
       const whatsappUrl = rawPhone ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(waMsg)}` : null;

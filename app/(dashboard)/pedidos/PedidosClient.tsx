@@ -98,15 +98,17 @@ export function PedidosClient({ pedidos: initial, rol, welcome }: Props) {
   }
 
   async function handleLlamarMesero(id: number) {
+    const pedido = pedidos.find((p) => p.id === id);
+    const llamadoTipo = pedido?.tipo === "DELIVERY" ? "RIDER" : pedido?.mesa ? "MESERO" : "CAJERO";
     await fetch(`/api/pedidos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ meseroLlamado: true, estado: "LISTO" }),
+      body: JSON.stringify({ meseroLlamado: true, estado: "LISTO", llamadoTipo }),
     });
     // Optimistic
     setPedidos((prev) =>
       prev.map((p) =>
-        p.id === id ? { ...p, meseroLlamado: true, estado: "LISTO" } : p
+        p.id === id ? { ...p, meseroLlamado: true, estado: "LISTO", llamadoTipo } : p
       )
     );
   }
