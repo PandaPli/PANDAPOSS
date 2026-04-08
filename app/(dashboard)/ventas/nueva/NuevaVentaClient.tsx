@@ -219,19 +219,21 @@ export function NuevaVentaClient({
       .join("");
     pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:monospace;font-size:14px;width:80mm;padding:10px;}
+      @page{size:80mm auto;margin:0;}
+      html,body{height:fit-content;min-height:0;}
+      body{font-family:monospace;font-size:14px;width:80mm;padding:6px 8px 2px 8px;}
       .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
       .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
       .subtitle{font-size:13px;margin-top:3px;}
       .meta{font-size:12px;margin:6px 0;color:#333;}
-      .items{margin:10px 0;border-bottom:1px dashed #000;padding-bottom:10px;}
+      .items{margin:8px 0;border-bottom:1px dashed #000;padding-bottom:6px;}
       .item{display:flex;gap:10px;margin:8px 0;align-items:flex-start;}
       .qty{font-size:20px;font-weight:bold;min-width:30px;}
       .item-info{flex:1;}
       .nombre{font-size:15px;font-weight:bold;display:block;}
       .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
-      .footer{text-align:center;font-size:11px;margin-top:8px;color:#666;}
-      @media print{body{width:80mm;}}
+      .footer{text-align:center;font-size:11px;margin-top:4px;color:#666;}
+      .cut-feed{height:3mm;}
     </style></head><body>
       <div class="header">
         <div class="title">${titulo}</div>
@@ -240,6 +242,7 @@ export function NuevaVentaClient({
       <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
       <div class="items">${itemsHtml}</div>
       <div class="footer">— PandaPoss —</div>
+      <div class="cut-feed"></div>
       <script>window.onload=function(){window.print();window.close();}<\/script>
     </body></html>`);
     pw.document.close();
