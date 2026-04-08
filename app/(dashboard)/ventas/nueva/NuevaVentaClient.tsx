@@ -7,11 +7,10 @@ import { CartPanel } from "@/components/pos/CartPanel";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
-import type { ProductoCard, CartItem, RondaPedido } from "@/types";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Search, User, X, Truck, Loader2, MapPin, Monitor } from "lucide-react";
+import type { ProductoCard, CartItem } from "@/types";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { printFrame } from "@/lib/printFrame";
 
 const CANCEL_ROLES = ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER", "SECRETARY", "WAITER"];
 
@@ -36,16 +35,9 @@ interface Props {
   cajaId?: number;
   cajaNombre?: string;
   meseroNombre?: string;
-  initialOrder?: { id: number; mesaId: number | null; items: CartItem[]; rondas?: RondaPedido[] } | null;
-  initialMesaId?: number; // mesaId desde URL param (para mesas nuevas sin pedido activo)
+  initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
   logoUrl?: string | null;
   mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
-  sucursalId?: number | null;
-  sucursalNombre?: string | null;
-  sucursalRut?: string | null;
-  sucursalTelefono?: string | null;
-  sucursalDireccion?: string | null;
-  sucursalGiroComercial?: string | null;
 }
 
 export function NuevaVentaClient({
@@ -57,49 +49,17 @@ export function NuevaVentaClient({
   cajaNombre,
   meseroNombre,
   initialOrder,
-  initialMesaId,
   logoUrl,
   mesaNombre,
-  sucursalId,
-  sucursalNombre,
-  sucursalRut,
-  sucursalTelefono,
-  sucursalDireccion,
-  sucursalGiroComercial,
 }: Props) {
   const router = useRouter();
-  // Persiste si estamos en contexto de mesa ANTES de que clear() limpie el store
-  // initialMesaId cubre el caso de mesas nuevas sin pedido activo (initialOrder === null)
-  const esMesaRef = useRef<boolean>(!!initialOrder?.mesaId || !!initialMesaId);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showPrecuenta, setShowPrecuenta] = useState(false);
   const [ordenLoading, setOrdenLoading] = useState(false);
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
 
-  /* ── Grupos por mesa ── */
-  const [activeGrupo, setActiveGrupo] = useState<string | null>(null);
-  const [nuevoGrupoNombre, setNuevoGrupoNombre] = useState<string | null>(null);
-
-  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, markAsSavedWithIds, getItemsByGrupo, setMesaFresh, setCliente, descuento, ivaPorc, setGrupoNombre, grupoNombres } = useCartStore();
-
-  /* ── Cliente (opcional, por defecto CLIENTE EN MESÓN) ── */
-  const [clienteNombreLocal, setClienteNombreLocal] = useState<string | null>(null);
-  const [showClienteSearch, setShowClienteSearch]   = useState(false);
-  const [clientePhone, setClientePhone]             = useState("");
-  const [searchingCliente, setSearchingCliente]     = useState(false);
-  const [clienteError, setClienteError]             = useState("");
-
-  /* ── Modo Delivery ── */
-  const [showDeliveryModal, setShowDeliveryModal]   = useState(false);
-  const [deliveryNombre, setDeliveryNombre]         = useState("");
-  const [deliveryPhone, setDeliveryPhone]           = useState("");
-  const [deliveryDir, setDeliveryDir]               = useState("");
-  const [deliveryRef, setDeliveryRef]               = useState("");
-  const [deliveryCosto, setDeliveryCosto]           = useState("0");
-  const [deliveryHora, setDeliveryHora]             = useState("");
-  const [deliverySubmitting, setDeliverySubmitting] = useState(false);
-  const [deliveryError, setDeliveryError]           = useState("");
+  const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh } = useCartStore();
 
   // Filtrar productos según el rol del usuario
   const productosFiltrados = useMemo(() => {
@@ -110,9 +70,6 @@ export function NuevaVentaClient({
     );
   }, [productos, userRol]);
 
-  // Historial de rondas de esta mesa (server-loaded + local)
-  const [localRondas, setLocalRondas] = useState<RondaPedido[]>(initialOrder?.rondas ?? []);
-
   const [checkoutGrupo, setCheckoutGrupo] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<{
     pedidoNum: number;
@@ -120,81 +77,6 @@ export function NuevaVentaClient({
     items: CartItem[];
   } | null>(null);
   const totalItems = items.reduce((s, i) => s + i.cantidad, 0);
-
-  const GRUPO_NUMS = ["A1", "A2", "A3", "A4", "A5"];
-  const gruposUsados = useMemo(() => {
-    const s = new Set<string>();
-    items.forEach((i) => { if (i.grupo) s.add(i.grupo); });
-    return GRUPO_NUMS.filter((g) => s.has(g));
-  }, [items]);
-  const siguienteGrupo = GRUPO_NUMS.find((g) => !gruposUsados.includes(g)) ?? null;
-
-  // ── Visor de cliente ─────────────────────────────────────────────────────
-  const lastTotalRef = useRef<number>(0);
-  const [visorCopied, setVisorCopied] = useState(false);
-
-  // El visor se activa solo cuando hay una caja abierta
-  const visorUrl = cajaId ? `/visor/${cajaId}` : null;
-
-  // Guardar último total no-cero para la pantalla de éxito
-  useEffect(() => {
-    const unsub = useCartStore.subscribe((state) => {
-      const t = state.total();
-      if (t > 0) lastTotalRef.current = t;
-    });
-    return unsub;
-  }, []);
-
-  // Enviar estado del carrito al visor en cada cambio
-  useEffect(() => {
-    if (!cajaId) return; // sin caja abierta, no hay visor
-    const store = useCartStore.getState();
-    const activeItems = items.filter((i) => !i.cancelado && !i.pagado);
-    const payload =
-      activeItems.length === 0
-        ? { cajaId, type: "idle" as const, sucursalNombre: sucursalNombre ?? "" }
-        : {
-            cajaId,
-            type:           "cart" as const,
-            items:          activeItems.map((i) => ({
-              id:          i.id,
-              tipo:        i.tipo,
-              nombre:      i.nombre,
-              precio:      i.precio,
-              cantidad:    i.cantidad,
-              observacion: i.observacion ?? null,
-            })),
-            subtotal:       store.subtotal(),
-            descuento,
-            totalDescuento: store.totalDescuento(),
-            ivaPorc,
-            totalIva:       store.totalIva(),
-            total:          store.total(),
-            simbolo,
-            sucursalNombre: sucursalNombre ?? "",
-          };
-
-    fetch("/api/visor/push", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
-    }).catch(() => { /* visor no crítico */ });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, descuento, ivaPorc, simbolo, cajaId, sucursalNombre]);
-
-  function openVisor() {
-    if (!visorUrl) return;
-    window.open(visorUrl, "_blank", "noopener,noreferrer");
-  }
-
-  function copyVisorUrl() {
-    if (!visorUrl) return;
-    const full = `${window.location.origin}${visorUrl}`;
-    navigator.clipboard.writeText(full).then(() => {
-      setVisorCopied(true);
-      setTimeout(() => setVisorCopied(false), 2000);
-    });
-  }
 
   // Ref para saber si ya hicimos la hidratación inicial en este montaje
   const hydrated = useRef(false);
@@ -216,27 +98,21 @@ export function NuevaVentaClient({
   }, [initialOrder, mesaId, setInitialState]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const urlParams = new URLSearchParams(window.location.search);
-    const mesaParam = urlParams.get("mesa");
-    if (!mesaParam || isNaN(Number(mesaParam))) return;
-    const newMesaId = Number(mesaParam);
-
-    if (!initialOrder) {
-      // Sin datos del servidor: solo asignar mesaId en el store
-      const store = useCartStore.getState();
-      if (store.mesaId !== newMesaId) {
-        store.setMesaFresh(newMesaId);
-      } else {
-        store.setMesa(newMesaId);
+    if (!initialOrder && typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaParam = urlParams.get("mesa");
+      if (mesaParam && !isNaN(Number(mesaParam))) {
+        const newMesaId = Number(mesaParam);
+        const store = useCartStore.getState();
+        // Si la mesa cambió → limpiar carrito completamente (evita mezclar ítems de otras mesas)
+        if (store.mesaId !== newMesaId) {
+          store.setMesaFresh(newMesaId);
+        } else {
+          store.setMesa(newMesaId);
+        }
       }
-    } else if (initialOrder.mesaId !== newMesaId) {
-      // Mesa cambió via URL pero initialOrder es de la mesa anterior:
-      // hacer hard reload para que el servidor cargue los pedidos de la nueva mesa
-      window.location.href = `/ventas/nueva?mesa=${newMesaId}`;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialOrder]);
 
   async function handleOpenPrecuenta() {
     if (mesaId) {
@@ -254,84 +130,6 @@ export function NuevaVentaClient({
     setShowPrecuenta(true);
   }
 
-  /* ── Buscar cliente por teléfono ── */
-  async function buscarCliente() {
-    const digits = clientePhone.replace(/\D/g, "");
-    if (digits.length < 8) return;
-    setSearchingCliente(true);
-    setClienteError("");
-    try {
-      const res = await fetch(`/api/clientes?q=${encodeURIComponent(digits)}`);
-      const data = await res.json();
-      if (data.length > 0 && typeof data[0].id === "number" && data[0].id > 0) {
-        setCliente(data[0].id);
-        setClienteNombreLocal(data[0].nombre);
-        setShowClienteSearch(false);
-        // Pre-rellenar delivery si está abierto
-        setDeliveryNombre(data[0].nombre);
-        setDeliveryPhone(`+569${digits.slice(-8)}`);
-        if (data[0].direccion) setDeliveryDir(data[0].direccion);
-      } else {
-        setClienteError("Cliente no encontrado");
-      }
-    } catch {
-      setClienteError("Error al buscar");
-    } finally {
-      setSearchingCliente(false);
-    }
-  }
-
-  function clearCliente() {
-    setCliente(null);
-    setClienteNombreLocal(null);
-    setClientePhone("");
-    setClienteError("");
-  }
-
-  /* ── Enviar a Delivery desde POS ── */
-  async function handleEnviarDelivery() {
-    if (!deliveryNombre.trim() || !deliveryDir.trim() || items.length === 0) return;
-    // Validar hora de entrega: si se ingresó, debe ser al menos 15 min en el futuro
-    if (deliveryHora) {
-      const horaEntrega = new Date(deliveryHora);
-      const minPermitido = new Date(Date.now() + 15 * 60 * 1000);
-      if (horaEntrega < minPermitido) {
-        setDeliveryError("La hora de entrega debe ser al menos 15 minutos en el futuro.");
-        return;
-      }
-    }
-    setDeliverySubmitting(true);
-    setDeliveryError("");
-    try {
-      const res = await fetch("/api/delivery/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sucursalId,
-          items: items.map((i) => ({
-            productoId: i.tipo === "producto" ? i.id : null,
-            cantidad: i.cantidad,
-          })),
-          cliente: {
-            nombre: deliveryNombre.trim(),
-            telefono: deliveryPhone.trim() || null,
-            direccion: deliveryDir.trim(),
-            referencia: deliveryRef.trim() || undefined,
-          },
-          metodoPago: "EFECTIVO",
-          cargoEnvio: Number(deliveryCosto) || 0,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error al crear pedido delivery");
-      router.push(`/delivery`);
-    } catch (e) {
-      setDeliveryError((e as Error).message);
-    } finally {
-      setDeliverySubmitting(false);
-    }
-  }
-
   async function handleVolver() {
     const unsaved = items.filter((i) => !i.guardado);
     if (unsaved.length > 0) {
@@ -341,7 +139,7 @@ export function NuevaVentaClient({
   }
 
   async function handleOrden() {
-    const nuevosItems = items.filter((i) => !i.guardado && !i.cancelado);
+    const nuevosItems = items.filter((i) => !i.guardado);
 
     if (nuevosItems.length === 0) {
       setOrdenMsg("No hay productos nuevos para enviar");
@@ -363,7 +161,6 @@ export function NuevaVentaClient({
           comboId: i.tipo === "combo" ? i.id : null,
           cantidad: i.cantidad,
           observacion: i.observacion || null,
-          grupo: i.grupo || null,
         })),
       };
 
@@ -380,42 +177,15 @@ export function NuevaVentaClient({
 
       const pedido = await res.json();
       setPedido(pedido.id);
-      // Asignar detalleId de cada ítem guardado para que cancel/delete sean precisos por ronda
-      const detalleIds: number[] = Array.isArray(pedido.detalles)
-        ? pedido.detalles.map((d: { id: number }) => d.id)
-        : [];
-      if (detalleIds.length > 0) {
-        markAsSavedWithIds(detalleIds);
-      } else {
-        markAsSaved();
-      }
-
-      // Agregar la ronda al historial local
-      setLocalRondas((prev) => [
-        ...prev,
-        {
-          pedidoId: pedido.id,
-          numero: prev.length + 1,
-          creadoEn: new Date().toISOString(),
-          items: nuevosItems.map((i) => ({
-            nombre: i.nombre,
-            cantidad: i.cantidad,
-            observacion: i.observacion ?? null,
-            cancelado: false,
-          })),
-        },
-      ]);
+      markAsSaved();
 
       setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
       setTimeout(() => setOrdenMsg(""), 4000);
-
-      const newTicket = {
+      setTicketData({
         pedidoNum: pedido.id,
         mesa: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : null),
         items: nuevosItems,
-      };
-      // Mostrar dialog de confirmación — el usuario decide si imprimir
-      setTicketData(newTicket);
+      });
     } catch (e) {
       setOrdenMsg((e as Error).message);
     } finally {
@@ -424,23 +194,12 @@ export function NuevaVentaClient({
   }
 
   function handleSuccess() {
-    if (cajaId) {
-      fetch("/api/visor/push", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cajaId,
-          type:           "success",
-          total:          lastTotalRef.current,
-          simbolo,
-          sucursalNombre: sucursalNombre ?? "",
-        }),
-      }).catch(() => { /* visor no crítico */ });
-    }
-    router.push(esMesaRef.current ? "/mesas" : "/ventas/nueva");
+    router.push("/mesas");
   }
 
   function printTicketEstacion(estacion: string, items: CartItem[], pedidoNum: number, mesa: string | null) {
+    const pw = window.open("", "_blank", "width=380,height=600");
+    if (!pw) return;
     const now = new Date();
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -458,29 +217,35 @@ export function NuevaVentaClient({
           </div>
         </div>`)
       .join("");
-    printFrame(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
-      @page{size:80mm auto;margin:0;}@media print{@page{size:80mm auto;margin:0;}}
+    pw.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:'Courier New',monospace;font-size:14px;width:80mm;padding:3mm 3mm 10mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:6px;margin-bottom:6px;}
+      @page{size:80mm auto;margin:0;}
+      html,body{height:fit-content;min-height:0;}
+      body{font-family:monospace;font-size:14px;width:80mm;padding:6px 8px 2px 8px;}
+      .header{text-align:center;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px;}
       .title{font-size:20px;font-weight:bold;letter-spacing:3px;}
-      .subtitle{font-size:12px;margin-top:3px;}
-      .meta{font-size:11px;margin:4px 0 6px;color:#333;}
-      .item{display:flex;gap:8px;margin:6px 0;align-items:flex-start;}
-      .qty{font-size:20px;font-weight:bold;min-width:28px;}
+      .subtitle{font-size:13px;margin-top:3px;}
+      .meta{font-size:12px;margin:6px 0;color:#333;}
+      .items{margin:8px 0;border-bottom:1px dashed #000;padding-bottom:6px;}
+      .item{display:flex;gap:10px;margin:8px 0;align-items:flex-start;}
+      .qty{font-size:20px;font-weight:bold;min-width:30px;}
       .item-info{flex:1;}
       .nombre{font-size:15px;font-weight:bold;display:block;}
-      .obs{font-size:11px;color:#555;display:block;font-style:italic;margin-top:2px;}
-      hr{border:none;border-top:1px dashed #000;margin:4px 0;}
+      .obs{font-size:12px;color:#555;display:block;font-style:italic;margin-top:2px;}
+      .footer{text-align:center;font-size:11px;margin-top:4px;color:#666;}
+      .cut-feed{height:3mm;}
     </style></head><body>
       <div class="header">
         <div class="title">${titulo}</div>
         <div class="subtitle">${mesa ?? "Sin mesa"} &nbsp;|&nbsp; Orden #${pedidoNum}</div>
       </div>
-      <div class="meta">${dateStr} &nbsp; ${timeStr}</div>
-      <hr/>
-      ${itemsHtml}
+      <div class="meta">${dateStr} &nbsp;&nbsp; <strong>${timeStr}</strong></div>
+      <div class="items">${itemsHtml}</div>
+      <div class="footer">— PandaPoss —</div>
+      <div class="cut-feed"></div>
+      <script>window.onload=function(){window.print();window.close();}<\/script>
     </body></html>`);
+    pw.document.close();
   }
 
   function printKitchenTicket(data: { pedidoNum: number; mesa: string | null; items: CartItem[] }) {
@@ -506,22 +271,12 @@ export function NuevaVentaClient({
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col gap-0">
       {/* Barra superior */}
-      <div className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b border-surface-border bg-white px-4 py-3">
-        {/* Volver — solo si viene de una mesa */}
-        {mesaId ? (
-          <button onClick={handleVolver} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-95 transition-all">
-            <ArrowLeft size={15} />
-            <span>Volver a Mesas</span>
-          </button>
-        ) : (
-          <button onClick={() => router.push("/ventas/nueva")} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-white px-3 py-1.5 text-sm font-semibold text-surface-text hover:bg-surface-bg active:scale-95 transition-all">
-            <ArrowLeft size={15} />
-          </button>
-        )}
-
-        <h1 className="text-sm font-bold text-surface-text sm:text-base">
-          {mesaNombre ?? "Punto de Venta"}
-        </h1>
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-surface-border bg-white px-4 py-3">
+        <button onClick={handleVolver} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-95 transition-all">
+          <ArrowLeft size={15} />
+          <span>Volver a Mesas</span>
+        </button>
+        <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
 
         {ordenMsg && (
           <span className="inline-flex animate-fade-in items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
@@ -531,28 +286,7 @@ export function NuevaVentaClient({
           </span>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          {/* Cliente */}
-          {clienteNombreLocal ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 pl-2.5 pr-1.5 py-1 text-xs font-semibold text-brand-700">
-              <User size={11} />
-              {clienteNombreLocal}
-              <button onClick={clearCliente} className="ml-0.5 rounded-full p-0.5 hover:bg-brand-100 transition">
-                <X size={11} />
-              </button>
-            </span>
-          ) : (
-            <button
-              onClick={() => setShowClienteSearch((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-white px-2.5 py-1 text-xs font-semibold text-surface-muted hover:bg-surface-bg transition"
-            >
-              <User size={11} />
-              <span className="hidden sm:inline">Cliente en Mesón</span>
-              <span className="sm:hidden">Cliente</span>
-            </button>
-          )}
-
-          {/* Caja */}
+        <div className="ml-auto">
           {cajaId ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
               <Wallet size={13} />
@@ -564,188 +298,8 @@ export function NuevaVentaClient({
               <span className="hidden sm:inline">Sin caja</span>
             </span>
           )}
-
-          {/* Botón visor cliente */}
-          {visorUrl && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={openVisor}
-                title={`Abrir visor: ${visorUrl}`}
-                className="inline-flex items-center gap-1.5 rounded-l-full border border-surface-border bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-muted hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
-              >
-                <Monitor size={13} />
-                <span className="hidden sm:inline">Visor</span>
-              </button>
-              <button
-                onClick={copyVisorUrl}
-                title="Copiar enlace del visor"
-                className="inline-flex items-center rounded-r-full border border-l-0 border-surface-border bg-white px-2 py-1.5 text-xs font-semibold text-surface-muted hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
-              >
-                {visorCopied ? (
-                  <CheckCircle2 size={13} className="text-emerald-500" />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* ── Búsqueda de cliente ── */}
-      {showClienteSearch && (
-        <div className="flex flex-shrink-0 items-center gap-2 border-b border-surface-border bg-surface-bg px-4 py-2.5">
-          <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-surface-border bg-white px-3 py-2 text-sm">
-            <span className="text-xs font-semibold text-surface-muted">+569</span>
-            <input
-              autoFocus
-              type="tel"
-              inputMode="numeric"
-              maxLength={8}
-              value={clientePhone}
-              onChange={(e) => { setClientePhone(e.target.value.replace(/\D/g, "")); setClienteError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
-              placeholder="12345678"
-              className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-surface-muted/50"
-            />
-          </div>
-          <button
-            onClick={buscarCliente}
-            disabled={clientePhone.length < 8 || searchingCliente}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-surface-text px-3 py-2 text-xs font-bold text-white transition hover:bg-surface-text/80 disabled:opacity-40"
-          >
-            {searchingCliente ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
-            Buscar
-          </button>
-          <button onClick={() => { setShowClienteSearch(false); setClienteError(""); }} className="rounded-xl p-2 text-surface-muted hover:bg-surface-border transition">
-            <X size={14} />
-          </button>
-          {clienteError && <span className="text-xs font-semibold text-rose-600">{clienteError}</span>}
-        </div>
-      )}
-
-      {/* ── Botón Enviar a Delivery (solo si hay ítems y no hay mesa) ── */}
-      {!mesaId && items.length > 0 && (
-        <div className="flex flex-shrink-0 justify-end border-b border-surface-border bg-white px-4 py-2">
-          <button
-            onClick={() => { setShowDeliveryModal(true); if (clienteNombreLocal) setDeliveryNombre(clienteNombreLocal); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 transition hover:bg-violet-100"
-          >
-            <Truck size={13} />
-            Enviar a Delivery
-          </button>
-        </div>
-      )}
-
-      {/* ── Grupos por mesa — solo cuando hay mesaId ── */}
-      {mesaId && (
-        <div className="flex flex-shrink-0 items-center gap-1.5 overflow-x-auto border-b border-surface-border bg-white px-3 py-2.5 scrollbar-hide">
-          {/* Tab: Mesa completa (sin grupo) */}
-          {(() => {
-            const mesaCount = items.filter((i) => !i.grupo && !i.cancelado && !i.pagado).reduce((s, i) => s + i.cantidad, 0);
-            return (
-              <button
-                onClick={() => setActiveGrupo(null)}
-                className={cn(
-                  "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all whitespace-nowrap",
-                  !activeGrupo
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "border border-surface-border bg-white text-surface-muted hover:border-slate-300 hover:text-slate-700"
-                )}
-              >
-                <UtensilsCrossed size={11} />
-                Mesa
-                {mesaCount > 0 && (
-                  <span className={cn("flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-black", !activeGrupo ? "bg-white/30 text-white" : "bg-slate-200 text-slate-700")}>
-                    {mesaCount}
-                  </span>
-                )}
-              </button>
-            );
-          })()}
-
-          {/* Separador */}
-          {gruposUsados.length > 0 && <div className="h-4 w-px bg-surface-border mx-0.5 shrink-0" />}
-
-          {/* Tabs de grupos existentes */}
-          {gruposUsados.map((grupo) => {
-            const color = ["#3b82f6","#22c55e","#f97316","#a855f7","#ec4899"][GRUPO_NUMS.indexOf(grupo)] ?? "#6b7280";
-            const count = items.filter((i) => i.grupo === grupo && !i.cancelado && !i.pagado).reduce((s, i) => s + i.cantidad, 0);
-            const nombre = grupoNombres[grupo];
-            return (
-              <button
-                key={grupo}
-                onClick={() => setActiveGrupo(grupo)}
-                className={cn(
-                  "shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all whitespace-nowrap",
-                  activeGrupo === grupo ? "text-white shadow-sm" : "border bg-white"
-                )}
-                style={activeGrupo === grupo
-                  ? { backgroundColor: color, borderColor: color }
-                  : { borderColor: color, color }}
-              >
-                {nombre || grupo}
-                {count > 0 && (
-                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-black"
-                    style={activeGrupo === grupo
-                      ? { backgroundColor: "rgba(255,255,255,0.3)", color: "white" }
-                      : { backgroundColor: color, color: "white" }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Botón "+" — agregar nuevo grupo (máx 5) con prompt de nombre */}
-          {siguienteGrupo && gruposUsados.length < 5 && (
-            nuevoGrupoNombre !== null ? (
-              <div className="shrink-0 flex items-center gap-1">
-                <input
-                  autoFocus
-                  type="text"
-                  value={nuevoGrupoNombre}
-                  onChange={(e) => setNuevoGrupoNombre(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (nuevoGrupoNombre.trim()) setGrupoNombre(siguienteGrupo, nuevoGrupoNombre.trim());
-                      setActiveGrupo(siguienteGrupo);
-                      setNuevoGrupoNombre(null);
-                    } else if (e.key === "Escape") {
-                      setNuevoGrupoNombre(null);
-                    }
-                  }}
-                  placeholder="Nombre (ej. Roro)"
-                  className="w-28 rounded-full border-2 border-brand-400 bg-white px-3 py-1.5 text-xs font-medium text-surface-text placeholder:text-surface-muted focus:outline-none"
-                />
-                <button
-                  onClick={() => {
-                    if (nuevoGrupoNombre.trim()) setGrupoNombre(siguienteGrupo, nuevoGrupoNombre.trim());
-                    setActiveGrupo(siguienteGrupo);
-                    setNuevoGrupoNombre(null);
-                  }}
-                  className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 text-xs font-black"
-                >✓</button>
-                <button
-                  onClick={() => setNuevoGrupoNombre(null)}
-                  className="w-6 h-6 rounded-full border border-surface-border text-surface-muted flex items-center justify-center hover:bg-surface-bg text-xs"
-                >✕</button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setNuevoGrupoNombre("")}
-                className="shrink-0 flex items-center gap-1 rounded-full border-2 border-dashed border-brand-300 bg-white px-3 py-2 text-xs font-bold text-brand-500 transition-all hover:border-brand-500 hover:bg-brand-50 whitespace-nowrap"
-              >
-                <span className="text-sm leading-none">+</span>
-                Sub-mesa
-              </button>
-            )
-          )}
-        </div>
-      )}
 
       <div className="flex flex-shrink-0 border-b border-surface-border bg-white md:hidden">
         <button
@@ -776,31 +330,19 @@ export function NuevaVentaClient({
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className={cn("flex-1 overflow-hidden", mobileTab === "carrito" ? "hidden md:block" : "block")}>
-          <ProductGrid productos={productosFiltrados} simbolo={simbolo} activeGrupo={activeGrupo} />
+        <div className={cn("flex-1 overflow-hidden p-3 sm:p-4", mobileTab === "carrito" ? "hidden md:block" : "block")}>
+          <ProductGrid productos={productosFiltrados} simbolo={simbolo} />
         </div>
 
-        <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-80 xl:w-[420px]", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
+        <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
           <CartPanel
             simbolo={simbolo}
-            onCheckout={async () => {
-              // Si hay ítems sin enviar a cocina, enviarlos primero
-              const sinEnviar = items.filter((i) => !i.guardado && !i.cancelado);
-              if (sinEnviar.length > 0) await handleOrden();
-              setCheckoutGrupo(null);
-              setShowCheckout(true);
-            }}
-            onCheckoutGrupo={async (grupo) => {
-              const sinEnviar = items.filter((i) => !i.guardado && !i.cancelado);
-              if (sinEnviar.length > 0) await handleOrden();
-              setCheckoutGrupo(grupo);
-              setShowCheckout(true);
-            }}
+            onCheckout={() => { setCheckoutGrupo(null); setShowCheckout(true); }}
+            onCheckoutGrupo={(grupo) => { setCheckoutGrupo(grupo); setShowCheckout(true); }}
             onOrden={handleOrden}
             onPrecuenta={handleOpenPrecuenta}
             ordenLoading={ordenLoading}
             canCancelItems={userRol ? CANCEL_ROLES.includes(userRol) : false}
-            rondas={localRondas}
           />
         </div>
       </div>
@@ -835,104 +377,7 @@ export function NuevaVentaClient({
           onSuccess={handleSuccess}
           grupoNombre={checkoutGrupo ?? undefined}
           grupoItems={checkoutGrupo ? getItemsByGrupo(checkoutGrupo) : undefined}
-          sucursalNombre={sucursalNombre}
-          sucursalRut={sucursalRut}
-          sucursalTelefono={sucursalTelefono}
-          sucursalDireccion={sucursalDireccion}
-          sucursalGiroComercial={sucursalGiroComercial}
-          sucursalId={sucursalId}
         />
-      )}
-
-      {/* ── Modal Delivery desde POS ── */}
-      {showDeliveryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-surface-border px-5 py-4">
-              <div className="flex items-center gap-2">
-                <Truck size={16} className="text-violet-600" />
-                <p className="font-bold text-surface-text">Enviar a Delivery</p>
-              </div>
-              <button onClick={() => { setShowDeliveryModal(false); setDeliveryError(""); }} className="rounded-xl p-1.5 text-surface-muted hover:bg-surface-bg transition">
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-3 p-5">
-              <div>
-                <label className="label">Nombre del cliente *</label>
-                <input value={deliveryNombre} onChange={(e) => setDeliveryNombre(e.target.value)}
-                  placeholder="Nombre" className="input" />
-              </div>
-              <div>
-                <label className="label">Teléfono</label>
-                <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm">
-                  <span className="text-xs font-semibold text-surface-muted">+569</span>
-                  <input type="tel" inputMode="numeric" maxLength={8}
-                    value={deliveryPhone.replace(/^\+569/, "")}
-                    onChange={(e) => setDeliveryPhone(`+569${e.target.value.replace(/\D/g, "")}`)}
-                    placeholder="12345678"
-                    className="flex-1 bg-transparent font-semibold outline-none placeholder:font-normal placeholder:text-surface-muted/50"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="label">Dirección de entrega *</label>
-                <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm">
-                  <MapPin size={14} className="shrink-0 text-surface-muted" />
-                  <input value={deliveryDir} onChange={(e) => setDeliveryDir(e.target.value)}
-                    placeholder="Calle y número" className="flex-1 bg-transparent outline-none" />
-                </div>
-              </div>
-              <div>
-                <label className="label">Referencia</label>
-                <input value={deliveryRef} onChange={(e) => setDeliveryRef(e.target.value)}
-                  placeholder="Depto, portón, color de puerta..." className="input" />
-              </div>
-              <div>
-                <label className="label">Hora de entrega <span className="text-surface-muted font-normal">(opcional)</span></label>
-                <input
-                  type="datetime-local"
-                  value={deliveryHora}
-                  min={new Date(Date.now() + 15 * 60 * 1000).toISOString().slice(0, 16)}
-                  onChange={(e) => { setDeliveryHora(e.target.value); setDeliveryError(""); }}
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="label">Cargo de envío</label>
-                <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2.5 text-sm">
-                  <span className="text-xs font-semibold text-surface-muted">{simbolo}</span>
-                  <input type="text" inputMode="numeric"
-                    value={deliveryCosto}
-                    onChange={(e) => setDeliveryCosto(e.target.value.replace(/\D/g, ""))}
-                    placeholder="0"
-                    className="flex-1 bg-transparent font-semibold tabular-nums outline-none"
-                  />
-                </div>
-              </div>
-
-              {deliveryError && (
-                <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600">{deliveryError}</p>
-              )}
-
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setShowDeliveryModal(false); setDeliveryError(""); }}
-                  className="btn-secondary flex-1 text-sm">
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleEnviarDelivery}
-                  disabled={deliverySubmitting || !deliveryNombre.trim() || !deliveryDir.trim() || items.length === 0}
-                  className="btn-primary flex-1 text-sm bg-violet-600 hover:bg-violet-700 disabled:opacity-50"
-                >
-                  {deliverySubmitting ? <Loader2 size={15} className="animate-spin" /> : <Truck size={15} />}
-                  Confirmar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {showPrecuenta && (
@@ -942,12 +387,6 @@ export function NuevaVentaClient({
           mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
           onClose={() => setShowPrecuenta(false)}
-          sucursalId={sucursalId}
-          sucursalNombre={sucursalNombre}
-          sucursalRut={sucursalRut}
-          sucursalTelefono={sucursalTelefono}
-          sucursalDireccion={sucursalDireccion}
-          sucursalGiroComercial={sucursalGiroComercial}
         />
       )}
 
@@ -964,7 +403,7 @@ export function NuevaVentaClient({
                   {ticketData.mesa ? ` · ${ticketData.mesa}` : ""}
                 </p>
                 <p className="mt-0.5 text-sm text-surface-muted">
-                  ¿Imprimir comanda?
+                  ¿Imprimir ticket de barra / cocina?
                 </p>
               </div>
             </div>
