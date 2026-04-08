@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Bike, MapPin, Clock, Phone, TrendingUp, Package, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bike, MapPin, Clock, Phone, TrendingUp, Package, ChevronRight, Bell, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
 
@@ -14,6 +15,7 @@ interface PedidoDriver {
   id: number;
   numero: number;
   estado: string;
+  asignadoAMi: boolean;
   clienteNombre: string;
   telefonoCliente: string;
   direccionEntrega: string;
@@ -49,14 +51,25 @@ function estadoLabel(e: string) {
   return map[e] ?? e;
 }
 
-function estadoColor(e: string) {
-  if (e === "LISTO") return "bg-amber-100 text-amber-800";
-  if (e === "EN_PROCESO") return "bg-blue-100 text-blue-700";
-  return "bg-stone-100 text-stone-600";
-}
-
 export function DriverDashboard({ riderNombre, pedidos, gananciasHoy, entregasHoy }: Props) {
+  const router = useRouter();
   const [expandido, setExpandido] = useState<number | null>(null);
+  const [tomando, setTomando] = useState<number | null>(null);
+
+  const misPedidos = pedidos.filter((p) => p.asignadoAMi);
+  const nuevos = pedidos.filter((p) => !p.asignadoAMi);
+
+  async function tomarPedido(pedidoId: number) {
+    setTomando(pedidoId);
+    try {
+      const res = await fetch(`/api/driver/orders/${pedidoId}/accept`, { method: "POST" });
+      if (res.ok) {
+        router.refresh();
+      }
+    } finally {
+      setTomando(null);
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-stone-100">
@@ -92,31 +105,97 @@ export function DriverDashboard({ riderNombre, pedidos, gananciasHoy, entregasHo
           </div>
         </div>
 
-        {/* Lista de pedidos */}
+        {/* Pedidos nuevos (sin asignar) */}
+        {nuevos.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3 px-1">
+              <Bell size={14} className="text-amber-500" />
+              <p className="text-[11px] uppercase tracking-widest font-black text-amber-600">
+                Nuevos pedidos ({nuevos.length})
+              </p>
+            </div>
+            <div className="space-y-3">
+              {nuevos.map((p) => (
+                <div key={p.id} className="bg-amber-50 rounded-[1.5rem] border border-amber-200 shadow-sm p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded-full bg-amber-200 text-amber-900">
+                        Nuevo
+                      </span>
+                      <p className="font-black text-2xl mt-2 text-stone-900">#{p.numero}</p>
+                    </div>
+                    {p.pagoRider > 0 && (
+                      <p className="font-black text-lg text-emerald-600">+{formatCurrency(p.pagoRider)}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-sm text-stone-600 mb-4">
+                    <p className="flex items-start gap-2">
+                      <MapPin size={14} className="text-stone-400 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{p.direccionEntrega}</span>
+                    </p>
+                    {p.referencia && <p className="text-xs text-stone-500 pl-5">Ref: {p.referencia}</p>}
+                    <div className="flex flex-wrap gap-3 text-xs text-stone-400 pl-0.5">
+                      {p.zonaDelivery && <span>Zona: {p.zonaDelivery}</span>}
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />
+                        {new Date(p.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-sm mb-4">
+                    {p.detalles.map((d, i) => (
+                      <p key={i} className="text-stone-700">
+                        <span className="font-bold">{d.cantidad}x</span> {d.nombre}
+                      </p>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white/70 rounded-xl px-3 py-2 mb-4 text-sm">
+                    <span className="text-stone-500 font-medium">Total a cobrar</span>
+                    <span className="font-black text-stone-900">{formatCurrency(p.total)}</span>
+                  </div>
+
+                  <button
+                    onClick={() => void tomarPedido(p.id)}
+                    disabled={tomando === p.id}
+                    className="w-full py-3.5 rounded-2xl bg-amber-400 text-amber-950 font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-amber-500"
+                  >
+                    {tomando === p.id
+                      ? <><Loader2 size={16} className="animate-spin" /> Tomando...</>
+                      : "Tomar pedido →"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mis pedidos (asignados a mí) */}
         <div>
           <p className="text-[11px] uppercase tracking-widest font-black text-stone-400 mb-3 px-1">
-            Pedidos asignados ({pedidos.length})
+            Mis entregas ({misPedidos.length})
           </p>
 
-          {pedidos.length === 0 && (
+          {misPedidos.length === 0 && nuevos.length === 0 && (
             <div className="bg-white rounded-[1.8rem] p-8 text-center border border-stone-200">
               <Package size={32} className="mx-auto mb-3 text-stone-300" />
-              <p className="font-bold text-stone-400 text-sm">Sin pedidos asignados</p>
-              <p className="text-xs text-stone-400 mt-1">Cuando te asignen un pedido aparecerá aquí</p>
+              <p className="font-bold text-stone-400 text-sm">Sin pedidos por ahora</p>
+              <p className="text-xs text-stone-400 mt-1">Los pedidos de tu sucursal aparecerán aquí</p>
             </div>
           )}
 
           <div className="space-y-4">
-            {pedidos.map((p) => (
+            {misPedidos.map((p) => (
               <div key={p.id} className="bg-white rounded-[1.5rem] border border-stone-200 shadow-sm overflow-hidden">
-                {/* Cabecera del pedido */}
                 <button
                   className="w-full p-5 text-left"
                   onClick={() => setExpandido(expandido === p.id ? null : p.id)}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-full ${estadoColor(p.estado)}`}>
+                      <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded-full bg-stone-100 text-stone-600">
                         {estadoLabel(p.estado)}
                       </span>
                       <p className="font-black text-2xl mt-2 text-stone-900">#{p.numero}</p>
@@ -133,12 +212,7 @@ export function DriverDashboard({ riderNombre, pedidos, gananciasHoy, entregasHo
                       <MapPin size={14} className="text-stone-400 shrink-0 mt-0.5" />
                       <span className="leading-snug">{p.direccionEntrega}</span>
                     </p>
-                    {p.referencia && (
-                      <p className="text-xs text-stone-500 pl-5">Ref: {p.referencia}</p>
-                    )}
-                    {p.departamento && (
-                      <p className="text-xs text-stone-500 pl-5">Depto: {p.departamento}</p>
-                    )}
+                    {p.referencia && <p className="text-xs text-stone-500 pl-5">Ref: {p.referencia}</p>}
                     <p className="flex items-center gap-2">
                       <Phone size={14} className="text-stone-400" />
                       <a href={`tel:${p.telefonoCliente}`} className="text-blue-600 font-medium">
@@ -151,48 +225,30 @@ export function DriverDashboard({ riderNombre, pedidos, gananciasHoy, entregasHo
                     <p className="flex items-center gap-1.5">
                       <Clock size={12} />
                       {new Date(p.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}
-                      {p.sucursalNombre && ` · ${p.sucursalNombre}`}
                     </p>
                     <ChevronRight size={14} className={`transition-transform ${expandido === p.id ? "rotate-90" : ""}`} />
                   </div>
                 </button>
 
-                {/* Expandible: detalles del pedido */}
                 {expandido === p.id && (
                   <div className="border-t border-stone-100 px-5 pb-5 pt-4 space-y-4">
-                    <div>
-                      <p className="text-[10px] uppercase font-black text-stone-400 tracking-widest mb-2">Productos</p>
-                      <div className="space-y-1.5">
-                        {p.detalles.map((d, i) => (
-                          <p key={i} className="text-sm text-stone-700">
-                            <span className="font-bold">{d.cantidad}x</span> {d.nombre}
-                          </p>
-                        ))}
-                      </div>
+                    <div className="space-y-1.5">
+                      {p.detalles.map((d, i) => (
+                        <p key={i} className="text-sm text-stone-700">
+                          <span className="font-bold">{d.cantidad}x</span> {d.nombre}
+                        </p>
+                      ))}
                     </div>
 
                     <div className="bg-stone-50 rounded-xl p-3 space-y-1 text-sm">
                       <div className="flex justify-between text-stone-500">
-                        <span>Subtotal</span>
-                        <span>{formatCurrency(p.subtotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-stone-500">
-                        <span>Envío (cliente paga)</span>
-                        <span>{formatCurrency(p.cargoEnvio)}</span>
-                      </div>
-                      <div className="flex justify-between font-black text-stone-900 pt-1 border-t border-stone-200">
                         <span>Total cobrar</span>
-                        <span>{formatCurrency(p.total)}</span>
+                        <span className="font-black text-stone-900">{formatCurrency(p.total)}</span>
                       </div>
-                      <div className="flex justify-between font-bold text-emerald-700 text-xs pt-1">
-                        <span>Método de pago</span>
-                        <span>{p.metodoPago}</span>
+                      <div className="flex justify-between text-xs text-stone-400">
+                        <span>Método</span><span>{p.metodoPago}</span>
                       </div>
                     </div>
-
-                    {p.zonaDelivery && (
-                      <p className="text-xs text-stone-500">Zona: <span className="font-semibold">{p.zonaDelivery}</span></p>
-                    )}
 
                     <Link
                       href={`/driver/active/${p.id}`}

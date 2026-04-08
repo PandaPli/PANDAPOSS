@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { parseDeliveryObservation } from "@/lib/delivery";
 import { DriverDashboard } from "./DriverDashboard";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -11,16 +12,29 @@ export default async function PwaDriverPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const user = session.user as { id: number; nombre: string; rol: string };
+  const user = session.user as { id: number; nombre: string; rol: string; sucursalId: number | null };
   if (user.rol !== "DELIVERY") redirect("/");
 
-  // Cargar pedidos asignados
+  const activeEstados: Prisma.EnumEstadoPedidoFilter = { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] };
+
+  // Mostrar pedidos de la sucursal: asignados a ella O sin asignar (para que pueda tomarlos)
+  const where: Prisma.PedidoWhereInput = user.sucursalId
+    ? {
+        tipo: "DELIVERY",
+        estado: activeEstados,
+        OR: [
+          { repartidorId: user.id },
+          { repartidorId: null, usuario: { sucursalId: user.sucursalId } },
+        ],
+      }
+    : {
+        tipo: "DELIVERY",
+        repartidorId: user.id,
+        estado: activeEstados,
+      };
+
   const pedidos = await prisma.pedido.findMany({
-    where: {
-      tipo: "DELIVERY",
-      repartidorId: user.id,
-      estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
-    },
+    where,
     include: {
       detalles: {
         include: {
@@ -66,7 +80,8 @@ export default async function PwaDriverPage() {
     return {
       id: p.id,
       numero: p.numero,
-      estado: p.estado,
+      estado: p.estado as string,
+      asignadoAMi: p.repartidorId === user.id,
       clienteNombre: meta.clienteNombre ?? p.telefonoCliente ?? "Cliente",
       telefonoCliente: p.telefonoCliente ?? "",
       direccionEntrega: p.direccionEntrega ?? "",
