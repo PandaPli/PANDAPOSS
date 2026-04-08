@@ -16,7 +16,15 @@ export const PedidoRepo = {
           ? { estado: estado as never }
           : { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } }),
         ...(!isAdmin && sucursalId
-          ? { OR: [{ caja: { sucursalId } }, { mesa: { sala: { sucursalId } } }, { usuario: { sucursalId } }] }
+          ? {
+              OR: [
+                { caja: { sucursalId } },
+                { mesa: { sala: { sucursalId } } },
+                { usuario: { sucursalId } },
+                // Delivery público: el usuarioSistema puede ser de cualquier rol, buscar por delivery.repartidor.usuario.sucursalId también
+                { delivery: { cliente: { sucursalId } } },
+              ],
+            }
           : {}),
       },
       include: {

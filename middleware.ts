@@ -10,7 +10,7 @@ const ROLE_ROUTES: Record<Rol, string[]> = {
   WAITER: ["/panel", "/mesas", "/pedidos", "/ventas", "/perfil"],
   CHEF: ["/pedidos", "/perfil"],
   BAR: ["/pedidos", "/perfil"],
-  DELIVERY: ["/panel", "/pedidos", "/perfil", "/delivery"],
+  DELIVERY: ["/panel", "/pedidos", "/perfil", "/delivery", "/driver"],
 };
 
 const ROLE_HOME: Partial<Record<Rol, string>> = {
