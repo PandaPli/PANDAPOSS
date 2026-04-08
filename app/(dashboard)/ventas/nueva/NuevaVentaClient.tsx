@@ -36,8 +36,15 @@ interface Props {
   cajaNombre?: string;
   meseroNombre?: string;
   initialOrder?: { id: number; mesaId: number | null; items: CartItem[] } | null;
+  initialMesaId?: number | null;
   logoUrl?: string | null;
-  mesaNombre?: string; // nombre real de la mesa (ej: "Mesa 3", "Terraza 1")
+  mesaNombre?: string;
+  sucursalId?: number | null;
+  sucursalNombre?: string | null;
+  sucursalRut?: string | null;
+  sucursalTelefono?: string | null;
+  sucursalDireccion?: string | null;
+  sucursalGiroComercial?: string | null;
 }
 
 export function NuevaVentaClient({
@@ -49,8 +56,15 @@ export function NuevaVentaClient({
   cajaNombre,
   meseroNombre,
   initialOrder,
+  initialMesaId,
   logoUrl,
   mesaNombre,
+  sucursalId,
+  sucursalNombre,
+  sucursalRut,
+  sucursalTelefono,
+  sucursalDireccion,
+  sucursalGiroComercial,
 }: Props) {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
