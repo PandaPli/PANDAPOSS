@@ -146,7 +146,7 @@ function AgenteCard({ sucursal, onRefresh }: { sucursal: Sucursal; onRefresh: ()
         <div className="p-4 bg-blue-50 border-b border-blue-100 text-center">
           <div className="flex items-center justify-center gap-2 text-blue-600 text-xs font-medium">
             <Loader2 size={13} className="animate-spin" />
-            Esperando que la app local se conecte…
+            Esperando que el servicio local se conecte…
           </div>
           <p className="text-[11px] text-blue-500 mt-1">Abre <strong>PandaPoss Bot Smart</strong> en tu PC y presiona <strong>Activar Bot</strong></p>
         </div>
@@ -209,7 +209,6 @@ export function AgenteClient({ sucursales }: Props) {
             </div>
           </div>
         </div>
-        {/* Steps */}
         <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-3 text-center text-xs text-brand-100">
           <div className="flex flex-col items-center gap-1">
             <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-white text-[11px]">1</span>
