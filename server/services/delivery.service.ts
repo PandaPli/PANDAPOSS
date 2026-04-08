@@ -243,6 +243,12 @@ export const DeliveryService = {
       telefono: cliente.telefono.trim(),
     });
 
+    // Notificar KDS en tiempo real
+    const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+    try {
+      globalForSocket.io?.to(`sucursal_${sucursalId}_kds`).emit("pedido:nuevo", { id: result.id });
+    } catch { /* no bloquear */ }
+
     // Notificar stock bajo (misma lógica que ventas POS)
     const productoIds = items.filter((i) => i.productoId).map((i) => Number(i.productoId));
     const sinStock = await prisma.producto.findMany({

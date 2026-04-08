@@ -68,7 +68,7 @@ export default async function PedidosPage() {
 
   return (
     <div className="-m-6 p-3">
-      <PedidosClient pedidos={data} rol={rol} welcome={welcome} />
+      <PedidosClient pedidos={data} rol={rol} sucursalId={sucursalId} welcome={welcome} />
     </div>
   );
 }

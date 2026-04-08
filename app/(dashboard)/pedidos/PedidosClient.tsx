@@ -8,6 +8,7 @@ import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Clock, PlaySquare, Che
 import { cn } from "@/lib/utils";
 import { useKdsUI, KdsFilter } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
+import { useKdsSocket } from "@/hooks/useKdsSocket";
 
 const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNode }[] = [
   { key: "TODOS", label: "Todos", icon: <UtensilsCrossed size={16} /> },
@@ -30,10 +31,11 @@ const estadoTabs: { key: KdsFilter; label: string; icon: React.ReactNode; colorC
 interface Props {
   pedidos: PedidoConDetalles[];
   rol?: Rol;
+  sucursalId?: number | null;
   welcome?: { emoji: string; msg: string } | null;
 }
 
-export function PedidosClient({ pedidos: initial, rol, welcome }: Props) {
+export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Props) {
   const isDelivery = rol === "DELIVERY";
   const { filter, setFilter } = useKdsUI();
 
@@ -61,10 +63,13 @@ export function PedidosClient({ pedidos: initial, rol, welcome }: Props) {
     }
   }, [filter]);
 
+  // Tiempo real via Socket.IO — refresca al instante cuando llega un evento
+  useKdsSocket(sucursalId ?? null, fetchPedidos);
+
   useEffect(() => {
-    // Whenever the filter changes, fetch latest.
+    // Fetch inicial al cambiar filtro + polling de respaldo cada 8s
     fetchPedidos();
-    const interval = setInterval(fetchPedidos, 30000);
+    const interval = setInterval(fetchPedidos, 8000);
     return () => clearInterval(interval);
   }, [fetchPedidos]);
 

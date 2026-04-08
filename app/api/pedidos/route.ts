@@ -39,6 +39,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "La cantidad de cada ítem debe ser mayor a 0." }, { status: 400 });
   }
 
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const pedido = await PedidoService.create({ ...body, usuarioId: userId });
+
+  // Notificar KDS en tiempo real
+  const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+  try {
+    if (sucursalId) {
+      globalForSocket.io?.to(`sucursal_${sucursalId}_kds`).emit("pedido:nuevo", { id: pedido.id });
+    }
+  } catch { /* no bloquear */ }
+
   return NextResponse.json(pedido, { status: 201 });
 }

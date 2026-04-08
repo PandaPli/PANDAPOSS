@@ -85,5 +85,19 @@ export async function PATCH(
     });
   }
 
+  // Notificar KDS en tiempo real
+  const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+  try {
+    // Obtener sucursalId del pedido actualizado
+    const pedidoInfo = await prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      select: { usuario: { select: { sucursalId: true } } },
+    });
+    const sid = pedidoInfo?.usuario?.sucursalId ?? sucursalIdParaNotif;
+    if (sid) {
+      globalForSocket.io?.to(`sucursal_${sid}_kds`).emit("pedido:update", { id: pedidoId, estado: pedido.estado });
+    }
+  } catch { /* no bloquear */ }
+
   return NextResponse.json(pedido);
 }
