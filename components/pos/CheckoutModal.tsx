@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Tag, Trash2, X, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X, Users } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
-import { printFrame } from "@/lib/printFrame";
 import type { CartItem, MetodoPago, PagoItem } from "@/types";
 
 interface ReceiptItem {
@@ -40,12 +39,6 @@ interface Props {
   grupoNombre?: string;
   /** Ítems del grupo a cobrar */
   grupoItems?: CartItem[];
-  sucursalNombre?: string | null;
-  sucursalRut?: string | null;
-  sucursalTelefono?: string | null;
-  sucursalDireccion?: string | null;
-  sucursalGiroComercial?: string | null;
-  sucursalId?: number | null;
 }
 
 const metodos: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
@@ -65,12 +58,6 @@ export function CheckoutModal({
   onSuccess,
   grupoNombre,
   grupoItems,
-  sucursalNombre,
-  sucursalRut,
-  sucursalTelefono,
-  sucursalDireccion,
-  sucursalGiroComercial,
-  sucursalId,
 }: Props) {
   const {
     items: cartItems,
@@ -93,24 +80,7 @@ export function CheckoutModal({
   const modoGrupo = !!grupoNombre && !!grupoItems;
   const items = modoGrupo ? grupoItems! : cartItems.filter((i) => !i.cancelado && !i.pagado);
 
-  // --- Estado (todos los useState antes de cualquier variable derivada) ---
-  const [pagos, setPagos] = useState<PagoItem[]>([]);
-  const [metodoActual, setMetodoActual] = useState<MetodoPago>("EFECTIVO");
-  const [montoActual, setMontoActual] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [vueltoFinal, setVueltoFinal] = useState(0);
-  const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
-  const [showFlash, setShowFlash] = useState(false);
-  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [cuponInput, setCuponInput] = useState("");
-  const [cuponLoading, setCuponLoading] = useState(false);
-  const [cuponError, setCuponError] = useState("");
-  const [cuponAplicado, setCuponAplicado] = useState<{
-    id: number; codigo: string; tipo: string; descuentoAplicado: number; descripcion: string | null;
-  } | null>(null);
-
-  // --- Totales derivados ---
+  // Calcular totales según modo
   const subtotalValue = useMemo(() => {
     if (modoGrupo) return grupoItems!.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
     return cartSubtotal();
@@ -118,9 +88,15 @@ export function CheckoutModal({
 
   const descuentoMonto = modoGrupo ? 0 : cartTotalDescuento();
   const impuestoMonto  = modoGrupo ? 0 : cartTotalIva();
-  const cuponDescuento = cuponAplicado?.descuentoAplicado ?? 0;
-  const totalDescuentoCombinado = descuentoMonto + cuponDescuento;
-  const totalValue = Math.max(0, (modoGrupo ? subtotalValue : cartTotal()) - cuponDescuento);
+  const totalValue     = modoGrupo ? subtotalValue : cartTotal();
+
+  const [pagos, setPagos] = useState<PagoItem[]>([]);
+  const [metodoActual, setMetodoActual] = useState<MetodoPago>("EFECTIVO");
+  const [montoActual, setMontoActual] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [vueltoFinal, setVueltoFinal] = useState(0);
+  const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
 
   const sumaPagos = pagos.reduce((acc, p) => acc + p.monto, 0);
   const pendiente = Math.max(0, totalValue - sumaPagos);
@@ -129,8 +105,8 @@ export function CheckoutModal({
   function handleAgregarPago() {
     setError("");
     const monto = Number(montoActual);
-    if (!montoActual || isNaN(monto) || monto < 1) {
-      setError("Ingrese un monto valido (mínimo 1)");
+    if (!montoActual || isNaN(monto) || monto <= 0) {
+      setError("Ingrese un monto valido");
       return;
     }
 
@@ -148,36 +124,6 @@ export function CheckoutModal({
     setPagos(pagos.filter((_, i) => i !== index));
   }
 
-  async function handleAplicarCupon() {
-    if (!cuponInput.trim()) return;
-    setCuponLoading(true);
-    setCuponError("");
-    try {
-      const res = await fetch("/api/cupones/validar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: cuponInput.trim(), sucursalId, subtotal: subtotalValue }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Cupón inválido");
-      setCuponAplicado(data);
-      setCuponInput("");
-      // Limpiar pagos al cambiar el total
-      setPagos([]);
-    } catch (e) {
-      setCuponError((e as Error).message);
-    } finally {
-      setCuponLoading(false);
-    }
-  }
-
-  function quitarCupon() {
-    setCuponAplicado(null);
-    setCuponError("");
-    setCuponInput("");
-    setPagos([]);
-  }
-
   function finalizeFlow() {
     onSuccess();
   }
@@ -188,6 +134,12 @@ export function CheckoutModal({
     const now = new Date();
     const fecha = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
     const hora = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+
+    const printWindow = window.open("", "_blank", "width=360,height=820");
+    if (!printWindow) {
+      finalizeFlow();
+      return;
+    }
 
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
 
@@ -264,10 +216,11 @@ export function CheckoutModal({
         <div class="document-note">Documento no fiscal</div>
       </div>`;
 
-    printFrame(`<!DOCTYPE html><html><head><title>Boleta</title><style>
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
-      @page{size:80mm auto;margin:0;}@media print{@page{size:80mm auto;margin:0;}}
-      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:3mm 3mm 10mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      @page{size:80mm auto;margin:0;}
+      html,body{height:fit-content;min-height:0;}
+      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:6px 8px 3px 8px;color:#111;background:#fff;}
       .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
       .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
       .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}
@@ -276,24 +229,23 @@ export function CheckoutModal({
       .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}.row-green{color:#059669;}
       .item{padding:4px 0;}.total-box{margin-top:6px;border:1px dashed #2563eb;border-radius:8px;padding:8px;background:#eff6ff;}
       .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
-      .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
-      .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
+      .footer-note{margin-top:6px;text-align:center;font-size:11px;color:#374151;}
+      .document-note{margin-top:2px;text-align:center;font-size:10px;color:#6b7280;}
       .suggested-box{margin:6px 0;border:1px dashed #000;padding:6px;text-align:center;}
       .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
       .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
-    </style></head><body>${html}</body></html>`);
+      .cut-feed{height:3mm;}
+    </style></head><body>${html}<div class="cut-feed"></div></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
 
     finalizeFlow();
   }
 
   async function handleConfirmar() {
     if (items.length === 0) return;
-
-    // C1: Bloquear si no hay caja abierta
-    if (!cajaId) {
-      setError("No hay caja abierta. Abre una caja antes de cobrar.");
-      return;
-    }
 
     if (pagos.length === 0) {
       setError("Agregue al menos un metodo de pago");
@@ -322,11 +274,9 @@ export function CheckoutModal({
       mesaId,
       metodoPago: metodoPagoFinal,
       subtotal: subtotalValue,
-      descuento: totalDescuentoCombinado,
+      descuento: descuentoMonto,
       impuesto: impuestoMonto,
       total: totalValue,
-      cuponId: cuponAplicado?.id ?? null,
-      cuponCodigo: cuponAplicado?.codigo ?? null,
       pagos: pagos.map((p) => ({
         metodoPago: p.metodoPago,
         monto: p.monto,
@@ -335,7 +285,6 @@ export function CheckoutModal({
       items: items.map((i) => ({
         productoId: i.tipo === "producto" ? i.id : null,
         comboId: i.tipo === "combo" ? i.id : null,
-        nombre: i.nombre,
         cantidad: i.cantidad,
         precio: i.precio,
         subtotal: i.precio * i.cantidad,
@@ -377,16 +326,11 @@ export function CheckoutModal({
         setVueltoFinal(sobrepago);
       }
 
-      // Flash 3 s con total + vuelto
-      setShowFlash(true);
-      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setShowFlash(false), 3000);
-
       setCompletedSale({
         ventaId: venta.id,
         items: snapshotItems,
         subtotal: subtotalValue,
-        descuentoMonto: totalDescuentoCombinado,
+        descuentoMonto,
         descuentoPorcentaje: descuento,
         impuestoMonto,
         impuestoPorcentaje: ivaPorc,
@@ -410,54 +354,6 @@ export function CheckoutModal({
   }
 
   if (completedSale) {
-    // ── Pantalla flash: total + vuelto por 3 s ───────────────────────────
-    if (showFlash) {
-      return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-[#0f172a] select-none">
-          {/* Fondo glow */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-emerald-600/20 blur-[120px]" />
-            <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-emerald-600/15 blur-[120px]" />
-          </div>
-
-          <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-            {/* Icono */}
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 border-4 border-emerald-400/50">
-              <CheckCircle2 size={40} className="text-emerald-400" />
-            </div>
-
-            <p className="text-emerald-400 font-black text-lg uppercase tracking-[0.3em]">
-              {modoGrupo ? `Grupo ${completedSale.grupoNombre} cobrado` : "Venta completada"}
-            </p>
-
-            {/* Total */}
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-white/50 text-sm font-medium uppercase tracking-widest">Total cobrado</span>
-              <span className="text-7xl font-black text-white tabular-nums leading-none">
-                {formatCurrency(completedSale.total, simbolo)}
-              </span>
-            </div>
-
-            {/* Vuelto */}
-            {vueltoFinal > 0 && (
-              <div className="flex flex-col items-center gap-1 rounded-3xl border border-amber-400/30 bg-amber-400/10 px-12 py-5">
-                <span className="text-amber-300/70 text-sm font-medium uppercase tracking-widest">Vuelto a entregar</span>
-                <span className="text-6xl font-black text-amber-300 tabular-nums leading-none">
-                  {formatCurrency(vueltoFinal, simbolo)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Barra de progreso de 3 s */}
-          <div className="absolute bottom-0 left-0 h-1 w-full overflow-hidden">
-            <div className="h-full bg-emerald-400/60 animate-[shrink_3s_linear_forwards]" style={{ width: "100%" }} />
-          </div>
-        </div>
-      );
-    }
-
-    // ── Pantalla post-flash: imprimir boleta ─────────────────────────────
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
         <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl animate-scale-in">
@@ -475,8 +371,8 @@ export function CheckoutModal({
           )}
 
           <div className="mt-6 rounded-2xl border border-surface-border bg-surface-bg p-4 text-left">
-            <p className="text-sm font-semibold text-surface-text">Impresión de boleta</p>
-            <p className="mt-1 text-sm text-surface-muted">¿Deseas imprimir la boleta antes de continuar?</p>
+            <p className="text-sm font-semibold text-surface-text">Impresion de boleta</p>
+            <p className="mt-1 text-sm text-surface-muted">Deseas imprimir la boleta antes de continuar?</p>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
@@ -485,7 +381,7 @@ export function CheckoutModal({
             </button>
             <button onClick={handleImprimirBoleta} className="btn-primary justify-center">
               <Printer size={16} />
-              Sí, imprimir
+              Si, imprimir
             </button>
           </div>
         </div>
@@ -540,14 +436,8 @@ export function CheckoutModal({
             )}
             {!modoGrupo && descuento > 0 && (
               <div className="flex justify-between text-emerald-600">
-                <span>Descuento ({descuento}%)</span>
+                <span>Descuento</span>
                 <span>- {formatCurrency(descuentoMonto, simbolo)}</span>
-              </div>
-            )}
-            {!modoGrupo && cuponAplicado && (
-              <div className="flex justify-between text-emerald-600">
-                <span>Cupón {cuponAplicado.codigo}</span>
-                <span>- {formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}</span>
               </div>
             )}
             {!modoGrupo && ivaPorc > 0 && (
@@ -563,64 +453,15 @@ export function CheckoutModal({
           </div>
 
           {!modoGrupo && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Descuento (%)</label>
-                  <input type="number" min={0} max={100} value={descuento} onChange={(e) => setDescuento(Number(e.target.value))} className="input" />
-                </div>
-                <div>
-                  <label className="label">IVA (%)</label>
-                  <input type="number" min={0} max={100} value={ivaPorc} onChange={(e) => setIva(Number(e.target.value))} className="input" />
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Descuento (%)</label>
+                <input type="number" min={0} max={100} value={descuento} onChange={(e) => setDescuento(Number(e.target.value))} className="input" />
               </div>
-
-              {/* Cupón */}
-              {cuponAplicado ? (
-                <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <Tag size={14} className="text-emerald-600" />
-                    <div>
-                      <p className="text-xs font-black text-emerald-700">{cuponAplicado.codigo}</p>
-                      {cuponAplicado.descripcion && (
-                        <p className="text-[11px] text-emerald-600">{cuponAplicado.descripcion}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black text-emerald-700">
-                      -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
-                    </span>
-                    <button onClick={quitarCupon} className="rounded-lg p-1 text-emerald-400 hover:bg-emerald-100">
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label className="label">Cupón de descuento</label>
-                  <div className="flex gap-2">
-                    <input
-                      className="input flex-1 uppercase"
-                      placeholder="Código de cupón"
-                      value={cuponInput}
-                      onChange={(e) => { setCuponInput(e.target.value.toUpperCase()); setCuponError(""); }}
-                      onKeyDown={(e) => e.key === "Enter" && handleAplicarCupon()}
-                    />
-                    <button
-                      onClick={handleAplicarCupon}
-                      disabled={cuponLoading || !cuponInput.trim()}
-                      className="btn-secondary shrink-0 gap-1.5 disabled:opacity-50"
-                    >
-                      {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : <Tag size={14} />}
-                      Aplicar
-                    </button>
-                  </div>
-                  {cuponError && (
-                    <p className="mt-1.5 text-xs text-red-500">{cuponError}</p>
-                  )}
-                </div>
-              )}
+              <div>
+                <label className="label">IVA (%)</label>
+                <input type="number" min={0} max={100} value={ivaPorc} onChange={(e) => setIva(Number(e.target.value))} className="input" />
+              </div>
             </div>
           )}
 

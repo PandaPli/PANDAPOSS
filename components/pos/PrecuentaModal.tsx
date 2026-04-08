@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { Printer, X } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
-import { printFrame } from "@/lib/printFrame";
 
 interface Props {
   simbolo?: string;
@@ -12,15 +11,9 @@ interface Props {
   meseroNombre?: string;
   logoUrl?: string | null;
   onClose: () => void;
-  sucursalId?: number | null;
-  sucursalNombre?: string | null;
-  sucursalRut?: string | null;
-  sucursalTelefono?: string | null;
-  sucursalDireccion?: string | null;
-  sucursalGiroComercial?: string | null;
 }
 
-export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose, sucursalNombre, sucursalRut, sucursalTelefono, sucursalDireccion, sucursalGiroComercial }: Props) {
+export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose }: Props) {
   const { items, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc } = useCartStore();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -40,25 +33,29 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
     const content = printRef.current;
     if (!content) return;
 
+    const printWindow = window.open("", "_blank", "width=320,height=800");
+    if (!printWindow) return;
+
     const printableLogoUrl = logoUrl ? new URL(logoUrl, window.location.origin).toString() : null;
     const html = printableLogoUrl
       ? content.innerHTML.replaceAll('src="__LOGO_URL__"', `src="${printableLogoUrl}"`)
       : content.innerHTML.replaceAll('src="__LOGO_URL__"', 'src=""');
 
-    printFrame(`
+    printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
           <title>Precuenta</title>
           <style>
-            @page { size: 80mm auto; margin: 0; } @media print { @page { size: 80mm auto; margin: 0; } }
+            @page { size: 80mm auto; margin: 0; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body { height: fit-content; min-height: 0; }
             body {
               font-family: 'Courier New', Courier, monospace;
               font-size: 13px;
-              width: 80mm;
-              padding: 3mm 3mm 10mm 3mm;
+              width: 72mm;
+              padding: 4mm 4mm 2mm 4mm;
               color: #000;
               background: #fff;
               -webkit-print-color-adjust: exact;
@@ -75,21 +72,37 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
             .item-detail { display: flex; justify-content: space-between; font-size: 12px; }
             .item-amount { font-weight: bold; }
             .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 18px; font-weight: bold; }
-            .suggested-box { margin: 8px 0; border: 1px dashed #000; padding: 6px; text-align: center; }
+            .suggested-box { margin: 6px 0; border: 1px dashed #000; padding: 6px; text-align: center; }
             .suggested-label { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
             .suggested-total { font-size: 24px; font-weight: bold; margin-top: 2px; }
             .tip-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 13px; }
-            .warning { text-align: center; padding: 5px; border: 1px dashed #000; margin-top: 8px; }
+            .warning { text-align: center; padding: 5px; border: 1px dashed #000; margin-top: 4px; }
             .warning-title { font-weight: bold; font-size: 13px; }
             .warning-sub { font-size: 11px; }
-            .footer { text-align: center; font-size: 10px; margin-top: 8px; }
+            .footer { text-align: center; font-size: 10px; margin-top: 4px; }
+            .cut-feed { height: 3mm; }
           </style>
         </head>
         <body>
           ${html}
+          <div class="cut-feed"></div>
+          <script>
+            var imgs = document.images;
+            var loaded = 0;
+            function tryPrint() {
+              loaded++;
+              if (loaded >= imgs.length) { window.print(); window.close(); }
+            }
+            if (imgs.length === 0) { window.print(); window.close(); }
+            else { for (var i = 0; i < imgs.length; i++) {
+              if (imgs[i].complete) tryPrint();
+              else { imgs[i].onload = tryPrint; imgs[i].onerror = tryPrint; }
+            }}
+          <\/script>
         </body>
       </html>
     `);
+    printWindow.document.close();
   }
 
   return (
