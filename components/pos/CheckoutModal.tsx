@@ -219,7 +219,8 @@ export function CheckoutModal({
     printWindow.document.write(`<!DOCTYPE html><html><head><title>Boleta</title><style>
       *{margin:0;padding:0;box-sizing:border-box;}
       @page{size:80mm auto;margin:0;}
-      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:10px;color:#111;background:#fff;}
+      html,body{height:fit-content;min-height:0;}
+      body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:6px 8px 3px 8px;color:#111;background:#fff;}
       .ticket{width:100%}.logo-wrap{text-align:center;margin-bottom:8px;}
       .logo{width:72px;height:72px;object-fit:contain;display:block;margin:0 auto 6px;}
       .title{text-align:center;font-weight:bold;font-size:14px;}.subtitle{text-align:center;font-size:11px;color:#666;}
@@ -228,12 +229,13 @@ export function CheckoutModal({
       .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;}.row-green{color:#059669;}
       .item{padding:4px 0;}.total-box{margin-top:6px;border:1px dashed #2563eb;border-radius:8px;padding:8px;background:#eff6ff;}
       .total-row{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:bold;color:#1d4ed8;}
-      .footer-note{margin-top:12px;text-align:center;font-size:11px;color:#374151;}
-      .document-note{margin-top:4px;text-align:center;font-size:10px;color:#6b7280;}
+      .footer-note{margin-top:6px;text-align:center;font-size:11px;color:#374151;}
+      .document-note{margin-top:2px;text-align:center;font-size:10px;color:#6b7280;}
       .suggested-box{margin:6px 0;border:1px dashed #000;padding:6px;text-align:center;}
       .suggested-label{font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;}
       .suggested-total{font-size:22px;font-weight:bold;margin-top:2px;}
-    </style></head><body>${html}</body></html>`);
+      .cut-feed{height:3mm;}
+    </style></head><body>${html}<div class="cut-feed"></div></body></html>`);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();

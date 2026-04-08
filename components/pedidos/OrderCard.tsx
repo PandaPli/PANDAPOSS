@@ -90,11 +90,12 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
           <style>
             @page { size: 80mm auto; margin: 0; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html, body { height: fit-content; min-height: 0; }
             body {
               font-family: 'Courier New', Courier, monospace;
               font-size: 14px;
               width: 72mm;
-              padding: 4mm 4mm 8mm 4mm;
+              padding: 4mm 4mm 2mm 4mm;
               color: #000;
               background: #fff;
               -webkit-print-color-adjust: exact;
@@ -122,6 +123,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             .item-name { font-size: 15px; font-weight: bold; flex: 1; }
             .item-obs { font-size: 12px; margin-left: 34px; font-style: italic; }
             .obs-box { border: 1px dashed #000; padding: 4px 6px; font-size: 12px; margin-top: 6px; }
+            .cut-feed { height: 3mm; }
           </style>
         </head>
         <body>
@@ -157,6 +159,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
           <div class="obs-box">📝 ${pedido.observacion}</div>
           ` : ""}
 
+          <div class="cut-feed"></div>
           <script>window.onload = function() { window.print(); window.close(); }<\/script>
         </body>
       </html>
