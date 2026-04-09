@@ -47,6 +47,20 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
   const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
+  const [savedNotas, setSavedNotas] = useState<Record<number, boolean>>({});
+
+  async function guardarNota(detalleId: number) {
+    const nota = tablaNotas[detalleId]?.trim() ?? "";
+    try {
+      await fetch(`/api/pedidos/detalles/${detalleId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ observacion: nota || null }),
+      });
+      setSavedNotas((prev) => ({ ...prev, [detalleId]: true }));
+      setTimeout(() => setSavedNotas((prev) => ({ ...prev, [detalleId]: false })), 2000);
+    } catch { /* ignore */ }
+  }
 
   async function handleUpdate() {
     const next = nextEstado[pedido.estado];
@@ -314,11 +328,22 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
               <div className="mt-1 px-1">
                 <textarea
                   rows={2}
-                  placeholder="Nota cocina: envoltorio, relleno..."
-                  value={tablaNotas[d.id] ?? ""}
+                  placeholder="Nota cocina: envoltorio, relleno... (Enter para guardar)"
+                  value={tablaNotas[d.id] ?? (d.observacion ?? "")}
                   onChange={(e) => setTablaNotas((prev) => ({ ...prev, [d.id]: e.target.value }))}
+                  onBlur={() => void guardarNota(d.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void guardarNota(d.id);
+                      (e.target as HTMLTextAreaElement).blur();
+                    }
+                  }}
                   className="w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 placeholder-amber-400 resize-none focus:outline-none focus:border-amber-500"
                 />
+                {savedNotas[d.id] && (
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">✓ Nota guardada</p>
+                )}
               </div>
             )}
           </React.Fragment>
