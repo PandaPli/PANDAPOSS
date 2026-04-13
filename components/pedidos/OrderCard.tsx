@@ -18,6 +18,7 @@ interface OrderCardProps {
   onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
   onLlamarMesero: (id: number) => Promise<void>;
   isDelivery?: boolean;
+  nightMode?: boolean;
 }
 
 const nextEstado: Partial<Record<EstadoPedido, EstadoPedido>> = {
@@ -43,7 +44,7 @@ function esTabla(nombre: string) {
   return /^tabla\b/i.test(nombre.trim());
 }
 
-export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }: OrderCardProps) {
+export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, nightMode }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
   const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
@@ -265,7 +266,8 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
 
   return (
     <div className={cn(
-      "card p-0 overflow-hidden animate-fade-in",
+      "p-0 overflow-hidden animate-fade-in rounded-2xl border shadow-sm",
+      nightMode ? "bg-gray-900 border-gray-700" : "bg-white border-surface-border",
       pedido.meseroLlamado && "ring-2 ring-amber-400",
       origen === "chatbot" && "ring-2 ring-emerald-400"
     )}>
@@ -288,16 +290,16 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       {/* Header compacto */}
       <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
         <div className="min-w-0 flex-1">
-          <h4 className="font-bold text-surface-text text-sm leading-tight truncate">
+          <h4 className={cn("font-bold text-sm leading-tight truncate", nightMode ? "text-gray-100" : "text-surface-text")}>
             {cardTitle}
           </h4>
           {pedido.usuario && (
-            <div className="text-[11px] text-surface-muted mt-0.5">
+            <div className={cn("text-[11px] mt-0.5", nightMode ? "text-gray-400" : "text-surface-muted")}>
               👤 {pedido.usuario.nombre}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-surface-muted ml-2 shrink-0">
+        <div className={cn("flex items-center gap-1 text-[11px] ml-2 shrink-0", nightMode ? "text-gray-400" : "text-surface-muted")}>
           <Clock size={11} />
           <span>{tiempoStr}</span>
         </div>
@@ -307,34 +309,35 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
       <div className="px-3 pb-2 space-y-1">
         {pedido.detalles.map((d) => (
           <React.Fragment key={d.id}>
-            <div
-              className={`flex items-start gap-2 rounded px-2 py-1 ${
-                d.cancelado ? "bg-gray-100 opacity-60" : "bg-surface-bg"
-              }`}
-            >
-              <span className={`font-bold text-sm shrink-0 w-7 ${d.cancelado ? "text-gray-400 line-through" : "text-brand-600"}`}>
+            <div className={cn(
+              "flex items-start gap-2 rounded px-2 py-1",
+              d.cancelado
+                ? nightMode ? "bg-gray-800 opacity-50" : "bg-gray-100 opacity-60"
+                : nightMode ? "bg-gray-800" : "bg-surface-bg"
+            )}>
+              <span className={cn("font-bold text-sm shrink-0 w-7", d.cancelado ? "text-gray-500 line-through" : "text-brand-500")}>
                 {d.cantidad}x
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className={`text-sm font-semibold leading-tight ${d.cancelado ? "line-through text-gray-400" : "text-surface-text"}`}>
+                  <p className={cn("text-sm font-semibold leading-tight", d.cancelado ? "line-through text-gray-400" : nightMode ? "text-gray-100" : "text-surface-text")}>
                     {d.producto?.nombre ?? d.combo?.nombre ?? "—"}
                   </p>
                   {d.cancelado && (
-                    <span className="bg-red-100 text-red-500 text-[10px] px-1 rounded font-bold">ANULADO</span>
+                    <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                   )}
                 </div>
                 {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
                   <div className="mt-0.5 flex flex-wrap gap-1">
                     {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
-                      <span key={i} className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+                      <span key={i} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", nightMode ? "bg-violet-900/60 text-violet-300" : "bg-violet-100 text-violet-700")}>
                         {o.opcionNombre}{o.precio > 0 ? ` +${o.precio}` : ""}
                       </span>
                     ))}
                   </div>
                 )}
                 {d.observacion && !d.cancelado && (
-                  <p className="text-[11px] text-amber-600 italic mt-0.5">→ {d.observacion}</p>
+                  <p className={cn("text-[11px] italic mt-0.5", nightMode ? "text-amber-400" : "text-amber-600")}>→ {d.observacion}</p>
                 )}
               </div>
             </div>
@@ -366,14 +369,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
 
       {/* Observacion general */}
       {cleanObservation && (
-        <div className="mx-3 mb-2 text-[11px] text-surface-muted bg-amber-50 border border-amber-200 rounded px-2 py-1">
+        <div className={cn("mx-3 mb-2 text-[11px] rounded px-2 py-1", nightMode ? "text-gray-400 bg-gray-800 border border-gray-700" : "text-surface-muted bg-amber-50 border border-amber-200")}>
           📝 {cleanObservation}
         </div>
       )}
 
       {/* Acciones */}
       {!isDelivery && (
-        <div className="flex border-t border-surface-border">
+        <div className={cn("flex border-t", nightMode ? "border-gray-700" : "border-surface-border")}>
           {siguiente && (
             <button
               onClick={handleUpdate}
@@ -394,8 +397,11 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             onClick={handleLlamarMesero}
             disabled={loadingMesero || pedido.meseroLlamado}
             className={cn(
-              "px-3 py-2.5 text-xs font-medium transition-all border-l border-surface-border flex items-center gap-1 disabled:opacity-50",
-              pedido.meseroLlamado ? "bg-amber-50 text-amber-600" : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
+              "px-3 py-2.5 text-xs font-medium transition-all flex items-center gap-1 disabled:opacity-50",
+              nightMode ? "border-l border-gray-700" : "border-l border-surface-border",
+              pedido.meseroLlamado
+                ? nightMode ? "bg-amber-900/30 text-amber-400" : "bg-amber-50 text-amber-600"
+                : nightMode ? "text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "text-surface-muted hover:bg-brand-50 hover:text-brand-600"
             )}
           >
             {loadingMesero ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} className={pedido.meseroLlamado ? "animate-bounce" : ""} />}
@@ -404,7 +410,10 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
           <button
             onClick={handlePrint}
             title="Imprimir comanda"
-            className="px-3 py-2.5 text-surface-muted hover:text-brand-600 hover:bg-brand-50 transition-all border-l border-surface-border flex items-center justify-center"
+            className={cn(
+              "px-3 py-2.5 transition-all flex items-center justify-center",
+              nightMode ? "border-l border-gray-700 text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "border-l border-surface-border text-surface-muted hover:text-brand-600 hover:bg-brand-50"
+            )}
           >
             <Printer size={14} />
           </button>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
-import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Clock, PlaySquare, CheckCircle2 } from "lucide-react";
+import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Clock, PlaySquare, CheckCircle2, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useKdsUI, KdsFilter } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
@@ -37,7 +37,7 @@ interface Props {
 
 export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Props) {
   const isDelivery = rol === "DELIVERY";
-  const { filter, setFilter } = useKdsUI();
+  const { filter, setFilter, nightMode, toggleNightMode } = useKdsUI();
 
   // Set default initial list, filtered down instantly on frontend
   const [pedidos, setPedidos] = useState<PedidoConDetalles[]>(initial);
@@ -119,11 +119,11 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
   }
 
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2 min-h-screen -m-4 sm:-m-6 p-4 sm:p-6 transition-colors duration-300", nightMode ? "bg-gray-950" : "")}>
       {/* Barra de filtros compacta */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {/* Estado */}
-        <div className="flex items-center gap-1 p-1 bg-surface-background border border-surface-border rounded-lg">
+        <div className={cn("flex items-center gap-1 p-1 border rounded-lg", nightMode ? "bg-gray-900 border-gray-700" : "bg-surface-background border-surface-border")}>
           {estadoTabs.map((tab) => {
             const isActive = filter === tab.key;
             const cnt = pedidos.filter(p => p.estado === tab.key).length;
@@ -134,15 +134,17 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all",
                   isActive
-                    ? `bg-white shadow-sm ${tab.colorClass}`
-                    : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
+                    ? nightMode ? `bg-gray-700 shadow-sm ${tab.colorClass}` : `bg-white shadow-sm ${tab.colorClass}`
+                    : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
                 )}
               >
                 {tab.icon}
                 {tab.label}
                 {cnt > 0 && (
                   <span className={cn("text-[10px] rounded-full px-1.5 min-w-[18px] text-center font-bold",
-                    isActive ? "bg-current/10" : "bg-slate-100 text-slate-600"
+                    isActive
+                      ? "bg-current/10"
+                      : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
                   )}>{cnt}</span>
                 )}
               </button>
@@ -151,7 +153,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
         </div>
 
         {/* Separador */}
-        <span className="w-px h-6 bg-surface-border" />
+        <span className={cn("w-px h-6", nightMode ? "bg-gray-700" : "bg-surface-border")} />
 
         {/* Tipo */}
         {tipoTabs.map((tab) => {
@@ -165,37 +167,59 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border",
                 tipoFiltro === tab.key
-                  ? "bg-slate-800 text-white border-slate-900"
-                  : "bg-white border-surface-border text-surface-muted hover:bg-slate-50 hover:text-slate-700"
+                  ? nightMode ? "bg-gray-200 text-gray-900 border-gray-100" : "bg-slate-800 text-white border-slate-900"
+                  : nightMode ? "bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "bg-white border-surface-border text-surface-muted hover:bg-slate-50 hover:text-slate-700"
               )}
             >
               {tab.icon}
               {tab.label}
               {count > 0 && (
                 <span className={cn("text-[10px] rounded-full px-1.5 min-w-[18px] text-center font-bold",
-                  tipoFiltro === tab.key ? "bg-white/25 text-white" : "bg-slate-100 text-slate-600"
+                  tipoFiltro === tab.key
+                    ? nightMode ? "bg-gray-700 text-gray-200" : "bg-white/25 text-white"
+                    : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
                 )}>{count}</span>
               )}
             </button>
           );
         })}
 
-        <button
-          onClick={fetchPedidos}
-          className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-surface-muted hover:text-brand-600 transition-colors bg-white border border-surface-border px-3 py-1.5 rounded-lg hover:bg-brand-50"
-          title="Actualizar"
-        >
-          <RefreshCw size={13} />
-          Actualizar
-        </button>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={toggleNightMode}
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all",
+              nightMode
+                ? "bg-gray-800 border-gray-700 text-amber-400 hover:bg-gray-700"
+                : "bg-white border-surface-border text-surface-muted hover:bg-slate-50 hover:text-slate-700"
+            )}
+            title="Modo nocturno"
+          >
+            {nightMode ? <Sun size={13} /> : <Moon size={13} />}
+            {nightMode ? "Día" : "Noche"}
+          </button>
+          <button
+            onClick={fetchPedidos}
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors",
+              nightMode
+                ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
+                : "bg-white border-surface-border text-surface-muted hover:text-brand-600 hover:bg-brand-50"
+            )}
+            title="Actualizar"
+          >
+            <RefreshCw size={13} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Grid KDS */}
       {filtrados.length === 0 ? (
-        <div className="card p-10 text-center shadow-sm">
+        <div className={cn("p-10 text-center rounded-2xl border", nightMode ? "bg-gray-900 border-gray-800" : "card shadow-sm")}>
           <img src="/logo.png" alt="PandaPoss" className="w-12 h-12 mx-auto mb-3 opacity-40 grayscale" />
-          <p className="text-surface-text font-semibold">No hay pedidos {filter.replace('_', ' ').toLowerCase()}</p>
-          <p className="text-surface-muted text-xs mt-1">Actualizando automáticamente…</p>
+          <p className={cn("font-semibold", nightMode ? "text-gray-300" : "text-surface-text")}>No hay pedidos {filter.replace('_', ' ').toLowerCase()}</p>
+          <p className={cn("text-xs mt-1", nightMode ? "text-gray-500" : "text-surface-muted")}>Actualizando automáticamente…</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -206,6 +230,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
               onUpdateEstado={handleUpdateEstado}
               onLlamarMesero={handleLlamarMesero}
               isDelivery={isDelivery}
+              nightMode={nightMode}
             />
           ))}
         </div>

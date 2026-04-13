@@ -19,6 +19,7 @@ import {
   Tag,
   Percent,
   Gift,
+  Package2,
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -97,8 +98,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [direccion, setDireccion] = useState("");
   const [referencia, setReferencia] = useState("");
   const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
+  // -1 = RETIRO EN LOCAL (costo $0), null = sin zona
+  const RETIRO_ID = -1;
   const [zonaId, setZonaId] = useState<number | null>(
-    zonasDelivery.length > 0 ? zonasDelivery[0].id : null
+    zonasDelivery.length > 0 ? zonasDelivery[0].id : RETIRO_ID
   );
   const [cargoManual, setCargoManual] = useState(0);
 
@@ -123,8 +126,11 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [ticketData, setTicketData] = useState<{ id: number; clienteNombre: string } | null>(null);
 
   /* ── Zona y cargo de envío ── */
+  const esRetiro = zonaId === RETIRO_ID;
   const zonaSeleccionada = zonasDelivery.find((z) => z.id === zonaId) ?? null;
-  const cargoEnvio = zonasDelivery.length > 0
+  const cargoEnvio = esRetiro
+    ? 0
+    : zonasDelivery.length > 0
     ? (zonaSeleccionada?.precio ?? 0)
     : cargoManual;
 
@@ -259,7 +265,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           },
           metodoPago: metodo,
           cargoEnvio,
-          zonaDelivery: zonaSeleccionada?.nombre ?? undefined,
+          zonaDelivery: esRetiro ? "RETIRO EN LOCAL" : (zonaSeleccionada?.nombre ?? undefined),
           descuento: descuentoTotal,
           cuponId: cuponAplicado?.id && cuponAplicado.id > 0 ? cuponAplicado.id : null,
           cuponCodigo: cuponAplicado?.codigo ?? null,
@@ -288,7 +294,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       setDireccion("");
       setReferencia("");
       setMetodo("EFECTIVO");
-      setZonaId(zonasDelivery.length > 0 ? zonasDelivery[0].id : null);
+      setZonaId(zonasDelivery.length > 0 ? zonasDelivery[0].id : RETIRO_ID);
       setDescPorcentaje(0);
       setCodigoCupon("");
       setCuponAplicado(null);
@@ -465,53 +471,87 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
             </div>
 
             {/* Zona de delivery */}
-            {zonasDelivery.length > 0 ? (
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Zona de delivery
-                </label>
-                <div className="relative">
-                  <Truck size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-                  <select
-                    value={zonaId ?? ""}
-                    onChange={(e) => setZonaId(Number(e.target.value))}
-                    className="w-full appearance-none rounded-xl border border-stone-200 bg-stone-50 py-2.5 pl-9 pr-8 text-sm font-semibold text-stone-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-                  >
-                    {zonasDelivery.map((z) => (
-                      <option key={z.id} value={z.id}>
-                        {z.nombre} — {formatCurrency(z.precio, simbolo)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {zonaSeleccionada && (
-                  <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-brand-600">
-                    <Truck size={11} />
-                    Costo de envío: <span className="font-black">{formatCurrency(zonaSeleccionada.precio, simbolo)}</span>
-                  </p>
+            <div>
+              <label className="mb-2 block text-xs font-black uppercase tracking-widest text-stone-500">
+                Zona / Modalidad de entrega
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                {/* Opción RETIRO */}
+                <button
+                  type="button"
+                  onClick={() => setZonaId(RETIRO_ID)}
+                  className={cn(
+                    "flex items-center justify-between rounded-2xl border-2 px-4 py-3 text-left transition-all",
+                    esRetiro
+                      ? "border-emerald-400 bg-emerald-50"
+                      : "border-stone-200 bg-stone-50 hover:border-stone-300"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", esRetiro ? "bg-emerald-100" : "bg-stone-100")}>
+                      <Package2 size={18} className={esRetiro ? "text-emerald-600" : "text-stone-400"} />
+                    </div>
+                    <div>
+                      <p className={cn("text-sm font-black uppercase tracking-wide", esRetiro ? "text-emerald-800" : "text-stone-700")}>
+                        Retiro en local
+                      </p>
+                      <p className={cn("text-xs font-semibold", esRetiro ? "text-emerald-600" : "text-stone-400")}>
+                        Sin costo de envío
+                      </p>
+                    </div>
+                  </div>
+                  <span className={cn("text-base font-black", esRetiro ? "text-emerald-700" : "text-stone-400")}>
+                    GRATIS
+                  </span>
+                </button>
+
+                {/* Zonas configuradas */}
+                {zonasDelivery.map((z) => {
+                  const isSelected = zonaId === z.id;
+                  return (
+                    <button
+                      key={z.id}
+                      type="button"
+                      onClick={() => setZonaId(z.id)}
+                      className={cn(
+                        "flex items-center justify-between rounded-2xl border-2 px-4 py-3 text-left transition-all",
+                        isSelected
+                          ? "border-brand-400 bg-brand-50"
+                          : "border-stone-200 bg-stone-50 hover:border-stone-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", isSelected ? "bg-brand-100" : "bg-stone-100")}>
+                          <Truck size={18} className={isSelected ? "text-brand-600" : "text-stone-400"} />
+                        </div>
+                        <p className={cn("text-sm font-black uppercase tracking-wide", isSelected ? "text-brand-800" : "text-stone-700")}>
+                          {z.nombre}
+                        </p>
+                      </div>
+                      <span className={cn("text-base font-black", isSelected ? "text-brand-700" : "text-stone-500")}>
+                        {formatCurrency(z.precio, simbolo)}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {/* Sin zonas: input manual */}
+                {zonasDelivery.length === 0 && !esRetiro && (
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                    <p className="mb-2 text-xs font-black uppercase tracking-widest text-stone-400">Costo de envío manual</p>
+                    <input
+                      type="number"
+                      value={cargoManual}
+                      onChange={(e) => setCargoManual(Math.max(0, Number(e.target.value)))}
+                      min={0}
+                      step={100}
+                      className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-base font-black text-stone-800 outline-none focus:border-brand-400"
+                    />
+                  </div>
                 )}
               </div>
-            ) : (
-              /* Sin zonas configuradas: input manual de cargo */
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">
-                  Costo de envío
-                  <span className="ml-1 font-normal text-stone-400">(sin zonas configuradas)</span>
-                </label>
-                <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
-                  <Truck size={14} className="flex-shrink-0 text-stone-400" />
-                  <input
-                    type="number"
-                    min={0}
-                    value={cargoManual}
-                    onChange={(e) => setCargoManual(Number(e.target.value))}
-                    placeholder="0"
-                    className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
-                  />
-                </div>
-              </div>
-            )}
+            </div>
+
 
             {/* Payment method */}
             <div>

@@ -125,65 +125,75 @@ export function ZonasDeliveryAdmin({ sucursalId, sucursalNombre, zonasIniciales 
         )}
 
         {zonas.map((zona, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
+          <div key={i} className="bg-white rounded-2xl border border-stone-200 p-5 space-y-4">
             {/* Nombre */}
             <div>
-              <label className="text-[10px] uppercase font-black text-stone-400 tracking-widest block mb-1">
+              <label className="text-[11px] uppercase font-black text-stone-400 tracking-widest block mb-1.5">
                 Nombre de zona
               </label>
               <input
                 type="text"
                 value={zona.nombre}
-                onChange={(e) => actualizarZona(i, "nombre", e.target.value)}
-                placeholder="Ej: Centro, Las Condes, Ñuñoa..."
-                className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:border-amber-400"
+                onChange={(e) => actualizarZona(i, "nombre", e.target.value.toUpperCase())}
+                placeholder="Ej: CENTRO, NORTE, SUR..."
+                className="w-full border-2 border-stone-200 rounded-xl px-4 py-3 text-base font-black uppercase tracking-wide text-stone-900 focus:outline-none focus:border-amber-400 placeholder:normal-case placeholder:font-normal placeholder:tracking-normal"
               />
             </div>
 
             {/* Tarifas */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase font-black text-stone-400 tracking-widest block mb-1">
-                  Cobro al cliente ($)
+                <label className="text-[11px] uppercase font-black text-stone-400 tracking-widest block mb-1.5">
+                  Cobro al cliente
                 </label>
-                <input
-                  type="number"
-                  value={zona.costoCliente}
-                  onChange={(e) => actualizarZona(i, "costoCliente", Number(e.target.value))}
-                  min={0}
-                  step={50}
-                  className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-amber-400"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-black text-sm">$</span>
+                  <input
+                    type="number"
+                    value={zona.costoCliente}
+                    onChange={(e) => actualizarZona(i, "costoCliente", Number(e.target.value))}
+                    min={0}
+                    step={50}
+                    className="w-full border-2 border-stone-200 rounded-xl pl-7 pr-3 py-3 text-lg font-black text-stone-900 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-black text-stone-400 tracking-widest block mb-1">
-                  Pago al rider ($)
+                <label className="text-[11px] uppercase font-black text-emerald-500 tracking-widest block mb-1.5">
+                  Pago al rider
                 </label>
-                <input
-                  type="number"
-                  value={zona.pagoRider}
-                  onChange={(e) => actualizarZona(i, "pagoRider", Number(e.target.value))}
-                  min={0}
-                  step={50}
-                  className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-400"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-sm">$</span>
+                  <input
+                    type="number"
+                    value={zona.pagoRider}
+                    onChange={(e) => actualizarZona(i, "pagoRider", Number(e.target.value))}
+                    min={0}
+                    step={50}
+                    className="w-full border-2 border-emerald-200 rounded-xl pl-7 pr-3 py-3 text-lg font-black text-emerald-800 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Margen */}
-            {zona.costoCliente > 0 && zona.pagoRider > 0 && (
-              <div className="flex items-center justify-between text-xs text-stone-500 bg-stone-50 rounded-xl px-3 py-2">
-                <span>Margen del local</span>
-                <span className="font-bold text-stone-700">
+            {zona.costoCliente > 0 && (
+              <div className="flex items-center justify-between bg-stone-50 rounded-xl px-4 py-2.5">
+                <span className="text-xs font-bold uppercase tracking-wide text-stone-400">Margen del local</span>
+                <span className="text-sm font-black text-stone-700">
                   {formatCurrency(zona.costoCliente - zona.pagoRider)}
-                  {" "}({Math.round(((zona.costoCliente - zona.pagoRider) / zona.costoCliente) * 100)}%)
+                  {zona.costoCliente > 0 && (
+                    <span className="ml-1.5 text-xs font-bold text-stone-400">
+                      ({Math.round(((zona.costoCliente - zona.pagoRider) / zona.costoCliente) * 100)}%)
+                    </span>
+                  )}
                 </span>
               </div>
             )}
 
             <button
               onClick={() => eliminarZona(i)}
-              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 font-bold"
+              className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-red-400 hover:text-red-600 transition"
             >
               <Trash2 size={13} /> Eliminar zona
             </button>
@@ -237,10 +247,10 @@ export function ZonasDeliveryAdmin({ sucursalId, sucursalNombre, zonasIniciales 
             <tbody>
               {zonas.filter((z) => z.nombre.trim()).map((z, i) => (
                 <tr key={i} className="border-b border-stone-50 last:border-0">
-                  <td className="py-2 font-semibold text-stone-800">{z.nombre}</td>
-                  <td className="py-2 text-right text-stone-600">{formatCurrency(z.costoCliente)}</td>
-                  <td className="py-2 text-right text-emerald-600 font-bold">{formatCurrency(z.pagoRider)}</td>
-                  <td className="py-2 text-right text-stone-500">{formatCurrency(z.costoCliente - z.pagoRider)}</td>
+                  <td className="py-2.5 font-black uppercase tracking-wide text-stone-900">{z.nombre}</td>
+                  <td className="py-2.5 text-right font-black text-stone-700">{formatCurrency(z.costoCliente)}</td>
+                  <td className="py-2.5 text-right text-emerald-600 font-black">{formatCurrency(z.pagoRider)}</td>
+                  <td className="py-2.5 text-right text-stone-400 font-bold">{formatCurrency(z.costoCliente - z.pagoRider)}</td>
                 </tr>
               ))}
             </tbody>
