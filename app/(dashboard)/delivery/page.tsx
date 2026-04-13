@@ -86,8 +86,17 @@ export default async function DeliveryPage() {
     ...(rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {}),
   };
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  // Usar apertura de caja como inicio del turno (soporta turnos nocturnos)
+  const cajaAbierta = sucursalId
+    ? await prisma.caja.findFirst({
+        where: { estado: "ABIERTA", sucursalId },
+        orderBy: { abiertaEn: "desc" },
+        select: { abiertaEn: true },
+      })
+    : null;
+  const turnoDesde = cajaAbierta?.abiertaEn ?? (() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+  })();
 
   const simbolo       = (session.user as { simbolo?: string })?.simbolo ?? "$";
   const logoUrl       = (session.user as { logoUrl?: string | null })?.logoUrl ?? null;
@@ -110,7 +119,7 @@ export default async function DeliveryPage() {
     prisma.pedido.findMany({
       where: {
         ...pedidoWhere,
-        creadoEn: { gte: startOfToday },   // solo pedidos de hoy
+        creadoEn: { gte: turnoDesde },
       },
       include: {
         usuario: { select: { nombre: true, sucursalId: true } },

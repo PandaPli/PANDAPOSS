@@ -9,12 +9,33 @@ interface ListOptions {
 
 export const PedidoRepo = {
   async list({ sucursalId, isAdmin, tipo, estado }: ListOptions) {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    // Filtrar desde que se abrió el turno actual (caja abierta).
+    // Soporta turnos nocturnos que cruzan medianoche (ej: 20:00 → 04:00).
+    // Fallback: inicio del día actual si no hay caja abierta.
+    let turnoDesde: Date;
+    if (sucursalId || isAdmin) {
+      const cajaAbierta = await prisma.caja.findFirst({
+        where: {
+          estado: "ABIERTA",
+          ...(sucursalId && !isAdmin ? { sucursalId } : {}),
+        },
+        orderBy: { abiertaEn: "desc" },
+        select: { abiertaEn: true },
+      });
+      if (cajaAbierta?.abiertaEn) {
+        turnoDesde = cajaAbierta.abiertaEn;
+      } else {
+        turnoDesde = new Date();
+        turnoDesde.setHours(0, 0, 0, 0);
+      }
+    } else {
+      turnoDesde = new Date();
+      turnoDesde.setHours(0, 0, 0, 0);
+    }
 
     return prisma.pedido.findMany({
       where: {
-        creadoEn: { gte: startOfToday },
+        creadoEn: { gte: turnoDesde },
         ...(tipo ? { tipo: tipo as never } : {}),
         ...(estado
           ? { estado: estado as never }

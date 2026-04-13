@@ -285,8 +285,26 @@ export const DeliveryService = {
   async listOrders(scope: DeliveryScope) {
     const { rol, sucursalId, userId, includeHistory = false } = scope;
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    // Usar apertura de caja como inicio del turno (soporta turnos nocturnos).
+    // Fallback: inicio del día actual.
+    let turnoDesde: Date;
+    if (!includeHistory) {
+      const cajaAbierta = sucursalId
+        ? await prisma.caja.findFirst({
+            where: { estado: "ABIERTA", sucursalId },
+            orderBy: { abiertaEn: "desc" },
+            select: { abiertaEn: true },
+          })
+        : null;
+      if (cajaAbierta?.abiertaEn) {
+        turnoDesde = cajaAbierta.abiertaEn;
+      } else {
+        turnoDesde = new Date();
+        turnoDesde.setHours(0, 0, 0, 0);
+      }
+    } else {
+      turnoDesde = new Date(0); // includeHistory: sin límite
+    }
 
     const where = {
       tipo: "DELIVERY" as const,
@@ -297,7 +315,7 @@ export const DeliveryService = {
         : {}),
       ...(includeHistory
         ? {}
-        : { estado: { in: activeDeliveryStatuses }, creadoEn: { gte: startOfToday } }),
+        : { estado: { in: activeDeliveryStatuses }, creadoEn: { gte: turnoDesde } }),
     };
 
     const [pedidos, activeCount, driverCount] = await Promise.all([
