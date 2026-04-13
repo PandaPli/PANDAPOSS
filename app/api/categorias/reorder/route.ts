@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 // POST /api/categorias/reorder  → { items: [{ id, orden }] }
 export async function POST(req: NextRequest) {
@@ -16,6 +17,12 @@ export async function POST(req: NextRequest) {
       prisma.categoria.update({ where: { id }, data: { orden } })
     )
   );
+
+  // Invalidar cache de páginas públicas que usan el orden de categorías
+  revalidatePath("/pedir", "layout");
+  revalidatePath("/vercarta", "layout");
+  revalidatePath("/menu", "layout");
+  revalidatePath("/kiosko", "layout");
 
   return NextResponse.json({ ok: true });
 }

@@ -50,9 +50,10 @@ interface Props {
   sucursalSocialTwitter?: string | null;
   sucursalFlayerUrl?: string | null;
   sucursalFlayerActivo?: boolean;
+  sucursalMpAccessToken?: string | null;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo, sucursalMpAccessToken }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -130,6 +131,11 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [zonasLoading, setZonasLoading] = useState(false);
   const [zonasMsg, setZonasMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const [zonaModo, setZonaModo] = useState<"manual" | "mapa">("manual");
+
+  // --- Estado Mercado Pago ---
+  const [mpToken, setMpToken] = useState(sucursalMpAccessToken ?? "");
+  const [mpLoading, setMpLoading] = useState(false);
+  const [mpMsg, setMpMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
@@ -1056,6 +1062,61 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
               defaultCenter={undefined}
             />
           )}
+        </div>
+
+        {/* Mercado Pago */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-blue-500"><path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/><path d="M2 10h20"/></svg>
+            <h2 className="font-semibold text-surface-text">Mercado Pago</h2>
+          </div>
+          <p className="text-sm text-surface-muted mb-4">
+            Conecta tu cuenta de Mercado Pago para recibir pagos online en pedidos delivery.
+            Obtén tu Access Token en <a href="https://www.mercadopago.cl/developers/panel/app" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Mercado Pago Developers</a> → Tu aplicación → Credenciales de producción.
+          </p>
+
+          {mpMsg && (
+            <div className={`mb-4 p-3 rounded-lg text-sm border ${mpMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {mpMsg.text}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="label">Access Token</label>
+              <input
+                type="password"
+                className="input"
+                value={mpToken}
+                onChange={(e) => setMpToken(e.target.value)}
+                placeholder="APP_USR-..."
+              />
+            </div>
+            <button
+              type="button"
+              disabled={mpLoading}
+              onClick={async () => {
+                setMpLoading(true);
+                setMpMsg(null);
+                try {
+                  const res = await fetch(`/api/sucursales/${sucursalId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mpAccessToken: mpToken.trim() || null }),
+                  });
+                  if (!res.ok) throw new Error("Error al guardar");
+                  setMpMsg({ type: "ok", text: mpToken.trim() ? "Mercado Pago conectado" : "Mercado Pago desconectado" });
+                } catch (err) {
+                  setMpMsg({ type: "error", text: (err as Error).message });
+                } finally {
+                  setMpLoading(false);
+                }
+              }}
+              className="btn btn-primary text-sm"
+            >
+              {mpLoading ? "Guardando..." : mpToken.trim() ? "Guardar Access Token" : "Desconectar Mercado Pago"}
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -42,6 +42,7 @@ export default async function ConfiguracionPage() {
   let sucursalSocialTwitter:   string | null = null;
   let sucursalFlayerUrl:       string | null = null;
   let sucursalFlayerActivo:    boolean       = false;
+  let sucursalMpAccessToken:   string | null = null;
 
   if (rol === "RESTAURANTE" && sucursalId) {
     const suc = await prisma.sucursal.findUnique({
@@ -52,7 +53,7 @@ export default async function ConfiguracionPage() {
         telefono: true, direccion: true, zonasDelivery: true,
         socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
         socialYoutube: true, socialTiktok: true, socialTwitter: true,
-        flayerUrl: true, flayerActivo: true,
+        flayerUrl: true, flayerActivo: true, mpAccessToken: true,
       },
     });
     if (suc) {
@@ -75,6 +76,7 @@ export default async function ConfiguracionPage() {
       sucursalSocialTwitter   = suc.socialTwitter;
       sucursalFlayerUrl       = suc.flayerUrl;
       sucursalFlayerActivo    = suc.flayerActivo;
+      sucursalMpAccessToken   = suc.mpAccessToken;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -119,6 +121,7 @@ export default async function ConfiguracionPage() {
         sucursalSocialTwitter={sucursalSocialTwitter}
         sucursalFlayerUrl={sucursalFlayerUrl}
         sucursalFlayerActivo={sucursalFlayerActivo}
+        sucursalMpAccessToken={sucursalMpAccessToken}
       />
     </div>
   );

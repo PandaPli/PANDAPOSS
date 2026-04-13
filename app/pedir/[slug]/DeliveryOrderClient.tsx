@@ -74,9 +74,10 @@ interface Props {
   zonas: ZonaDelivery[];
   flayerUrl?: string | null;
   flayerActivo?: boolean;
+  mpEnabled?: boolean;
 }
 
-const paymentOptions: { id: string; label: string; method: MetodoPago; detail: string }[] = [
+const BASE_PAYMENT_OPTIONS: { id: string; label: string; method: MetodoPago; detail: string }[] = [
   { id: "webpay", label: "Webpay", method: "TARJETA", detail: "Tarjeta y links de pago" },
   { id: "efectivo", label: "Efectivo", method: "EFECTIVO", detail: "Pago al recibir" },
   { id: "transferencia", label: "Transferencia", method: "TRANSFERENCIA", detail: "Envio de comprobante" },
@@ -271,7 +272,8 @@ function ProductoOpcionesModal({
   );
 }
 
-export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo }: Props) {
+export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo, mpEnabled }: Props) {
+  const paymentOptions = BASE_PAYMENT_OPTIONS.filter((o) => o.id !== "mercadopago" || mpEnabled);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [flayerCerrado, setFlayerCerrado] = useState(false);
@@ -497,6 +499,23 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "No fue posible crear el pedido.");
+
+      // Si el pago es con Mercado Pago, crear preferencia y redirigir al checkout
+      if (paymentSeleccionado.id === "mercadopago") {
+        const mpRes = await fetch("/api/mercadopago/create-preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pedidoId: data.id, sucursalId: sucursal.id }),
+        });
+        const mpData = await mpRes.json();
+        if (mpRes.ok && mpData.initPoint) {
+          // Redirigir al checkout de Mercado Pago
+          window.location.href = mpData.initPoint;
+          return;
+        }
+        // Si falla MP, continuar con flujo normal (pedido ya fue creado)
+        console.warn("No se pudo crear preferencia MP, continuando sin pago online:", mpData.error);
+      }
 
       // Construir mensaje WhatsApp antes de limpiar el carrito
       const cartSnapshot = [...cart];

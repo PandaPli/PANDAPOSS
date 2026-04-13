@@ -38,6 +38,13 @@ export default async function PedirDeliveryPage({ params }: Props) {
 
   const sucursalId = branch.id;
 
+  // Verificar si la sucursal tiene MP configurado
+  const sucMP = await prisma.sucursal.findUnique({
+    where: { id: sucursalId },
+    select: { mpAccessToken: true },
+  });
+  const mpEnabled = Boolean(sucMP?.mpAccessToken);
+
   const categorias = await prisma.categoria.findMany({
     where: { activa: true, enMenuQR: true },
     include: {
@@ -112,6 +119,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
       zonas={zonas}
       flayerUrl={branch.flayerUrl ?? null}
       flayerActivo={branch.flayerActivo ?? false}
+      mpEnabled={mpEnabled}
     />
   );
 }

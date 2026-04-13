@@ -56,6 +56,7 @@ model Sucursal {
   socialTiktok    String?        @db.VarChar(255)
   socialTwitter   String?        @db.VarChar(255)
   zonasDelivery   Json?
+  mpAccessToken   String?        @db.VarChar(255)
   puntosActivo    Boolean        @default(false)
   puntosPorMil    Decimal        @default(10.00) @db.Decimal(8, 2)
   valorPunto      Decimal        @default(1.00)  @db.Decimal(8, 2)
@@ -368,6 +369,9 @@ model Pedido {
   iniciadoEn       DateTime?
   listoEn          DateTime?
   tenantId         String?
+  mpPreferenceId   String?         @db.VarChar(100)
+  mpPaymentId      String?         @db.VarChar(100)
+  mpStatus         String?         @db.VarChar(30)
   detalles         DetallePedido[]
   eventos          EventoPedido[]
   caja             Caja?           @relation(fields: [cajaId], references: [id])
