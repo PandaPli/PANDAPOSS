@@ -14,11 +14,20 @@ const instances = new Map(); // agenteId → socket
 async function extraerTexto(msg) {
   const m = msg.message;
   if (!m) return null;
-  return m.conversation
-    || m.extendedTextMessage?.text
-    || m.imageMessage?.caption
-    || m.buttonsResponseMessage?.selectedDisplayText
-    || m.listResponseMessage?.title
+  // Desempaquetar mensajes anidados (efímeros, viewOnce, etc.)
+  const inner = m.ephemeralMessage?.message
+    || m.viewOnceMessage?.message
+    || m.viewOnceMessageV2?.message?.viewOnceMessage?.message
+    || m.documentWithCaptionMessage?.message
+    || m;
+  return inner.conversation
+    || inner.extendedTextMessage?.text
+    || inner.imageMessage?.caption
+    || inner.videoMessage?.caption
+    || inner.buttonsResponseMessage?.selectedDisplayText
+    || inner.listResponseMessage?.title
+    || inner.templateButtonReplyMessage?.selectedDisplayText
+    || inner.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson
     || null;
 }
 
