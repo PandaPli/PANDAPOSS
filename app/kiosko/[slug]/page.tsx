@@ -20,6 +20,12 @@ export default async function KioskoPage({ params }: Props) {
 
   const sucursalId = branch.id;
 
+  const sucMP = await prisma.sucursal.findUnique({
+    where: { id: sucursalId },
+    select: { mpAccessToken: true },
+  });
+  const mpEnabled = Boolean(sucMP?.mpAccessToken);
+
   const categorias = await prisma.categoria.findMany({
     where: { activa: true },
     include: {
@@ -90,6 +96,7 @@ export default async function KioskoPage({ params }: Props) {
         cartaBg: branch.cartaBg,
       }}
       categorias={safeCategorias}
+      mpEnabled={mpEnabled}
     />
   );
 }

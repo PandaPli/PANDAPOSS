@@ -18,11 +18,12 @@ interface CartItem {
   precio: number; imagen: string | null; cantidad: number;
   opciones: CartOpcion[];
 }
-type Pantalla = "idle" | "menu" | "cart" | "tipo" | "nombre" | "confirming" | "success";
+type Pantalla = "idle" | "menu" | "cart" | "tipo" | "nombre" | "confirming" | "pagando" | "success";
 
 interface Props {
   sucursal: { id: number; nombre: string; logoUrl: string | null; simbolo: string; cartaBg: string | null; };
   categorias: Categoria[];
+  mpEnabled?: boolean;
 }
 
 const IDLE_TIMEOUT = 90_000; // 90s sin interacción → volver a idle
@@ -117,7 +118,7 @@ function VariantesModal({
 }
 
 // ── Main Kiosko Client ─────────────────────────────────────────────────────
-export function KioskoClient({ sucursal, categorias }: Props) {
+export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
   const [pantalla, setPantalla] = useState<Pantalla>("idle");
   const [catActiva, setCatActiva] = useState(categorias[0]?.id ?? 0);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -129,6 +130,8 @@ export function KioskoClient({ sucursal, categorias }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mpInitPoint, setMpInitPoint] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalItems = cart.reduce((a, i) => a + i.cantidad, 0);
   const subtotal = cart.reduce((a, i) => a + i.precio * i.cantidad, 0);
@@ -136,7 +139,7 @@ export function KioskoClient({ sucursal, categorias }: Props) {
   // ── Idle timeout ──────────────────────────────────────────────────────────
   const resetIdleTimer = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
-    if (pantalla !== "idle" && pantalla !== "success") {
+    if (pantalla !== "idle" && pantalla !== "success" && pantalla !== "pagando") {
       idleTimer.current = setTimeout(() => {
         resetKiosko();
       }, IDLE_TIMEOUT);
@@ -166,10 +169,12 @@ export function KioskoClient({ sucursal, categorias }: Props) {
   }, [pantalla]);
 
   function resetKiosko() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     setCart([]);
     setNombreCliente("");
     setPedidoId(null);
     setPedidoNumero(null);
+    setMpInitPoint(null);
     setError("");
     setPantalla("idle");
   }
@@ -227,12 +232,44 @@ export function KioskoClient({ sucursal, categorias }: Props) {
       if (!res.ok) throw new Error(data.error ?? "Error al crear pedido");
       setPedidoId(data.id);
       setPedidoNumero(data.numero);
+
+      // Si MP está habilitado, crear preferencia y mostrar pantalla de pago
+      if (mpEnabled) {
+        const mpRes = await fetch("/api/mercadopago/create-preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pedidoId: data.id, sucursalId: sucursal.id }),
+        });
+        const mpData = await mpRes.json();
+        if (mpRes.ok && mpData.initPoint) {
+          setMpInitPoint(mpData.initPoint);
+          setPantalla("pagando");
+          // Iniciar polling del estado de pago
+          startPaymentPolling(data.id);
+          return;
+        }
+      }
+
       setPantalla("success");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function startPaymentPolling(pId: number) {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/mercadopago/status?pedidoId=${pId}`);
+        const data = await res.json();
+        if (data.status === "approved") {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          setPantalla("success");
+        }
+      } catch { /* seguir polling */ }
+    }, 3000);
   }
 
   const productos = categorias.find(c => c.id === catActiva)?.productos ?? [];
@@ -260,6 +297,63 @@ export function KioskoClient({ sucursal, categorias }: Props) {
             </div>
           </div>
           <p className="text-white/40 text-sm mt-4">Autoservicio · {sucursal.nombre}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── PAGANDO (QR Mercado Pago) ─────────────────────────────────────────────
+  if (pantalla === "pagando") {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0d1117] text-white select-none px-8">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/20 border-2 border-blue-400">
+            <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-blue-400">
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="3" height="3" />
+              <rect x="19" y="14" width="2" height="2" /><rect x="14" y="19" width="2" height="2" />
+              <rect x="19" y="19" width="2" height="2" />
+            </svg>
+          </div>
+
+          <div>
+            <p className="text-blue-400 font-black text-xl uppercase tracking-[0.2em]">Escanea para pagar</p>
+            <p className="text-white/50 text-sm mt-2">Abre tu app de Mercado Pago y escanea el codigo QR</p>
+          </div>
+
+          {/* QR Code generado con la URL de MP */}
+          {mpInitPoint && (
+            <div className="mx-auto rounded-3xl bg-white p-6 shadow-2xl">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(mpInitPoint)}`}
+                alt="QR Mercado Pago"
+                width={280}
+                height={280}
+                className="rounded-xl"
+              />
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-4">
+            <p className="text-white/40 text-sm">Total a pagar</p>
+            <p className="text-3xl font-black text-amber-400 mt-1">{formatCurrency(subtotal, sucursal.simbolo)}</p>
+            <p className="text-white/30 text-xs mt-2">Pedido #{pedidoNumero || pedidoId}</p>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-white/40">
+            <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
+            <p className="text-sm">Esperando confirmacion de pago...</p>
+          </div>
+
+          <button
+            onClick={() => {
+              if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+              setPantalla("success");
+            }}
+            className="rounded-2xl border border-white/20 px-8 py-3 text-sm font-semibold text-white/50 hover:bg-white/5 transition-all"
+          >
+            Continuar sin pago online
+          </button>
         </div>
       </div>
     );
