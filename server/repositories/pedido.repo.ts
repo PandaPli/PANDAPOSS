@@ -9,8 +9,12 @@ interface ListOptions {
 
 export const PedidoRepo = {
   async list({ sucursalId, isAdmin, tipo, estado }: ListOptions) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
     return prisma.pedido.findMany({
       where: {
+        creadoEn: { gte: startOfToday },
         ...(tipo ? { tipo: tipo as never } : {}),
         ...(estado
           ? { estado: estado as never }
