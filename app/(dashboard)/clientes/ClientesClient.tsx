@@ -116,7 +116,8 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
     const mujeres = activos.filter(c => c.genero === "F").length;
     const cumpleHoy = activos.filter(c => estadoCumple(c.fechaNacimiento) === "hoy").length;
     const cumpleProximo = activos.filter(c => estadoCumple(c.fechaNacimiento) === "pronto").length;
-    return { total, bloqueados, hombres, mujeres, cumpleHoy, cumpleProximo };
+    const totalPuntos = activos.reduce((sum, c) => sum + (c.puntos ?? 0), 0);
+    return { total, bloqueados, hombres, mujeres, cumpleHoy, cumpleProximo, totalPuntos };
   }, [clientes]);
 
   async function handleBloquear(c: Cliente) {
@@ -387,7 +388,7 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
       </div>
 
       {/* Stats rápidas */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-lg">👨</div>
           <div>
@@ -418,6 +419,15 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
           <div>
             <p className="text-xl font-bold text-surface-text">{stats.cumpleProximo}</p>
             <p className="text-xs text-surface-muted">Próximos 7 días</p>
+          </div>
+        </div>
+        <div className="card p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center">
+            <Star size={18} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-surface-text">{stats.totalPuntos.toLocaleString("es-CL")}</p>
+            <p className="text-xs text-surface-muted">Puntos totales</p>
           </div>
         </div>
       </div>
