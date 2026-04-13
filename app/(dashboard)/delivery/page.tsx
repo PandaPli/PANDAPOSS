@@ -157,7 +157,8 @@ export default async function DeliveryPage() {
 
   const activeOrders = pedidos.filter((pedido) => ["PENDIENTE", "EN_PROCESO", "LISTO"].includes(pedido.estado));
   const deliveredOrders = pedidos.filter((pedido) => pedido.estado === "ENTREGADO");
-  const todayOrders = pedidos.filter((pedido) => pedido.creadoEn >= startOfToday && pedido.estado !== "CANCELADO");
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const todayOrders = pedidos.filter((pedido) => pedido.creadoEn >= startOfDay && pedido.estado !== "CANCELADO");
   const enCamino = pedidos.filter((pedido) => pedido.estado === "LISTO" && pedido.repartidorId);
   const tiempoPromedio = estimateDeliveryMinutes(activeOrders.length, repartidores.length);
   const ventasDelivery = todayOrders.reduce((acc, pedido) => {
