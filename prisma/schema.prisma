@@ -399,6 +399,7 @@ model DetallePedido {
   precio        Decimal?  @db.Decimal(10, 2)
   compartido    Boolean   @default(false)
   participantes Json?
+  opciones      Json?
   combo       Combo?    @relation(fields: [comboId], references: [id])
   pedido      Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   producto    Producto? @relation(fields: [productoId], references: [id])

@@ -46,6 +46,8 @@ export interface CartItem {
   compartido?: boolean;
   /** Grupos que comparten este ítem (proporcional) */
   participantes?: string[];
+  /** Variantes seleccionadas (Gyozas: langostino, tamaño grande, etc.) */
+  opciones?: OpcionSeleccionada[];
 }
 
 export interface GrupoPago {
@@ -81,6 +83,22 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
+export interface OpcionSeleccionada {
+  grupoId: number;
+  grupoNombre: string;
+  opcionId: number;
+  opcionNombre: string;
+  precio: number;
+}
+
+export interface VarianteGrupoCard {
+  id: number;
+  nombre: string;
+  requerido: boolean;
+  tipo: string; // "radio" | "checkbox"
+  opciones: { id: number; nombre: string; precio: number }[];
+}
+
 export interface ProductoCard {
   id: number;
   codigo: string;
@@ -90,6 +108,7 @@ export interface ProductoCard {
   stock: number;
   categoriaId: number | null;
   categoria?: { nombre: string; estacion?: string };
+  variantes?: VarianteGrupoCard[];
 }
 
 export interface MesaConEstado {
@@ -129,6 +148,7 @@ export interface PedidoConDetalles {
     cantidad: number;
     observacion: string | null;
     cancelado?: boolean;
+    opciones?: OpcionSeleccionada[] | null;
     producto?: { nombre: string } | null;
     combo?: { nombre: string } | null;
   }[];

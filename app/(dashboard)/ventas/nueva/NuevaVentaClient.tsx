@@ -175,6 +175,8 @@ export function NuevaVentaClient({
           comboId: i.tipo === "combo" ? i.id : null,
           cantidad: i.cantidad,
           observacion: i.observacion || null,
+          opciones: i.opciones && i.opciones.length > 0 ? i.opciones : null,
+          precio: i.opciones && i.opciones.length > 0 ? i.precio : undefined,
         })),
       };
 

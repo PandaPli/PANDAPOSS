@@ -227,9 +227,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         .item-price { font-size: 12px; text-align: right; white-space: nowrap; }
         .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 6px; }
         .label { font-size: 11px; color: #555; }
-        .precuenta-tag { text-align: center; font-size: 10px; letter-spacing: 3px; font-weight: 700; margin-bottom: 4px; }
       </style></head><body>
-      <div class="precuenta-tag">— PRECUENTA —</div>
       <div class="center"><span class="badge">DELIVERY</span></div>
       <hr class="divider"/>
       <div class="pedido-num">Pedido #${pedido.id}</div>

@@ -8,6 +8,8 @@ interface PedidoItem {
   cantidad: number;
   observacion?: string | null;
   grupo?: string | null;
+  opciones?: { grupoId: number; grupoNombre: string; opcionId: number; opcionNombre: string; precio: number }[] | null;
+  precio?: number | null; // precio final cuando incluye extras de variantes
 }
 
 export interface CreatePedidoInput {
@@ -102,18 +104,26 @@ export const PedidoService = {
         telefonoCliente: telefonoCliente ?? null,
         repartidorId: repartidorId ?? null,
         detalles: {
-          create: items.map((item) => ({
-            productoId:  item.productoId ?? null,
-            comboId:     item.comboId ?? null,
-            cantidad:    item.cantidad,
-            observacion: item.observacion ?? null,
-            grupo:       item.grupo ?? null,
-            precio: item.productoId
+          create: items.map((item) => {
+            const precioBase = item.productoId
               ? precioProducto.get(item.productoId)
               : item.comboId
               ? precioCombo.get(item.comboId)
-              : null,
-          })),
+              : null;
+            // Si vienen opciones con precio extra, usar el precio final enviado por el cliente
+            const precioFinal = item.opciones && item.opciones.length > 0 && item.precio != null
+              ? item.precio
+              : precioBase;
+            return {
+              productoId:  item.productoId ?? null,
+              comboId:     item.comboId ?? null,
+              cantidad:    item.cantidad,
+              observacion: item.observacion ?? null,
+              grupo:       item.grupo ?? null,
+              precio:      precioFinal,
+              opciones:    item.opciones && item.opciones.length > 0 ? item.opciones : Prisma.JsonNull,
+            };
+          }),
         },
       },
       include: { detalles: true },

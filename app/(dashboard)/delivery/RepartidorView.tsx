@@ -36,9 +36,10 @@ export function RepartidorView({ pedidos: initialPedidos, simbolo, riderNombre }
   const [loadingId, setLoadingId]   = useState<number | null>(null);
   const knownIdsRef = useRef(new Set(initialPedidos.map((p) => p.id)));
 
-  // Clasificación
-  const listos      = pedidos.filter((p) => p.estado === "LISTO" && !enCamino.has(p.id));
-  const enRuta      = pedidos.filter((p) => p.estado === "LISTO" && enCamino.has(p.id));
+  // Clasificación — PENDIENTE/EN_PROCESO/LISTO todos van a "Para recoger"
+  const ACTIVOS = ["PENDIENTE", "EN_PROCESO", "LISTO"] as string[];
+  const listos      = pedidos.filter((p) => ACTIVOS.includes(p.estado) && !enCamino.has(p.id));
+  const enRuta      = pedidos.filter((p) => ACTIVOS.includes(p.estado) && enCamino.has(p.id));
   const entregados  = pedidos.filter((p) => p.estado === "ENTREGADO");
 
   // Ganancias del día (pagoRider de entregados hoy)

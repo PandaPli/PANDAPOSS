@@ -87,13 +87,16 @@ export const useCartStore = create<CartState>((set, get) => ({
       // Solo fusionar si el ítem existe Y aún no fue guardado (enviado a KDS).
       // Si ya fue guardado, se agrega como entrada nueva (no-guardado) para que
       // handleOrden lo detecte como ítem nuevo y genere un segundo pedido en KDS.
+      // Items con opciones distintas NUNCA se fusionan (son variantes diferentes).
+      const opcionesKey = JSON.stringify(item.opciones ?? []);
       const existing = state.items.find(
         (i) =>
           i.id === item.id &&
           i.tipo === item.tipo &&
           !i.cancelado &&
           !i.guardado &&
-          (i.grupo ?? null) === (item.grupo ?? null) // Respetar grupo/cuenta
+          (i.grupo ?? null) === (item.grupo ?? null) &&
+          JSON.stringify(i.opciones ?? []) === opcionesKey
       );
       if (existing) {
         return {
@@ -102,7 +105,8 @@ export const useCartStore = create<CartState>((set, get) => ({
             i.tipo === item.tipo &&
             !i.cancelado &&
             !i.guardado &&
-            (i.grupo ?? null) === (item.grupo ?? null)
+            (i.grupo ?? null) === (item.grupo ?? null) &&
+            JSON.stringify(i.opciones ?? []) === opcionesKey
               ? { ...i, cantidad: i.cantidad + (item.cantidad ?? 1) }
               : i
           ),

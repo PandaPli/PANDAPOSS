@@ -285,6 +285,9 @@ export const DeliveryService = {
   async listOrders(scope: DeliveryScope) {
     const { rol, sucursalId, userId, includeHistory = false } = scope;
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
     const where = {
       tipo: "DELIVERY" as const,
       ...(rol === "DELIVERY"
@@ -292,7 +295,9 @@ export const DeliveryService = {
         : rol !== "ADMIN_GENERAL" && sucursalId
         ? { usuario: { sucursalId } }
         : {}),
-      ...(includeHistory ? {} : { estado: { in: activeDeliveryStatuses } }),
+      ...(includeHistory
+        ? {}
+        : { estado: { in: activeDeliveryStatuses }, creadoEn: { gte: startOfToday } }),
     };
 
     const [pedidos, activeCount, driverCount] = await Promise.all([

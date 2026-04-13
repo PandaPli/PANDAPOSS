@@ -14,7 +14,13 @@ async function getProductos(sucursalId: number | null) {
       // Aislamiento estricto: solo productos de la sucursal del usuario
       ...(sucursalId ? { sucursalId } : {}),
     },
-    include: { categoria: { select: { nombre: true, estacion: true } } },
+    include: {
+      categoria: { select: { nombre: true, estacion: true } },
+      variantes: {
+        include: { opciones: { orderBy: { orden: "asc" } } },
+        orderBy: { orden: "asc" },
+      },
+    },
     orderBy: { nombre: "asc" },
   });
 }
@@ -153,6 +159,17 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
     stock: Number(p.stock),
     categoriaId: p.categoriaId,
     categoria: p.categoria ?? undefined,
+    variantes: p.variantes.map((g) => ({
+      id: g.id,
+      nombre: g.nombre,
+      requerido: g.requerido,
+      tipo: g.tipo,
+      opciones: g.opciones.map((o) => ({
+        id: o.id,
+        nombre: o.nombre,
+        precio: Number(o.precio),
+      })),
+    })),
   }));
 
   return (

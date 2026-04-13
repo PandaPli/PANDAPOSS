@@ -104,6 +104,11 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
             <span class="qty">${d.cantidad}x</span>
             <span class="item-name">${nombre}</span>
           </div>
+          ${Array.isArray(d.opciones) && d.opciones.length > 0
+            ? (d.opciones as { opcionNombre: string; precio: number }[]).map((o) =>
+                `<div class="item-obs" style="color:#7c3aed;">• ${o.opcionNombre}${o.precio > 0 ? ` +${o.precio}` : ""}</div>`
+              ).join("")
+            : ""}
           ${d.observacion ? `<div class="item-obs">➜ ${d.observacion}</div>` : ""}
           ${notaTabla ? `<div class="item-obs" style="font-weight:bold;font-style:normal;">★ ${notaTabla}</div>` : ""}
         </div>
@@ -319,6 +324,15 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery }
                     <span className="bg-red-100 text-red-500 text-[10px] px-1 rounded font-bold">ANULADO</span>
                   )}
                 </div>
+                {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
+                      <span key={i} className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+                        {o.opcionNombre}{o.precio > 0 ? ` +${o.precio}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {d.observacion && !d.cancelado && (
                   <p className="text-[11px] text-amber-600 italic mt-0.5">→ {d.observacion}</p>
                 )}

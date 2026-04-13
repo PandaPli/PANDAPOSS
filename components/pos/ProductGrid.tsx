@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, Package, Plus, ShoppingCart, X } from "lucide-react";
+import { Search, Package, Plus, ShoppingCart, X, ChevronDown } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { ProductoCard } from "@/types";
+import type { ProductoCard, OpcionSeleccionada } from "@/types";
+import { VariantModal } from "./VariantModal";
 
 interface Props {
   productos: ProductoCard[];
@@ -36,6 +37,7 @@ const CAT_COLORS = [
 export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
   const [search, setSearch] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
+  const [variantProduct, setVariantProduct] = useState<ProductoCard | null>(null);
   const addItem = useCartStore((s) => s.addItem);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -91,14 +93,24 @@ export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
   }, [productos, search, categoriaFiltro]);
 
   function handleAdd(p: ProductoCard) {
+    const tieneVariantes = (p.variantes?.length ?? 0) > 0;
+    if (tieneVariantes) {
+      setVariantProduct(p);
+      return;
+    }
+    doAddItem(p, [], p.precio);
+  }
+
+  function doAddItem(p: ProductoCard, opciones: OpcionSeleccionada[], precio: number) {
     addItem({
       id: p.id,
       tipo: "producto",
       codigo: p.codigo,
       nombre: p.nombre,
-      precio: p.precio,
+      precio,
       imagen: p.imagen ?? undefined,
       grupo: activeGrupo ?? undefined,
+      opciones: opciones.length > 0 ? opciones : undefined,
     });
     const storeItems = useCartStore.getState().items;
     const found = storeItems.find((i) => i.id === p.id && i.tipo === "producto" && !i.guardado);
@@ -191,7 +203,12 @@ export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
                   <button
                     key={p.id}
                     onClick={() => handleAdd(p)}
-                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-surface-border bg-white text-left shadow-sm transition-all hover:border-brand-300 hover:shadow-md active:scale-[0.96]"
+                    className={cn(
+                      "group relative flex flex-col overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition-all hover:shadow-md active:scale-[0.96]",
+                      (p.variantes?.length ?? 0) > 0
+                        ? "border-violet-200 hover:border-violet-400"
+                        : "border-surface-border hover:border-brand-300"
+                    )}
                   >
                     {/* Imagen compacta o gradiente con iniciales */}
                     <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
@@ -212,6 +229,13 @@ export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
                       {p.stock <= 5 && p.stock > 0 && (
                         <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
                           {p.stock} restantes
+                        </span>
+                      )}
+                      {/* Badge variantes */}
+                      {(p.variantes?.length ?? 0) > 0 && (
+                        <span className="absolute right-1.5 top-1.5 flex items-center gap-0.5 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+                          <ChevronDown size={9} />
+                          opciones
                         </span>
                       )}
 
@@ -239,6 +263,19 @@ export function ProductGrid({ productos, simbolo = "$", activeGrupo }: Props) {
           )}
         </div>
       </div>
+
+      {/* Modal de variantes */}
+      {variantProduct && (
+        <VariantModal
+          producto={variantProduct}
+          simbolo={simbolo}
+          onClose={() => setVariantProduct(null)}
+          onConfirm={(opciones, precio) => {
+            doAddItem(variantProduct, opciones, precio);
+            setVariantProduct(null);
+          }}
+        />
+      )}
 
       {/* Toast — último producto agregado */}
       {toast && (
