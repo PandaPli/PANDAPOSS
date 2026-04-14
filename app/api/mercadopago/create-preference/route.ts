@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || "https://pandaposs.com";
+    const baseUrl = process.env.NEXTAUTH_URL || "https://www.pandaposs.com";
 
     const preferenceAPI = getPreferenceAPI(sucursal.mpAccessToken);
     const preference = await preferenceAPI.create({
