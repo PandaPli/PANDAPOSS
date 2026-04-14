@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Clock, UtensilsCrossed, Loader2, Bell, Printer, Bot } from "lucide-react";
+import { CheckCircle2, Clock, UtensilsCrossed, Loader2, Bell, Printer, Bot, XCircle } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
 import { useState } from "react";
@@ -46,6 +46,7 @@ function esTabla(nombre: string) {
 
 export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, nightMode }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
+  const [loadingCancel, setLoadingCancel] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
   const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
   const [savedNotas, setSavedNotas] = useState<Record<number, boolean>>({});
@@ -69,6 +70,13 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
     setLoading(true);
     await onUpdateEstado(pedido.id, next);
     setLoading(false);
+  }
+
+  async function handleCancel() {
+    if (!confirm("¿Cancelar este pedido? Esta acción no se puede deshacer.")) return;
+    setLoadingCancel(true);
+    await onUpdateEstado(pedido.id, "CANCELADO");
+    setLoadingCancel(false);
   }
 
   async function handleLlamarMesero() {
@@ -407,6 +415,20 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, isDelivery, 
             {loadingMesero ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} className={pedido.meseroLlamado ? "animate-bounce" : ""} />}
             {pedido.meseroLlamado ? "Llamado" : callLabel}
           </button>
+          {pedido.estado === "PENDIENTE" && (
+            <button
+              onClick={handleCancel}
+              disabled={loadingCancel}
+              title="Cancelar pedido"
+              className={cn(
+                "px-3 py-2.5 transition-all flex items-center justify-center gap-1 text-xs font-medium disabled:opacity-50",
+                nightMode ? "border-l border-gray-700 text-red-400 hover:bg-red-900/30 hover:text-red-300" : "border-l border-surface-border text-red-500 hover:bg-red-50 hover:text-red-700"
+              )}
+            >
+              {loadingCancel ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={14} />}
+              Cancelar
+            </button>
+          )}
           <button
             onClick={handlePrint}
             title="Imprimir comanda"

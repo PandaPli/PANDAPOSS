@@ -97,7 +97,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
     );
     
     // Trigger refresh immediately across all states (if we transition a state, it should vanish from current view immediately)
-    if (estado === "ENTREGADO") {
+    if (estado === "ENTREGADO" || estado === "CANCELADO") {
       setTimeout(fetchPedidos, 500);
     }
   }
