@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
-import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Clock, PlaySquare, CheckCircle2, Moon, Sun } from "lucide-react";
+import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Moon, Sun, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useKdsUI, KdsFilter } from "@/stores/kdsStore";
+import { useKdsUI } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
 import { useKdsSocket } from "@/hooks/useKdsSocket";
 
@@ -17,17 +16,6 @@ const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNod
   { key: "DELIVERY", label: "Delivery", icon: <Bike size={16} /> },
 ];
 
-const estadoTabs: { key: KdsFilter; label: string; icon: React.ReactNode; colorClass: string; bgClass: string; borderClass: string }[] = [
-  { key: "PENDIENTE", label: "Pendientes", icon: <Clock size={16} />, colorClass: "text-brand-600", bgClass: "bg-brand-50 hover:bg-brand-100", borderClass: "border-brand-200" },
-  { key: "EN_PROCESO", label: "En Preparación", icon: <PlaySquare size={16} />, colorClass: "text-amber-600", bgClass: "bg-amber-50 hover:bg-amber-100", borderClass: "border-amber-200" },
-  { key: "LISTO", label: "Listos", icon: <CheckCircle2 size={16} />, colorClass: "text-emerald-600", bgClass: "bg-emerald-50 hover:bg-emerald-100", borderClass: "border-emerald-200" },
-];
-
-/* Role default filters logic
- * If the user is a Mesero, they might default to some view or only care about their tables.
- * For now, we apply standard logic.
- */
-
 interface Props {
   pedidos: PedidoConDetalles[];
   rol?: Rol;
@@ -35,131 +23,167 @@ interface Props {
   welcome?: { emoji: string; msg: string } | null;
 }
 
-export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Props) {
+export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const isDelivery = rol === "DELIVERY";
   const { filter, setFilter, nightMode, toggleNightMode } = useKdsUI();
 
-  // Set default initial list, filtered down instantly on frontend
   const [pedidos, setPedidos] = useState<PedidoConDetalles[]>(initial);
-
-  // Default tipo tab by role
-  const defaultTipo: TipoPedido | "TODOS" =
+  const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(
     isDelivery     ? "DELIVERY" :
     rol === "CHEF" ? "COCINA"   :
     rol === "BAR"  ? "BAR"      :
-    "TODOS";
-  const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(defaultTipo);
+    "TODOS"
+  );
 
+  // ── Fetch todos los estados activos en paralelo ────────────────────────
   const fetchPedidos = useCallback(async () => {
     try {
-      // Fetch only the requests for the current filter state to save bandwidth
-      const res = await fetch(`/api/pedidos?estado=${filter}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPedidos(data);
-      }
+      const [r1, r2, r3] = await Promise.all([
+        fetch("/api/pedidos?estado=PENDIENTE"),
+        fetch("/api/pedidos?estado=EN_PROCESO"),
+        fetch("/api/pedidos?estado=LISTO"),
+      ]);
+      const p1 = r1.ok ? await r1.json() : [];
+      const p2 = r2.ok ? await r2.json() : [];
+      const p3 = r3.ok ? await r3.json() : [];
+      setPedidos([...p1, ...p2, ...p3]);
     } catch (e) {
       console.error(e);
     }
-  }, [filter]);
+  }, []);
 
-  // Tiempo real via Socket.IO — refresca al instante cuando llega un evento
+  // Tiempo real via Socket.IO
   useKdsSocket(sucursalId ?? null, fetchPedidos);
 
   useEffect(() => {
-    // Fetch inicial al cambiar filtro + polling de respaldo cada 8s
     fetchPedidos();
     const interval = setInterval(fetchPedidos, 8000);
     return () => clearInterval(interval);
   }, [fetchPedidos]);
 
-  // First local filter for the UI (Instant feedback before fetch completes, and also correctly handles local initial state)
-  const filtrados = pedidos.filter((p) => {
-    const matchEstado = p.estado === filter;
-    const matchTipo = tipoFiltro === "TODOS" || p.tipo === tipoFiltro;
-    return matchEstado && matchTipo;
-  });
+  // ── Derivar grupos ─────────────────────────────────────────────────────
+  const pendientes = pedidos.filter(p => p.estado === "PENDIENTE");
+  const enProceso  = pedidos.filter(p => p.estado === "EN_PROCESO");
+  const listosAll  = pedidos.filter(p => p.estado === "LISTO");
 
+  const pendienteCount = pendientes.length;
+  const enProcesoCount = enProceso.length;
+  const enCursoCount   = pendienteCount + enProcesoCount;
+  const listosCount    = listosAll.length;
+
+  // Filtrar por tipo y ordenar (PENDIENTE primero, luego EN_PROCESO, más antiguo primero)
+  const enCurso = [...pendientes, ...enProceso]
+    .filter(p => tipoFiltro === "TODOS" || p.tipo === tipoFiltro)
+    .sort((a, b) => {
+      if (a.estado === "PENDIENTE" && b.estado !== "PENDIENTE") return -1;
+      if (a.estado !== "PENDIENTE" && b.estado === "PENDIENTE") return 1;
+      return new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime();
+    });
+
+  const listos = listosAll.filter(p => tipoFiltro === "TODOS" || p.tipo === tipoFiltro);
+
+  const displayed = filter === "EN_CURSO" ? enCurso : listos;
+
+  // ── Handlers ───────────────────────────────────────────────────────────
   async function handleUpdateEstado(id: number, estado: EstadoPedido) {
     await fetch(`/api/pedidos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ estado }),
     });
-    
-    // Optimistic update
-    setPedidos((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, estado, meseroLlamado: estado === "ENTREGADO" ? false : p.meseroLlamado }
-          : p
-      )
-    );
-    
-    // Trigger refresh immediately across all states (if we transition a state, it should vanish from current view immediately)
-    if (estado === "ENTREGADO" || estado === "CANCELADO") {
-      setTimeout(fetchPedidos, 500);
+
+    if (estado === "CANCELADO") {
+      setPedidos(prev => prev.filter(p => p.id !== id));
+    } else {
+      setPedidos(prev =>
+        prev.map(p =>
+          p.id === id
+            ? { ...p, estado, meseroLlamado: estado === "ENTREGADO" ? false : p.meseroLlamado }
+            : p
+        )
+      );
     }
+
+    setTimeout(fetchPedidos, 500);
   }
 
   async function handleLlamarMesero(id: number) {
-    const pedido = pedidos.find((p) => p.id === id);
+    const pedido = pedidos.find(p => p.id === id);
     const llamadoTipo = pedido?.tipo === "DELIVERY" ? "RIDER" : pedido?.mesa ? "MESERO" : "CAJERO";
     await fetch(`/api/pedidos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ meseroLlamado: true, estado: "LISTO", llamadoTipo }),
     });
-    // Optimistic
-    setPedidos((prev) =>
-      prev.map((p) =>
+    setPedidos(prev =>
+      prev.map(p =>
         p.id === id ? { ...p, meseroLlamado: true, estado: "LISTO", llamadoTipo } : p
       )
     );
   }
 
   return (
-    <div className={cn("space-y-2 min-h-screen -m-4 sm:-m-6 p-4 sm:p-6 transition-colors duration-300", nightMode ? "bg-gray-950" : "")}>
-      {/* Barra de filtros compacta */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {/* Estado */}
-        <div className={cn("flex items-center gap-1 p-1 border rounded-lg", nightMode ? "bg-gray-900 border-gray-700" : "bg-surface-background border-surface-border")}>
-          {estadoTabs.map((tab) => {
-            const isActive = filter === tab.key;
-            const cnt = pedidos.filter(p => p.estado === tab.key).length;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                  isActive
-                    ? nightMode ? `bg-gray-700 shadow-sm ${tab.colorClass}` : `bg-white shadow-sm ${tab.colorClass}`
-                    : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
-                )}
-              >
-                {tab.icon}
-                {tab.label}
-                {cnt > 0 && (
-                  <span className={cn("text-[10px] rounded-full px-1.5 min-w-[18px] text-center font-bold",
-                    isActive
-                      ? "bg-current/10"
-                      : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
-                  )}>{cnt}</span>
-                )}
-              </button>
-            );
-          })}
+    <div className={cn("space-y-3 min-h-screen -m-4 sm:-m-6 p-4 sm:p-6 transition-colors duration-300", nightMode ? "bg-gray-950" : "")}>
+
+      {/* ── Barra principal ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+
+        {/* Vista: En Curso / Completados */}
+        <div className={cn("flex items-center gap-1 p-1 border rounded-xl", nightMode ? "bg-gray-900 border-gray-700" : "bg-surface-background border-surface-border")}>
+          <button
+            onClick={() => setFilter("EN_CURSO")}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+              filter === "EN_CURSO"
+                ? nightMode ? "bg-orange-500/20 text-orange-400 shadow-sm" : "bg-orange-100 text-orange-700 shadow-sm"
+                : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
+            )}
+          >
+            <Flame size={16} />
+            En Curso
+            {enCursoCount > 0 && (
+              <span className={cn("text-[11px] rounded-full px-2 min-w-[20px] text-center font-black",
+                filter === "EN_CURSO"
+                  ? nightMode ? "bg-orange-500/30 text-orange-300" : "bg-orange-200 text-orange-800"
+                  : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
+              )}>{enCursoCount}</span>
+            )}
+            {pendienteCount > 0 && (
+              <span className="flex items-center gap-1 text-[10px] text-red-400 font-black animate-pulse">
+                <AlertTriangle size={11} />
+                {pendienteCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setFilter("LISTOS")}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+              filter === "LISTOS"
+                ? nightMode ? "bg-emerald-500/20 text-emerald-400 shadow-sm" : "bg-emerald-100 text-emerald-700 shadow-sm"
+                : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
+            )}
+          >
+            <CheckCircle2 size={16} />
+            Completados
+            {listosCount > 0 && (
+              <span className={cn("text-[11px] rounded-full px-2 min-w-[20px] text-center font-black",
+                filter === "LISTOS"
+                  ? nightMode ? "bg-emerald-500/30 text-emerald-300" : "bg-emerald-200 text-emerald-800"
+                  : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
+              )}>{listosCount}</span>
+            )}
+          </button>
         </div>
 
         {/* Separador */}
-        <span className={cn("w-px h-6", nightMode ? "bg-gray-700" : "bg-surface-border")} />
+        <span className={cn("w-px h-7", nightMode ? "bg-gray-700" : "bg-surface-border")} />
 
         {/* Tipo */}
-        {tipoTabs.map((tab) => {
+        {tipoTabs.map(tab => {
           const count = tab.key === "TODOS"
-            ? pedidos.filter(p => p.estado === filter).length
-            : pedidos.filter(p => p.tipo === tab.key && p.estado === filter).length;
+            ? displayed.length
+            : displayed.filter(p => p.tipo === tab.key).length;
           return (
             <button
               key={tab.key}
@@ -184,6 +208,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
           );
         })}
 
+        {/* Acciones derecha */}
         <div className="ml-auto flex items-center gap-1.5">
           <button
             onClick={toggleNightMode}
@@ -196,7 +221,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
             title="Modo nocturno"
           >
             {nightMode ? <Sun size={13} /> : <Moon size={13} />}
-            {nightMode ? "Día" : "Noche"}
+            {nightMode ? "Dia" : "Noche"}
           </button>
           <button
             onClick={fetchPedidos}
@@ -214,22 +239,37 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
         </div>
       </div>
 
-      {/* Grid KDS */}
-      {filtrados.length === 0 ? (
+      {/* ── Alerta pedidos por confirmar ───────────────────────────── */}
+      {pendienteCount > 0 && filter === "EN_CURSO" && (
+        <div className={cn(
+          "flex items-center gap-3 rounded-xl px-4 py-2.5 border animate-pulse",
+          nightMode ? "bg-red-950/40 border-red-500/30" : "bg-red-50 border-red-200"
+        )}>
+          <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-ping" />
+          <span className={cn("font-bold text-sm", nightMode ? "text-red-400" : "text-red-700")}>
+            {pendienteCount} pedido{pendienteCount !== 1 ? "s" : ""} esperando confirmacion de caja
+          </span>
+        </div>
+      )}
+
+      {/* ── Grid KDS ──────────────────────────────────────────────── */}
+      {displayed.length === 0 ? (
         <div className={cn("p-10 text-center rounded-2xl border", nightMode ? "bg-gray-900 border-gray-800" : "card shadow-sm")}>
           <img src="/logo.png" alt="PandaPoss" className="w-12 h-12 mx-auto mb-3 opacity-40 grayscale" />
-          <p className={cn("font-semibold", nightMode ? "text-gray-300" : "text-surface-text")}>No hay pedidos {filter.replace('_', ' ').toLowerCase()}</p>
-          <p className={cn("text-xs mt-1", nightMode ? "text-gray-500" : "text-surface-muted")}>Actualizando automáticamente…</p>
+          <p className={cn("font-semibold", nightMode ? "text-gray-300" : "text-surface-text")}>
+            {filter === "EN_CURSO" ? "No hay pedidos en curso" : "No hay pedidos completados"}
+          </p>
+          <p className={cn("text-xs mt-1", nightMode ? "text-gray-500" : "text-surface-muted")}>Actualizando automaticamente...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-          {filtrados.map((pedido) => (
+          {displayed.map(pedido => (
             <OrderCard
               key={pedido.id}
               pedido={pedido}
               onUpdateEstado={handleUpdateEstado}
               onLlamarMesero={handleLlamarMesero}
-              isDelivery={isDelivery}
+              rol={rol}
               nightMode={nightMode}
             />
           ))}
@@ -238,4 +278,3 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId, welcome }: Pr
     </div>
   );
 }
-

@@ -213,7 +213,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
     }
   }
 
-  async function confirmarPedido() {
+  async function confirmarPedido(metodo: MetodoPagoKiosko = "caja") {
     setSubmitting(true);
     setError("");
     try {
@@ -237,7 +237,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
       setPedidoNumero(data.numero);
 
       // Si eligió Mercado Pago, crear preferencia y mostrar pantalla de pago QR
-      if (metodoPago === "mercadopago") {
+      if (metodo === "mercadopago") {
         const mpRes = await fetch("/api/mercadopago/create-preference", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -317,7 +317,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
 
         <div className="grid grid-cols-2 gap-6 w-full max-w-lg">
           <button
-            onClick={() => { setMetodoPago("caja"); setPantalla("confirming"); confirmarPedido(); }}
+            onClick={() => { setMetodoPago("caja"); setPantalla("confirming"); confirmarPedido("caja"); }}
             disabled={submitting}
             className="flex flex-col items-center gap-4 rounded-3xl border-2 border-white/10 bg-white/5 p-8 transition-all hover:scale-105 hover:border-amber-400/50 active:scale-95"
           >
@@ -329,7 +329,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
           </button>
 
           <button
-            onClick={() => { setMetodoPago("mercadopago"); setPantalla("confirming"); confirmarPedido(); }}
+            onClick={() => { setMetodoPago("mercadopago"); setPantalla("confirming"); confirmarPedido("mercadopago"); }}
             disabled={submitting}
             className="flex flex-col items-center gap-4 rounded-3xl border-2 border-white/10 bg-white/5 p-8 transition-all hover:scale-105 hover:border-blue-400/50 active:scale-95"
           >
