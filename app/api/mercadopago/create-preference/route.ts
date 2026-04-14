@@ -43,15 +43,15 @@ export async function POST(req: NextRequest) {
       const nombre = d.observacion?.startsWith("[LIBRE]")
         ? d.observacion.replace("[LIBRE] ", "")
         : d.producto?.nombre ?? "Producto";
-      const precio = Number(d.precio ?? d.producto?.precio ?? 0);
+      const precio = Math.round(Number(d.precio ?? d.producto?.precio ?? 0));
       return {
         id: String(d.id),
-        title: nombre,
+        title: nombre.slice(0, 255),
         quantity: d.cantidad,
         unit_price: precio,
         currency_id: "CLP",
       };
-    });
+    }).filter((item) => item.unit_price > 0);
 
     // Agregar cargo de envío si existe (parseado desde observación)
     const obsMatch = pedido.observacion?.match(/"cargoEnvio":(\d+)/);
@@ -95,9 +95,10 @@ export async function POST(req: NextRequest) {
       initPoint: preference.init_point,
     });
   } catch (error) {
-    console.error("[POST /api/mercadopago/create-preference]", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[POST /api/mercadopago/create-preference]", msg, error);
     return NextResponse.json(
-      { error: "Error al crear preferencia de pago." },
+      { error: `Error al crear preferencia: ${msg}` },
       { status: 500 }
     );
   }
