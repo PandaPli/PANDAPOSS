@@ -4,6 +4,8 @@ import { DeliveryOrderClient } from "./DeliveryOrderClient";
 import { createSlug } from "@/lib/slug";
 import { featureFilter } from "@/lib/plan";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ slug: string }>;
 }

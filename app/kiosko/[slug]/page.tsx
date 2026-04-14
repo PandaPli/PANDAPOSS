@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { createSlug } from "@/lib/slug";
 import { KioskoClient } from "./KioskoClient";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
