@@ -125,31 +125,27 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   return (
     <div className={cn("space-y-3 min-h-screen -m-4 sm:-m-6 p-4 sm:p-6 transition-colors duration-300", nightMode ? "bg-gray-950" : "")}>
 
-      {/* ── Barra principal ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 flex-wrap">
-
-        {/* Vista: En Curso / Completados */}
-        <div className={cn("flex items-center gap-1 p-1 border rounded-xl", nightMode ? "bg-gray-900 border-gray-700" : "bg-surface-background border-surface-border")}>
+      {/* ── Fila 1: Vista principal (prominente) + Acciones ────────── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className={cn("flex items-center gap-1 p-1.5 rounded-2xl border", nightMode ? "bg-gray-900 border-gray-700" : "bg-white border-surface-border shadow-sm")}>
           <button
             onClick={() => setFilter("EN_CURSO")}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-base font-black transition-all",
               filter === "EN_CURSO"
-                ? nightMode ? "bg-orange-500/20 text-orange-400 shadow-sm" : "bg-orange-100 text-orange-700 shadow-sm"
-                : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
+                ? nightMode ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30" : "bg-orange-500 text-white shadow-md"
+                : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             )}
           >
-            <Flame size={16} />
+            <Flame size={18} />
             En Curso
             {enCursoCount > 0 && (
-              <span className={cn("text-[11px] rounded-full px-2 min-w-[20px] text-center font-black",
-                filter === "EN_CURSO"
-                  ? nightMode ? "bg-orange-500/30 text-orange-300" : "bg-orange-200 text-orange-800"
-                  : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
+              <span className={cn("text-xs rounded-full px-2 py-0.5 min-w-[22px] text-center font-black",
+                filter === "EN_CURSO" ? "bg-white/25 text-white" : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-200 text-slate-700"
               )}>{enCursoCount}</span>
             )}
             {pendienteCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-red-400 font-black animate-pulse">
+              <span className="flex items-center gap-0.5 text-[11px] font-black bg-red-500 text-white rounded-full px-2 py-0.5 animate-pulse">
                 <AlertTriangle size={11} />
                 {pendienteCount}
               </span>
@@ -158,62 +154,28 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
           <button
             onClick={() => setFilter("LISTOS")}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-base font-black transition-all",
               filter === "LISTOS"
-                ? nightMode ? "bg-emerald-500/20 text-emerald-400 shadow-sm" : "bg-emerald-100 text-emerald-700 shadow-sm"
-                : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-surface-muted hover:text-surface-text hover:bg-surface-border/50"
+                ? nightMode ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30" : "bg-emerald-500 text-white shadow-md"
+                : nightMode ? "text-gray-400 hover:text-gray-200 hover:bg-gray-800" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             )}
           >
-            <CheckCircle2 size={16} />
+            <CheckCircle2 size={18} />
             Completados
             {listosCount > 0 && (
-              <span className={cn("text-[11px] rounded-full px-2 min-w-[20px] text-center font-black",
-                filter === "LISTOS"
-                  ? nightMode ? "bg-emerald-500/30 text-emerald-300" : "bg-emerald-200 text-emerald-800"
-                  : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
+              <span className={cn("text-xs rounded-full px-2 py-0.5 min-w-[22px] text-center font-black",
+                filter === "LISTOS" ? "bg-white/25 text-white" : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-200 text-slate-700"
               )}>{listosCount}</span>
             )}
           </button>
         </div>
-
-        {/* Separador */}
-        <span className={cn("w-px h-7", nightMode ? "bg-gray-700" : "bg-surface-border")} />
-
-        {/* Tipo */}
-        {tipoTabs.map(tab => {
-          const count = tab.key === "TODOS"
-            ? displayed.length
-            : displayed.filter(p => p.tipo === tab.key).length;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setTipoFiltro(tab.key)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border",
-                tipoFiltro === tab.key
-                  ? nightMode ? "bg-gray-200 text-gray-900 border-gray-100" : "bg-slate-800 text-white border-slate-900"
-                  : nightMode ? "bg-gray-900 border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "bg-white border-surface-border text-surface-muted hover:bg-slate-50 hover:text-slate-700"
-              )}
-            >
-              {tab.icon}
-              {tab.label}
-              {count > 0 && (
-                <span className={cn("text-[10px] rounded-full px-1.5 min-w-[18px] text-center font-bold",
-                  tipoFiltro === tab.key
-                    ? nightMode ? "bg-gray-700 text-gray-200" : "bg-white/25 text-white"
-                    : nightMode ? "bg-gray-700 text-gray-300" : "bg-slate-100 text-slate-600"
-                )}>{count}</span>
-              )}
-            </button>
-          );
-        })}
 
         {/* Acciones derecha */}
         <div className="ml-auto flex items-center gap-1.5">
           <button
             onClick={toggleNightMode}
             className={cn(
-              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all",
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all",
               nightMode
                 ? "bg-gray-800 border-gray-700 text-amber-400 hover:bg-gray-700"
                 : "bg-white border-surface-border text-surface-muted hover:bg-slate-50 hover:text-slate-700"
@@ -226,7 +188,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
           <button
             onClick={fetchPedidos}
             className={cn(
-              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors",
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-colors",
               nightMode
                 ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
                 : "bg-white border-surface-border text-surface-muted hover:text-brand-600 hover:bg-brand-50"
@@ -237,6 +199,42 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
             Actualizar
           </button>
         </div>
+      </div>
+
+      {/* ── Fila 2: Filtro por estacion (secundario) ─────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={cn("text-[10px] font-black uppercase tracking-wider", nightMode ? "text-gray-500" : "text-slate-400")}>
+          Estacion
+        </span>
+        {tipoTabs.map(tab => {
+          const count = tab.key === "TODOS"
+            ? displayed.length
+            : displayed.filter(p => p.tipo === tab.key).length;
+          const isActive = tipoFiltro === tab.key;
+          const showCount = tab.key !== "TODOS" && count > 0;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setTipoFiltro(tab.key)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all",
+                isActive
+                  ? nightMode ? "bg-white text-gray-900" : "bg-slate-800 text-white"
+                  : nightMode ? "text-gray-500 hover:text-gray-300 hover:bg-gray-800" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              )}
+            >
+              {tab.icon}
+              {tab.label}
+              {showCount && (
+                <span className={cn("text-[10px] rounded-full px-1.5 min-w-[16px] text-center font-bold",
+                  isActive
+                    ? nightMode ? "bg-gray-200 text-gray-800" : "bg-white/25 text-white"
+                    : nightMode ? "bg-gray-800 text-gray-400" : "bg-slate-200 text-slate-600"
+                )}>{count}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Alerta pedidos por confirmar ───────────────────────────── */}
