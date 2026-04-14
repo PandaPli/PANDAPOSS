@@ -410,18 +410,42 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
 
   // ── SUCCESS ───────────────────────────────────────────────────────────────
   if (pantalla === "success") {
+    const esPagoCaja = metodoPago === "caja";
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0d1117] text-white select-none">
-        <div className="text-center space-y-6 px-8">
-          <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-emerald-500/20 border-4 border-emerald-400">
-            <Check size={56} className="text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-emerald-400 font-black text-xl uppercase tracking-[0.3em]">¡Pedido Recibido!</p>
-            <p className="text-8xl font-black text-white mt-3">#{pedidoNumero || pedidoId}</p>
-            <p className="text-white/50 text-lg mt-2">Guarda tu número de pedido</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-5 text-sm text-white/60">
+        <div className="text-center space-y-6 px-8 max-w-lg">
+          {esPagoCaja ? (
+            <>
+              <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-amber-500/20 border-4 border-amber-400">
+                <span className="text-5xl">💳</span>
+              </div>
+              <div>
+                <p className="text-amber-400 font-black text-2xl uppercase tracking-[0.2em]">Pasar a Caja</p>
+                <p className="text-amber-400/60 font-bold text-lg uppercase tracking-[0.15em] mt-1">para confirmar</p>
+                <p className="text-8xl font-black text-white mt-4">#{pedidoNumero || pedidoId}</p>
+              </div>
+              <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-8 py-5">
+                <p className="text-amber-300 font-bold text-lg">Presenta este numero en caja</p>
+                <p className="text-white/50 text-sm mt-1">Tu pedido sera preparado una vez confirmado el pago</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm text-white/60">
+                <p className="text-white/40 text-xs">Total a pagar</p>
+                <p className="text-2xl font-black text-amber-400 mt-1">{formatCurrency(subtotal, sucursal.simbolo)}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-emerald-500/20 border-4 border-emerald-400">
+                <Check size={56} className="text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-emerald-400 font-black text-xl uppercase tracking-[0.3em]">¡Pago Confirmado!</p>
+                <p className="text-8xl font-black text-white mt-3">#{pedidoNumero || pedidoId}</p>
+                <p className="text-white/50 text-lg mt-2">Tu pedido esta siendo preparado</p>
+              </div>
+            </>
+          )}
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-sm text-white/60">
             {tipoConsumo === "aqui" ? "🍽️ Comer aquí" : "🥡 Para llevar"}
             {nombreCliente && ` · 👤 ${nombreCliente}`}
           </div>
