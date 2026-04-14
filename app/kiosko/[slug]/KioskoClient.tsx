@@ -18,7 +18,8 @@ interface CartItem {
   precio: number; imagen: string | null; cantidad: number;
   opciones: CartOpcion[];
 }
-type Pantalla = "idle" | "menu" | "cart" | "tipo" | "nombre" | "confirming" | "pagando" | "success";
+type Pantalla = "idle" | "menu" | "cart" | "tipo" | "nombre" | "pago" | "confirming" | "pagando" | "success";
+type MetodoPagoKiosko = "caja" | "mercadopago";
 
 interface Props {
   sucursal: { id: number; nombre: string; logoUrl: string | null; simbolo: string; cartaBg: string | null; };
@@ -130,6 +131,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [metodoPago, setMetodoPago] = useState<MetodoPagoKiosko>("caja");
   const [mpInitPoint, setMpInitPoint] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -175,6 +177,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
     setPedidoId(null);
     setPedidoNumero(null);
     setMpInitPoint(null);
+    setMetodoPago("caja");
     setError("");
     setPantalla("idle");
   }
@@ -233,8 +236,8 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
       setPedidoId(data.id);
       setPedidoNumero(data.numero);
 
-      // Si MP está habilitado, crear preferencia y mostrar pantalla de pago
-      if (mpEnabled) {
+      // Si eligió Mercado Pago, crear preferencia y mostrar pantalla de pago QR
+      if (metodoPago === "mercadopago") {
         const mpRes = await fetch("/api/mercadopago/create-preference", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -298,6 +301,52 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
           </div>
           <p className="text-white/40 text-sm mt-4">Autoservicio · {sucursal.nombre}</p>
         </div>
+      </div>
+    );
+  }
+
+  // ── PAGO (selección de método) ────────────────────────────────────────────
+  if (pantalla === "pago") {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0d1117] text-white select-none px-8">
+        <button onClick={() => setPantalla("nombre")} className="absolute top-8 left-8 flex items-center gap-2 text-white/50 hover:text-white text-sm font-semibold">
+          <ArrowLeft size={18} /> Volver
+        </button>
+        <h2 className="text-4xl font-black text-center mb-4">¿Cómo quieres pagar?</h2>
+        <p className="text-white/40 mb-10">Selecciona tu método de pago</p>
+
+        <div className="grid grid-cols-2 gap-6 w-full max-w-lg">
+          <button
+            onClick={() => { setMetodoPago("caja"); setPantalla("confirming"); confirmarPedido(); }}
+            disabled={submitting}
+            className="flex flex-col items-center gap-4 rounded-3xl border-2 border-white/10 bg-white/5 p-8 transition-all hover:scale-105 hover:border-amber-400/50 active:scale-95"
+          >
+            <span className="text-6xl">💳</span>
+            <div className="text-center">
+              <p className="text-xl font-black">Pago en Caja</p>
+              <p className="text-sm text-white/40 mt-1">Tarjeta o efectivo</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => { setMetodoPago("mercadopago"); setPantalla("confirming"); confirmarPedido(); }}
+            disabled={submitting}
+            className="flex flex-col items-center gap-4 rounded-3xl border-2 border-white/10 bg-white/5 p-8 transition-all hover:scale-105 hover:border-blue-400/50 active:scale-95"
+          >
+            <span className="text-6xl">📱</span>
+            <div className="text-center">
+              <p className="text-xl font-black">Mercado Pago</p>
+              <p className="text-sm text-white/40 mt-1">Escanea QR con tu app</p>
+            </div>
+          </button>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-center">
+          <p className="text-white/40 text-sm">Total</p>
+          <p className="text-3xl font-black text-amber-400">{formatCurrency(subtotal, sucursal.simbolo)}</p>
+        </div>
+
+        {error && <p className="mt-4 text-red-400 text-sm">{error}</p>}
       </div>
     );
   }
@@ -447,16 +496,16 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
           ))}
         </div>
         <div className="mt-6 flex gap-4 w-full max-w-xl">
-          <button onClick={() => { setNombreCliente(""); setPantalla("confirming"); confirmarPedido(); }}
+          <button onClick={() => { setNombreCliente(""); mpEnabled ? setPantalla("pago") : (setPantalla("confirming"), confirmarPedido()); }}
             className="flex-1 rounded-2xl border border-white/20 py-4 font-bold text-white/60 hover:bg-white/5"
           >
             Saltar
           </button>
-          <button onClick={() => { setPantalla("confirming"); confirmarPedido(); }}
+          <button onClick={() => { mpEnabled ? setPantalla("pago") : (setPantalla("confirming"), confirmarPedido()); }}
             disabled={submitting}
             className="flex-1 rounded-2xl bg-amber-400 py-4 font-black text-black text-lg hover:bg-amber-300 transition-all disabled:opacity-50"
           >
-            {submitting ? "Enviando..." : "Confirmar pedido →"}
+            Continuar →
           </button>
         </div>
         {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
