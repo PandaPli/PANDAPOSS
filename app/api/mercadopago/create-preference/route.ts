@@ -94,9 +94,11 @@ export async function POST(req: NextRequest) {
       preferenceId: preference.id,
       initPoint: preference.init_point,
     });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("[POST /api/mercadopago/create-preference]", msg, error);
+  } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const err = error as any;
+    const msg = err?.message ?? err?.cause?.message ?? JSON.stringify(err);
+    console.error("[POST /api/mercadopago/create-preference]", msg);
     return NextResponse.json(
       { error: `Error al crear preferencia: ${msg}` },
       { status: 500 }
