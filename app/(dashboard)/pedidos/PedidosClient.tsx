@@ -23,17 +23,43 @@ interface Props {
   welcome?: { emoji: string; msg: string } | null;
 }
 
+// Estaciones visibles por rol. null = ve todo (sin filtro de items)
+function getRolEstaciones(rol?: Rol): string[] | null {
+  if (rol === "CHEF") return ["COCINA", "CUARTO_CALIENTE"];
+  if (rol === "BAR") return ["BARRA"];
+  return null;
+}
+
+// Filtra los detalles de un pedido segun las estaciones visibles.
+// Si el rol no tiene filtro, devuelve el pedido sin cambios.
+// Si el pedido no contiene items de ninguna estacion visible, devuelve null.
+function filtrarPorEstacion(
+  pedido: PedidoConDetalles,
+  estaciones: string[] | null
+): PedidoConDetalles | null {
+  if (!estaciones) return pedido;
+  const detallesFiltrados = pedido.detalles.filter(d => {
+    const est = d.producto?.categoria?.estacion ?? d.combo?.categoria?.estacion;
+    // Si no tiene estacion definida, solo lo mostramos a chef (para no perderlo)
+    if (!est) return estaciones.includes("COCINA");
+    return estaciones.includes(est);
+  });
+  if (detallesFiltrados.length === 0) return null;
+  return { ...pedido, detalles: detallesFiltrados };
+}
+
 export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const isDelivery = rol === "DELIVERY";
   const { filter, setFilter, nightMode, toggleNightMode } = useKdsUI();
 
   const [pedidos, setPedidos] = useState<PedidoConDetalles[]>(initial);
+  // Default: delivery ve solo DELIVERY; los demas ven TODOS (cocinero/barman ven
+  // tambien pedidos de kiosko que son tipo MOSTRADOR)
   const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(
-    isDelivery     ? "DELIVERY" :
-    rol === "CHEF" ? "COCINA"   :
-    rol === "BAR"  ? "BAR"      :
-    "TODOS"
+    isDelivery ? "DELIVERY" : "TODOS"
   );
+
+  const estacionesRol = getRolEstaciones(rol);
 
   // ── Fetch todos los estados activos en paralelo ────────────────────────
   const fetchPedidos = useCallback(async () => {
@@ -62,9 +88,15 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   }, [fetchPedidos]);
 
   // ── Derivar grupos ─────────────────────────────────────────────────────
-  const pendientes = pedidos.filter(p => p.estado === "PENDIENTE");
-  const enProceso  = pedidos.filter(p => p.estado === "EN_PROCESO");
-  const listosAll  = pedidos.filter(p => p.estado === "LISTO");
+  // Aplicamos el filtro de estacion por rol (CHEF/BAR solo ven items de su area).
+  // Si un pedido queda sin items visibles, se descarta completamente.
+  const pedidosVisibles = pedidos
+    .map(p => filtrarPorEstacion(p, estacionesRol))
+    .filter((p): p is PedidoConDetalles => p !== null);
+
+  const pendientes = pedidosVisibles.filter(p => p.estado === "PENDIENTE");
+  const enProceso  = pedidosVisibles.filter(p => p.estado === "EN_PROCESO");
+  const listosAll  = pedidosVisibles.filter(p => p.estado === "LISTO");
 
   const pendienteCount = pendientes.length;
   const enProcesoCount = enProceso.length;
@@ -104,6 +136,22 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
       );
     }
 
+    setTimeout(fetchPedidos, 500);
+  }
+
+  async function handleReturnToProcess(id: number) {
+    await fetch(`/api/pedidos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado: "EN_PROCESO", meseroLlamado: false, llamadoTipo: null }),
+    });
+    setPedidos(prev =>
+      prev.map(p =>
+        p.id === id
+          ? { ...p, estado: "EN_PROCESO", meseroLlamado: false, llamadoTipo: null }
+          : p
+      )
+    );
     setTimeout(fetchPedidos, 500);
   }
 
@@ -267,6 +315,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
               pedido={pedido}
               onUpdateEstado={handleUpdateEstado}
               onLlamarMesero={handleLlamarMesero}
+              onReturnToProcess={handleReturnToProcess}
               rol={rol}
               nightMode={nightMode}
             />

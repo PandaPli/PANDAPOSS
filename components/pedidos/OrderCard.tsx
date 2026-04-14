@@ -1,11 +1,58 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
 import type { Rol } from "@/types";
 import { useState } from "react";
+
+// ── Modalidad del pedido (como se entrega al cliente) ──────────────────────
+type Modalidad = "MESA" | "RETIRO" | "KIOSKO" | "DELIVERY" | "MOSTRADOR";
+
+function detectarModalidad(pedido: PedidoConDetalles): Modalidad {
+  if (pedido.tipo === "DELIVERY") return "DELIVERY";
+  if (pedido.mesa) return "MESA";
+  const obs = pedido.observacion ?? "";
+  if (obs.includes("KIOSKO")) return "KIOSKO";
+  if (/PARA LLEVAR|LLEVAR|RETIRO/i.test(obs)) return "RETIRO";
+  return "MOSTRADOR";
+}
+
+function getModalidadStyles(mod: Modalidad, nightMode: boolean) {
+  switch (mod) {
+    case "MESA":
+      return {
+        label: "MESA",
+        icon: <Utensils size={11} />,
+        cls: nightMode ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "bg-blue-100 text-blue-700 border border-blue-200",
+      };
+    case "RETIRO":
+      return {
+        label: "RETIRO",
+        icon: <ShoppingBag size={11} />,
+        cls: nightMode ? "bg-orange-500/20 text-orange-300 border border-orange-500/30" : "bg-orange-100 text-orange-700 border border-orange-200",
+      };
+    case "KIOSKO":
+      return {
+        label: "KIOSKO",
+        icon: <MonitorSmartphone size={11} />,
+        cls: nightMode ? "bg-violet-500/20 text-violet-300 border border-violet-500/30" : "bg-violet-100 text-violet-700 border border-violet-200",
+      };
+    case "DELIVERY":
+      return {
+        label: "DELIVERY",
+        icon: <Bike size={11} />,
+        cls: nightMode ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30" : "bg-cyan-100 text-cyan-700 border border-cyan-200",
+      };
+    default:
+      return {
+        label: "MOSTRADOR",
+        icon: <Store size={11} />,
+        cls: nightMode ? "bg-slate-500/20 text-slate-300 border border-slate-500/30" : "bg-slate-100 text-slate-700 border border-slate-200",
+      };
+  }
+}
 
 function detectarOrigen(pedido: PedidoConDetalles): "chatbot" | "mesa" | "pos" {
   if (pedido.delivery?.zonaDelivery === "WhatsApp") return "chatbot";
@@ -18,6 +65,7 @@ interface OrderCardProps {
   pedido: PedidoConDetalles;
   onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
   onLlamarMesero: (id: number) => Promise<void>;
+  onReturnToProcess?: (id: number) => Promise<void>;
   rol?: Rol;
   nightMode?: boolean;
 }
@@ -87,10 +135,11 @@ function getEstadoStyles(estado: EstadoPedido, nightMode: boolean) {
   }
 }
 
-export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, rol, nightMode = false }: OrderCardProps) {
+export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToProcess, rol, nightMode = false }: OrderCardProps) {
   const [loading, setLoading] = useState(false);
   const [loadingReject, setLoadingReject] = useState(false);
   const [loadingMesero, setLoadingMesero] = useState(false);
+  const [loadingReturn, setLoadingReturn] = useState(false);
   const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
   const [savedNotas, setSavedNotas] = useState<Record<number, boolean>>({});
 
@@ -138,6 +187,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, rol, nightMo
     setLoadingMesero(false);
   }
 
+  async function handleReturnToProcess() {
+    if (!onReturnToProcess) return;
+    if (!confirm("Devolver este pedido a preparacion? Se quitara el estado COMPLETADO.")) return;
+    setLoadingReturn(true);
+    await onReturnToProcess(pedido.id);
+    setLoadingReturn(false);
+  }
+
   function handlePrint() {
     const ahora = new Date();
     const fecha = ahora.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -182,6 +239,8 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, rol, nightMo
 
   const tiempoStr = timeAgo(pedido.creadoEn);
   const origen = detectarOrigen(pedido);
+  const modalidad = detectarModalidad(pedido);
+  const modStyles = getModalidadStyles(modalidad, nightMode);
 
   // Urgencia: PENDIENTE > 2 min
   const minPendiente = pedido.estado === "PENDIENTE"
@@ -255,10 +314,16 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, rol, nightMo
 
       {/* ── Header con badge de estado ────────────────────────────── */}
       <div className="px-3 pt-2.5 pb-1.5">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider", styles.badge)}>
-            <div className={cn("h-2 w-2 rounded-full", styles.dot)} />
-            {styles.badgeLabel}
+        <div className="flex items-center justify-between mb-1.5 gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <div className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider", styles.badge)}>
+              <div className={cn("h-2 w-2 rounded-full", styles.dot)} />
+              {styles.badgeLabel}
+            </div>
+            <div className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider", modStyles.cls)}>
+              {modStyles.icon}
+              {modStyles.label}
+            </div>
           </div>
           <div className={cn("flex items-center gap-1 text-[11px] shrink-0", nightMode ? "text-gray-400" : "text-surface-muted")}>
             <Clock size={11} />
@@ -483,6 +548,21 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, rol, nightMo
                 {loadingMesero ? <Loader2 size={14} className="animate-spin" /> : <Bell size={14} className={pedido.meseroLlamado ? "animate-bounce" : ""} />}
                 {pedido.meseroLlamado ? `${callLabel} notificado` : `Llamar ${callLabel}`}
               </button>
+              {canConfirm && onReturnToProcess && (
+                <button
+                  onClick={handleReturnToProcess}
+                  disabled={loadingReturn}
+                  title="Devolver a preparacion (solo Cajera / Admin Sucursal)"
+                  className={cn(
+                    "px-3 py-3 transition-all flex items-center justify-center disabled:opacity-50",
+                    nightMode
+                      ? "border-l border-white/10 text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                      : "border-l border-surface-border text-red-500 hover:bg-red-50 hover:text-red-600"
+                  )}
+                >
+                  {loadingReturn ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                </button>
+              )}
               <button
                 onClick={handlePrint}
                 title="Imprimir comanda"

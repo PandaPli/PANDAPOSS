@@ -149,8 +149,8 @@ export interface PedidoConDetalles {
     observacion: string | null;
     cancelado?: boolean;
     opciones?: OpcionSeleccionada[] | null;
-    producto?: { nombre: string } | null;
-    combo?: { nombre: string } | null;
+    producto?: { nombre: string; categoria?: { estacion: string } | null } | null;
+    combo?: { nombre: string; categoria?: { estacion: string } | null } | null;
   }[];
 }
 

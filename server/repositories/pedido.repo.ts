@@ -59,8 +59,18 @@ export const PedidoRepo = {
         delivery: { select: { zonaDelivery: true } },
         detalles: {
           include: {
-            producto: { select: { nombre: true } },
-            combo: { select: { nombre: true } },
+            producto: {
+              select: {
+                nombre: true,
+                categoria: { select: { estacion: true } },
+              },
+            },
+            combo: {
+              select: {
+                nombre: true,
+                categoria: { select: { estacion: true } },
+              },
+            },
           },
         },
       },
