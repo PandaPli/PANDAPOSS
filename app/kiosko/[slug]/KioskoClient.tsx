@@ -243,14 +243,18 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pedidoId: data.id, sucursalId: sucursal.id }),
         });
-        const mpData = await mpRes.json();
-        if (mpRes.ok && mpData.initPoint) {
-          setMpInitPoint(mpData.initPoint);
-          setPantalla("pagando");
-          // Iniciar polling del estado de pago
-          startPaymentPolling(data.id);
-          return;
+        const mpData = await mpRes.json().catch(() => ({}));
+        if (!mpRes.ok || !mpData.initPoint) {
+          console.error("[MP] fallo create-preference", { status: mpRes.status, mpData });
+          throw new Error(
+            mpData.error ??
+            `Mercado Pago no respondio (${mpRes.status}). Pedido #${data.numero} creado pero no se pudo iniciar el pago.`
+          );
         }
+        setMpInitPoint(mpData.initPoint);
+        setPantalla("pagando");
+        startPaymentPolling(data.id);
+        return;
       }
 
       setPantalla("success");

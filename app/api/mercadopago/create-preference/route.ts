@@ -68,6 +68,21 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = process.env.NEXTAUTH_URL || "https://www.pandaposs.com";
 
+    if (items.length === 0) {
+      return NextResponse.json(
+        { error: "El pedido no tiene items con precio valido para cobrar." },
+        { status: 400 }
+      );
+    }
+
+    console.log("[MP create-preference] input", {
+      pedidoId,
+      sucursalId,
+      baseUrl,
+      itemsCount: items.length,
+      total: items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
+    });
+
     const preferenceAPI = getPreferenceAPI(sucursal.mpAccessToken);
     const preference = await preferenceAPI.create({
       body: {
@@ -84,6 +99,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log("[MP create-preference] ok", {
+      preferenceId: preference.id,
+      hasInitPoint: !!preference.init_point,
+      hasSandboxInitPoint: !!preference.sandbox_init_point,
+    });
+
+    // init_point es el URL productivo; sandbox_init_point para tokens TEST.
+    // Usamos el que este disponible para que ambos modos funcionen.
+    const initPoint = preference.init_point ?? preference.sandbox_init_point;
+
+    if (!initPoint) {
+      console.error("[MP create-preference] sin initPoint", preference);
+      return NextResponse.json(
+        { error: "Mercado Pago no devolvio un link de pago (init_point vacio). Revisa el Access Token." },
+        { status: 500 }
+      );
+    }
+
     // Guardar preferenceId en el pedido
     await prisma.pedido.update({
       where: { id: Number(pedidoId) },
@@ -92,13 +125,16 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       preferenceId: preference.id,
-      initPoint: preference.init_point,
+      initPoint,
     });
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = error as any;
     const msg = err?.message ?? err?.cause?.message ?? JSON.stringify(err);
-    console.error("[POST /api/mercadopago/create-preference]", msg);
+    // El SDK de MP suele exponer la respuesta completa en err.cause
+    const cause = err?.cause;
+    console.error("[POST /api/mercadopago/create-preference] error:", msg);
+    if (cause) console.error("[POST /api/mercadopago/create-preference] cause:", JSON.stringify(cause, null, 2));
     return NextResponse.json(
       { error: `Error al crear preferencia: ${msg}` },
       { status: 500 }
