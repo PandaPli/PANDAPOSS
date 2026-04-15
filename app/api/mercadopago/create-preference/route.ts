@@ -84,14 +84,19 @@ export async function POST(req: NextRequest) {
       total: items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
     });
 
+    // IMPORTANTE: cuando auto_return = "approved", MP no permite query strings
+    // propios en back_urls ("back_urls invalid. Wrong format"). MP igualmente
+    // appendea automaticamente ?collection_id=...&status=...&external_reference=...
+    // a la URL de success, y nosotros leemos external_reference (= pedidoId)
+    // en la pagina /pago/resultado.
     const preferenceAPI = getPreferenceAPI(sucursal.mpAccessToken);
     const preference = await preferenceAPI.create({
       body: {
         items,
         back_urls: {
-          success: `${baseUrl}/pago/resultado?pedidoId=${pedidoId}&status=approved`,
-          failure: `${baseUrl}/pago/resultado?pedidoId=${pedidoId}&status=rejected`,
-          pending: `${baseUrl}/pago/resultado?pedidoId=${pedidoId}&status=pending`,
+          success: `${baseUrl}/pago/resultado`,
+          failure: `${baseUrl}/pago/resultado`,
+          pending: `${baseUrl}/pago/resultado`,
         },
         auto_return: "approved",
         external_reference: String(pedidoId),

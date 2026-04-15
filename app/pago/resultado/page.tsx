@@ -3,13 +3,23 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 interface Props {
-  searchParams: Promise<{ pedidoId?: string; status?: string; payment_id?: string }>;
+  // MP appendea: collection_id, collection_status, payment_id, status,
+  // external_reference, payment_type, merchant_order_id, preference_id.
+  // Tambien soportamos pedidoId como fallback por compatibilidad.
+  searchParams: Promise<{
+    pedidoId?: string;
+    external_reference?: string;
+    status?: string;
+    collection_status?: string;
+    payment_id?: string;
+  }>;
 }
 
 export default async function PagoResultadoPage({ searchParams }: Props) {
   const params = await searchParams;
-  const pedidoId = Number(params.pedidoId);
-  const status = params.status ?? "unknown";
+  // MP usa external_reference (seteado en create-preference). Fallback pedidoId.
+  const pedidoId = Number(params.external_reference ?? params.pedidoId);
+  const status = params.status ?? params.collection_status ?? "unknown";
   const paymentId = params.payment_id;
 
   if (!pedidoId || isNaN(pedidoId)) notFound();
