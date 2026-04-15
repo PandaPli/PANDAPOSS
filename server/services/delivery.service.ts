@@ -384,6 +384,7 @@ export const DeliveryService = {
           id: detalle.id,
           cantidad: detalle.cantidad,
           nombre: detalle.producto?.nombre ?? detalle.combo?.nombre ?? "Item",
+          precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0),
         })),
       };
     });

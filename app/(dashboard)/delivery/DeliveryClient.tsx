@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
+import { createSlug } from "@/lib/slug";
+import QRCode from "qrcode";
 import type { EstadoPedido } from "@/types";
 import { IngresoManualForm } from "@/components/delivery/IngresoManualForm";
 
@@ -196,23 +198,42 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     } finally { setLoadingPedidoId(null); }
   }
 
-  function imprimirPrecuenta(pedido: PedidoDelivery) {
-    const fmt = (n: number) => formatCurrency(n, simbolo);
+  async function imprimirPrecuenta(pedido: PedidoDelivery) {
+    const fmt = (n: number) => formatCurrency(Number(n) || 0, simbolo);
     const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-    const itemsHtml = pedido.detalles.map((d) => `
+    const itemsHtml = pedido.detalles.map((d) => {
+      const precio = Number(d.precio) || 0;
+      return `
       <div class="item">
         <div class="item-row">
           <span class="qty">${d.cantidad}x</span>
           <span class="item-name">${d.nombre}</span>
-          <span class="item-price">${fmt(d.precio * d.cantidad)}</span>
+          <span class="item-price">${fmt(precio * d.cantidad)}</span>
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
+
+    // QR al menú online del restaurante
+    const menuUrl = `https://pandaposs.com/pedir/${createSlug(sucursalNombre)}`;
+    let qrDataUrl = "";
+    try {
+      qrDataUrl = await QRCode.toDataURL(menuUrl, { margin: 1, width: 180, errorCorrectionLevel: "M" });
+    } catch { /* si falla el QR, seguimos sin él */ }
+
+    const qrHtml = qrDataUrl ? `
+      <hr class="divider"/>
+      <div class="qr-block">
+        <div class="qr-title">ESCANEA Y VUELVE A PEDIR</div>
+        <img src="${qrDataUrl}" alt="QR Menú" class="qr-img"/>
+        <div class="qr-url">${menuUrl.replace("https://", "")}</div>
+      </div>` : "";
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
       <style>
         @page { size: 80mm auto; margin: 0; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; font-size: 13px; width: 72mm; padding: 4mm 4mm 10mm 4mm; color: #000; background: #fff; }
+        html, body { height: fit-content; min-height: 0; }
+        body { font-family: 'Courier New', monospace; font-size: 13px; width: 72mm; padding: 4mm 4mm 2mm 4mm; color: #000; background: #fff; }
         .center { text-align: center; }
         .divider { border: none; border-top: 1px dashed #000; margin: 5px 0; }
         .divider-solid { border: none; border-top: 2px solid #000; margin: 5px 0; }
@@ -227,6 +248,11 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         .item-price { font-size: 12px; text-align: right; white-space: nowrap; }
         .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 6px; }
         .label { font-size: 11px; color: #555; }
+        .qr-block { text-align: center; margin-top: 6px; }
+        .qr-title { font-size: 10px; font-weight: 900; letter-spacing: 1px; margin-bottom: 3px; }
+        .qr-img { width: 45mm; height: 45mm; display: block; margin: 0 auto; }
+        .qr-url { font-size: 9px; margin-top: 2px; word-break: break-all; }
+        .cut-feed { height: 3mm; }
       </style></head><body>
       <div class="center"><span class="badge">DELIVERY</span></div>
       <hr class="divider"/>
@@ -241,10 +267,21 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       <hr class="divider-solid"/>
       ${pedido.cargoEnvio > 0 ? `<div class="meta"><span>Envío</span><span>${fmt(pedido.cargoEnvio)}</span></div>` : ""}
       <div class="total-row"><span>TOTAL</span><span>${fmt(pedido.total)}</span></div>
-      <script>window.onload=function(){window.print();window.close();}<\/script>
+      ${qrHtml}
+      <div class="cut-feed"></div>
+      <script>
+        var imgs = document.images;
+        var loaded = 0;
+        function tryPrint() { loaded++; if (loaded >= imgs.length) { window.print(); window.close(); } }
+        if (imgs.length === 0) { window.print(); window.close(); }
+        else { for (var i = 0; i < imgs.length; i++) {
+          if (imgs[i].complete) tryPrint();
+          else { imgs[i].onload = tryPrint; imgs[i].onerror = tryPrint; }
+        }}
+      <\/script>
     </body></html>`;
 
-    const win = window.open("", "_blank", "width=320,height=600");
+    const win = window.open("", "_blank", "width=320,height=700");
     if (!win) return;
     win.document.write(html);
     win.document.close();
