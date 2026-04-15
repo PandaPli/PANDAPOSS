@@ -67,7 +67,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || "https://www.pandaposs.com";
+    // baseUrl para back_urls: MP valida la URL haciendo un GET y rechaza si
+    // recibe un 3xx (redirect). Usamos el origin de la request actual, que es
+    // la URL canonica que el cliente esta usando (ej: https://www.pandaposs.com)
+    // — nunca va a ser la version sin www que redirige.
+    // Fallback: env var explicita para MP, o hardcode al dominio con www.
+    const reqOrigin = new URL(req.url).origin;
+    const envBaseUrl = process.env.MP_BASE_URL || process.env.NEXTAUTH_URL;
+    // Normalizamos: si la env var apunta a pandaposs.com sin www, forzamos www
+    // porque Vercel redirige sin-www -> www (307) y MP rechaza ese redirect.
+    let baseUrl = reqOrigin || envBaseUrl || "https://www.pandaposs.com";
+    if (baseUrl.includes("pandaposs.com") && !baseUrl.includes("www.pandaposs.com")) {
+      baseUrl = baseUrl.replace("://pandaposs.com", "://www.pandaposs.com");
+    }
 
     if (items.length === 0) {
       return NextResponse.json(
