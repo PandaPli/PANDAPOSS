@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NuevaVentaClient } from "./NuevaVentaClient";
 import type { CartItem, RondaPedido } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Caja" };
 
 const PEDIDOS_ACTIVOS = ["PENDIENTE", "EN_PROCESO", "LISTO"] as const;
 

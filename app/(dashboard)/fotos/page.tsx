@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { FotosClient } from "./FotosClient";
+
+export const metadata: Metadata = { title: "PP — Fotos" };
 
 export default async function FotosPage() {
   const session = await getServerSession(authOptions);

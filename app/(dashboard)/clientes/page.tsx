@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ClientesClient } from "./ClientesClient";
+
+export const metadata: Metadata = { title: "PP — Clientes" };
 
 export default async function ClientesPage() {
   const session = await getServerSession(authOptions);

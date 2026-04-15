@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { CajasClient } from "./CajasClient";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Cajas" };
 
 export default async function CajasPage() {
   const session = await getServerSession(authOptions);

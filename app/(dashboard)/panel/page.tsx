@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Panel" };
 
 // Vistas
 import { AdminGeneralView } from "./AdminGeneralView";

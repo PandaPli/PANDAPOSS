@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PedidosClient } from "./PedidosClient";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — KDS" };
 
 /* Micro-mensajes por rol */
 const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {

@@ -1,4 +1,5 @@
-﻿import { getServerSession } from "next-auth";
+﻿import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -6,6 +7,8 @@ import { DeliveryClient } from "./DeliveryClient";
 import { RepartidorView } from "./RepartidorView";
 import { estimateDeliveryMinutes, getDeliveryTrackingStage, parseDeliveryObservation } from "@/lib/delivery";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Delivery" };
 
 export default async function DeliveryPage() {
   const session = await getServerSession(authOptions);

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { Plus, TrendingUp, TrendingDown, ShoppingBag, Users, Trophy, Star, BarChart3, CalendarDays } from "lucide-react";
@@ -8,6 +9,8 @@ import type { Rol } from "@/types";
 import { VentasCharts } from "@/components/ventas/VentasCharts";
 import type { DayData, MetodoData } from "@/components/ventas/VentasCharts";
 import { VentasTable } from "./VentasTable";
+
+export const metadata: Metadata = { title: "PP — Ventas" };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

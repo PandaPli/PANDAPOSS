@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { checkFeature } from "@/core/billing/featureChecker";
 import type { Rol } from "@/types";
 import { RrhhClient } from "./RrhhClient";
+
+export const metadata: Metadata = { title: "PP — RRHH" };
 
 const ALLOWED_ROLES: Rol[] = ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"];
 

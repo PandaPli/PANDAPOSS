@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getFreshSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FeatureGate } from "@/components/FeatureGate";
 import { CartaQRClient } from "./CartaQRClient";
 import { PLAN_LIMITS } from "@/core/billing/planConfig";
+
+export const metadata: Metadata = { title: "PP — Carta QR" };
 
 export default async function CartaQRPage() {
   const user = await getFreshSessionUser();

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CuponesClient } from "./CuponesClient";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Cupones" };
 
 export default async function CuponesPage() {
   const session = await getServerSession(authOptions);

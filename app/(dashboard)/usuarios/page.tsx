@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { getFreshSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { UsuariosClient } from "./UsuariosClient";
+
+export const metadata: Metadata = { title: "PP — Usuarios" };
 
 export default async function UsuariosPage() {
   const user = await getFreshSessionUser();

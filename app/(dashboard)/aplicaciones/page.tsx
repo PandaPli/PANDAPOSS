@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { CalendarDays, Lock } from "lucide-react";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = { title: "PP — Apps" };
 
 export default async function AplicacionesPage() {
   const session = await getServerSession(authOptions);

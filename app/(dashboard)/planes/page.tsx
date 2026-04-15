@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PLAN_LIMITS } from "@/core/billing/planConfig";
 import { Check, X, Zap, Crown } from "lucide-react";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Planes" };
 
 export default async function PlanesPage() {
   const session = await getServerSession(authOptions);

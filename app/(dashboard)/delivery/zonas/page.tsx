@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -6,6 +7,7 @@ import { ZonasDeliveryAdmin } from "./ZonasDeliveryAdmin";
 import type { Rol } from "@/types";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "PP — Zonas Delivery" };
 
 export default async function ZonasDeliveryPage() {
   const session = await getServerSession(authOptions);

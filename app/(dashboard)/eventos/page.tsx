@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { EventosClient } from "./EventosClient";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Eventos" };
 
 export default async function EventosPage() {
   const session = await getServerSession(authOptions);

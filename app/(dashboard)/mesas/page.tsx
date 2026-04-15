@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { MesasClient } from "./MesasClient";
 import { getFreshSessionUser } from "@/lib/auth";
 import type { Rol } from "@/types";
+
+export const metadata: Metadata = { title: "PP — Mesas" };
 
 async function getMesas(rol: Rol | undefined, sucursalId: number | null) {
   const where =

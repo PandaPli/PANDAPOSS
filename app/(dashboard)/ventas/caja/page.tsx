@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CajaBasicaClient } from "./CajaBasicaClient";
+
+export const metadata: Metadata = { title: "PP — Caja Básica" };
 
 const ALLOWED_ROLES = ["RESTAURANTE", "CASHIER"];
 

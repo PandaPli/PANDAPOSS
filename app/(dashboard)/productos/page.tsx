@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { ProductosClient } from "./ProductosClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "PP — Productos" };
 
 async function getData(rol: string, sucursalId: number | null) {
   // Construir filtros de sucursal

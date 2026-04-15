@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ReportesClient } from "./ReportesClient";
 
-export const metadata = { title: "Reportes — PandaPoss" };
+export const metadata = { title: "PP — Reportes" };
 
 export default async function ReportesPage() {
   const session = await getServerSession(authOptions);

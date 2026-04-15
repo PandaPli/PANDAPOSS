@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { PerfilClient } from "./PerfilClient";
 import type { Rol } from "@/types";
 
-export const metadata = { title: "Mi Perfil — PandaPoss" };
+export const metadata = { title: "PP — Perfil" };
 
 export default async function PerfilPage() {
   const session = await getServerSession(authOptions);
