@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     }
 
-    // Construir items para MP
+    // Construir items para MP.
+    // NOTA: omitimos currency_id a proposito — MP usa la moneda default de la
+    // cuenta del seller (ARS para Argentina, CLP para Chile, etc). Hardcodear
+    // la moneda hace que MP rechace la preferencia si no coincide con la cuenta.
     const items = pedido.detalles.map((d) => {
       const nombre = d.observacion?.startsWith("[LIBRE]")
         ? d.observacion.replace("[LIBRE] ", "")
@@ -49,7 +52,6 @@ export async function POST(req: NextRequest) {
         title: nombre.slice(0, 255),
         quantity: d.cantidad,
         unit_price: precio,
-        currency_id: "CLP",
       };
     }).filter((item) => item.unit_price > 0);
 
@@ -62,7 +64,6 @@ export async function POST(req: NextRequest) {
         title: "Cargo de envío",
         quantity: 1,
         unit_price: cargoEnvio,
-        currency_id: "CLP",
       });
     }
 
