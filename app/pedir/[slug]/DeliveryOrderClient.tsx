@@ -78,7 +78,6 @@ interface Props {
 }
 
 const BASE_PAYMENT_OPTIONS: { id: string; label: string; method: MetodoPago; detail: string }[] = [
-  { id: "webpay", label: "Webpay", method: "TARJETA", detail: "Tarjeta y links de pago" },
   { id: "efectivo", label: "Efectivo", method: "EFECTIVO", detail: "Pago al recibir" },
   { id: "transferencia", label: "Transferencia", method: "TRANSFERENCIA", detail: "Envio de comprobante" },
   { id: "mercadopago", label: "Mercado Pago", method: "TARJETA", detail: "Wallet y tarjetas" },
