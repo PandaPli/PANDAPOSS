@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
-import { notFound } from "next/navigation";
 import Link from "next/link";
+
+// IMPORTANTE: NO usar notFound() aqui. MP valida back_urls haciendo un GET
+// bare (sin query params) a la URL — si recibe 404 marca "back_urls invalid.
+// Wrong format" y rechaza la preferencia. La pagina debe responder 200 siempre.
 
 interface Props {
   // MP appendea: collection_id, collection_status, payment_id, status,
@@ -15,6 +18,23 @@ interface Props {
   }>;
 }
 
+// Pantalla generica cuando se accede a la URL sin params (ej: MP validando
+// back_urls, o un bot). Devuelve 200 OK para no romper la validacion de MP.
+function PaginaVacia() {
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-950 flex items-center justify-center px-4 py-10">
+      <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-xl">
+        <div className="text-5xl">💳</div>
+        <h1 className="mt-4 text-3xl font-black text-white">Pago Mercado Pago</h1>
+        <p className="mt-2 text-sm text-white/70">
+          Esta pagina muestra el resultado de tu pago. Debes llegar aqui
+          despues de completar una transaccion en Mercado Pago.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export default async function PagoResultadoPage({ searchParams }: Props) {
   const params = await searchParams;
   // MP usa external_reference (seteado en create-preference). Fallback pedidoId.
@@ -22,7 +42,8 @@ export default async function PagoResultadoPage({ searchParams }: Props) {
   const status = params.status ?? params.collection_status ?? "unknown";
   const paymentId = params.payment_id;
 
-  if (!pedidoId || isNaN(pedidoId)) notFound();
+  // Sin pedidoId: renderizar pagina vacia con 200 OK (NO notFound, ver nota arriba)
+  if (!pedidoId || isNaN(pedidoId)) return <PaginaVacia />;
 
   // Si MP nos devuelve payment_id, actualizar el pedido
   if (paymentId) {
@@ -44,7 +65,7 @@ export default async function PagoResultadoPage({ searchParams }: Props) {
     },
   });
 
-  if (!pedido) notFound();
+  if (!pedido) return <PaginaVacia />;
 
   const finalStatus = pedido.mpStatus ?? status;
   const sucursalNombre = pedido.usuario?.sucursal?.nombre ?? "";
