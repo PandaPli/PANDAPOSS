@@ -40,22 +40,40 @@ export const PedidoRepo = {
         ...(estado
           ? { estado: estado as never }
           : { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } }),
-        // Excluir pedidos de kiosko con pago MP pendiente: el pedido se crea
-        // antes de redirigir a MP pero NO debe aparecer en KDS/Ventas hasta
-        // que el webhook confirme el cobro (mpStatus="approved"). Si el cobro
-        // se rechaza o cancela, el webhook lo marca CANCELADO.
-        NOT: { mpStatus: "pending_payment" },
-        ...(!isAdmin && sucursalId
-          ? {
-              OR: [
-                { caja: { sucursalId } },
-                { mesa: { sala: { sucursalId } } },
-                { usuario: { sucursalId } },
-                // Delivery público: el usuarioSistema puede ser de cualquier rol, buscar por delivery.repartidor.usuario.sucursalId también
-                { delivery: { cliente: { sucursalId } } },
-              ],
-            }
-          : {}),
+        // Usamos AND explicito para combinar dos OR independientes:
+        //  (1) filtro anti-pending_payment (con manejo de NULL explicito)
+        //  (2) filtro por sucursal (si no es admin)
+        // Si usaramos dos claves OR sueltas al mismo nivel del where, la
+        // segunda pisaria a la primera y perderiamos uno de los filtros.
+        AND: [
+          // (1) Excluir pedidos de kiosko con pago MP pendiente.
+          // IMPORTANTE: en SQL `mpStatus <> 'pending_payment'` NO matchea
+          // las filas con mpStatus=NULL (null <> x evalua a null, no true).
+          // Por eso hay que agregar `{ mpStatus: null }` explicito — sin esto
+          // los pedidos normales de caja (mpStatus=null) quedarian fuera del
+          // KDS y la cocina no veria NADA.
+          {
+            OR: [
+              { mpStatus: null },
+              { mpStatus: { not: "pending_payment" } },
+            ],
+          },
+          // (2) Filtro por sucursal para usuarios no-admin.
+          // Delivery publico: usuarioSistema puede tener cualquier rol, asi que
+          // tambien matcheamos via delivery.cliente.sucursalId.
+          ...(!isAdmin && sucursalId
+            ? [
+                {
+                  OR: [
+                    { caja: { sucursalId } },
+                    { mesa: { sala: { sucursalId } } },
+                    { usuario: { sucursalId } },
+                    { delivery: { cliente: { sucursalId } } },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
       include: {
         mesa: { select: { nombre: true } },
