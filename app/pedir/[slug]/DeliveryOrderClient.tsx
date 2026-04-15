@@ -305,6 +305,41 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
   const zonaSeleccionada = zonas.find((zona) => zona.id === zonaId) ?? zonas[0] ?? null;
   const paymentSeleccionado = paymentOptions.find((option) => option.id === paymentId) ?? paymentOptions[0];
   const categoriaVisible = categorias.find((categoria) => categoria.id === categoriaActiva) ?? categorias[0];
+  const esTransferencia = paymentSeleccionado.id === "transferencia";
+
+  // Panel con los datos bancarios que se muestra inline cuando eligen Transferencia,
+  // para que el cliente pueda copiar los datos antes de confirmar el pedido.
+  // Se renderiza en ambos layouts (desktop sidebar + mobile bottom sheet).
+  const transferenciaInfoPanel = (
+    <div className="rounded-[1.5rem] border border-amber-300 bg-amber-50 p-4 text-sm text-stone-800">
+      <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Datos de transferencia</p>
+      <dl className="mt-3 space-y-1.5">
+        <div className="flex justify-between gap-3">
+          <dt className="text-stone-500">Número de cuenta</dt>
+          <dd className="font-mono font-bold text-stone-900">1022193723</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-stone-500">Rut</dt>
+          <dd className="font-mono font-bold text-stone-900">767871538</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-stone-500">Banco</dt>
+          <dd className="font-bold text-stone-900">Mercado Pago</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-stone-500">Tipo de cuenta</dt>
+          <dd className="font-bold text-stone-900">Vista</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-stone-500">Titular</dt>
+          <dd className="font-bold text-stone-900">Panda Gastronomico</dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-xs text-stone-600">
+        Transferí y confirmá el pedido por WhatsApp enviando el comprobante.
+      </p>
+    </div>
+  );
 
   const subtotal = useMemo(
     () => cart.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
@@ -1121,6 +1156,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                       </button>
                     ))}
                   </div>
+                  {esTransferencia && <div className="mt-3">{transferenciaInfoPanel}</div>}
                 </div>
 
                 <div className="overflow-hidden rounded-[1.5rem] border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
@@ -1154,12 +1190,18 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                   disabled={submitting || cart.length === 0}
                   className={`hidden xl:inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black text-white transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                     cart.length > 0
-                      ? "bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg shadow-orange-200 hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-300 active:scale-95"
+                      ? esTransferencia
+                        ? "bg-[#25D366] shadow-lg shadow-emerald-200 hover:bg-[#1ebe5a] active:scale-95"
+                        : "bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg shadow-orange-200 hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-300 active:scale-95"
                       : "bg-stone-300"
                   }`}
                 >
                   {submitting ? <Loader2 size={18} className="animate-spin" /> : <span>🔥</span>}
-                  {submitting ? "Enviando pedido..." : `Confirmar · ${formatCurrency(total, sucursal.simbolo)}`}
+                  {submitting
+                    ? "Enviando pedido..."
+                    : esTransferencia
+                      ? `Confirmar por WhatsApp · ${formatCurrency(total, sucursal.simbolo)}`
+                      : `Confirmar · ${formatCurrency(total, sucursal.simbolo)}`}
                 </button>
               </div>
             </div>
@@ -1348,6 +1390,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                     <p className="text-xs text-stone-500">{option.detail}</p>
                   </button>
                 ))}
+                {esTransferencia && <div className="pt-2">{transferenciaInfoPanel}</div>}
               </div>
 
               {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
@@ -1355,10 +1398,18 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
               <button
                 onClick={async () => { await handleSubmit(); if (!error) setShowCheckoutSheet(false); }}
                 disabled={submitting || cart.length === 0}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-4 text-base font-black text-white shadow-lg shadow-orange-500/30 transition-all active:scale-95 disabled:opacity-50"
+                className={`flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-base font-black text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
+                  esTransferencia
+                    ? "bg-[#25D366] shadow-emerald-500/30 hover:bg-[#1ebe5a]"
+                    : "bg-gradient-to-r from-orange-500 to-amber-500 shadow-orange-500/30"
+                }`}
               >
                 {submitting ? <Loader2 size={20} className="animate-spin" /> : <span className="text-xl">🔥</span>}
-                {submitting ? "Enviando pedido..." : `Confirmar · ${formatCurrency(total, sucursal.simbolo)}`}
+                {submitting
+                  ? "Enviando pedido..."
+                  : esTransferencia
+                    ? `Confirmar por WhatsApp · ${formatCurrency(total, sucursal.simbolo)}`
+                    : `Confirmar · ${formatCurrency(total, sucursal.simbolo)}`}
               </button>
             </div>
           </div>
