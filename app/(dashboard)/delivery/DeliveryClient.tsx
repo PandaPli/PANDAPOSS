@@ -35,6 +35,9 @@ interface PedidoDelivery {
   creadoEn: string;
   repartidor: { nombre: string } | null;
   detalles: PedidoDetalle[];
+  // "Retiro en tienda" cuando el cliente eligió modoRetiro en /pedir;
+  // si no, contiene el nombre de la zona de delivery o null (retrocompat).
+  zonaDelivery: string | null;
 }
 
 interface Repartidor {
@@ -201,6 +204,12 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
   async function imprimirPrecuenta(pedido: PedidoDelivery) {
     const fmt = (n: number) => formatCurrency(Number(n) || 0, simbolo);
     const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    // Detectar modo retiro: el cliente desde /pedir setea zonaDelivery="Retiro en tienda".
+    // Retrocompat: si zonaDelivery es null y no hay direccionEntrega, asumimos retiro.
+    const esRetiro =
+      (pedido.zonaDelivery?.toLowerCase().includes("retiro") ?? false) ||
+      (!pedido.zonaDelivery && !pedido.direccionEntrega);
+    const badgeLabel = esRetiro ? "RETIRO EN TIENDA" : "DELIVERY";
     const itemsHtml = pedido.detalles.map((d) => {
       const precio = Number(d.precio) || 0;
       return `
@@ -254,14 +263,18 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         .qr-url { font-size: 9px; margin-top: 2px; word-break: break-all; }
         .cut-feed { height: 3mm; }
       </style></head><body>
-      <div class="center"><span class="badge">DELIVERY</span></div>
+      <div class="center"><span class="badge">${badgeLabel}</span></div>
       <hr class="divider"/>
       <div class="pedido-num">Pedido #${pedido.id}</div>
       <div class="big-name">${pedido.clienteNombre}</div>
       <hr class="divider-solid"/>
       <div class="meta"><span class="label">Hora:</span><span>${hora}</span></div>
       <div class="meta"><span class="label">Pago:</span><span>${pedido.metodoPago}</span></div>
-      ${pedido.direccionEntrega ? `<div class="meta"><span class="label">Dir:</span><span style="text-align:right;flex:1;padding-left:4px">${pedido.direccionEntrega}</span></div>` : ""}
+      ${esRetiro
+        ? `<div class="meta"><span class="label">Modo:</span><span>Retiro en tienda</span></div>`
+        : pedido.direccionEntrega
+          ? `<div class="meta"><span class="label">Dir:</span><span style="text-align:right;flex:1;padding-left:4px">${pedido.direccionEntrega}</span></div>`
+          : ""}
       <hr class="divider"/>
       ${itemsHtml}
       <hr class="divider-solid"/>
@@ -654,6 +667,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                 metodoPago: "EFECTIVO", cargoEnvio: 0, subtotal: 0, total: 0,
                 repartidorId: null, creadoEn: new Date().toISOString(), repartidor: null, detalles: [],
                 meseroLlamado: false, llamadoTipo: null,
+                zonaDelivery: null,
               };
               knownIdsRef.current.add(pedido.id);
               setPedidos((prev) => [nuevo, ...prev]);

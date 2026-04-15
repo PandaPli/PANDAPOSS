@@ -127,6 +127,9 @@ export default async function DeliveryPage() {
       include: {
         usuario: { select: { nombre: true, sucursalId: true } },
         repartidor: { select: { nombre: true } },
+        // zonaDelivery="Retiro en tienda" distingue retiro de delivery real;
+        // el ticket impreso lo necesita para mostrar el badge correcto.
+        delivery: { select: { zonaDelivery: true } },
         detalles: {
           include: {
             producto: { select: { nombre: true, precio: true } },
@@ -191,6 +194,7 @@ export default async function DeliveryPage() {
       repartidor: pedido.repartidor,
       meseroLlamado: pedido.meseroLlamado ?? false,
       llamadoTipo: pedido.llamadoTipo ?? null,
+      zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
       detalles: pedido.detalles.map((detalle) => ({
         id: detalle.id,
         cantidad: detalle.cantidad,

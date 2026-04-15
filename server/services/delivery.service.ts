@@ -324,6 +324,10 @@ export const DeliveryService = {
         include: {
           usuario: { select: { nombre: true, sucursalId: true } },
           repartidor: { select: { nombre: true } },
+          // zonaDelivery distingue delivery real de retiro en tienda
+          // (el cliente lo setea en "Retiro en tienda" cuando elige modoRetiro
+          // en /pedir). Sin este include, el ticket no puede saber el modo.
+          delivery: { select: { zonaDelivery: true } },
           detalles: {
             include: {
               producto: { select: { nombre: true, precio: true } },
@@ -380,6 +384,7 @@ export const DeliveryService = {
         repartidor: pedido.repartidor,
         creadoEn: pedido.creadoEn,
         estimadoMinutos,
+        zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
         detalles: pedido.detalles.map((detalle) => ({
           id: detalle.id,
           cantidad: detalle.cantidad,
