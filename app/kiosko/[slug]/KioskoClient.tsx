@@ -260,6 +260,9 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
       setPantalla("success");
     } catch (e) {
       setError((e as Error).message);
+      // Volver a la pantalla de metodo de pago para que el cliente vea el error
+      // (sino queda colgado en "confirming" sin feedback)
+      setPantalla("pago");
     } finally {
       setSubmitting(false);
     }
@@ -351,6 +354,25 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
         </div>
 
         {error && <p className="mt-4 text-red-400 text-sm">{error}</p>}
+      </div>
+    );
+  }
+
+  // ── CONFIRMING (procesando creacion de pedido / preferencia MP) ──────────
+  if (pantalla === "confirming") {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0d1117] text-white select-none px-8">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="mx-auto h-20 w-20 rounded-full border-4 border-amber-400 border-t-transparent animate-spin" />
+          <div>
+            <p className="text-amber-400 font-black text-2xl uppercase tracking-[0.2em]">Procesando</p>
+            <p className="text-white/50 text-sm mt-2">
+              {metodoPago === "mercadopago"
+                ? "Generando codigo de pago Mercado Pago..."
+                : "Confirmando tu pedido..."}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
