@@ -224,6 +224,10 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
           sucursalId: sucursal.id,
           tipoConsumo,
           nombreCliente: nombreCliente.trim() || null,
+          // metodoPago se pasa al API para que, si es "mercadopago", marque
+          // el pedido como pending_payment y NO aparezca en KDS hasta que
+          // el webhook de MP confirme el cobro.
+          metodoPago: metodo,
           items: cart.map(i => ({
             productoId: i.productoId,
             cantidad: i.cantidad,

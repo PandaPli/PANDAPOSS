@@ -59,29 +59,74 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Actualizar estado de pago en el pedido
+    // Leer estado actual del pedido para decidir como actualizarlo
+    const pedidoActual = await prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      select: {
+        estado: true,
+        mpStatus: true,
+        usuario: { select: { sucursalId: true } },
+      },
+    });
+
+    if (!pedidoActual) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Estados terminales de MP que indican que el cobro fracaso.
+    // Si el pedido estaba pending_payment y MP devuelve uno de estos, lo
+    // cancelamos automaticamente para que NO entre al KDS ni a Ventas.
+    const statusesFallidos = ["rejected", "cancelled", "refunded", "charged_back"];
+    const pagoFallido = statusesFallidos.includes(paymentData.status);
+    const pagoAprobado = paymentData.status === "approved";
+
+    // Si el pedido ya no esta en estado activo (p.ej. cancelado manualmente),
+    // solo actualizamos el mpStatus sin tocar estado.
+    const estadoActivo = ["PENDIENTE", "EN_PROCESO", "LISTO"].includes(pedidoActual.estado);
+
     await prisma.pedido.update({
       where: { id: pedidoId },
       data: {
         mpPaymentId: paymentId,
         mpStatus: paymentData.status,
+        // Si el cobro fracaso y el pedido aun esta activo, lo cancelamos.
+        // Esto lo saca del KDS (que filtra por estado IN [PENDIENTE,EN_PROCESO,LISTO])
+        // y evita que la cocina prepare algo que nadie pago.
+        ...(pagoFallido && estadoActivo ? { estado: "CANCELADO" as const } : {}),
       },
     });
 
+    // Evento de auditoria si cancelamos por pago fallido
+    if (pagoFallido && estadoActivo) {
+      await prisma.eventoPedido.create({
+        data: {
+          pedidoId,
+          usuarioId: null,
+          tipo: "ESTADO",
+          descripcion: `${pedidoActual.estado} → CANCELADO (pago MP ${paymentData.status})`,
+        },
+      }).catch(() => { /* no bloquear */ });
+    }
+
     // Si el pago fue aprobado, notificar por socket
-    if (paymentData.status === "approved") {
-      const pedido = await prisma.pedido.findUnique({
-        where: { id: pedidoId },
-        select: { usuario: { select: { sucursalId: true } } },
-      });
-      if (pedido?.usuario?.sucursalId) {
-        const globalForSocket = global as unknown as { io?: import("socket.io").Server };
-        try {
-          globalForSocket.io
-            ?.to(`sucursal_${pedido.usuario.sucursalId}_kds`)
-            .emit("pago:mp", { pedidoId, status: "approved" });
-        } catch { /* no bloquear */ }
-      }
+    if (pagoAprobado && pedidoActual.usuario?.sucursalId) {
+      const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+      try {
+        globalForSocket.io
+          ?.to(`sucursal_${pedidoActual.usuario.sucursalId}_kds`)
+          .emit("pago:mp", { pedidoId, status: "approved" });
+      } catch { /* no bloquear */ }
+    }
+
+    // Si el pago fallo, notificar por socket para que el kiosko actualice
+    // su pantalla (polling tambien lo detectaria, pero esto es instantaneo)
+    if (pagoFallido && pedidoActual.usuario?.sucursalId) {
+      const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+      try {
+        globalForSocket.io
+          ?.to(`sucursal_${pedidoActual.usuario.sucursalId}_kds`)
+          .emit("pago:mp", { pedidoId, status: paymentData.status });
+      } catch { /* no bloquear */ }
     }
 
     return NextResponse.json({ ok: true });

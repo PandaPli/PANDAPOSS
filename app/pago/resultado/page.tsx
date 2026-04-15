@@ -45,15 +45,45 @@ export default async function PagoResultadoPage({ searchParams }: Props) {
   // Sin pedidoId: renderizar pagina vacia con 200 OK (NO notFound, ver nota arriba)
   if (!pedidoId || isNaN(pedidoId)) return <PaginaVacia />;
 
-  // Si MP nos devuelve payment_id, actualizar el pedido
+  // Si MP nos devuelve payment_id, actualizar el pedido.
+  // IMPORTANTE: si el pago fue rechazado/cancelado, ademas de marcar el mpStatus
+  // cancelamos el pedido. Esto es un failsafe: el webhook tambien lo cancela,
+  // pero el webhook a veces tarda o no llega (si la notification_url esta bloqueada)
+  // y el back_urls es el canal mas confiable porque lo dispara el propio navegador.
   if (paymentId) {
+    const nuevoMpStatus =
+      status === "approved" ? "approved" :
+      status === "pending"  ? "pending"  :
+      "rejected";
+
+    // Leer estado actual para saber si podemos cancelar (solo si sigue activo)
+    const pedidoActual = await prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      select: { estado: true },
+    });
+    const estadoActivo =
+      !!pedidoActual && ["PENDIENTE", "EN_PROCESO", "LISTO"].includes(pedidoActual.estado);
+    const debeCancelar = nuevoMpStatus === "rejected" && estadoActivo;
+
     await prisma.pedido.update({
       where: { id: pedidoId },
       data: {
         mpPaymentId: paymentId,
-        mpStatus: status === "approved" ? "approved" : status === "pending" ? "pending" : "rejected",
+        mpStatus: nuevoMpStatus,
+        ...(debeCancelar ? { estado: "CANCELADO" as const } : {}),
       },
     }).catch(() => {});
+
+    if (debeCancelar) {
+      await prisma.eventoPedido.create({
+        data: {
+          pedidoId,
+          usuarioId: null,
+          tipo: "ESTADO",
+          descripcion: `${pedidoActual?.estado} → CANCELADO (pago MP rechazado)`,
+        },
+      }).catch(() => {});
+    }
   }
 
   const pedido = await prisma.pedido.findUnique({

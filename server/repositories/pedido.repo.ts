@@ -40,6 +40,11 @@ export const PedidoRepo = {
         ...(estado
           ? { estado: estado as never }
           : { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } }),
+        // Excluir pedidos de kiosko con pago MP pendiente: el pedido se crea
+        // antes de redirigir a MP pero NO debe aparecer en KDS/Ventas hasta
+        // que el webhook confirme el cobro (mpStatus="approved"). Si el cobro
+        // se rechaza o cancela, el webhook lo marca CANCELADO.
+        NOT: { mpStatus: "pending_payment" },
         ...(!isAdmin && sucursalId
           ? {
               OR: [

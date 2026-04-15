@@ -9,10 +9,16 @@ interface KioskoItem {
 }
 
 // POST /api/kiosko/order — público, sin sesión
-// Crea un pedido de tipo MOSTRADOR que aparece en KDS
+// Crea un pedido de tipo MOSTRADOR que aparece en KDS.
+//
+// Si metodoPago = "mercadopago", el pedido se crea con mpStatus="pending_payment"
+// y NO aparece en el KDS hasta que el webhook de MP lo marque como "approved".
+// Si el pago se rechaza/cancela, el webhook cancela el pedido automaticamente.
+// Esto evita que la cocina prepare pedidos sin pago confirmado.
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { sucursalId, items, nombreCliente, tipoConsumo } = body;
+  const { sucursalId, items, nombreCliente, tipoConsumo, metodoPago } = body;
+  const esPagoMP = metodoPago === "mercadopago";
 
   if (!sucursalId || !items?.length) {
     return NextResponse.json({ error: "sucursalId e items requeridos" }, { status: 400 });
@@ -61,6 +67,16 @@ export async function POST(req: NextRequest) {
       })),
       observacion: obs,
     });
+
+    // Si es pago por Mercado Pago, marcamos el pedido como "pending_payment".
+    // El repo de pedidos filtra estos pedidos del KDS hasta que el webhook
+    // de MP los marque como "approved". Si se rechazan, el webhook los cancela.
+    if (esPagoMP) {
+      await prisma.pedido.update({
+        where: { id: pedido.id },
+        data: { mpStatus: "pending_payment" },
+      });
+    }
 
     return NextResponse.json({ id: pedido.id, numero: pedido.numero }, { status: 201 });
   } catch (e) {
