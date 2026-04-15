@@ -53,7 +53,10 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|home|menu|pedir|vercarta|kiosko|track|visor|registro|eventos|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    // Excluye rutas publicas: login, home, menu, pedir, vercarta, kiosko, track,
+    // visor, registro, eventos, pago (back_urls de Mercado Pago — MP valida
+    // que la URL sea publica; si redirige a /login, MP marca back_urls invalid).
+    "/((?!login|home|menu|pedir|vercarta|kiosko|track|visor|registro|eventos|pago|api/|_next/static|_next/image|favicon\\.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };
 
