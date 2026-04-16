@@ -96,6 +96,13 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"],
   },
   {
+    id: "apps-delivery",
+    label: "Apps Delivery",
+    href: "/apps-delivery",
+    icon: <QrCode size={20} />,
+    roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"],
+  },
+  {
     id: "configuracion",
     label: "Configuración",
     href: "/configuracion",

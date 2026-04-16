@@ -119,8 +119,13 @@ export const DeliveryService = {
     }
 
     const subtotal = items.reduce((acc, item) => {
-      const precio = item.productoId
+      const basePrice = item.productoId
         ? Number(productosMap.get(Number(item.productoId))?.precio ?? 0)
+        : 0;
+      // Usar el precio enviado por el frontend si incluye opciones (>= precio base)
+      // Si no se envía precio, usar el de la BD
+      const precio = item.productoId
+        ? (item.precio != null && Number(item.precio) >= basePrice ? Number(item.precio) : basePrice)
         : Number(item.precio ?? 0);
       return acc + precio * Number(item.cantidad);
     }, 0);
@@ -156,7 +161,10 @@ export const DeliveryService = {
               productoId: item.productoId ? Number(item.productoId) : null,
               cantidad: Number(item.cantidad),
               precio: item.productoId
-                ? Number(productosMap.get(Number(item.productoId))?.precio ?? 0)
+                ? (() => {
+                    const base = Number(productosMap.get(Number(item.productoId))?.precio ?? 0);
+                    return item.precio != null && Number(item.precio) >= base ? Number(item.precio) : base;
+                  })()
                 : Number(item.precio ?? 0),
               observacion: !item.productoId && item.nombre
                 ? `[LIBRE] ${item.nombre.trim()}`
