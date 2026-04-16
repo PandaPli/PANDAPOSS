@@ -139,6 +139,10 @@ export interface PedidoConDetalles {
   telefonoCliente: string | null;
   repartidorId: number | null;
   creadoEn: string;
+  // Estado del pago de Mercado Pago (null si no fue por MP).
+  // Valores comunes: "approved" | "pending" | "rejected" | "pending_payment"
+  mpStatus?: string | null;
+  mpPaymentId?: string | null;
   mesa?: { nombre: string } | null;
   usuario: { nombre: string };
   repartidor?: { nombre: string } | null;

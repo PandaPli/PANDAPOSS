@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store, CreditCard, Banknote, ArrowLeftRight } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
 import type { Rol } from "@/types";
@@ -59,6 +59,68 @@ function detectarOrigen(pedido: PedidoConDetalles): "chatbot" | "mesa" | "pos" {
   if (pedido.observacion?.includes("[WSP]")) return "chatbot";
   if (pedido.mesa) return "mesa";
   return "pos";
+}
+
+// ── Estado de pago del pedido (para KDS) ───────────────────────────────────
+// Le muestra al cajero/admin si el pedido ya viene pagado por tarjeta (MP),
+// o si es efectivo / tarjeta al recibir / transferencia — antes de aceptar.
+// Retorna null si no hay info de pago todavia (pedido de mesa que se cobra al final).
+type EstadoPago = "PAGADO_TARJETA" | "TARJETA_EN_CASA" | "EFECTIVO" | "TRANSFERENCIA";
+
+function detectarEstadoPago(pedido: PedidoConDetalles): EstadoPago | null {
+  // 1. Mercado Pago aprobado: cualquier tipo (kiosko, /pedir, etc.)
+  if (pedido.mpStatus === "approved") return "PAGADO_TARJETA";
+
+  // 2. Pedido de /pedir: el metodo viene serializado en la observacion como
+  //    "[DELIVERY]{...json...}" con campo metodoPago.
+  if (pedido.tipo === "DELIVERY" && pedido.observacion?.startsWith("[DELIVERY]")) {
+    try {
+      const meta = JSON.parse(pedido.observacion.replace("[DELIVERY]", ""));
+      const mp = meta.metodoPago as string | undefined;
+      if (mp === "TARJETA")       return "TARJETA_EN_CASA";
+      if (mp === "EFECTIVO")      return "EFECTIVO";
+      if (mp === "TRANSFERENCIA") return "TRANSFERENCIA";
+    } catch { /* obs mal formada, ignorar */ }
+  }
+
+  return null;
+}
+
+function getEstadoPagoStyles(estado: EstadoPago, nightMode: boolean) {
+  switch (estado) {
+    case "PAGADO_TARJETA":
+      return {
+        label: "PAGADO POR TARJETA",
+        icon: <CreditCard size={11} />,
+        cls: nightMode
+          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+          : "bg-emerald-100 text-emerald-700 border border-emerald-300",
+      };
+    case "TARJETA_EN_CASA":
+      return {
+        label: "TARJETA EN CASA",
+        icon: <CreditCard size={11} />,
+        cls: nightMode
+          ? "bg-orange-500/20 text-orange-300 border border-orange-500/40"
+          : "bg-orange-100 text-orange-700 border border-orange-300",
+      };
+    case "EFECTIVO":
+      return {
+        label: "PAGO EFECTIVO",
+        icon: <Banknote size={11} />,
+        cls: nightMode
+          ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40"
+          : "bg-yellow-100 text-yellow-800 border border-yellow-300",
+      };
+    case "TRANSFERENCIA":
+      return {
+        label: "TRANSFERENCIA",
+        icon: <ArrowLeftRight size={11} />,
+        cls: nightMode
+          ? "bg-violet-500/20 text-violet-300 border border-violet-500/40"
+          : "bg-violet-100 text-violet-700 border border-violet-300",
+      };
+  }
 }
 
 interface OrderCardProps {
@@ -241,6 +303,8 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
   const origen = detectarOrigen(pedido);
   const modalidad = detectarModalidad(pedido);
   const modStyles = getModalidadStyles(modalidad, nightMode);
+  const estadoPago = detectarEstadoPago(pedido);
+  const pagoStyles = estadoPago ? getEstadoPagoStyles(estadoPago, nightMode) : null;
 
   // Urgencia: PENDIENTE > 2 min
   const minPendiente = pedido.estado === "PENDIENTE"
@@ -324,6 +388,12 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
               {modStyles.icon}
               {modStyles.label}
             </div>
+            {pagoStyles && (
+              <div className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider", pagoStyles.cls)}>
+                {pagoStyles.icon}
+                {pagoStyles.label}
+              </div>
+            )}
           </div>
           <div className={cn("flex items-center gap-1 text-[11px] shrink-0", nightMode ? "text-gray-400" : "text-surface-muted")}>
             <Clock size={11} />
