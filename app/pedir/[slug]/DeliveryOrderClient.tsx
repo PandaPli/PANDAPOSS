@@ -336,7 +336,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
         </div>
       </dl>
       <p className="mt-3 text-xs text-stone-600">
-        Transferí y confirmá el pedido por WhatsApp enviando el comprobante.
+        Transfiere y confirma el pedido por WhatsApp enviando el comprobante.
       </p>
     </div>
   );
@@ -1271,9 +1271,12 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <div className="flex items-center gap-1 rounded-full bg-stone-100 px-2 py-1">
-                        <button onClick={() => { const items = cart.filter(i => i.id === item.id); if (items.length > 0) removeItem(items[items.length - 1].cartKey); }} className="flex h-5 w-5 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-200"><Minus size={11} /></button>
+                        <button onClick={() => removeItem(item.cartKey)} className="flex h-5 w-5 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-200"><Minus size={11} /></button>
                         <span className="min-w-[16px] text-center text-xs font-black">{item.cantidad}</span>
-                        <button onClick={() => addItem({ id: item.id, nombre: item.nombre, precio: item.precio, imagen: item.imagen, descripcion: null, variantes: item.variantes })} className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white transition"><Plus size={11} /></button>
+                        <button onClick={() => {
+                            const precioBase = item.precio - (item.opciones?.reduce((s, o) => s + o.precio, 0) ?? 0);
+                            addItem({ id: item.id, nombre: item.nombre, precio: precioBase, imagen: item.imagen, descripcion: null, variantes: item.variantes }, item.opciones);
+                          }} className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white transition"><Plus size={11} /></button>
                       </div>
                       <span className="text-sm font-black text-orange-600">{formatCurrency(item.precio * item.cantidad, sucursal.simbolo)}</span>
                     </div>

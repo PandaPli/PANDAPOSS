@@ -126,7 +126,7 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
     <div class="qr-wrap">
       <img src="${qrDataUrl}" alt="QR Reorden" />
     </div>
-    <p class="reorder-label">Pedí de nuevo</p>
+    <p class="reorder-label">Vuelve a pedir</p>
     <p class="qr-url">${menuUrl}</p>
   </div>
 
