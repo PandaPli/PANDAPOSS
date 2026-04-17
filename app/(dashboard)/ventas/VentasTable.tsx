@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, X, Package, Loader2, Receipt, Printer } from "lucide-react";
+import { Eye, X, Package, Loader2, Receipt, Printer, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { THERMAL_CSS } from "@/lib/print";
 
@@ -14,6 +14,7 @@ interface VentaRow {
   estado: string;
   metodoPago: string;
   total: number;
+  boletaEmitida: boolean;
   cliente: { nombre: string } | null;
   usuario: { nombre: string };
   _count: { detalles: number };
@@ -44,6 +45,7 @@ interface VentaDetalle {
   descuento: number;
   impuesto: number;
   total: number;
+  boletaEmitida: boolean;
   observacion: string | null;
   cliente:  { nombre: string; telefono?: string | null } | null;
   usuario:  { nombre: string };
@@ -58,7 +60,10 @@ interface Props {
   simbolo: string;
 }
 
-// ─── Static maps ─────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Métodos que requieren emisión manual de boleta
+const METODOS_MANUALES = new Set(["EFECTIVO", "TRANSFERENCIA", "CREDITO", "MIXTO"]);
 
 const estadoBadge: Record<string, string> = {
   PAGADA:   "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -72,13 +77,7 @@ const metodoPagoLabel: Record<string, string> = {
   EFECTIVO: "Efectivo", TARJETA: "Tarjeta",
   TRANSFERENCIA: "Transferencia", CREDITO: "Crédito", MIXTO: "Mixto",
 };
-
-// ─── Modal ────────────────────────────────────────────────────────────────────
-
-const metodoPagoImpresion: Record<string, string> = {
-  EFECTIVO: "Efectivo", TARJETA: "Tarjeta",
-  TRANSFERENCIA: "Transferencia", CREDITO: "Crédito", MIXTO: "Mixto",
-};
+const metodoPagoImpresion: Record<string, string> = { ...metodoPagoLabel };
 
 function reimprimir(venta: VentaDetalle, simbolo: string) {
   const sim = venta.caja?.sucursal?.simbolo ?? simbolo;
@@ -144,7 +143,109 @@ function reimprimir(venta: VentaDetalle, simbolo: string) {
   win.close();
 }
 
-function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo: string; onClose: () => void }) {
+// ─── Boleta badge (tabla) ─────────────────────────────────────────────────────
+
+function BoletaBadge({
+  metodoPago,
+  boletaEmitida,
+  ventaId,
+  onChange,
+}: {
+  metodoPago: string;
+  boletaEmitida: boolean;
+  ventaId: number;
+  onChange: (id: number, val: boolean) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  // TARJETA → auto, no se puede tocar
+  if (!METODOS_MANUALES.has(metodoPago)) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-600">
+        <CheckCircle2 size={11} />
+        Auto
+      </span>
+    );
+  }
+
+  async function toggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/ventas/${ventaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accion: "TOGGLE_BOLETA" }),
+      });
+      const data = await res.json();
+      if (res.ok) onChange(ventaId, data.boletaEmitida);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (boletaEmitida) {
+    return (
+      <button
+        onClick={toggle}
+        disabled={loading}
+        title="Boleta emitida — clic para desmarcar"
+        className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+      >
+        {loading ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+        Emitida
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={loading}
+      title="Boleta pendiente — clic para marcar como emitida"
+      className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+    >
+      {loading ? <Loader2 size={11} className="animate-spin" /> : <Clock size={11} />}
+      Pendiente
+    </button>
+  );
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+
+function VentaModal({
+  venta: initial,
+  simbolo,
+  onClose,
+  onBoletaChange,
+}: {
+  venta: VentaDetalle;
+  simbolo: string;
+  onClose: () => void;
+  onBoletaChange: (id: number, val: boolean) => void;
+}) {
+  const [venta, setVenta] = useState(initial);
+  const [toggling, setToggling] = useState(false);
+  const esManual = METODOS_MANUALES.has(venta.metodoPago);
+
+  async function toggleBoleta() {
+    setToggling(true);
+    try {
+      const res = await fetch(`/api/ventas/${venta.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accion: "TOGGLE_BOLETA" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVenta((v) => ({ ...v, boletaEmitida: data.boletaEmitida }));
+        onBoletaChange(venta.id, data.boletaEmitida);
+      }
+    } finally {
+      setToggling(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 backdrop-blur-sm sm:items-center">
       <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl">
@@ -198,6 +299,47 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
               </div>
             ))}
           </div>
+
+          {/* Boleta emitida — solo métodos manuales */}
+          {esManual && (
+            <div className={`mx-4 mt-4 flex items-center justify-between rounded-xl border px-4 py-3 ${
+              venta.boletaEmitida
+                ? "border-emerald-200 bg-emerald-50"
+                : "border-amber-300 bg-amber-50"
+            }`}>
+              <div className="flex items-center gap-2">
+                {venta.boletaEmitida
+                  ? <CheckCircle2 size={16} className="text-emerald-600" />
+                  : <AlertCircle size={16} className="text-amber-600" />
+                }
+                <div>
+                  <p className={`text-sm font-semibold ${venta.boletaEmitida ? "text-emerald-700" : "text-amber-700"}`}>
+                    {venta.boletaEmitida ? "Boleta emitida" : "Boleta pendiente"}
+                  </p>
+                  <p className="text-xs text-surface-muted">
+                    {venta.boletaEmitida
+                      ? "Esta venta ya tiene boleta en tu sistema externo."
+                      : "Recuerda emitir la boleta en tu sistema externo."}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={toggleBoleta}
+                disabled={toggling}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  venta.boletaEmitida
+                    ? "bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                } disabled:opacity-50`}
+              >
+                {toggling
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : venta.boletaEmitida ? <X size={12} /> : <CheckCircle2 size={12} />
+                }
+                {venta.boletaEmitida ? "Desmarcar" : "Marcar como emitida"}
+              </button>
+            </div>
+          )}
 
           {/* Items */}
           <div className="px-4 py-3">
@@ -273,9 +415,21 @@ function VentaModal({ venta, simbolo, onClose }: { venta: VentaDetalle; simbolo:
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function VentasTable({ ventas, simbolo }: Props) {
+export function VentasTable({ ventas: initialVentas, simbolo }: Props) {
+  const [ventas, setVentas] = useState(initialVentas);
   const [detalle, setDetalle]   = useState<VentaDetalle | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
+
+  // Actualizar boletaEmitida en la lista sin recargar página
+  function handleBoletaChange(id: number, val: boolean) {
+    setVentas((prev) => prev.map((v) => v.id === id ? { ...v, boletaEmitida: val } : v));
+    if (detalle?.id === id) setDetalle((d) => d ? { ...d, boletaEmitida: val } : d);
+  }
+
+  // Pendientes de boleta hoy (métodos manuales, no emitidas, no anuladas)
+  const pendientes = ventas.filter(
+    (v) => METODOS_MANUALES.has(v.metodoPago) && !v.boletaEmitida && v.estado !== "ANULADA"
+  );
 
   async function verDetalle(id: number) {
     setLoadingId(id);
@@ -290,6 +444,17 @@ export function VentasTable({ ventas, simbolo }: Props) {
 
   return (
     <>
+      {/* Alerta boletas pendientes */}
+      {pendientes.length > 0 && (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <AlertCircle size={18} className="shrink-0 text-amber-600" />
+          <p className="text-sm text-amber-800">
+            <span className="font-bold">{pendientes.length} venta{pendientes.length > 1 ? "s" : ""} sin boleta emitida</span>
+            {" "}— revisa los pagos en Efectivo o Transferencia y marca cada boleta en tu sistema externo.
+          </p>
+        </div>
+      )}
+
       <div className="card overflow-hidden">
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-sm font-semibold text-surface-text">Últimas 50 ventas</h3>
@@ -305,6 +470,7 @@ export function VentasTable({ ventas, simbolo }: Props) {
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Método</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Items</th>
                 <th className="text-right px-4 py-3 font-medium text-surface-muted">Total</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-muted">Boleta</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-muted">Estado</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -312,7 +478,7 @@ export function VentasTable({ ventas, simbolo }: Props) {
             <tbody className="divide-y divide-surface-border">
               {ventas.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-surface-muted">
+                  <td colSpan={10} className="px-4 py-12 text-center text-surface-muted">
                     Sin ventas registradas
                   </td>
                 </tr>
@@ -327,6 +493,14 @@ export function VentasTable({ ventas, simbolo }: Props) {
                     <td className="px-4 py-3 text-surface-muted">{v._count.detalles}</td>
                     <td className="px-4 py-3 text-right font-bold text-brand-500">
                       {formatCurrency(Number(v.total), simbolo)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <BoletaBadge
+                        metodoPago={v.metodoPago}
+                        boletaEmitida={v.boletaEmitida}
+                        ventaId={v.id}
+                        onChange={handleBoletaChange}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${estadoBadge[v.estado] ?? ""}`}>
@@ -359,6 +533,7 @@ export function VentasTable({ ventas, simbolo }: Props) {
           venta={detalle}
           simbolo={simbolo}
           onClose={() => setDetalle(null)}
+          onBoletaChange={handleBoletaChange}
         />
       )}
     </>

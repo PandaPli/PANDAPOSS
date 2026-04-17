@@ -31,7 +31,9 @@ export async function GET(
         },
         orderBy: { id: "asc" },
       },
-      caja: { select: { nombre: true, sucursal: { select: { nombre: true } } } },
+      pagos: { select: { metodoPago: true, monto: true } },
+      caja: { select: { nombre: true, sucursal: { select: { nombre: true, simbolo: true, logoUrl: true } } } },
+      pedido: { select: { mesa: { select: { nombre: true } } } },
     },
   });
 
@@ -71,6 +73,26 @@ export async function PATCH(
   if (!ventaId) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
   const body = await req.json();
+
+  // ── Toggle boleta emitida ────────────────────────────────────────────────
+  if (body.accion === "TOGGLE_BOLETA") {
+    // Cualquier rol operativo puede marcar/desmarcar boleta
+    if (!["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"].includes(rol)) {
+      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+    }
+    const venta = await prisma.venta.findUnique({
+      where: { id: ventaId },
+      select: { boletaEmitida: true },
+    });
+    if (!venta) return NextResponse.json({ error: "Venta no encontrada" }, { status: 404 });
+    const updated = await prisma.venta.update({
+      where: { id: ventaId },
+      data: { boletaEmitida: !venta.boletaEmitida },
+      select: { boletaEmitida: true },
+    });
+    return NextResponse.json({ ok: true, boletaEmitida: updated.boletaEmitida });
+  }
+
   if (body.accion !== "ANULAR") {
     return NextResponse.json({ error: "Acción no reconocida" }, { status: 400 });
   }

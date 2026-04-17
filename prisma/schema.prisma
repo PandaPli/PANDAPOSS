@@ -427,6 +427,7 @@ model Venta {
   total             Decimal              @db.Decimal(10, 2)
   metodoPago        MetodoPago           @default(EFECTIVO)
   estado            EstadoVenta          @default(PAGADA)
+  boletaEmitida     Boolean              @default(false)
   observacion       String?              @db.Text
   cuponId           Int?
   cuponCodigo       String?              @db.VarChar(50)

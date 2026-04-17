@@ -238,6 +238,10 @@ export const VentaService = {
             }
           }
 
+          // Boleta emitida automáticamente para pagos digitales
+          const boletaEmitida = metodoPago === "TARJETA"
+            || (pagos?.some((p) => p.metodoPago === "TARJETA") ?? false);
+
           const v = await tx.venta.create({
             data: {
               numero,
@@ -252,6 +256,7 @@ export const VentaService = {
               total: serverTotal,          // V3: usar valores del servidor
               metodoPago,
               estado: "PAGADA",
+              boletaEmitida,
               cuponId: cuponId ?? null,
               cuponCodigo: cuponCodigo ?? null,
               puntosCanjeados: puntosCanjeados,
