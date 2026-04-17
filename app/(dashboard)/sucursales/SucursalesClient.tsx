@@ -16,6 +16,7 @@ interface Sucursal {
   email: string | null;
   simbolo: string;
   activa: boolean;
+  notifAviso: boolean;
   plan: "BASICO" | "PRO" | "PRIME" | "DEMO";
   sector: SectorTipo;
   logoUrl: string | null;
@@ -142,6 +143,18 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
     }
   }
 
+  async function toggleNotif(s: Sucursal) {
+    const nuevoValor = !s.notifAviso;
+    const res = await fetch(`/api/sucursales/${s.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notifAviso: nuevoValor }),
+    });
+    if (res.ok) {
+      setSucursales((prev) => prev.map((x) => (x.id === s.id ? { ...x, notifAviso: nuevoValor } : x)));
+    }
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -206,6 +219,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   s={s}
                   onEdit={openEdit}
                   onToggleActiva={toggleActiva}
+                  onToggleNotif={toggleNotif}
                 />
               ))}
             </div>

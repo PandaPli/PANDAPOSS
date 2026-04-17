@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -69,6 +69,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (email !== undefined) data.email = (email as string)?.trim() || null;
     if (simbolo !== undefined) data.simbolo = (simbolo as string)?.trim() || "$";
     if (activa !== undefined) data.activa = activa;
+    if (notifAviso !== undefined) data.notifAviso = Boolean(notifAviso);
     if (logoUrl !== undefined) data.logoUrl = (logoUrl as string) || null;
     if (plan !== undefined) {
       if (!PLANES_VALIDOS.includes(plan as string)) {

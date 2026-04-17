@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw } from "lucide-react";
+import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw, Bell, BellOff } from "lucide-react";
 import { useState } from "react";
 import type { PlanTipo } from "@/core/billing/planConfig";
 
@@ -10,11 +10,12 @@ interface Props {
   s: any; // Sucursal Type
   onEdit: (s: any) => void;
   onToggleActiva: (s: any) => void;
+  onToggleNotif: (s: any) => void;
 }
 
 const DEMO_SUCURSAL_ID = 5;
 
-export function SortableSucursalCard({ s, onEdit, onToggleActiva }: Props) {
+export function SortableSucursalCard({ s, onEdit, onToggleActiva, onToggleNotif }: Props) {
   const [resetting, setResetting] = useState(false);
 
   async function handleResetDemo() {
@@ -132,10 +133,23 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva }: Props) {
         </span>
       </div>
 
-      {/* Toggle activa */}
+      {/* Botón Enviar Push (aviso cuotas) */}
+      <button
+        onClick={() => onToggleNotif(s)}
+        className={`mt-3 w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg border transition-colors font-medium ${
+          s.notifAviso
+            ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100"
+            : "border-blue-200 text-blue-600 hover:bg-blue-50"
+        }`}
+      >
+        {s.notifAviso ? <BellOff size={12} /> : <Bell size={12} />}
+        {s.notifAviso ? "Quitar aviso Push" : "Enviar aviso Push (cuotas)"}
+      </button>
+
+      {/* Toggle activa — bloqueo total */}
       <button
         onClick={() => onToggleActiva(s)}
-        className={`mt-3 w-full text-xs py-1.5 rounded-lg border transition-colors font-medium ${
+        className={`mt-2 w-full text-xs py-1.5 rounded-lg border transition-colors font-medium ${
           s.activa
             ? "border-red-200 text-red-500 hover:bg-red-50"
             : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
