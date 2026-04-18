@@ -9,17 +9,25 @@ interface Status {
   nombre?: string;
 }
 
-const DISMISS_KEY = "pp_notif_dismissed_v1";
+const DISMISS_KEY = "pp_notif_dismissed_at";
+const REAPPEAR_MS = 60 * 60 * 1000; // 60 minutos
+const ADMIN_WA    = "56999011141";
 
 export function SucursalNotifOverlay() {
   const [status, setStatus] = useState<Status | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // ¿Ya fue cerrado en esta sesión?
-    if (typeof sessionStorage !== "undefined") {
-      const val = sessionStorage.getItem(DISMISS_KEY);
-      if (val === "1") { setDismissed(true); return; }
+    // Verificar si fue cerrado hace menos de 60 min
+    if (typeof localStorage !== "undefined") {
+      const ts = localStorage.getItem(DISMISS_KEY);
+      if (ts && Date.now() - Number(ts) < REAPPEAR_MS) {
+        setDismissed(true);
+        // Programar reapertura automática cuando pasen los 60 min
+        const remaining = REAPPEAR_MS - (Date.now() - Number(ts));
+        const timer = setTimeout(() => setDismissed(false), remaining);
+        return () => clearTimeout(timer);
+      }
     }
 
     fetch("/api/sucursal/status")
@@ -28,9 +36,21 @@ export function SucursalNotifOverlay() {
       .catch(() => {});
   }, []);
 
+  // Cuando se levanta el dismiss, volver a buscar el status
+  useEffect(() => {
+    if (!dismissed && status === null) {
+      fetch("/api/sucursal/status")
+        .then((r) => r.json())
+        .then((data: Status) => setStatus(data))
+        .catch(() => {});
+    }
+  }, [dismissed, status]);
+
   function dismiss() {
-    sessionStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
     setDismissed(true);
+    // Reaparecerá automáticamente a los 60 min
+    setTimeout(() => setDismissed(false), REAPPEAR_MS);
   }
 
   // Nada que mostrar
@@ -70,7 +90,7 @@ export function SucursalNotifOverlay() {
 
           {/* Contacto */}
           <a
-            href="https://wa.me/56931412102"
+            href="https://wa.me/56999011141"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-[#1ebe5d] transition-colors"
@@ -132,7 +152,7 @@ export function SucursalNotifOverlay() {
             {/* Acciones */}
             <div className="mt-5 flex gap-3">
               <a
-                href="https://wa.me/56931412102"
+                href="https://wa.me/56999011141"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#1ebe5d] transition-colors"
