@@ -257,10 +257,10 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         .item-price { font-size: 12px; text-align: right; white-space: nowrap; }
         .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 6px; }
         .label { font-size: 11px; color: #555; }
-        .qr-block { text-align: center; margin-top: 6px; }
-        .qr-title { font-size: 10px; font-weight: 900; letter-spacing: 1px; margin-bottom: 3px; }
-        .qr-img { width: 45mm; height: 45mm; display: block; margin: 0 auto; }
-        .qr-url { font-size: 9px; margin-top: 2px; word-break: break-all; }
+        .qr-block { text-align: center; margin-top: 8px; padding: 6px 0; }
+        .qr-title { font-size: 15px; font-weight: 900; letter-spacing: 2px; color: #000; margin-bottom: 6px; text-transform: uppercase; }
+        .qr-img { width: 58mm; height: 58mm; display: block; margin: 0 auto; }
+        .qr-url { font-size: 10px; margin-top: 4px; word-break: break-all; color: #000; font-weight: 700; }
         .cut-feed { height: 3mm; }
       </style></head><body>
       <div class="center"><span class="badge">${badgeLabel}</span></div>
