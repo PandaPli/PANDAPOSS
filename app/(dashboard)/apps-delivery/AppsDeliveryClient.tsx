@@ -25,7 +25,8 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
     try {
       const qrDataUrl = await QRCode.toDataURL(menuUrl, {
         margin: 1,
-        width: 200,
+        width: 280,
+        errorCorrectionLevel: "M",
         color: { dark: "#000000", light: "#ffffff" },
       });
 
@@ -42,31 +43,32 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
   <title>Ticket Apps Delivery</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { margin: 0; size: 80mm auto; }
+    html, body { height: fit-content; min-height: 0; }
     body {
       font-family: 'Courier New', Courier, monospace;
-      width: 80mm;
-      padding: 6mm 4mm 10mm;
+      width: 72mm;
+      padding: 4mm 4mm 2mm 4mm;
       background: #fff;
       color: #000;
     }
     .center { text-align: center; }
-    .divider {
-      border: none;
-      border-top: 1px dashed #000;
-      margin: 5mm 0;
-    }
+    .divider { border: none; border-top: 1px dashed #000; margin: 4mm 0; }
+    .divider-solid { border: none; border-top: 2px solid #000; margin: 4mm 0; }
     .sucursal {
-      font-size: 11px;
-      letter-spacing: 0.08em;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 1px;
       text-transform: uppercase;
-      color: #555;
-      margin-bottom: 1mm;
+      color: #000;
+      margin-bottom: 2mm;
+      word-break: break-word;
     }
     .label {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #888;
+      color: #555;
       margin-bottom: 2mm;
     }
     .cliente-nombre {
@@ -82,30 +84,25 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
       letter-spacing: 0.02em;
       margin: 2mm 0 1mm;
     }
-    .qr-wrap {
-      margin: 3mm 0 1mm;
-    }
-    .qr-wrap img {
-      width: 48mm;
-      height: 48mm;
-    }
+    .qr-wrap { margin: 3mm 0 1mm; }
+    .qr-wrap img { width: 66mm; height: 66mm; }
     .qr-url {
-      font-size: 9px;
-      color: #666;
+      font-size: 10px;
+      color: #000;
+      font-weight: 700;
       word-break: break-all;
-      margin-top: 1mm;
+      margin-top: 2mm;
     }
     .reorder-label {
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-top: 1mm;
+      letter-spacing: 2px;
+      color: #000;
+      margin-top: 3mm;
+      margin-bottom: 2mm;
     }
-    @media print {
-      html, body { width: 80mm; }
-      @page { margin: 0; size: 80mm auto; }
-    }
+    .cut-feed { height: 3mm; }
   </style>
 </head>
 <body>
@@ -121,21 +118,26 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
     <p class="label">Total</p>
     <p class="monto">${montoFormateado}</p>
 
-    <hr class="divider" />
+    <hr class="divider-solid" />
 
+    <p class="reorder-label">ESCANEA Y VUELVE A PEDIR</p>
     <div class="qr-wrap">
       <img src="${qrDataUrl}" alt="QR Reorden" />
     </div>
-    <p class="reorder-label">Vuelve a pedir</p>
-    <p class="qr-url">${menuUrl}</p>
+    <p class="qr-url">${menuUrl.replace("https://", "")}</p>
   </div>
+  <div class="cut-feed"></div>
 
   <script>
-    window.onload = function() {
-      window.print();
-      setTimeout(function() { window.close(); }, 800);
-    };
-  </script>
+    var imgs = document.images;
+    var loaded = 0;
+    function tryPrint() { loaded++; if (loaded >= imgs.length) { window.print(); window.close(); } }
+    if (imgs.length === 0) { window.print(); window.close(); }
+    else { for (var i = 0; i < imgs.length; i++) {
+      if (imgs[i].complete) tryPrint();
+      else { imgs[i].onload = tryPrint; imgs[i].onerror = tryPrint; }
+    }}
+  <\/script>
 </body>
 </html>`;
 
