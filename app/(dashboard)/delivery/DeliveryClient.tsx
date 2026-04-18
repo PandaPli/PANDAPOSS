@@ -226,12 +226,13 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     const menuUrl = `https://pandaposs.com/pedir/${createSlug(sucursalNombre)}`;
     let qrDataUrl = "";
     try {
-      qrDataUrl = await QRCode.toDataURL(menuUrl, { margin: 1, width: 180, errorCorrectionLevel: "M" });
+      qrDataUrl = await QRCode.toDataURL(menuUrl, { margin: 1, width: 280, errorCorrectionLevel: "M" });
     } catch { /* si falla el QR, seguimos sin él */ }
 
     const qrHtml = qrDataUrl ? `
-      <hr class="divider"/>
+      <hr class="divider-solid"/>
       <div class="qr-block">
+        <div class="rest-nombre">${sucursalNombre}</div>
         <div class="qr-title">ESCANEA Y VUELVE A PEDIR</div>
         <img src="${qrDataUrl}" alt="QR Menú" class="qr-img"/>
         <div class="qr-url">${menuUrl.replace("https://", "")}</div>
@@ -257,9 +258,10 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         .item-price { font-size: 12px; text-align: right; white-space: nowrap; }
         .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 6px; }
         .label { font-size: 11px; color: #555; }
-        .qr-block { text-align: center; margin-top: 8px; padding: 6px 0; }
-        .qr-title { font-size: 15px; font-weight: 900; letter-spacing: 2px; color: #000; margin-bottom: 6px; text-transform: uppercase; }
-        .qr-img { width: 58mm; height: 58mm; display: block; margin: 0 auto; }
+        .qr-block { text-align: center; margin-top: 6px; padding: 4px 0; }
+        .rest-nombre { font-size: 20px; font-weight: 900; color: #000; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; word-break: break-word; }
+        .qr-title { font-size: 13px; font-weight: 900; letter-spacing: 2px; color: #000; margin-bottom: 6px; text-transform: uppercase; }
+        .qr-img { width: 66mm; height: 66mm; display: block; margin: 0 auto; }
         .qr-url { font-size: 10px; margin-top: 4px; word-break: break-all; color: #000; font-weight: 700; }
         .cut-feed { height: 3mm; }
       </style></head><body>
