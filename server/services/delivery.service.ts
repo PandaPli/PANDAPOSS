@@ -337,7 +337,11 @@ export const DeliveryService = {
           // en /pedir). Sin este include, el ticket no puede saber el modo.
           delivery: { select: { zonaDelivery: true } },
           detalles: {
-            include: {
+            select: {
+              id: true,
+              cantidad: true,
+              observacion: true,
+              precio: true,
               producto: { select: { nombre: true, precio: true } },
               combo: { select: { nombre: true, precio: true } },
             },
@@ -368,7 +372,8 @@ export const DeliveryService = {
       const meta = parseDeliveryObservation(pedido.observacion);
       const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId));
       const subtotal = pedido.detalles.reduce((acc, detalle) => {
-        const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0);
+        // productos libres guardan el precio directamente en detalle.precio
+        const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0);
         return acc + precio * detalle.cantidad;
       }, 0);
 
@@ -396,8 +401,10 @@ export const DeliveryService = {
         detalles: pedido.detalles.map((detalle) => ({
           id: detalle.id,
           cantidad: detalle.cantidad,
-          nombre: detalle.producto?.nombre ?? detalle.combo?.nombre ?? "Item",
-          precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0),
+          nombre: detalle.producto?.nombre ?? detalle.combo?.nombre
+            ?? (detalle.observacion?.startsWith("[LIBRE]") ? detalle.observacion.replace("[LIBRE] ", "") : null)
+            ?? "Item",
+          precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0),
         })),
       };
     });
