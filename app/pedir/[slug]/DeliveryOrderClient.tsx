@@ -75,6 +75,7 @@ interface Props {
   flayerUrl?: string | null;
   flayerActivo?: boolean;
   mpEnabled?: boolean;
+  tiendaAbierta?: boolean;
 }
 
 const BASE_PAYMENT_OPTIONS: { id: string; label: string; method: MetodoPago; detail: string }[] = [
@@ -271,7 +272,7 @@ function ProductoOpcionesModal({
   );
 }
 
-export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo, mpEnabled }: Props) {
+export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo, mpEnabled, tiendaAbierta = true }: Props) {
   const paymentOptions = BASE_PAYMENT_OPTIONS.filter((o) => o.id !== "mercadopago" || mpEnabled);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -640,6 +641,36 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
   }
 
   const productosVisibles = categoriaVisible?.productos ?? [];
+
+  // ── Tienda cerrada (sin caja abierta) ────────────────────────────────────────
+  if (!tiendaAbierta) {
+    return (
+      <main
+        className="min-h-screen flex flex-col items-center justify-center px-6 py-16 text-center"
+        style={{ background: sucursal.cartaBg ?? "linear-gradient(180deg,#111111 0%,#1f2937 100%)" }}
+      >
+        {sucursal.logoUrl && (
+          <img src={sucursal.logoUrl} alt={sucursal.nombre} className="w-20 h-20 rounded-2xl object-cover mb-6 shadow-xl" />
+        )}
+        <div className="rounded-[2rem] border border-white/10 bg-white/8 backdrop-blur-xl px-8 py-10 max-w-sm w-full shadow-2xl">
+          <div className="text-5xl mb-4">🌙</div>
+          <h1 className="text-2xl font-black text-white mb-2">{sucursal.nombre}</h1>
+          <p className="text-white/60 text-sm mb-1">Por el momento no estamos recibiendo pedidos.</p>
+          <p className="text-white/40 text-xs">Vuelve cuando estemos abiertos.</p>
+          {sucursal.telefono && (
+            <a
+              href={`https://wa.me/${sucursal.telefono.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-3 text-sm font-bold text-white transition"
+            >
+              Escribenos por WhatsApp
+            </a>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <>

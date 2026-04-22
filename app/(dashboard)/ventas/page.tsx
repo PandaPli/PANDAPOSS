@@ -9,6 +9,7 @@ import type { Rol } from "@/types";
 import { VentasCharts } from "@/components/ventas/VentasCharts";
 import type { DayData, MetodoData } from "@/components/ventas/VentasCharts";
 import { VentasTable } from "./VentasTable";
+import { PedidosDirectosPanel } from "@/components/ventas/PedidosDirectosPanel";
 
 export const metadata: Metadata = { title: "PP — Ventas" };
 
@@ -405,6 +406,9 @@ export default async function VentasPage() {
           )}
         </div>
       </div>
+
+      {/* ── Pedidos directos (Kiosko / Delivery / Retiro) ── */}
+      <PedidosDirectosPanel simbolo={simbolo} />
 
       {/* ── Tabla de ventas ── */}
       <VentasTable ventas={ventas} simbolo={simbolo} />

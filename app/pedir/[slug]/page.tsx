@@ -40,12 +40,19 @@ export default async function PedirDeliveryPage({ params }: Props) {
 
   const sucursalId = branch.id;
 
-  // Verificar si la sucursal tiene MP configurado
-  const sucMP = await prisma.sucursal.findUnique({
-    where: { id: sucursalId },
-    select: { mpAccessToken: true },
-  });
+  // Verificar si la sucursal tiene MP configurado y si hay caja abierta
+  const [sucMP, cajaAbierta] = await Promise.all([
+    prisma.sucursal.findUnique({
+      where: { id: sucursalId },
+      select: { mpAccessToken: true },
+    }),
+    prisma.caja.findFirst({
+      where: { sucursalId, estado: "ABIERTA" },
+      select: { id: true },
+    }),
+  ]);
   const mpEnabled = Boolean(sucMP?.mpAccessToken);
+  const tiendaAbierta = Boolean(cajaAbierta);
 
   const categorias = await prisma.categoria.findMany({
     where: { activa: true, enMenuQR: true },
@@ -122,6 +129,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
       flayerUrl={branch.flayerUrl ?? null}
       flayerActivo={branch.flayerActivo ?? false}
       mpEnabled={mpEnabled}
+      tiendaAbierta={tiendaAbierta}
     />
   );
 }

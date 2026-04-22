@@ -34,6 +34,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sucursal no encontrada" }, { status: 404 });
   }
 
+  // Verificar caja abierta — sin caja el local está cerrado
+  const cajaAbierta = await prisma.caja.findFirst({
+    where: { sucursalId: sucursal.id, estado: "ABIERTA" },
+    select: { id: true },
+  });
+  if (!cajaAbierta) {
+    return NextResponse.json({ error: "El local no está recibiendo pedidos en este momento." }, { status: 409 });
+  }
+
   // Obtener el usuario sistema de la sucursal (primer RESTAURANTE o ADMIN)
   const sistemaUser = await prisma.usuario.findFirst({
     where: {

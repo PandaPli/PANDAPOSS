@@ -71,6 +71,15 @@ export const DeliveryService = {
       throw new Error("Esta sucursal no tiene delivery habilitado.");
     }
 
+    // Verificar que haya una caja abierta — si no hay caja, el local está cerrado
+    const cajaAbierta = await prisma.caja.findFirst({
+      where: { sucursalId, estado: "ABIERTA" },
+      select: { id: true },
+    });
+    if (!cajaAbierta) {
+      throw new Error("El local no está recibiendo pedidos en este momento.");
+    }
+
     const itemsRegulares = items.filter((i) => i.productoId);
     const itemsLibres    = items.filter((i) => !i.productoId);
 

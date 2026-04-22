@@ -205,11 +205,11 @@ export const VentaService = {
       throw new Error("El total no coincide con el calculado en el servidor.");
     }
 
-    // ── V4: Validar que la suma de pagos = total ─────────────────────────────
+    // ── V4: Validar que la suma de pagos cubre el total (puede haber vuelto en efectivo) ───
     if (pagos && pagos.length > 0) {
       const sumaPagos = pagos.reduce((acc, p) => acc + Number(p.monto), 0);
-      if (Math.abs(sumaPagos - serverTotal) > 0.02) {
-        throw new Error("La suma de los pagos no coincide con el total de la venta.");
+      if (sumaPagos < serverTotal - 0.02) {
+        throw new Error("La suma de los pagos no cubre el total de la venta.");
       }
     }
 
