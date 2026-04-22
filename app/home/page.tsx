@@ -2,404 +2,360 @@
 
 import Link from "next/link";
 import {
-  MessageCircle,
-  CheckCircle2,
-  QrCode,
-  Smartphone,
-  ScanLine,
-  ArrowRight,
-  TrendingUp,
-  Users,
-  ChefHat,
-  Crown,
-  Star,
-  Receipt,
-  Zap,
-  BadgeDollarSign,
-  Monitor,
-  Bot,
-  ShoppingCart,
-  Bike,
-  CreditCard,
-  BarChart3,
-  Bell,
+  MessageCircle, CheckCircle2, QrCode, ArrowRight,
+  Zap, Monitor, Bot, ShoppingCart, Bike, CreditCard,
+  BarChart3, Bell, Check, X, Star, Receipt,
 } from "lucide-react";
 
-const WA =
-  "https://wa.me/56999011141?text=Hola%2C%20quiero%20dejar%20de%20pagar%20comisiones%20y%20vender%20directo%20con%20PandaPOS";
+const WA = "https://wa.me/56999011141?text=Hola%2C%20quiero%20dejar%20de%20pagar%20comisiones%20y%20vender%20directo%20con%20PandaPOS";
+const sg: React.CSSProperties = { fontFamily: "var(--font-space-grotesk,'Space Grotesk',sans-serif)" };
+const dm: React.CSSProperties = { fontFamily: "var(--font-dm-sans,'DM Sans',sans-serif)" };
 
-// ─── NAVBAR ─────────────────────────────────────────────────────────────────
+/* ── gradient border wrapper ─────────────────────────────────────── */
+const GB = ({
+  children, from = "rgba(139,92,246,0.6)", to = "rgba(99,102,241,0.2)",
+  via, bg = "#0d0d18", className = "", radius = "1rem",
+}: {
+  children: React.ReactNode; from?: string; to?: string; via?: string;
+  bg?: string; className?: string; radius?: string;
+}) => (
+  <div
+    className={className}
+    style={{
+      padding: 1,
+      borderRadius: radius,
+      background: via
+        ? `linear-gradient(135deg,${from},${via},${to})`
+        : `linear-gradient(135deg,${from},${to})`,
+    }}
+  >
+    <div style={{ borderRadius: `calc(${radius} - 1px)`, background: bg, height: "100%" }}>
+      {children}
+    </div>
+  </div>
+);
+
+/* ── aurora blobs ───────────────────────────────────────────────── */
+const Aurora = ({ className = "" }: { className?: string }) => (
+  <div className={`absolute pointer-events-none overflow-hidden ${className}`} style={{ inset: 0 }}>
+    <div style={{ position: "absolute", top: "-10%", left: "10%", width: 700, height: 500, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(124,58,237,0.18) 0%,transparent 70%)", filter: "blur(40px)" }} />
+    <div style={{ position: "absolute", top: "30%", right: "-5%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(219,39,119,0.1) 0%,transparent 70%)", filter: "blur(60px)" }} />
+    <div style={{ position: "absolute", bottom: "-10%", left: "40%", width: 600, height: 400, borderRadius: "50%", background: "radial-gradient(ellipse,rgba(37,211,102,0.07) 0%,transparent 70%)", filter: "blur(50px)" }} />
+  </div>
+);
+
+/* ── dot grid ───────────────────────────────────────────────────── */
+const Dots = ({ opacity = 1 }) => (
+  <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)", backgroundSize: "28px 28px", opacity }} />
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   NAVBAR
+══════════════════════════════════════════════════════════════════ */
 const Navbar = () => (
-  <nav className="fixed top-0 w-full z-50 bg-[#050509]/90 backdrop-blur-lg border-b border-white/[0.07]">
-    <div className="max-w-7xl mx-auto px-5 sm:px-8">
-      <div className="h-[68px] flex items-center justify-between">
-        <Link href="/home" className="flex items-center gap-2.5 text-white font-black text-xl tracking-tight cursor-pointer">
-          <img src="/logo.png" alt="PandaPOS" className="w-9 h-9 object-contain" />
-          <span style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>PandaPOS</span>
-        </Link>
-
-        <div className="hidden md:flex items-center gap-8">
-          {[
-            { label: "El problema", href: "#problema" },
-            { label: "Cómo funciona", href: "#como-funciona" },
-            { label: "Planes", href: "#planes" },
-          ].map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="text-white/50 hover:text-white text-sm font-semibold transition-colors duration-200 cursor-pointer"
-            >
-              {l.label}
-            </Link>
-          ))}
-          <Link
-            href={WA}
-            target="_blank"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20c05c] text-white text-sm font-black transition-all duration-200 shadow-lg shadow-[#25D366]/20 cursor-pointer"
-          >
-            <MessageCircle size={15} />
-            Hablar por WhatsApp
-          </Link>
-        </div>
-
-        <Link
-          href={WA}
-          target="_blank"
-          className="md:hidden flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#25D366] text-white text-sm font-black cursor-pointer"
-        >
-          <MessageCircle size={14} /> WhatsApp
+  <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, borderBottom: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(20px)", background: "rgba(8,8,15,0.8)" }}>
+    <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16">
+      <Link href="/home" className="flex items-center gap-2.5 text-white font-black text-lg" style={sg}>
+        <img src="/logo.png" alt="PandaPOS" className="w-8 h-8 object-contain" />
+        PandaPOS
+      </Link>
+      <div className="hidden md:flex items-center gap-8">
+        {[["El problema","#problema"],["Cómo funciona","#como-funciona"],["Planes","#planes"]].map(([l,h])=>(
+          <Link key={h} href={h} className="text-white/40 hover:text-white text-sm font-semibold transition-colors" style={dm}>{l}</Link>
+        ))}
+        <Link href={WA} target="_blank" style={{ ...sg, background: "linear-gradient(135deg,#25D366,#1db954)", boxShadow: "0 0 20px rgba(37,211,102,0.3)" }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-black hover:opacity-90 transition-opacity">
+          <MessageCircle size={14}/> Hablar por WhatsApp
         </Link>
       </div>
+      <Link href={WA} target="_blank" className="md:hidden flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-sm font-black" style={{ ...sg, background: "#25D366" }}>
+        <MessageCircle size={14}/> WhatsApp
+      </Link>
     </div>
   </nav>
 );
 
-// ─── HERO ────────────────────────────────────────────────────────────────────
-const Hero = () => (
-  <section className="relative min-h-screen flex items-center pt-24 pb-20 bg-[#060609] overflow-hidden">
-    <div className="pointer-events-none absolute inset-0">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-violet-600/[0.12] blur-[140px] rounded-full" />
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-700/[0.08] blur-[100px] rounded-full" />
-    </div>
-
-    <div className="relative max-w-6xl mx-auto px-5 sm:px-8 w-full">
-      {/* Badge */}
-      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-white/60 text-xs font-semibold mb-8">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
-        Sin comisiones · Pedidos directos · Empieza hoy
-      </div>
-
-      {/* Headline */}
-      <h1
-        className="text-[clamp(2.6rem,7vw,5.5rem)] font-black leading-[1.04] tracking-tight text-white max-w-5xl mb-6"
-        style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-      >
-        Cada pedido de Uber Eats
-        <br />
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400">
-          te cuesta un 30%.
-        </span>
-      </h1>
-
-      {/* Sub */}
-      <p
-        className="text-white/55 text-xl max-w-2xl leading-relaxed mb-10"
-        style={{ fontFamily: "var(--font-dm-sans, inherit)" }}
-      >
-        PandaPOS te da tu propio canal de ventas por{" "}
-        <span className="text-white font-bold">QR y WhatsApp</span>.
-        Tus clientes piden directo a ti. Sin intermediarios. Sin comisión por orden.
-      </p>
-
-      {/* CTAs */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Link
-          href={WA}
-          target="_blank"
-          className="inline-flex justify-center items-center gap-2 px-8 py-4 rounded-2xl bg-[#25D366] hover:bg-[#20c05c] text-white font-black text-base transition-all duration-200 shadow-xl shadow-[#25D366]/25 cursor-pointer"
-        >
-          <MessageCircle size={20} />
-          Hablar por WhatsApp
-        </Link>
-        <Link
-          href="#como-funciona"
-          className="inline-flex justify-center items-center gap-2 px-8 py-4 rounded-2xl bg-white/[0.06] border border-white/[0.12] hover:bg-white/[0.1] hover:border-white/20 text-white font-black text-base transition-all duration-200 cursor-pointer"
-        >
-          Ver cómo funciona <ArrowRight size={18} />
-        </Link>
-      </div>
-
-      <p className="mt-5 text-white/30 text-sm font-semibold">
-        Activa PandaPOS esta semana y recupera margen desde el primer pedido.
-      </p>
-
-      {/* Stat strip */}
-      <div className="mt-16 grid grid-cols-3 gap-4 max-w-xl">
-        {[
-          { val: "0%", label: "Comisión por orden" },
-          { val: "30%", label: "Margen que recuperas" },
-          { val: "24/7", label: "Pedidos automáticos" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
-            <p className="text-white font-black text-2xl" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{s.val}</p>
-            <p className="text-white/40 text-xs mt-0.5">{s.label}</p>
+/* ═══════════════════════════════════════════════════════════════════
+   WHATSAPP MOCKUP
+══════════════════════════════════════════════════════════════════ */
+const Mockup = () => (
+  <div className="relative">
+    <div style={{ position: "absolute", inset: -24, background: "radial-gradient(ellipse,rgba(37,211,102,0.12) 0%,transparent 70%)", filter: "blur(30px)", borderRadius: "50%" }} />
+    <GB from="rgba(37,211,102,0.5)" via="rgba(99,102,241,0.3)" to="rgba(139,92,246,0.4)" radius="1.25rem" className="relative shadow-2xl">
+      <div style={{ background: "linear-gradient(145deg,#111120,#0c0c18)", borderRadius: "calc(1.25rem - 1px)", overflow: "hidden" }}>
+        {/* Header bar */}
+        <div style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <MessageCircle size={14} color="white"/>
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// ─── PROBLEM ─────────────────────────────────────────────────────────────────
-const SectionProblem = () => (
-  <section id="problema" className="py-28 bg-[#040407]">
-    <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="max-w-3xl mb-14">
-        <p className="text-red-400 text-xs font-black tracking-widest uppercase mb-3">El problema real</p>
-        <h2
-          className="text-4xl md:text-6xl font-black text-white leading-[1.05] tracking-tight"
-          style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-        >
-          Vendes más.<br />
-          <span className="text-red-400">Ganas menos.</span>
-        </h2>
-        <p className="text-white/50 text-lg mt-5 leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-          Las apps de delivery te consiguen pedidos, sí. Pero te cobran por cada uno — y encima se quedan con el cliente.
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Card grande */}
-        <div className="rounded-3xl border border-red-500/20 bg-red-950/15 p-8 flex flex-col justify-between row-span-2">
           <div>
-            <p className="text-red-300 text-6xl font-black mb-4" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>30%</p>
-            <h3 className="text-white text-2xl font-black mb-3" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>De cada pedido, para la app.</h3>
-            <p className="text-white/50 leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-              Si vendes $1.000.000 al mes por delivery, entregas hasta{" "}
-              <span className="text-red-300 font-bold">$300.000</span> en comisiones.
-              Eso es una semana entera de trabajo que no llega a tu bolsillo.
-            </p>
+            <p style={{ ...sg, color: "white", fontSize: 12, fontWeight: 800, lineHeight: 1.2 }}>Tu Restaurante · PandaPOS</p>
+            <p style={{ ...dm, color: "#25D366", fontSize: 10 }}>● en línea</p>
           </div>
-          <div className="mt-8 rounded-2xl bg-red-950/40 border border-red-500/20 p-5">
-            <p className="text-white/70 text-sm font-semibold">Ventas del mes: <span className="text-white">$1.000.000</span></p>
-            <p className="text-white/70 text-sm font-semibold mt-1">Comisión (30%): <span className="text-red-400 font-black">−$300.000</span></p>
-            <p className="text-white font-black mt-3 pt-3 border-t border-white/10">Lo que queda: $700.000</p>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+            {[1,2,3].map(i=><div key={i} style={{width:5,height:5,borderRadius:"50%",background:"rgba(255,255,255,0.15)"}}/>)}
           </div>
         </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/15 transition-all duration-200">
-          <Users className="text-rose-400 mb-4" size={26} />
-          <h3 className="text-white font-black text-xl mb-2" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>No eres dueño de tus clientes</h3>
-          <p className="text-white/50 text-sm leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-            La app tiene el contacto, los datos y la recompra. Cuando el cliente vuelve, vuelve a la app — no a tu local.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/15 transition-all duration-200">
-          <BadgeDollarSign className="text-amber-400 mb-4" size={26} />
-          <h3 className="text-white font-black text-xl mb-2" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>Promos que pagas tú</h3>
-          <p className="text-white/50 text-sm leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-            Descuentos, envíos gratis, posicionamiento pago. La app te cobra por existir en su plataforma.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-);
-
-// ─── SOLUTION ────────────────────────────────────────────────────────────────
-const SectionSolution = () => (
-  <section className="py-28 bg-[#060609]">
-    <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-3">La solución</p>
-        <h2
-          className="text-4xl md:text-6xl font-black text-white tracking-tight leading-[1.05]"
-          style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-        >
-          Tu canal. Tu margen.<br />Tus clientes.
-        </h2>
-        <p className="text-white/50 text-lg mt-5 leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-          PandaPOS te da todo lo que necesitas para vender directo — sin depender de ninguna app.
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-4" id="como-funciona">
-        {[
-          {
-            icon: <ScanLine size={28} className="text-violet-300" />,
-            step: "01",
-            title: "Escanean tu QR",
-            desc: "En la mesa, el packaging o la boleta. El cliente entra a tu menú en segundos, desde su celular.",
-          },
-          {
-            icon: <Smartphone size={28} className="text-indigo-300" />,
-            step: "02",
-            title: "Ven tu carta y piden",
-            desc: "Menú digital, fotos, variantes y precios. El cliente arma su pedido sin llamadas ni confusión.",
-          },
-          {
-            icon: <MessageCircle size={28} className="text-[#25D366]" />,
-            step: "03",
-            title: "Llega directo a WhatsApp",
-            desc: "El pedido llega a tu equipo confirmado. Sin intermediarios, sin porcentaje, sin esperas.",
-          },
-        ].map((s) => (
-          <div
-            key={s.step}
-            className="rounded-3xl border border-white/[0.09] bg-white/[0.02] p-8 hover:bg-white/[0.04] hover:border-white/15 transition-all duration-200"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center">
-                {s.icon}
+        {/* Chat */}
+        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Order card */}
+          <div style={{ maxWidth: "90%" }}>
+            <GB from="rgba(139,92,246,0.4)" to="rgba(99,102,241,0.2)" radius="0.875rem" bg="#161628">
+              <div style={{ padding: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <span style={{ ...sg, color: "white", fontWeight: 800, fontSize: 13 }}>Pedido #1.247</span>
+                  <span style={{ ...dm, background: "rgba(139,92,246,0.2)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>Mesa 4</span>
+                </div>
+                {["2× Sushi Roll Salmón","1× Causa Rellena","3× Agua s/gas"].map(item=>(
+                  <div key={item} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#8b5cf6", flexShrink: 0 }}/>
+                    <span style={{ ...dm, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{item}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ ...dm, color: "rgba(255,255,255,0.35)", fontSize: 11 }}>Total</span>
+                  <span style={{ ...sg, color: "white", fontWeight: 800, fontSize: 15 }}>$22.500</span>
+                </div>
               </div>
-              <span className="text-white/20 font-black text-2xl" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{s.step}</span>
-            </div>
-            <h3 className="text-white text-xl font-black mb-2" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{s.title}</h3>
-            <p className="text-white/45 text-sm leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>{s.desc}</p>
+            </GB>
+            <span style={{ ...dm, color: "rgba(255,255,255,0.2)", fontSize: 10, marginLeft: 4 }}>hace 2 min</span>
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// ─── BENEFITS ────────────────────────────────────────────────────────────────
-const SectionBenefits = () => (
-  <section className="py-28 bg-[#040407]">
-    <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-14">
-        <h2
-          className="text-4xl md:text-5xl font-black text-white tracking-tight"
-          style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-        >
-          Resultados que se sienten en caja.
-        </h2>
-        <p className="text-white/45 text-lg mt-4" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-          No son promesas. Son los cambios concretos que ves cuando dejas de depender de las apps.
-        </p>
-      </div>
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            icon: <TrendingUp size={22} className="text-violet-300" />,
-            title: "Más ganancia por orden",
-            desc: "Si no pagas comisión, tu margen sube desde el primer pedido. Sin cambiar precios.",
-          },
-          {
-            icon: <Users size={22} className="text-indigo-300" />,
-            title: "Clientes que vuelven a ti",
-            desc: "El contacto es tuyo. La relación es tuya. Ellos vuelven a tu local, no a la app.",
-          },
-          {
-            icon: <ChefHat size={22} className="text-amber-300" />,
-            title: "Menos errores en cocina",
-            desc: "Pedidos claros, completos y en tiempo real. Sin mensajes mal tomados ni faltantes.",
-          },
-          {
-            icon: <Crown size={22} className="text-[#25D366]" />,
-            title: "Control total del negocio",
-            desc: "Tus precios, tus promos, tus datos. Todo el poder en tus manos, no en las de una app.",
-          },
-        ].map((b) => (
-          <div
-            key={b.title}
-            className="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-6 hover:bg-white/[0.04] hover:border-white/15 transition-all duration-200"
-          >
-            <div className="w-11 h-11 rounded-xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center mb-5">
-              {b.icon}
+          {/* Confirmations */}
+          {["Pedido enviado al KDS ✓","0% de comisión cobrada ✓","Cliente guardado en tu base ✓"].map(t=>(
+            <div key={t} style={{ alignSelf: "flex-end", background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.25)", borderRadius: "14px 14px 2px 14px", padding: "8px 12px" }}>
+              <span style={{ ...dm, color: "#4ade80", fontSize: 11, fontWeight: 600 }}>{t}</span>
             </div>
-            <h3 className="text-white font-black text-lg mb-2" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{b.title}</h3>
-            <p className="text-white/45 text-sm leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>{b.desc}</p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+    </GB>
+    {/* Floating badges */}
+    <div style={{ position: "absolute", top: -16, right: -16, background: "linear-gradient(135deg,#2d0a0a,#1a0606)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: 12, padding: "10px 14px", boxShadow: "0 8px 32px rgba(239,68,68,0.2)" }}>
+      <p style={{ ...dm, color: "rgba(252,165,165,0.7)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Uber Eats te cobraría</p>
+      <p style={{ ...sg, color: "#f87171", fontWeight: 900, fontSize: 20, lineHeight: 1.2 }}>−$6.750</p>
     </div>
-  </section>
+    <div style={{ position: "absolute", bottom: -16, left: -16, background: "linear-gradient(135deg,#061a0e,#041008)", border: "1px solid rgba(37,211,102,0.35)", borderRadius: 12, padding: "10px 14px", boxShadow: "0 8px 32px rgba(37,211,102,0.15)" }}>
+      <p style={{ ...dm, color: "rgba(74,222,128,0.6)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Con PandaPOS</p>
+      <p style={{ ...sg, color: "#4ade80", fontWeight: 900, fontSize: 20, lineHeight: 1.2 }}>$0 comisión</p>
+    </div>
+  </div>
 );
 
-// ─── DIFFERENTIATOR ──────────────────────────────────────────────────────────
-const SectionDifferentiator = () => (
-  <section className="py-28 bg-[#060609]">
-    <div className="max-w-5xl mx-auto px-5 sm:px-8">
-      <div className="rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-950/30 to-[#060609] p-10 md:p-16 text-center">
-        <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-5">Diferenciador clave</p>
-        <h2
-          className="text-5xl md:text-7xl font-black text-white leading-[1.02] tracking-tight mb-5"
-          style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-        >
-          Tus clientes son tuyos.
-          <span className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">
-            No de las apps.
-          </span>
-        </h2>
-        <p className="text-white/50 text-xl max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-          Cuando controlas el canal de venta, controlas el negocio. Más margen, más recompra, más independencia para crecer sin pedirle permiso a nadie.
-        </p>
-      </div>
-    </div>
-  </section>
-);
-
-// ─── POWER ───────────────────────────────────────────────────────────────────
-const SectionPower = () => (
-  <section className="py-28 bg-[#040407]">
-    <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="grid md:grid-cols-2 gap-10 items-center">
+/* ═══════════════════════════════════════════════════════════════════
+   HERO
+══════════════════════════════════════════════════════════════════ */
+const Hero = () => (
+  <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", paddingTop: 80, paddingBottom: 80, background: "#08080f", position: "relative", overflow: "hidden" }}>
+    <Aurora />
+    <Dots />
+    <div className="relative max-w-7xl mx-auto px-5 sm:px-8 w-full">
+      <div className="grid lg:grid-cols-2 gap-16 items-center">
         <div>
-          <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-4">El ciclo que cambia todo</p>
-          <h2
-            className="text-4xl md:text-6xl font-black text-white leading-[1.05] tracking-tight mb-5"
-            style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-          >
+          {/* Badge */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 999, background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)", marginBottom: 28 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#a78bfa" }} />
+            <span style={{ ...dm, color: "rgba(196,181,253,0.9)", fontSize: 12, fontWeight: 600 }}>Sin comisiones · Pedidos directos · Empieza hoy</span>
+          </div>
+          {/* Headline */}
+          <h1 style={{ ...sg, fontSize: "clamp(2.8rem,5.5vw,4.8rem)", fontWeight: 900, lineHeight: 1.02, letterSpacing: "-0.02em", color: "white", marginBottom: 12 }}>
+            Las apps de delivery
+            <br />
+            <span style={{ background: "linear-gradient(135deg,#a78bfa,#818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>te cobran un 30%</span>
+            <br/>por cada pedido.
+          </h1>
+          <p style={{ ...dm, color: "rgba(196,181,253,0.6)", fontSize: 13, fontWeight: 500, marginBottom: 16, letterSpacing: "0.02em" }}>
+            Uber Eats · PedidosYa · Rappi · y todas las demás.
+          </p>
+          <p style={{ ...dm, color: "rgba(255,255,255,0.45)", fontSize: 18, lineHeight: 1.65, maxWidth: 480, marginBottom: 36 }}>
+            PandaPOS te da tu propio canal de ventas por{" "}
+            <span style={{ color: "white", fontWeight: 600 }}>QR y WhatsApp</span>.
+            Tus clientes piden directo a ti. Sin comisión por orden.
+          </p>
+          {/* CTAs */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 44 }}>
+            <Link href={WA} target="_blank" style={{ ...sg, background: "linear-gradient(135deg,#25D366,#1db954)", boxShadow: "0 4px 24px rgba(37,211,102,0.35)", padding: "14px 28px", borderRadius: 14, color: "white", fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+              <MessageCircle size={17}/> Hablar por WhatsApp
+            </Link>
+            <Link href="#como-funciona" style={{ ...sg, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", padding: "14px 28px", borderRadius: 14, color: "white", fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+              Ver cómo funciona <ArrowRight size={15}/>
+            </Link>
+          </div>
+          {/* Stats */}
+          <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+            {[{v:"0%",l:"comisión por pedido"},{v:"$7.900",l:"desde /mes"},{v:"24/7",l:"automático"}].map(s=>(
+              <div key={s.l}>
+                <p style={{ ...sg, color: "white", fontWeight: 900, fontSize: 24 }}>{s.v}</p>
+                <p style={{ ...dm, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="hidden lg:block">
+          <Mockup/>
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATS BAR
+══════════════════════════════════════════════════════════════════ */
+const StatsBar = () => (
+  <div style={{ background: "rgba(255,255,255,0.02)", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+    <div className="max-w-7xl mx-auto px-5 sm:px-8">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", padding: "20px 0" }}>
+        {[
+          {v:"0%",l:"Comisión por pedido",c:"#a78bfa"},
+          {v:"30%",l:"Margen que recuperas",c:"#4ade80"},
+          {v:"5 min",l:"Para activar",c:"#60a5fa"},
+          {v:"24/7",l:"Pedidos automáticos",c:"#f9a8d4"},
+        ].map((s,i)=>(
+          <div key={s.l} style={{ textAlign: "center", padding: "0 16px", borderRight: i<3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+            <p style={{ ...sg, color: s.c, fontWeight: 900, fontSize: 26 }}>{s.v}</p>
+            <p style={{ ...dm, color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 2 }}>{s.l}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROBLEM — comparison table
+══════════════════════════════════════════════════════════════════ */
+const SectionProblem = () => (
+  <section id="problema" style={{ padding: "96px 0", background: "#060609", position: "relative" }}>
+    <div className="max-w-5xl mx-auto px-5 sm:px-8">
+      <div style={{ textAlign: "center", marginBottom: 56 }}>
+        <p style={{ ...dm, color: "#f87171", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>El problema real</p>
+        <h2 style={{ ...sg, color: "white", fontSize: "clamp(2rem,4vw,3.5rem)", fontWeight: 900, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+          Las apps te consiguen pedidos.<br/>
+          <span style={{ background: "linear-gradient(135deg,#f87171,#ef4444)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Y se quedan con el margen.</span>
+        </h2>
+      </div>
+
+      <GB from="rgba(239,68,68,0.3)" via="rgba(255,255,255,0.05)" to="rgba(139,92,246,0.3)" radius="1.25rem" bg="#0a0a12">
+        <div style={{ overflow: "hidden", borderRadius: "calc(1.25rem - 1px)" }}>
+          {/* Header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ padding: "20px 24px" }}/>
+            <div style={{ padding: "20px 24px", textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.06)" }}>
+              <p style={{ ...sg, color: "#f87171", fontWeight: 800, fontSize: 15 }}>Apps de delivery</p>
+              <p style={{ ...dm, color: "rgba(255,255,255,0.25)", fontSize: 11, marginTop: 2 }}>Uber Eats, PedidosYa…</p>
+            </div>
+            <div style={{ padding: "20px 24px", textAlign: "center", borderLeft: "1px solid rgba(255,255,255,0.06)", background: "rgba(139,92,246,0.06)" }}>
+              <p style={{ ...sg, color: "#c4b5fd", fontWeight: 800, fontSize: 15 }}>PandaPOS</p>
+              <p style={{ ...dm, color: "rgba(255,255,255,0.25)", fontSize: 11, marginTop: 2 }}>Tu canal directo</p>
+            </div>
+          </div>
+          {[
+            {l:"Comisión por pedido",a:"18–30%",p:"0%",ar:true,pg:true},
+            {l:"Dueño de tus clientes",a:"No",p:"Sí",ar:true,pg:true},
+            {l:"Canal de venta propio",a:"No",p:"Sí",ar:true,pg:true},
+            {l:"Datos del cliente",a:"Son de la app",p:"Son tuyos",ar:true,pg:true},
+            {l:"Costo mensual fijo",a:"Gratis* (+30%)",p:"Desde $7.900",ar:false,pg:false},
+          ].map((row,i)=>(
+            <div key={row.l} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderBottom: i<4 ? "1px solid rgba(255,255,255,0.04)" : "none", background: i%2===0 ? "transparent" : "rgba(255,255,255,0.01)" }}>
+              <div style={{ padding: "16px 24px", display: "flex", alignItems: "center" }}>
+                <span style={{ ...dm, color: "rgba(255,255,255,0.45)", fontSize: 13 }}>{row.l}</span>
+              </div>
+              <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(255,255,255,0.04)" }}>
+                {row.ar ? (
+                  <span style={{ ...sg, color: "#f87171", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                    <X size={13}/> {row.a}
+                  </span>
+                ) : (
+                  <span style={{ ...dm, color: "rgba(255,255,255,0.3)", fontSize: 13 }}>{row.a}</span>
+                )}
+              </div>
+              <div style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(255,255,255,0.04)", background: "rgba(139,92,246,0.04)" }}>
+                {row.pg ? (
+                  <span style={{ ...sg, color: "#4ade80", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Check size={13}/> {row.p}
+                  </span>
+                ) : (
+                  <span style={{ ...sg, color: "white", fontWeight: 700, fontSize: 13 }}>{row.p}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </GB>
+      <p style={{ ...dm, color: "rgba(255,255,255,0.2)", fontSize: 11, textAlign: "center", marginTop: 16 }}>*Gratis para entrar, pero cada pedido te cuesta entre 18% y 30% de comisión.</p>
+    </div>
+  </section>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   SOLUTION — 3 steps
+══════════════════════════════════════════════════════════════════ */
+const SectionSolution = () => (
+  <section style={{ padding: "96px 0", background: "#08080f", position: "relative", overflow: "hidden" }} id="como-funciona">
+    <Aurora className="opacity-50"/>
+    <Dots opacity={0.5}/>
+    <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div style={{ textAlign: "center", maxWidth: 560, margin: "0 auto 56px" }}>
+        <p style={{ ...dm, color: "#a78bfa", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>La solución</p>
+        <h2 style={{ ...sg, color: "white", fontSize: "clamp(2rem,4vw,3.2rem)", fontWeight: 900, lineHeight: 1.08, letterSpacing: "-0.02em" }}>Tu canal. Tu margen. Tus clientes.</h2>
+        <p style={{ ...dm, color: "rgba(255,255,255,0.4)", fontSize: 17, marginTop: 14, lineHeight: 1.6 }}>QR → Carta → Pedido → WhatsApp. Sin apps de por medio.</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }} className="grid-cols-1 md:grid-cols-3">
+        {[
+          {icon:<Receipt size={22} className="text-violet-300"/>,n:"01",title:"Escanean tu QR",desc:"En la mesa, el packaging o la boleta. El cliente entra a tu menú en segundos.",from:"rgba(139,92,246,0.5)",to:"rgba(99,102,241,0.1)"},
+          {icon:<ShoppingCart size={22} className="text-indigo-300"/>,n:"02",title:"Ven tu carta y piden",desc:"Menú digital con fotos, variantes y precios. El pedido armado, sin confusión.",from:"rgba(99,102,241,0.5)",to:"rgba(168,85,247,0.1)"},
+          {icon:<MessageCircle size={22} className="text-[#25D366]"/>,n:"03",title:"Llega directo a ti",desc:"El pedido llega confirmado. Sin intermediarios, sin porcentaje, sin esperas.",from:"rgba(37,211,102,0.5)",to:"rgba(16,185,129,0.1)"},
+        ].map(s=>(
+          <GB key={s.n} from={s.from} to={s.to} radius="1rem" bg="#0d0d18" className="h-full">
+            <div style={{ padding: "28px 24px", height: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>{s.icon}</div>
+                <span style={{ ...sg, color: "rgba(255,255,255,0.12)", fontWeight: 900, fontSize: 28 }}>{s.n}</span>
+              </div>
+              <h3 style={{ ...sg, color: "white", fontWeight: 800, fontSize: 17, marginBottom: 8 }}>{s.title}</h3>
+              <p style={{ ...dm, color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>{s.desc}</p>
+            </div>
+          </GB>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   POWER — boleta QR loop
+══════════════════════════════════════════════════════════════════ */
+const SectionPower = () => (
+  <section style={{ padding: "96px 0", background: "#060609" }}>
+    <div className="max-w-6xl mx-auto px-5 sm:px-8">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="grid-cols-1 md:grid-cols-2">
+        <div>
+          <p style={{ ...dm, color: "#a78bfa", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 14 }}>El ciclo que cambia todo</p>
+          <h2 style={{ ...sg, color: "white", fontSize: "clamp(2rem,3.5vw,3rem)", fontWeight: 900, lineHeight: 1.08, letterSpacing: "-0.02em", marginBottom: 18 }}>
             Convierte cada boleta en una nueva venta.
           </h2>
-          <p className="text-white/50 text-lg leading-relaxed mb-8" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-            Imprime tu QR en la boleta. El cliente llega a casa, escanea y te vuelve a pedir por WhatsApp. Sin que tú hagas nada. Sin que la app se lleve su parte.
+          <p style={{ ...dm, color: "rgba(255,255,255,0.4)", fontSize: 16, lineHeight: 1.7, marginBottom: 32 }}>
+            Imprime tu QR en la boleta. El cliente llega a casa, escanea y te vuelve a pedir por WhatsApp. Sin que tú hagas nada. Sin comisión.
           </p>
-          <Link
-            href={WA}
-            target="_blank"
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#20c05c] text-white font-black transition-all duration-200 shadow-lg shadow-[#25D366]/20 cursor-pointer"
-          >
-            <MessageCircle size={18} /> Activar ciclo directo
+          <Link href={WA} target="_blank" style={{ ...sg, background: "linear-gradient(135deg,#25D366,#1db954)", boxShadow: "0 4px 20px rgba(37,211,102,0.3)", padding: "12px 24px", borderRadius: 12, color: "white", fontWeight: 800, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+            <MessageCircle size={15}/> Activar ciclo directo
           </Link>
         </div>
-
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[
-            {
-              icon: <Receipt size={20} className="text-white/60" />,
-              label: "Entrega con QR impreso",
-              desc: "Cada boleta lleva tu QR. Es tu canal en manos del cliente.",
-              border: "border-white/[0.09]",
-            },
-            {
-              icon: <QrCode size={20} className="text-violet-400" />,
-              label: "Escanea cuando quiere",
-              desc: "En casa, al día siguiente, cuando tenga hambre. Tu menú siempre disponible.",
-              border: "border-violet-500/25",
-            },
-            {
-              icon: <MessageCircle size={20} className="text-[#25D366]" />,
-              label: "Nuevo pedido, cero comisión",
-              desc: "El pedido llega directo. Tú cobras el 100%. La app no existe.",
-              border: "border-[#25D366]/25",
-            },
-          ].map((step, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-4 rounded-2xl border ${step.border} bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-all duration-200`}
-            >
-              <div className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-                {step.icon}
+            {icon:<Receipt size={17}/>,label:"Entrega con QR impreso",desc:"Cada boleta lleva tu QR.",from:"rgba(139,92,246,0.35)",to:"rgba(255,255,255,0.05)",ic:"rgba(139,92,246,0.6)"},
+            {icon:<QrCode size={17}/>,label:"Escanea cuando quiere",desc:"Tu menú siempre disponible.",from:"rgba(99,102,241,0.35)",to:"rgba(255,255,255,0.05)",ic:"rgba(99,102,241,0.6)"},
+            {icon:<MessageCircle size={17}/>,label:"Nuevo pedido, cero comisión",desc:"Tú cobras el 100%.",from:"rgba(37,211,102,0.35)",to:"rgba(255,255,255,0.05)",ic:"rgba(37,211,102,0.5)"},
+          ].map((s,i)=>(
+            <GB key={i} from={s.from} to={s.to} radius="0.875rem" bg="#0c0c16">
+              <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: s.ic, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "white" }}>{s.icon}</div>
+                <div>
+                  <p style={{ ...sg, color: "white", fontWeight: 800, fontSize: 13 }}>{s.label}</p>
+                  <p style={{ ...dm, color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{s.desc}</p>
+                </div>
+                <span style={{ ...sg, color: "rgba(255,255,255,0.08)", fontWeight: 900, fontSize: 22, marginLeft: "auto" }}>{i+1}</span>
               </div>
-              <div>
-                <p className="text-white font-black text-sm mb-0.5" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{step.label}</p>
-                <p className="text-white/40 text-sm" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>{step.desc}</p>
-              </div>
-            </div>
+            </GB>
           ))}
         </div>
       </div>
@@ -407,304 +363,193 @@ const SectionPower = () => (
   </section>
 );
 
-// ─── SOCIAL PROOF ─────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   SOCIAL PROOF
+══════════════════════════════════════════════════════════════════ */
 const SectionSocialProof = () => (
-  <section className="py-28 bg-[#060609]">
-    <div className="max-w-4xl mx-auto px-5 sm:px-8 text-center">
-      <div className="flex justify-center gap-1 mb-8">
-        {[...Array(5)].map((_, i) => (
-          <Star key={i} size={18} className="text-amber-400 fill-amber-400" />
-        ))}
-      </div>
-
-      <blockquote
-        className="text-2xl md:text-[2rem] text-white font-bold leading-[1.35] mb-8"
-        style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-      >
-        "Antes le pagábamos casi 28% entre comisiones y promos. Con PandaPOS, la mitad de los pedidos ya son directos por WhatsApp y ese margen volvió a la caja. En el primer mes recuperamos lo que costó el sistema."
-      </blockquote>
-
-      <div className="flex items-center justify-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-300 font-black text-sm">
-          M
+  <section style={{ padding: "96px 0", background: "#08080f", position: "relative", overflow: "hidden" }}>
+    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 400, background: "radial-gradient(ellipse,rgba(139,92,246,0.08) 0%,transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }}/>
+    <div className="max-w-3xl mx-auto px-5 sm:px-8">
+      <GB from="rgba(139,92,246,0.4)" via="rgba(255,255,255,0.08)" to="rgba(37,211,102,0.3)" radius="1.5rem" bg="#0d0d1a">
+        <div style={{ padding: "48px 40px", textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 24 }}>
+            {[...Array(5)].map((_,i)=><Star key={i} size={17} style={{ color: "#fbbf24", fill: "#fbbf24" }}/>)}
+          </div>
+          <blockquote style={{ ...sg, color: "white", fontSize: "clamp(1.1rem,2vw,1.4rem)", fontWeight: 700, lineHeight: 1.45, marginBottom: 32 }}>
+            "Antes le pagábamos casi 28% entre comisiones y promos. Con PandaPOS, la mitad de los pedidos ya son directos por WhatsApp y ese margen volvió a la caja. En el primer mes recuperamos lo que costó el sistema."
+          </blockquote>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#7c3aed,#4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 15 }} >M</div>
+            <div style={{ textAlign: "left" }}>
+              <p style={{ ...sg, color: "white", fontWeight: 800, fontSize: 13 }}>María P.</p>
+              <p style={{ ...dm, color: "rgba(255,255,255,0.35)", fontSize: 11 }}>Dueña de dark kitchen · Santiago</p>
+            </div>
+          </div>
         </div>
-        <div className="text-left">
-          <p className="text-white font-bold text-sm">María P.</p>
-          <p className="text-white/40 text-xs">Dueña de dark kitchen · Santiago</p>
-        </div>
-      </div>
+      </GB>
     </div>
   </section>
 );
 
-// ─── FEATURES ────────────────────────────────────────────────────────────────
-const FEATURES = [
-  {
-    icon: <Monitor size={22} className="text-violet-300" />,
-    title: "KDS — Cocina en tiempo real",
-    desc: "Pantallas de cocina que reciben pedidos al instante desde cualquier canal: mesa, delivery, retiro, kiosko y WhatsApp. Filtra por estación (Cocina / Bar), muestra el tiempo de espera y permite avanzar el estado con un toque. Cuando el pedido está listo, notifica automáticamente al área correcta: Mesero, Cajero o Rider.",
-    highlight: true,
-  },
-  {
-    icon: <Bot size={22} className="text-[#25D366]" />,
-    title: "Bot de WhatsApp 24/7",
-    desc: "Atiende pedidos de forma automática las 24 horas. El cliente escribe lo que quiere en lenguaje natural, el bot arma el carrito, pregunta retiro o delivery, dirección y método de pago. El pedido entra directo al KDS sin intervención humana.",
-    highlight: false,
-  },
-  {
-    icon: <ShoppingCart size={22} className="text-indigo-300" />,
-    title: "Carta online y kiosko",
-    desc: "Menú digital accesible desde cualquier dispositivo por link o QR. El cliente elige productos, personaliza ingredientes, selecciona zona de delivery o retiro y paga. Acepta Mercado Pago, transferencia, efectivo y tarjeta. Incluye flujo de autoatención presencial.",
-    highlight: false,
-  },
-  {
-    icon: <Bike size={22} className="text-amber-300" />,
-    title: "Gestión de delivery",
-    desc: "Panel completo para administrar pedidos a domicilio: asignación de repartidores, seguimiento de estado en tiempo real, zonas de despacho configurables con precios diferenciados y app para el rider. El cliente recibe confirmación y puede rastrear su pedido.",
-    highlight: false,
-  },
-  {
-    icon: <CreditCard size={22} className="text-rose-300" />,
-    title: "Punto de venta (POS)",
-    desc: "Caja rápida para ventas presenciales con multipago (efectivo, tarjeta, transferencia, mixto), impresión de boleta térmica y gestión de mesas. La caja define el horario real del local: si está abierta, la carta acepta pedidos; si está cerrada, el local aparece como no disponible automáticamente.",
-    highlight: false,
-  },
-  {
-    icon: <BarChart3 size={22} className="text-sky-300" />,
-    title: "Panel de ventas",
-    desc: "Dashboard con ventas del día, del mes, comparativo con el mes anterior, ticket promedio, métodos de pago y gráficos de tendencia. Incluye ranking de clientes frecuentes y mayores gastadores, más vista en tiempo real de todos los pedidos directos (kiosko, delivery, retiro) con su estado actual.",
-    highlight: false,
-  },
-  {
-    icon: <Bell size={22} className="text-fuchsia-300" />,
-    title: "Notificaciones por área",
-    desc: "Cuando un pedido está listo, el sistema avisa a quien corresponde: el mesero para mesas, el cajero para retiros con notificación flotante en caja, el rider para delivery. Cada área ve solo lo que le compete. Menos ruido, más velocidad en cada turno.",
-    highlight: false,
-  },
+/* ═══════════════════════════════════════════════════════════════════
+   FEATURES BENTO
+══════════════════════════════════════════════════════════════════ */
+const FEATS = [
+  {icon:<Monitor size={19}/>,title:"KDS — Cocina en tiempo real",desc:"Pantallas que reciben pedidos al instante desde cualquier canal. Filtra por estación, muestra tiempos y notifica al área correcta cuando el pedido está listo.",wide:true,from:"rgba(139,92,246,0.5)",to:"rgba(99,102,241,0.15)",ic:"rgba(139,92,246,0.7)"},
+  {icon:<Bot size={19}/>,title:"Bot de WhatsApp 24/7",desc:"El bot arma el carrito, pregunta retiro o delivery y envía al KDS. Sin intervención humana.",wide:false,from:"rgba(37,211,102,0.4)",to:"rgba(16,185,129,0.1)",ic:"rgba(37,211,102,0.7)"},
+  {icon:<ShoppingCart size={19}/>,title:"Carta online y kiosko",desc:"Menú digital por QR o link. Personaliza, elige zona, paga con MP o transferencia.",wide:false,from:"rgba(99,102,241,0.4)",to:"rgba(139,92,246,0.1)",ic:"rgba(99,102,241,0.7)"},
+  {icon:<Bike size={19}/>,title:"Gestión de delivery",desc:"Asigna repartidores, define zonas con precios y haz seguimiento en tiempo real.",wide:false,from:"rgba(245,158,11,0.4)",to:"rgba(234,179,8,0.1)",ic:"rgba(245,158,11,0.7)"},
+  {icon:<CreditCard size={19}/>,title:"Punto de venta (POS)",desc:"Caja rápida con multipago, boleta térmica y gestión de mesas.",wide:false,from:"rgba(239,68,68,0.4)",to:"rgba(220,38,38,0.1)",ic:"rgba(239,68,68,0.7)"},
+  {icon:<BarChart3 size={19}/>,title:"Panel de ventas",desc:"Ventas del día y mes, ticket promedio, ranking de clientes y pedidos directos en tiempo real.",wide:true,from:"rgba(56,189,248,0.4)",to:"rgba(14,165,233,0.1)",ic:"rgba(56,189,248,0.7)"},
+  {icon:<Bell size={19}/>,title:"Notificaciones por área",desc:"Mesero, cajero y rider reciben solo lo que les corresponde. Menos ruido, más velocidad.",wide:false,from:"rgba(217,70,239,0.4)",to:"rgba(168,85,247,0.1)",ic:"rgba(217,70,239,0.7)"},
 ];
 
 const SectionFeatures = () => (
-  <section className="py-28 bg-[#040407]">
+  <section style={{ padding: "96px 0", background: "#060609" }}>
     <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-3">Todo incluido</p>
-        <h2
-          className="text-4xl md:text-5xl font-black text-white tracking-tight"
-          style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-        >
-          Un sistema. Sin fricción.
-        </h2>
-        <p className="text-white/45 text-lg mt-4" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-          Todo lo que necesitas para operar, vender y crecer sin depender de terceros.
-        </p>
+      <div style={{ textAlign: "center", maxWidth: 540, margin: "0 auto 56px" }}>
+        <p style={{ ...dm, color: "#a78bfa", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>Todo incluido</p>
+        <h2 style={{ ...sg, color: "white", fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 900, lineHeight: 1.08, letterSpacing: "-0.02em" }}>Un sistema. Sin fricción.</h2>
+        <p style={{ ...dm, color: "rgba(255,255,255,0.35)", fontSize: 16, marginTop: 12 }}>Todo lo que necesitas para operar, vender y crecer.</p>
       </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        {FEATURES.map((f, i) => (
-          <article
-            key={f.title}
-            className={`flex gap-5 rounded-2xl border p-7 transition-all duration-200 cursor-default
-              ${f.highlight
-                ? "md:col-span-2 border-violet-500/25 bg-violet-950/20 hover:bg-violet-950/30 hover:border-violet-500/40"
-                : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15"
-              }`}
-          >
-            <div className={`shrink-0 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center ${f.highlight ? "w-12 h-12" : "w-10 h-10"}`}>
-              {f.icon}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {FEATS.map(f=>(
+          <GB key={f.title} from={f.from} to={f.to} radius="1rem" bg="#0c0c17" className={f.wide ? "col-span-2" : ""} style={f.wide ? {gridColumn:"1/-1"} : {}}>
+            <div style={{ padding: "24px", display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: f.ic, display: "flex", alignItems: "center", justifyContent: "center", color: "white", flexShrink: 0, boxShadow: `0 4px 16px ${f.ic}` }}>{f.icon}</div>
+              <div style={{ maxWidth: f.wide ? 640 : "100%" }}>
+                <h3 style={{ ...sg, color: "white", fontWeight: 800, fontSize: 15, marginBottom: 6 }}>{f.title}</h3>
+                <p style={{ ...dm, color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>{f.desc}</p>
+              </div>
             </div>
-            <div className={f.highlight ? "md:max-w-3xl" : ""}>
-              <h3
-                className="text-white font-black text-lg mb-2"
-                style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-              >
-                {f.title}
-              </h3>
-              <p
-                className="text-white/50 text-sm leading-relaxed"
-                style={{ fontFamily: "var(--font-dm-sans, inherit)" }}
-              >
-                {f.desc}
-              </p>
-            </div>
-          </article>
+          </GB>
         ))}
       </div>
     </div>
   </section>
 );
 
-// ─── PRICING ─────────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   PRICING
+══════════════════════════════════════════════════════════════════ */
 const PLANS = [
-  {
-    name: "Basic",
-    price: "$7.900",
-    pitch: "Para dejar de pagar comisión desde ya.",
-    items: ["Carta QR con menú digital", "Pedidos por WhatsApp", "Gestión de mesas", "Soporte de arranque"],
-    cta: "Empezar con Basic",
-    style: "border-white/[0.1] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/20",
-    badge: null,
-  },
-  {
-    name: "Pro",
-    price: "$11.900",
-    pitch: "Para crecer con control total del día a día.",
-    items: ["Todo de Basic", "KDS de cocina", "Bot de WhatsApp 24/7", "Delivery con zonas y repartidores", "Panel de ventas y reportes"],
-    cta: "Elegir Pro",
-    style: "border-violet-500/40 bg-violet-950/25 hover:bg-violet-950/40 hover:border-violet-500/60",
-    badge: "Más elegido",
-  },
-  {
-    name: "Prime",
-    price: "$14.900",
-    pitch: "Para operar sin límites y escalar.",
-    items: ["Todo de Pro", "Multi-sucursal", "Kiosko de autoatención", "Pagos con Mercado Pago", "Soporte prioritario"],
-    cta: "Ir por Prime",
-    style: "border-amber-500/30 bg-amber-950/15 hover:bg-amber-950/25 hover:border-amber-500/50",
-    badge: null,
-  },
+  {name:"Basic",price:"$7.900",pitch:"Para dejar de pagar comisión desde ya.",items:["Carta QR con menú digital","Pedidos por WhatsApp","Gestión de mesas","Soporte de arranque"],cta:"Empezar con Basic",from:"rgba(255,255,255,0.12)",to:"rgba(255,255,255,0.04)",badge:null,ctaBg:"rgba(255,255,255,0.08)",bg:"#0c0c16"},
+  {name:"Pro",price:"$11.900",pitch:"Para crecer con control total del día a día.",items:["Todo de Basic","KDS de cocina","Bot de WhatsApp 24/7","Delivery con zonas","Panel de ventas y reportes"],cta:"Elegir Pro",from:"rgba(139,92,246,0.7)",via:"rgba(99,102,241,0.4)",to:"rgba(168,85,247,0.5)",badge:"Más elegido",ctaBg:"linear-gradient(135deg,#7c3aed,#6366f1)",bg:"#0f0f20"},
+  {name:"Prime",price:"$14.900",pitch:"Para operar sin límites y escalar.",items:["Todo de Pro","Multi-sucursal","Kiosko de autoatención","Pagos con Mercado Pago","Soporte prioritario"],cta:"Ir por Prime",from:"rgba(245,158,11,0.4)",to:"rgba(234,179,8,0.1)",badge:null,ctaBg:"rgba(255,255,255,0.08)",bg:"#0e0d0c"},
 ];
 
 const SectionPricing = () => (
-  <section id="planes" className="py-28 bg-[#060609]">
-    <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="text-center mb-16">
-        <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-3">Precios</p>
-        <h2
-          className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4"
-          style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-        >
-          Más barato que una semana<br className="hidden md:block" /> de comisiones.
-        </h2>
-        <p className="text-white/45 text-lg" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-          Elige un plan. Recupera margen. Cobra directo.
-        </p>
+  <section id="planes" style={{ padding: "96px 0", background: "#08080f", position: "relative", overflow: "hidden" }}>
+    <Aurora className="opacity-40"/>
+    <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div style={{ textAlign: "center", marginBottom: 56 }}>
+        <p style={{ ...dm, color: "#a78bfa", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 12 }}>Precios</p>
+        <h2 style={{ ...sg, color: "white", fontSize: "clamp(2rem,4vw,3.2rem)", fontWeight: 900, lineHeight: 1.08, letterSpacing: "-0.02em" }}>Más barato que una semana de comisiones.</h2>
+        <p style={{ ...dm, color: "rgba(255,255,255,0.35)", fontSize: 16, marginTop: 12 }}>Elige un plan. Recupera margen. Cobra directo.</p>
       </div>
-
-      <div className="grid md:grid-cols-3 gap-5">
-        {PLANS.map((p) => (
-          <div
-            key={p.name}
-            className={`rounded-3xl border ${p.style} p-7 flex flex-col relative transition-all duration-200`}
-          >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+        {PLANS.map(p=>(
+          <div key={p.name} style={{ position: "relative" }}>
             {p.badge && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-violet-500 text-white text-xs font-black whitespace-nowrap">
+              <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg,#7c3aed,#6366f1)", boxShadow: "0 4px 16px rgba(124,58,237,0.5)", padding: "4px 16px", borderRadius: 999, color: "white", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", zIndex: 1, ...sg }}>
                 {p.badge}
               </div>
             )}
-            <p className="text-white/30 text-xs font-black uppercase tracking-widest mb-2">Plan</p>
-            <h3 className="text-white text-3xl font-black" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{p.name}</h3>
-            <div className="flex items-end gap-1 mt-1 mb-1">
-              <span className="text-white text-4xl font-black" style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>{p.price}</span>
-              <span className="text-white/30 text-sm font-semibold mb-1">/mes</span>
-            </div>
-            <p className="text-white/45 text-sm mb-6" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>{p.pitch}</p>
-
-            <div className="space-y-2.5 mb-7 flex-1">
-              {p.items.map((item) => (
-                <div key={item} className="flex items-start gap-2">
-                  <CheckCircle2 size={15} className="text-[#25D366] mt-0.5 shrink-0" />
-                  <span className="text-white/65 text-sm" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>{item}</span>
+            <GB from={p.from} via={p.via} to={p.to} radius="1.25rem" bg={p.bg} className="h-full">
+              <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", height: "100%" }}>
+                <p style={{ ...dm, color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Plan</p>
+                <p style={{ ...sg, color: "white", fontWeight: 900, fontSize: 24, marginBottom: 4 }}>{p.name}</p>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginBottom: 6 }}>
+                  <span style={{ ...sg, color: "white", fontWeight: 900, fontSize: 36 }}>{p.price}</span>
+                  <span style={{ ...dm, color: "rgba(255,255,255,0.25)", fontSize: 13, paddingBottom: 6 }}>/mes</span>
                 </div>
-              ))}
-            </div>
-
-            <Link
-              href={WA}
-              target="_blank"
-              className="inline-flex justify-center items-center gap-2 py-3 px-5 rounded-xl bg-white/[0.08] hover:bg-white/[0.16] text-white font-black text-sm transition-all duration-200 cursor-pointer"
-            >
-              <MessageCircle size={15} />
-              {p.cta}
-            </Link>
+                <p style={{ ...dm, color: "rgba(255,255,255,0.35)", fontSize: 13, marginBottom: 24 }}>{p.pitch}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24, flex: 1 }}>
+                  {p.items.map(item=>(
+                    <div key={item} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <CheckCircle2 size={14} style={{ color: "#4ade80", flexShrink: 0, marginTop: 1 }}/>
+                      <span style={{ ...dm, color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link href={WA} target="_blank" style={{ ...sg, background: p.ctaBg, padding: "12px 20px", borderRadius: 12, color: "white", fontWeight: 800, fontSize: 13, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none", boxShadow: p.badge ? "0 4px 20px rgba(124,58,237,0.4)" : "none" }}>
+                  <MessageCircle size={14}/> {p.cta}
+                </Link>
+              </div>
+            </GB>
           </div>
         ))}
       </div>
-
-      <p className="text-center text-white/30 text-sm mt-8" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-        ¿Tienes dudas sobre qué plan elegir? Hablamos por WhatsApp y te recomendamos el mejor para tu negocio.
-      </p>
+      <p style={{ ...dm, color: "rgba(255,255,255,0.2)", fontSize: 12, textAlign: "center", marginTop: 24 }}>¿Tienes dudas sobre qué plan elegir? Hablamos por WhatsApp y te recomendamos el mejor.</p>
     </div>
   </section>
 );
 
-// ─── FINAL CTA ───────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   FINAL CTA
+══════════════════════════════════════════════════════════════════ */
 const SectionFinalCTA = () => (
-  <section className="py-32 bg-[#040407] relative overflow-hidden">
-    <div className="pointer-events-none absolute inset-0">
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-violet-600/[0.1] blur-[130px] rounded-full" />
-    </div>
-
-    <div className="relative max-w-4xl mx-auto px-5 sm:px-8 text-center">
-      <Zap className="text-violet-400 mx-auto mb-6" size={36} />
-      <h2
-        className="text-5xl md:text-7xl font-black text-white leading-[1.03] tracking-tight mb-5"
-        style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}
-      >
-        Deja de pagar comisiones.
-        <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-emerald-400">
+  <section style={{ padding: "120px 0", background: "#060609", position: "relative", overflow: "hidden" }}>
+    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 800, height: 500, background: "radial-gradient(ellipse,rgba(124,58,237,0.15) 0%,rgba(37,211,102,0.05) 50%,transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }}/>
+    <Dots opacity={0.4}/>
+    <div className="relative max-w-3xl mx-auto px-5 sm:px-8 text-center">
+      <div style={{ width: 56, height: 56, borderRadius: 16, background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px", boxShadow: "0 0 30px rgba(139,92,246,0.2)" }}>
+        <Zap style={{ color: "#a78bfa" }} size={26}/>
+      </div>
+      <h2 style={{ ...sg, color: "white", fontSize: "clamp(2.4rem,5vw,4rem)", fontWeight: 900, lineHeight: 1.04, letterSpacing: "-0.02em", marginBottom: 20 }}>
+        Deja de pagar comisiones.{" "}
+        <span style={{ background: "linear-gradient(135deg,#25D366,#4ade80)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           Empieza a cobrar directo hoy.
         </span>
       </h2>
-      <p className="text-white/50 text-xl mb-10 leading-relaxed max-w-2xl mx-auto" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-        Más dinero por orden. Clientes que son tuyos. Control total del negocio. Todo empieza con un QR y WhatsApp.
+      <p style={{ ...dm, color: "rgba(255,255,255,0.4)", fontSize: 18, marginBottom: 40, lineHeight: 1.65 }}>
+        Más dinero por orden. Clientes que son tuyos. Control total.
       </p>
-
-      <Link
-        href={WA}
-        target="_blank"
-        className="inline-flex items-center gap-2.5 px-10 py-5 rounded-2xl bg-[#25D366] hover:bg-[#20c05c] text-white text-lg font-black transition-all duration-200 shadow-2xl shadow-[#25D366]/25 cursor-pointer"
-      >
-        <MessageCircle size={22} />
-        Hablar por WhatsApp ahora
+      <Link href={WA} target="_blank" style={{ ...sg, background: "linear-gradient(135deg,#25D366,#1db954)", boxShadow: "0 8px 40px rgba(37,211,102,0.35)", padding: "18px 40px", borderRadius: 16, color: "white", fontWeight: 900, fontSize: 16, display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <MessageCircle size={20}/> Hablar por WhatsApp ahora
       </Link>
-
-      <p className="mt-5 text-white/25 text-sm font-semibold" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-        Sin contratos. Sin permanencia. Activa hoy.
-      </p>
+      <p style={{ ...dm, color: "rgba(255,255,255,0.18)", fontSize: 12, marginTop: 20 }}>Sin contratos. Sin permanencia. Activa hoy.</p>
     </div>
   </section>
 );
 
-// ─── FOOTER ──────────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════════════════════════ */
 const Footer = () => (
-  <footer className="bg-[#030306] border-t border-white/[0.06] py-10">
-    <div className="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-      <Link href="/home" className="flex items-center gap-2.5 text-white font-black text-lg cursor-pointer">
-        <img src="/logo.png" alt="PandaPOS" className="w-8 h-8 object-contain" />
-        <span style={{ fontFamily: "var(--font-space-grotesk, inherit)" }}>PandaPOS</span>
+  <footer style={{ background: "#040407", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "36px 0" }}>
+    <div className="max-w-6xl mx-auto px-5 sm:px-8" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <Link href="/home" style={{ display: "flex", alignItems: "center", gap: 8, color: "white", fontWeight: 800, fontSize: 16, textDecoration: "none", ...sg }}>
+        <img src="/logo.png" alt="PandaPOS" style={{ width: 28, height: 28, objectFit: "contain" }}/>
+        PandaPOS
       </Link>
-      <p className="text-white/25 text-sm" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-        © {new Date().getFullYear()} PandaPOS · Todos los derechos reservados
-      </p>
-      <Link
-        href={WA}
-        target="_blank"
-        className="text-[#25D366] hover:text-[#20c05c] text-sm font-bold transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
-      >
-        <MessageCircle size={14} /> WhatsApp
+      <p style={{ ...dm, color: "rgba(255,255,255,0.18)", fontSize: 12 }}>© {new Date().getFullYear()} PandaPOS · Todos los derechos reservados</p>
+      <Link href={WA} target="_blank" style={{ ...dm, color: "#25D366", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
+        <MessageCircle size={13}/> WhatsApp
       </Link>
     </div>
   </footer>
 );
 
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE
+══════════════════════════════════════════════════════════════════ */
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#060609] selection:bg-violet-500/30 selection:text-violet-100" style={{ fontFamily: "var(--font-dm-sans, inherit)" }}>
-      <Navbar />
+    <div style={{ minHeight: "100vh", background: "#08080f", ...dm }}>
+      <Navbar/>
       <main>
-        <Hero />
-        <SectionProblem />
-        <SectionSolution />
-        <SectionBenefits />
-        <SectionDifferentiator />
-        <SectionPower />
-        <SectionSocialProof />
-        <SectionFeatures />
-        <SectionPricing />
-        <SectionFinalCTA />
+        <Hero/>
+        <StatsBar/>
+        <SectionProblem/>
+        <SectionSolution/>
+        <SectionPower/>
+        <SectionSocialProof/>
+        <SectionFeatures/>
+        <SectionPricing/>
+        <SectionFinalCTA/>
       </main>
-      <Footer />
+      <Footer/>
     </div>
   );
 }
