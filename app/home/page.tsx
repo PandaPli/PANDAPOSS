@@ -389,62 +389,64 @@ const SectionSocialProof = () => (
 const FEATURES = [
   {
     icon: "🖥️",
-    title: "KDS en tiempo real",
-    desc: "Pantalla de cocina con pedidos al instante desde mesa, delivery, retiro, kiosko y WhatsApp. Cocina sin papel, sin gritos.",
+    title: "KDS — Cocina en tiempo real",
+    desc: "Pantallas de cocina que reciben pedidos al instante desde cualquier canal: mesa, delivery, retiro, kiosko y WhatsApp. Filtra por estación (Cocina / Bar), muestra el tiempo de espera y permite avanzar el estado con un toque. Cuando el pedido está listo, notifica automáticamente al área correcta: Mesero, Cajero o Rider.",
   },
   {
     icon: "🤖",
     title: "Bot de WhatsApp 24/7",
-    desc: "Atiende, arma carrito, confirma y envía al sistema sin intervención humana. Vende mientras duermes.",
+    desc: "Atiende pedidos de forma automática las 24 horas. El cliente escribe lo que quiere en lenguaje natural, el bot arma el carrito, pregunta retiro o delivery, dirección y método de pago. El pedido entra directo al KDS sin intervención humana.",
   },
   {
     icon: "🛒",
     title: "Carta online y kiosko",
-    desc: "Menú digital por QR desde cualquier dispositivo. Pago con Mercado Pago, transferencia o efectivo.",
+    desc: "Menú digital accesible desde cualquier dispositivo por link o QR. El cliente elige productos, personaliza ingredientes, selecciona zona de delivery o retiro y paga. Acepta Mercado Pago, transferencia, efectivo y tarjeta. Incluye flujo de autoatención presencial.",
   },
   {
     icon: "🚴",
     title: "Gestión de delivery",
-    desc: "Asignación de repartidores, zonas con precios diferenciados y seguimiento del pedido en tiempo real.",
+    desc: "Panel completo para administrar pedidos a domicilio: asignación de repartidores, seguimiento de estado en tiempo real, zonas de despacho configurables con precios diferenciados y app para el rider. El cliente recibe confirmación y puede rastrear su pedido.",
   },
   {
     icon: "💳",
     title: "Punto de venta (POS)",
-    desc: "Caja rápida con pagos mixtos, impresión térmica y gestión de mesas. Todo integrado, todo en uno.",
+    desc: "Caja rápida para ventas presenciales con multipago (efectivo, tarjeta, transferencia, mixto), impresión de boleta térmica y gestión de mesas. La caja define el horario real del local: si está abierta, la carta acepta pedidos; si está cerrada, el local aparece como no disponible automáticamente.",
   },
   {
     icon: "📊",
     title: "Panel de ventas",
-    desc: "Ventas del día, ticket promedio, métodos de pago y ranking de clientes. Datos para decidir mejor.",
+    desc: "Dashboard con ventas del día, del mes, comparativo con el mes anterior, ticket promedio, métodos de pago y gráficos de tendencia. Incluye ranking de clientes frecuentes y mayores gastadores, más vista en tiempo real de todos los pedidos directos (kiosko, delivery, retiro) con su estado actual.",
   },
   {
     icon: "🔔",
-    title: "Notificaciones por rol",
-    desc: "Mesero, cajero y rider reciben solo lo que les corresponde. Menos ruido, más velocidad.",
-  },
-  {
-    icon: "🏪",
-    title: "Multi-sucursal",
-    desc: "Gestión de múltiples locales desde una sola plataforma. Roles, reportes y menú por sucursal.",
+    title: "Notificaciones por área",
+    desc: "Cuando un pedido está listo, el sistema avisa a quien corresponde: el mesero para mesas, el cajero para retiros con notificación flotante en caja, el rider para delivery. Cada área ve solo lo que le compete. Menos ruido, más velocidad en cada turno.",
   },
 ];
 
 const SectionFeatures = () => (
   <section className="py-28 bg-[#040407]">
     <div className="max-w-6xl mx-auto px-5 sm:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-14">
+      <div className="text-center max-w-3xl mx-auto mb-16">
         <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-3">Todo incluido</p>
         <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Un sistema. Sin fricción.</h2>
         <p className="text-white/45 text-lg mt-4">Todo lo que necesitas para operar, vender y crecer sin depender de terceros.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-3">
-        {FEATURES.map((f) => (
-          <article key={f.title} className="flex items-start gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-            <span className="text-2xl shrink-0 mt-0.5">{f.icon}</span>
-            <div>
-              <h3 className="text-white font-black mb-1">{f.title}</h3>
-              <p className="text-white/45 text-sm leading-relaxed">{f.desc}</p>
+      <div className="grid md:grid-cols-2 gap-4">
+        {FEATURES.map((f, i) => (
+          <article
+            key={f.title}
+            className={`rounded-2xl border border-white/[0.08] bg-white/[0.02] p-7 flex gap-5 ${
+              i === 0 ? "md:col-span-2 md:flex-row items-start" : ""
+            }`}
+          >
+            <div className={`shrink-0 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center ${i === 0 ? "w-14 h-14 text-3xl" : "w-12 h-12 text-2xl"}`}>
+              {f.icon}
+            </div>
+            <div className={i === 0 ? "md:max-w-3xl" : ""}>
+              <h3 className="text-white font-black text-lg mb-2">{f.title}</h3>
+              <p className="text-white/50 text-sm leading-relaxed">{f.desc}</p>
             </div>
           </article>
         ))}
