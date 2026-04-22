@@ -36,9 +36,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Este pedido ya tiene repartidor asignado" }, { status: 409 });
   }
 
-  // Generar código de entrega
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const codigoEntrega = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  // Generar código de entrega numérico de 4 dígitos
+  const codigoEntrega = String(Math.floor(1000 + Math.random() * 9000));
 
   // Buscar el id del Repartidor record (puede no existir aún)
   const repartidorRecord = await prisma.repartidor.upsert({

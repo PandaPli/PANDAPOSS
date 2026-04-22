@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bike, Clock3, MapPin, PackageCheck, RefreshCw, ShieldCheck } from "lucide-react";
+import { Bike, Clock3, MapPin, PackageCheck, RefreshCw, ShieldCheck, Navigation } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { getDeliveryProgressValue, getDeliveryStageLabel } from "@/lib/delivery";
 import type { DeliveryPedidoPublico } from "@/types";
@@ -108,6 +108,27 @@ export function TrackOrderClient({ initialData }: Props) {
               </div>
             </div>
 
+            {/* Dónde va mi pedido — Google Maps */}
+            {data.direccionEntrega && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.direccionEntrega)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 flex items-center justify-between gap-4 rounded-[1.5rem] border border-blue-400/30 bg-blue-500/10 p-4 transition hover:bg-blue-500/20 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-500/20">
+                    <MapPin size={18} className="text-blue-300" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-300">Dónde va mi pedido</p>
+                    <p className="mt-0.5 text-sm text-white/70 line-clamp-1">{data.direccionEntrega}</p>
+                  </div>
+                </div>
+                <Navigation size={18} className="shrink-0 text-blue-300 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </a>
+            )}
+
             {/* Código de entrega — visible cuando el rider está en camino */}
             {"codigoEntrega" in data && data.codigoEntrega && (
               <div className="mt-4 rounded-[1.5rem] border border-amber-400/40 bg-amber-400/15 p-5 text-center">
@@ -115,7 +136,7 @@ export function TrackOrderClient({ initialData }: Props) {
                   <ShieldCheck size={18} className="text-amber-300" />
                   <p className="text-xs uppercase tracking-[0.25em] font-bold text-amber-300">Tu código de entrega</p>
                 </div>
-                <p className="text-4xl font-black tracking-[0.4em] text-white mt-1">{data.codigoEntrega}</p>
+                <p className="text-5xl font-black tracking-[0.5em] text-white mt-1">{data.codigoEntrega}</p>
                 <p className="text-xs text-white/60 mt-3">Entrega este código al repartidor cuando llegue a tu puerta</p>
               </div>
             )}

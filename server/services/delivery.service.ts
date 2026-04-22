@@ -15,8 +15,8 @@ interface ZonaConfig {
 }
 
 function generarCodigoEntrega(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  // Código numérico de 4 dígitos (1000–9999)
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
 interface DeliveryItemInput {
