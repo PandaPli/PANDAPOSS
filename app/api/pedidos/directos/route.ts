@@ -8,7 +8,7 @@ function parseObs(obs: string | null): { clienteNombre: string | null; metodoPag
   if (!obs) return { clienteNombre: null, metodoPago: null, esRetiro: false };
   try {
     // Formato JSON embebido: {"clienteNombre":"...","metodoPago":"...","cargoEnvio":0,...}
-    const jsonMatch = obs.match(/\{.*\}/s);
+    const jsonMatch = obs.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const data = JSON.parse(jsonMatch[0]);
       return {

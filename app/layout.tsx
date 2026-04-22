@@ -8,7 +8,7 @@ const outfit = Outfit({ subsets: ["latin"] });
 // Fuentes para la landing page pública
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-space-grotesk",
 });
 const dmSans = DM_Sans({
