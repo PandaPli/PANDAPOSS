@@ -307,6 +307,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     const style   = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
     const isSelected = selectedId === pedido.id;
     const hora    = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const cardEsRetiro = /retiro/i.test(pedido.zonaDelivery ?? "") || (!pedido.zonaDelivery && !pedido.direccionEntrega);
 
     return (
       <button
@@ -337,13 +338,18 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         {/* Total */}
         <p className="text-base font-black text-surface-text leading-none mt-auto">{formatCurrency(pedido.total)}</p>
 
-        {/* Indicador repartidor */}
-        {pedido.repartidor && (
+        {/* Indicador modo */}
+        {cardEsRetiro ? (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Package2 size={10} className="shrink-0 text-emerald-500" />
+            <span className="text-[10px] font-bold text-emerald-600">Retiro en local</span>
+          </div>
+        ) : pedido.repartidor ? (
           <div className="flex items-center gap-1 mt-0.5">
             <Bike size={10} className="shrink-0 text-brand-400" />
             <span className="text-[10px] text-surface-muted truncate">{pedido.repartidor.nombre}</span>
           </div>
-        )}
+        ) : null}
       </button>
     );
   }
@@ -363,6 +369,9 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     const loading = loadingPedidoId === pedido.id;
     const style   = STAGE_STYLE[pedido.estado as keyof typeof STAGE_STYLE] ?? STAGE_STYLE.PENDIENTE;
     const hora    = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const esRetiro =
+      /retiro/i.test(pedido.zonaDelivery ?? "") ||
+      (!pedido.zonaDelivery && !pedido.direccionEntrega);
 
     return (
       <div className="rounded-2xl border border-surface-border bg-white shadow-sm overflow-hidden">
@@ -412,28 +421,41 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             )}
           </div>
 
-          {/* Dirección */}
-          <div className="flex items-start gap-2.5 rounded-xl bg-surface-bg px-4 py-3">
-            <MapPin size={15} className="mt-0.5 shrink-0 text-brand-400" />
-            <p className="text-sm text-surface-muted leading-snug">
-              {pedido.direccionEntrega ?? "Sin dirección"}
-              {pedido.referencia ? <span className="text-surface-muted/60"> · {pedido.referencia}</span> : null}
-              {pedido.departamento ? <span className="text-surface-muted/60"> · {pedido.departamento}</span> : null}
+          {/* Dirección / Retiro */}
+          <div className={cn(
+            "flex items-start gap-2.5 rounded-xl px-4 py-3",
+            esRetiro ? "bg-emerald-50 border border-emerald-200" : "bg-surface-bg"
+          )}>
+            {esRetiro
+              ? <Package2 size={15} className="mt-0.5 shrink-0 text-emerald-600" />
+              : <MapPin size={15} className="mt-0.5 shrink-0 text-brand-400" />
+            }
+            <p className={cn("text-sm leading-snug", esRetiro ? "font-bold text-emerald-700" : "text-surface-muted")}>
+              {esRetiro ? "Retiro en local" : (pedido.direccionEntrega ?? "Sin dirección")}
+              {!esRetiro && pedido.referencia ? <span className="text-surface-muted/60"> · {pedido.referencia}</span> : null}
+              {!esRetiro && pedido.departamento ? <span className="text-surface-muted/60"> · {pedido.departamento}</span> : null}
             </p>
           </div>
 
-          {/* Pago + repartidor */}
+          {/* Pago + repartidor/modo */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
               <Wallet size={13} className="shrink-0 text-brand-400" />
               <span className="text-sm font-semibold text-surface-text truncate">{pedido.metodoPago}</span>
             </div>
-            <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
-              <Bike size={13} className="shrink-0 text-brand-400" />
-              <span className={cn("text-sm truncate", pedido.repartidor ? "font-semibold text-surface-text" : "italic text-surface-muted/60")}>
-                {pedido.repartidor?.nombre ?? "Sin repartidor"}
-              </span>
-            </div>
+            {esRetiro ? (
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+                <Package2 size={13} className="shrink-0 text-emerald-600" />
+                <span className="text-sm font-bold text-emerald-700 truncate">Retiro en local</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
+                <Bike size={13} className="shrink-0 text-brand-400" />
+                <span className={cn("text-sm truncate", pedido.repartidor ? "font-semibold text-surface-text" : "italic text-surface-muted/60")}>
+                  {pedido.repartidor?.nombre ?? "Sin repartidor"}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Productos */}
@@ -466,7 +488,8 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           {(isAdmin || rol === "DELIVERY") && pedido.estado !== "ENTREGADO" && (
             <div className="flex flex-col gap-3">
 
-              {isAdmin && (
+              {/* Selector de repartidor — solo para pedidos DELIVERY (no retiro) */}
+              {isAdmin && !esRetiro && (
                 <select
                   value={pedido.repartidorId ?? ""}
                   onChange={(e) => void assignDriver(pedido.id, e.target.value)}
@@ -523,18 +546,22 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                   {!loading && <ArrowRight size={16} className="ml-auto opacity-60" />}
                 </button>
               )}
-              {pedido.estado === "LISTO" && pedido.repartidorId && (
+              {/* Confirmar entrega: retiro no necesita repartidor */}
+              {pedido.estado === "LISTO" && (esRetiro || pedido.repartidorId) && (
                 <button
                   onClick={() => void updateStatus(pedido.id, "ENTREGADO")}
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-600 py-4 text-base font-bold text-white shadow-sm transition active:scale-95 hover:bg-emerald-700 disabled:opacity-50"
+                  className={cn(
+                    "flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-base font-bold text-white shadow-sm transition active:scale-95 disabled:opacity-50",
+                    esRetiro ? "bg-emerald-600 hover:bg-emerald-700" : "bg-emerald-600 hover:bg-emerald-700"
+                  )}
                 >
-                  {loading ? <RefreshCw size={18} className="animate-spin" /> : <Route size={18} />}
-                  Confirmar entrega
+                  {loading ? <RefreshCw size={18} className="animate-spin" /> : esRetiro ? <Package2 size={18} /> : <Route size={18} />}
+                  {esRetiro ? "Confirmar retiro" : "Confirmar entrega"}
                   {!loading && <ArrowRight size={16} className="ml-auto opacity-60" />}
                 </button>
               )}
-              {pedido.estado === "LISTO" && !pedido.repartidorId && (
+              {pedido.estado === "LISTO" && !esRetiro && !pedido.repartidorId && (
                 <div className="flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3.5">
                   <Bike size={16} className="shrink-0 text-violet-500" />
                   <p className="text-sm font-semibold text-violet-700">Asigna un repartidor para despachar.</p>

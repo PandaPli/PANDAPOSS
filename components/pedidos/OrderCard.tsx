@@ -11,7 +11,12 @@ import { useState } from "react";
 type Modalidad = "MESA" | "RETIRO" | "KIOSKO" | "DELIVERY" | "MOSTRADOR";
 
 function detectarModalidad(pedido: PedidoConDetalles): Modalidad {
-  if (pedido.tipo === "DELIVERY") return "DELIVERY";
+  if (pedido.tipo === "DELIVERY") {
+    // Si zonaDelivery dice "retiro", es un pedido de retiro en local
+    const zona = pedido.delivery?.zonaDelivery ?? "";
+    if (/retiro/i.test(zona)) return "RETIRO";
+    return "DELIVERY";
+  }
   if (pedido.mesa) return "MESA";
   const obs = pedido.observacion ?? "";
   if (obs.includes("KIOSKO")) return "KIOSKO";
