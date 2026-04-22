@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, MapPin,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
-  Flame, ChefHat, Truck, LayoutList, TrendingUp, Timer, Star, ArrowRight,
+  Flame, ChefHat, Truck, LayoutList, ArrowRight,
   Package2, Printer, XCircle,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -596,44 +596,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         </div>
       )}
 
-      {/* ── Panel de resumen (estilo mesas) ── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { label: "Por Aceptar", value: counts.pendiente,          color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   dot: "bg-amber-400"   },
-          { label: "En Cocina",  value: counts.en_proceso,         color: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",    dot: "bg-blue-500"    },
-          { label: "En Ruta",    value: counts.listo,              color: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200",  dot: "bg-violet-500"  },
-          { label: "Entregados", value: stats.entregados,          color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500" },
-        ].map(({ label, value, color, bg, border, dot }) => (
-          <div key={label} className={cn("rounded-2xl border-2 px-5 py-4 shadow-sm", bg, border)}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={cn("h-2.5 w-2.5 rounded-full", dot)} />
-              <p className={cn("text-sm font-bold", color)}>{label}</p>
-            </div>
-            <p className={cn("text-4xl font-black leading-none", color)}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Stats secundarias (colapsibles) ── */}
-      <div className="grid grid-cols-3 gap-3 xl:grid-cols-3">
-        {[
-          { label: "Hoy",         value: stats.pedidosHoy,                    icon: Star,        color: "text-brand-500",   bg: "bg-brand-50"   },
-          { label: "Tiempo prom", value: `${stats.tiempoPromedio} min`,        icon: Timer,       color: "text-blue-500",    bg: "bg-blue-50"    },
-          { label: "Ventas hoy",  value: formatCurrency(stats.ventasDelivery), icon: TrendingUp,  color: "text-rose-500",    bg: "bg-rose-50"    },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="rounded-2xl border border-surface-border bg-white px-4 py-3 shadow-sm flex items-center gap-3">
-            <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", bg)}>
-              <Icon size={15} className={color} />
-            </div>
-            <div>
-              <p className="text-lg font-black text-surface-text leading-none">{value}</p>
-              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-surface-muted">{label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Toolbar: filtros + ingreso manual ── */}
+      {/* ── Toolbar: filtros + stats compactas + ingreso manual ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {([
@@ -662,16 +625,31 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           ))}
         </div>
 
-        <button
-          onClick={() => setShowIngreso((v) => !v)}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white transition-all active:scale-95 shadow",
-            showIngreso ? "bg-brand-800" : "bg-brand-600 hover:bg-brand-700"
-          )}
-        >
-          <Plus size={18} />
-          Ingreso Manual
-        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Stats contextuales compactas */}
+          <div className="hidden sm:flex items-center gap-1 divide-x divide-surface-border rounded-2xl border border-surface-border bg-white px-1 h-11">
+            <div className="flex items-center gap-1.5 px-3">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-[11px] font-black text-surface-text tabular-nums">{stats.entregados}</span>
+              <span className="text-[11px] text-surface-muted uppercase tracking-wider font-semibold">entregados</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3">
+              <span className="text-[11px] font-black text-surface-text">{formatCurrency(stats.ventasDelivery)}</span>
+              <span className="text-[11px] text-surface-muted uppercase tracking-wider font-semibold">hoy</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowIngreso((v) => !v)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white transition-all active:scale-95 shadow",
+              showIngreso ? "bg-brand-800" : "bg-brand-600 hover:bg-brand-700"
+            )}
+          >
+            <Plus size={18} />
+            Ingreso Manual
+          </button>
+        </div>
       </div>
 
       {/* ── Ingreso Manual ── */}
