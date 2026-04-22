@@ -117,7 +117,7 @@ const Hero = () => (
       <div className="mt-16 grid grid-cols-3 gap-4 max-w-xl">
         {[
           { val: "0%", label: "Comisión por orden" },
-          { val: "30%", label: "Margen que recuperás" },
+          { val: "30%", label: "Margen que recuperas" },
           { val: "24/7", label: "Pedidos automáticos" },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
@@ -165,7 +165,7 @@ const SectionProblem = () => (
 
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
           <Users className="text-rose-400 mb-4" size={26} />
-          <h3 className="text-white font-black text-xl mb-2">No sos dueño de tus clientes</h3>
+          <h3 className="text-white font-black text-xl mb-2">No eres dueño de tus clientes</h3>
           <p className="text-white/50 text-sm leading-relaxed">
             La app tiene el contacto, los datos y la recompra. Cuando el cliente vuelve, vuelve a la app — no a tu local.
           </p>
@@ -173,7 +173,7 @@ const SectionProblem = () => (
 
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
           <BadgeDollarSign className="text-amber-400 mb-4" size={26} />
-          <h3 className="text-white font-black text-xl mb-2">Promos que pagás vos</h3>
+          <h3 className="text-white font-black text-xl mb-2">Promos que pagas tú</h3>
           <p className="text-white/50 text-sm leading-relaxed">
             Descuentos, envíos gratis, posicionamiento pago. La app te cobra por existir en su plataforma.
           </p>
@@ -193,7 +193,7 @@ const SectionSolution = () => (
           Tu canal. Tu margen.<br />Tus clientes.
         </h2>
         <p className="text-white/50 text-lg mt-5 leading-relaxed">
-          PandaPOS te da todo lo que necesitás para vender directo — sin depender de ninguna app.
+          PandaPOS te da todo lo que necesitas para vender directo — sin depender de ninguna app.
         </p>
       </div>
 
@@ -248,11 +248,11 @@ const SectionBenefits = () => (
           {
             icon: <TrendingUp size={22} className="text-violet-300" />,
             title: "Más ganancia por orden",
-            desc: "Si no pagás comisión, tu margen sube desde el primer pedido. Sin cambiar precios.",
+            desc: "Si no pagas comisión, tu margen sube desde el primer pedido. Sin cambiar precios.",
           },
           {
             icon: <Users size={22} className="text-indigo-300" />,
-            title: "Clientes que vuelven a vos",
+            title: "Clientes que vuelven a ti",
             desc: "El contacto es tuyo. La relación es tuya. Ellos vuelven a tu local, no a la app.",
           },
           {
@@ -292,7 +292,7 @@ const SectionDifferentiator = () => (
           </span>
         </h2>
         <p className="text-white/50 text-xl max-w-2xl mx-auto leading-relaxed">
-          Cuando controlás el canal de venta, controlás el negocio. Más margen, más recompra, más independencia para crecer sin pedirle permiso a nadie.
+          Cuando controlas el canal de venta, controlas el negocio. Más margen, más recompra, más independencia para crecer sin pedirle permiso a nadie.
         </p>
       </div>
     </div>
@@ -307,10 +307,10 @@ const SectionPower = () => (
         <div>
           <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-4">El ciclo que cambia todo</p>
           <h2 className="text-4xl md:text-6xl font-black text-white leading-[1.05] tracking-tight mb-5">
-            Convertí cada boleta en una nueva venta.
+            Convierte cada boleta en una nueva venta.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Imprimí tu QR en la boleta. El cliente llega a casa, escanea y te vuelve a pedir por WhatsApp. Sin que vos hagas nada. Sin que la app se lleve su parte.
+            Imprime tu QR en la boleta. El cliente llega a casa, escanea y te vuelve a pedir por WhatsApp. Sin que tú hagas nada. Sin que la app se lleve su parte.
           </p>
           <Link
             href={WA}
@@ -338,7 +338,7 @@ const SectionPower = () => (
             {
               icon: <MessageCircle size={20} className="text-[#25D366]" />,
               label: "Nuevo pedido, cero comisión",
-              desc: "El pedido llega directo. Vos cobrás el 100%. La app no existe.",
+              desc: "El pedido llega directo. Tú cobras el 100%. La app no existe.",
               border: "border-[#25D366]/25",
             },
           ].map((step, i) => (
@@ -395,7 +395,7 @@ const FEATURES = [
   {
     icon: "🤖",
     title: "Bot de WhatsApp 24/7",
-    desc: "Atiende, arma carrito, confirma y envía al sistema sin intervención humana. Vende mientras dormís.",
+    desc: "Atiende, arma carrito, confirma y envía al sistema sin intervención humana. Vende mientras duermes.",
   },
   {
     icon: "🛒",
@@ -435,7 +435,7 @@ const SectionFeatures = () => (
       <div className="text-center max-w-3xl mx-auto mb-14">
         <p className="text-violet-400 text-xs font-black tracking-widest uppercase mb-3">Todo incluido</p>
         <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Un sistema. Sin fricción.</h2>
-        <p className="text-white/45 text-lg mt-4">Todo lo que necesitás para operar, vender y crecer sin depender de terceros.</p>
+        <p className="text-white/45 text-lg mt-4">Todo lo que necesitas para operar, vender y crecer sin depender de terceros.</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-3">
@@ -509,7 +509,7 @@ const SectionPricing = () => (
         <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-4">
           Más barato que una semana<br className="hidden md:block" /> de comisiones.
         </h2>
-        <p className="text-white/45 text-lg">Elegís plan. Recuperás margen. Cobrás directo.</p>
+        <p className="text-white/45 text-lg">Elige un plan. Recupera margen. Cobra directo.</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-5">
@@ -550,7 +550,7 @@ const SectionPricing = () => (
       </div>
 
       <p className="text-center text-white/30 text-sm mt-8">
-        ¿Tenés dudas sobre qué plan elegir? Hablamos por WhatsApp y te recomendamos el mejor para tu negocio.
+        ¿Tienes dudas sobre qué plan elegir? Hablamos por WhatsApp y te recomendamos el mejor para tu negocio.
       </p>
     </div>
   </section>
@@ -566,9 +566,9 @@ const SectionFinalCTA = () => (
     <div className="relative max-w-4xl mx-auto px-5 sm:px-8 text-center">
       <Zap className="text-violet-400 mx-auto mb-6" size={36} />
       <h2 className="text-5xl md:text-7xl font-black text-white leading-[1.03] tracking-tight mb-5">
-        Dejá de pagar comisiones.
+        Deja de pagar comisiones.
         <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-emerald-400">
-          Empezá a cobrar directo hoy.
+          Empieza a cobrar directo hoy.
         </span>
       </h2>
       <p className="text-white/50 text-xl mb-10 leading-relaxed max-w-2xl mx-auto">
@@ -584,7 +584,7 @@ const SectionFinalCTA = () => (
         Hablar por WhatsApp ahora
       </Link>
 
-      <p className="mt-5 text-white/25 text-sm font-semibold">Sin contratos. Sin permanencia. Activás hoy.</p>
+      <p className="mt-5 text-white/25 text-sm font-semibold">Sin contratos. Sin permanencia. Activa hoy.</p>
     </div>
   </section>
 );
