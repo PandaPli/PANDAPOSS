@@ -77,10 +77,28 @@ interface Props {
   onOrderCreated: (pedido: { id: number; clienteNombre: string; telefono: string; direccion: string; referencia: string }) => void;
 }
 
-const METODOS: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
-  { key: "EFECTIVO", label: "Efectivo", icon: <Banknote size={16} /> },
-  { key: "TARJETA", label: "Tarjeta", icon: <CreditCard size={16} /> },
-  { key: "TRANSFERENCIA", label: "Transferencia", icon: <ArrowLeftRight size={16} /> },
+const METODOS: { key: MetodoPago; label: string; icon: React.ReactNode; active: string; inactive: string }[] = [
+  {
+    key: "EFECTIVO",
+    label: "Efectivo",
+    icon: <Banknote size={16} />,
+    active:   "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-200",
+    inactive: "border-stone-200 bg-stone-50 text-stone-500 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700",
+  },
+  {
+    key: "TARJETA",
+    label: "Tarjeta",
+    icon: <CreditCard size={16} />,
+    active:   "border-blue-500 bg-blue-500 text-white shadow-sm shadow-blue-200",
+    inactive: "border-stone-200 bg-stone-50 text-stone-500 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700",
+  },
+  {
+    key: "TRANSFERENCIA",
+    label: "Transferencia",
+    icon: <ArrowLeftRight size={16} />,
+    active:   "border-violet-500 bg-violet-500 text-white shadow-sm shadow-violet-200",
+    inactive: "border-stone-200 bg-stone-50 text-stone-500 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700",
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -114,6 +132,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [librePrecio, setLibrePrecio] = useState("");;
 
   /* ── Descuentos ── */
+  const [showDescuentos, setShowDescuentos] = useState(false);
   const [descPorcentaje, setDescPorcentaje] = useState(0);
   const [codigoCupon, setCodigoCupon] = useState("");
   const [cuponAplicado, setCuponAplicado] = useState<CuponAplicado | null>(null);
@@ -562,10 +581,8 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                     key={m.key}
                     onClick={() => setMetodo(m.key)}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-2xl border-2 py-3 text-xs font-bold transition",
-                      metodo === m.key
-                        ? "border-brand-500 bg-brand-50 text-brand-700"
-                        : "border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300"
+                      "flex flex-col items-center gap-1.5 rounded-2xl border-2 py-3 text-xs font-bold transition-all active:scale-95",
+                      metodo === m.key ? m.active : m.inactive
                     )}
                   >
                     {m.icon}
@@ -575,86 +592,118 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
               </div>
             </div>
 
-            {/* ── Descuentos ── */}
-            <div className="rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 flex items-center gap-1.5">
-                <Tag size={12} />
-                Descuentos
-              </p>
-
-              {/* % descuento manual */}
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-stone-500">Descuento %</label>
-                <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                  <Percent size={14} className="flex-shrink-0 text-stone-400" />
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={descPorcentaje || ""}
-                    onChange={(e) => setDescPorcentaje(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                    placeholder="0"
-                    className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
-                  />
-                  {descPorcentaje > 0 && (
-                    <span className="text-xs font-bold text-emerald-600">
-                      -{formatCurrency(descuentoPorcentajeMonto, simbolo)}
+            {/* ── Descuentos (colapsible) ── */}
+            <div className={cn(
+              "rounded-2xl border-2 border-dashed transition-colors",
+              showDescuentos || descuentoTotal > 0
+                ? "border-emerald-200 bg-emerald-50/60"
+                : "border-stone-200 bg-stone-50/60"
+            )}>
+              {/* Header toggle */}
+              <button
+                type="button"
+                onClick={() => setShowDescuentos((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3"
+              >
+                <span className={cn(
+                  "flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest",
+                  showDescuentos || descuentoTotal > 0 ? "text-emerald-700" : "text-stone-400"
+                )}>
+                  <Tag size={12} />
+                  Descuentos
+                  {descuentoTotal > 0 && (
+                    <span className="ml-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
+                      -{formatCurrency(descuentoTotal, simbolo)}
                     </span>
                   )}
-                </div>
-              </div>
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={cn(
+                    "transition-transform duration-200",
+                    showDescuentos ? "rotate-180 text-emerald-600" : "text-stone-300"
+                  )}
+                />
+              </button>
 
-              {/* Cupón */}
-              {cuponAplicado ? (
-                <div className={cn(
-                  "flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5",
-                  cuponAplicado.esCumple
-                    ? "border-pink-200 bg-pink-50"
-                    : "border-emerald-200 bg-emerald-50"
-                )}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    {cuponAplicado.esCumple
-                      ? <Gift size={15} className="flex-shrink-0 text-pink-500" />
-                      : <Tag size={15} className="flex-shrink-0 text-emerald-600" />
-                    }
-                    <div className="min-w-0">
-                      <p className={cn("text-xs font-bold truncate", cuponAplicado.esCumple ? "text-pink-700" : "text-emerald-700")}>
-                        {cuponAplicado.esCumple ? "🎂 Descuento Cumpleaños" : cuponAplicado.codigo}
-                      </p>
-                      <p className="text-xs text-stone-500">
-                        -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
-                      </p>
-                    </div>
-                  </div>
-                  <button onClick={quitarCupon} className="flex-shrink-0 rounded-lg p-1 hover:bg-white transition">
-                    <X size={14} className="text-stone-400" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">Código de cupón</label>
-                  <div className="flex gap-2">
-                    <div className="flex flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                      <Tag size={14} className="flex-shrink-0 text-stone-400" />
+              {/* Contenido expandible */}
+              {showDescuentos && (
+                <div className="px-4 pb-4 space-y-3">
+                  {/* % descuento manual */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-stone-500">Descuento %</label>
+                    <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
+                      <Percent size={14} className="flex-shrink-0 text-stone-400" />
                       <input
-                        type="text"
-                        value={codigoCupon}
-                        onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setCuponError(""); }}
-                        onKeyDown={(e) => e.key === "Enter" && aplicarCupon()}
-                        placeholder="CODIGO o CUMPLEAÑOS"
-                        className="flex-1 bg-transparent text-sm font-semibold uppercase outline-none placeholder:normal-case placeholder:font-normal placeholder:text-stone-300"
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={descPorcentaje || ""}
+                        onChange={(e) => setDescPorcentaje(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                        placeholder="0"
+                        className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
                       />
+                      {descPorcentaje > 0 && (
+                        <span className="text-xs font-bold text-emerald-600">
+                          -{formatCurrency(descuentoPorcentajeMonto, simbolo)}
+                        </span>
+                      )}
                     </div>
-                    <button
-                      onClick={aplicarCupon}
-                      disabled={!codigoCupon.trim() || cuponLoading || !subtotal}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-40 active:scale-95"
-                    >
-                      {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
-                    </button>
                   </div>
-                  {cuponError && (
-                    <p className="mt-1.5 text-xs font-semibold text-red-500">{cuponError}</p>
+
+                  {/* Cupón */}
+                  {cuponAplicado ? (
+                    <div className={cn(
+                      "flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5",
+                      cuponAplicado.esCumple
+                        ? "border-pink-200 bg-pink-50"
+                        : "border-emerald-200 bg-emerald-50"
+                    )}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {cuponAplicado.esCumple
+                          ? <Gift size={15} className="flex-shrink-0 text-pink-500" />
+                          : <Tag size={15} className="flex-shrink-0 text-emerald-600" />
+                        }
+                        <div className="min-w-0">
+                          <p className={cn("text-xs font-bold truncate", cuponAplicado.esCumple ? "text-pink-700" : "text-emerald-700")}>
+                            {cuponAplicado.esCumple ? "🎂 Descuento Cumpleaños" : cuponAplicado.codigo}
+                          </p>
+                          <p className="text-xs text-stone-500">
+                            -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={quitarCupon} className="flex-shrink-0 rounded-lg p-1 hover:bg-white transition">
+                        <X size={14} className="text-stone-400" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-stone-500">Código de cupón</label>
+                      <div className="flex gap-2">
+                        <div className="flex flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
+                          <Tag size={14} className="flex-shrink-0 text-stone-400" />
+                          <input
+                            type="text"
+                            value={codigoCupon}
+                            onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setCuponError(""); }}
+                            onKeyDown={(e) => e.key === "Enter" && aplicarCupon()}
+                            placeholder="CODIGO o CUMPLEAÑOS"
+                            className="flex-1 bg-transparent text-sm font-semibold uppercase outline-none placeholder:normal-case placeholder:font-normal placeholder:text-stone-300"
+                          />
+                        </div>
+                        <button
+                          onClick={aplicarCupon}
+                          disabled={!codigoCupon.trim() || cuponLoading || !subtotal}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-40 active:scale-95"
+                        >
+                          {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
+                        </button>
+                      </div>
+                      {cuponError && (
+                        <p className="mt-1.5 text-xs font-semibold text-red-500">{cuponError}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
