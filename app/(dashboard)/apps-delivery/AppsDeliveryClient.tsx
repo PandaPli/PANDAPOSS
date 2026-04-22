@@ -13,6 +13,7 @@ interface Props {
 export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
   const [nombre, setNombre] = useState("");
   const [monto, setMonto] = useState("");
+  const [fuente, setFuente] = useState("");
   const [printing, setPrinting] = useState(false);
   const nombreRef = useRef<HTMLInputElement>(null);
 
@@ -103,11 +104,13 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
       margin-bottom: 2mm;
     }
     .cut-feed { height: 3mm; }
+    .fuente-badge { display: inline-block; border: 2px solid #000; padding: 2px 12px; font-size: 13px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 3mm; }
   </style>
 </head>
 <body>
   <div class="center">
     <p class="sucursal">${sucursalNombre}</p>
+    ${fuente ? `<p class="fuente-badge">${fuente}</p>` : ""}
     <hr class="divider" />
 
     <p class="label">Cliente</p>
@@ -154,6 +157,7 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
   function limpiar() {
     setNombre("");
     setMonto("");
+    setFuente("");
     setTimeout(() => nombreRef.current?.focus(), 50);
   }
 
@@ -194,6 +198,33 @@ export function AppsDeliveryClient({ sucursalNombre, simbolo }: Props) {
             step={0.01}
             className="w-full rounded-xl border border-surface-border bg-surface-muted px-4 py-3 text-surface-text placeholder:text-surface-muted focus:outline-none focus:ring-2 focus:ring-brand-500 text-base"
           />
+        </div>
+
+        {/* Origen del pedido */}
+        <div>
+          <label className="block text-sm font-medium text-surface-text mb-2">
+            Origen del pedido <span className="text-surface-muted font-normal text-xs">(opcional)</span>
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: "PedidosYa", emoji: "🟡", active: "border-yellow-400 bg-yellow-50 text-yellow-800", inactive: "border-surface-border bg-surface-muted/30 text-surface-muted hover:border-yellow-300 hover:bg-yellow-50" },
+              { key: "UberEats",  emoji: "🟢", active: "border-emerald-500 bg-emerald-50 text-emerald-800", inactive: "border-surface-border bg-surface-muted/30 text-surface-muted hover:border-emerald-300 hover:bg-emerald-50" },
+              { key: "Rappi",     emoji: "🟠", active: "border-orange-400 bg-orange-50 text-orange-800", inactive: "border-surface-border bg-surface-muted/30 text-surface-muted hover:border-orange-300 hover:bg-orange-50" },
+              { key: "Directo",   emoji: "📞", active: "border-brand-400 bg-brand-50 text-brand-800", inactive: "border-surface-border bg-surface-muted/30 text-surface-muted hover:border-brand-300 hover:bg-brand-50" },
+              { key: "WhatsApp",  emoji: "💬", active: "border-green-500 bg-green-50 text-green-800", inactive: "border-surface-border bg-surface-muted/30 text-surface-muted hover:border-green-300 hover:bg-green-50" },
+              { key: "Otros",     emoji: "📋", active: "border-stone-500 bg-stone-100 text-stone-800", inactive: "border-surface-border bg-surface-muted/30 text-surface-muted hover:border-stone-400 hover:bg-stone-100" },
+            ].map(({ key, emoji, active, inactive }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFuente(fuente === key ? "" : key)}
+                className={`flex items-center justify-center gap-1.5 rounded-xl border-2 py-2.5 text-xs font-bold transition-all active:scale-95 ${fuente === key ? active : inactive}`}
+              >
+                <span>{emoji}</span>
+                {key}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Botones */}

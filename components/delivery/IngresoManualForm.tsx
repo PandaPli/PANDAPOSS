@@ -139,9 +139,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [cuponLoading, setCuponLoading] = useState(false);
   const [cuponError, setCuponError] = useState("");
 
-  /* ── Fuente del pedido ── */
-  const [fuentePedido, setFuentePedido] = useState<string>("");
-
   /* ── Submit ── */
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -291,7 +288,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           descuento: descuentoTotal,
           cuponId: cuponAplicado?.id && cuponAplicado.id > 0 ? cuponAplicado.id : null,
           cuponCodigo: cuponAplicado?.codigo ?? null,
-          fuentePedido: fuentePedido || undefined,
         }),
       });
 
@@ -322,7 +318,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       setCodigoCupon("");
       setCuponAplicado(null);
       setCuponError("");
-      setFuentePedido("");
     } catch (e) {
       setErrorMsg((e as Error).message);
     } finally {
@@ -368,11 +363,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       .total-row{display:flex;justify-content:space-between;font-size:15px;font-weight:900;margin-top:8px;border-top:2px solid #000;padding-top:8px;}
       .footer{text-align:center;font-size:10px;color:#999;margin-top:10px;}
       .metodo{font-size:11px;color:#555;text-align:right;margin-top:4px;}
-      .fuente{display:inline-block;border:2px solid #000;padding:2px 10px;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
     </style></head><body>
       <div class="header">
         <div class="title">PEDIDO DELIVERY</div>
-        ${fuentePedido ? `<div class="fuente">${fuentePedido}</div>` : ""}
         <div class="ticket-num">#${id}</div>
         <div class="cliente">${clienteNombre}</div>
         <div class="meta">${dateStr} · ${timeStr}</div>
@@ -578,33 +571,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
               </div>
             </div>
 
-
-            {/* ── Fuente del pedido ── */}
-            <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-stone-500">
-                Origen del pedido
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { key: "PedidosYa",  emoji: "🟡", color: fuentePedido === "PedidosYa"  ? "border-yellow-400 bg-yellow-50 text-yellow-800"  : "border-stone-200 bg-stone-50 text-stone-500 hover:border-yellow-300 hover:bg-yellow-50" },
-                  { key: "UberEats",   emoji: "🟢", color: fuentePedido === "UberEats"   ? "border-emerald-500 bg-emerald-50 text-emerald-800" : "border-stone-200 bg-stone-50 text-stone-500 hover:border-emerald-300 hover:bg-emerald-50" },
-                  { key: "Rappi",      emoji: "🟠", color: fuentePedido === "Rappi"      ? "border-orange-400 bg-orange-50 text-orange-800"   : "border-stone-200 bg-stone-50 text-stone-500 hover:border-orange-300 hover:bg-orange-50" },
-                  { key: "Directo",    emoji: "📞", color: fuentePedido === "Directo"    ? "border-brand-400 bg-brand-50 text-brand-800"       : "border-stone-200 bg-stone-50 text-stone-500 hover:border-brand-300 hover:bg-brand-50" },
-                  { key: "WhatsApp",   emoji: "💬", color: fuentePedido === "WhatsApp"   ? "border-green-500 bg-green-50 text-green-800"       : "border-stone-200 bg-stone-50 text-stone-500 hover:border-green-300 hover:bg-green-50" },
-                  { key: "Otros",      emoji: "📋", color: fuentePedido === "Otros"      ? "border-stone-500 bg-stone-100 text-stone-800"      : "border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-400 hover:bg-stone-100" },
-                ].map(({ key, emoji, color }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setFuentePedido(fuentePedido === key ? "" : key)}
-                    className={`flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-xs font-black uppercase tracking-wide transition-all active:scale-95 ${color}`}
-                  >
-                    <span>{emoji}</span>
-                    {key}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Payment method */}
             <div>
