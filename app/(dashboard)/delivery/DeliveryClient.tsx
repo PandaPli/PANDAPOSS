@@ -191,9 +191,10 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       if (!res.ok) throw new Error(data.error);
       setPedidos((cur) => cur.map((p) => {
         if (p.id !== pedidoId) return p;
+        const esRetiroPedido = /retiro/i.test(p.zonaDelivery ?? "");
         const trackingStage =
           data.estado === "ENTREGADO" ? "ENTREGADO" :
-          data.estado === "LISTO" && p.repartidorId ? "EN_CAMINO" :
+          data.estado === "LISTO" && (p.repartidorId || esRetiroPedido) ? "EN_CAMINO" :
           data.estado === "LISTO" || data.estado === "EN_PROCESO" ? "PREPARANDO" :
           data.estado === "CANCELADO" ? "CANCELADO" : "CONFIRMADO";
         return { ...p, estado: data.estado, trackingStage };

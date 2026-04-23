@@ -33,12 +33,30 @@ const stepsRetiro = [
 export function TrackOrderClient({ initialData }: Props) {
   const [data, setData]         = useState(initialData);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [retirado, setRetirado]     = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => void refresh(), 20_000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.id]);
+
+  async function confirmarRetiro() {
+    setConfirming(true);
+    try {
+      const res = await fetch("/api/delivery/retiro-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pedidoId: data.id }),
+      });
+      if (!res.ok) return;
+      setRetirado(true);
+      setData((prev) => ({ ...prev, estado: "ENTREGADO", trackingStage: "ENTREGADO" }));
+    } finally {
+      setConfirming(false);
+    }
+  }
 
   async function refresh() {
     setRefreshing(true);
@@ -173,6 +191,42 @@ export function TrackOrderClient({ initialData }: Props) {
                 })}
               </div>
             </div>
+
+            {/* ── YA RETIRÉ button (solo retiro + listo) ── */}
+            {esRetiro && data.trackingStage === "EN_CAMINO" && !retirado && (
+              <div className="overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/60 to-teal-950/40 p-5 backdrop-blur-sm">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-400 mb-1">
+                  Tu pedido está listo
+                </p>
+                <p className="text-sm text-white/60 mb-4">
+                  Cuando lo hayas retirado en el local, confirma aquí.
+                </p>
+                <button
+                  onClick={() => void confirmarRetiro()}
+                  disabled={confirming}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[.98] disabled:opacity-60 px-5 py-4 text-base font-black text-white transition-all duration-200 shadow-[0_0_24px_rgba(52,211,153,0.25)]"
+                >
+                  {confirming
+                    ? <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    : <Package2 size={20} />
+                  }
+                  {confirming ? "Confirmando…" : "Ya retiré mi pedido"}
+                </button>
+              </div>
+            )}
+
+            {/* ── Confirmación exitosa ── */}
+            {esRetiro && retirado && (
+              <div className="overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/60 to-teal-950/40 p-5 text-center backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300">
+                    <Star size={24} />
+                  </div>
+                  <p className="text-base font-black text-emerald-300">¡Listo, buen provecho!</p>
+                  <p className="text-sm text-white/45">Retiro confirmado. ¡Gracias por tu pedido!</p>
+                </div>
+              </div>
+            )}
 
             {/* Info cards row */}
             <div className="grid gap-3 sm:grid-cols-2">
