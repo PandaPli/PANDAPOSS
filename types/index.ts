@@ -182,6 +182,7 @@ export interface DeliveryPedidoPublico {
   repartidorNombre?: string | null;
   codigoEntrega?: string | null;
   zonaDelivery?: string | null;
+  sucursalNombre?: string | null;
   creadoEn: string;
   estimadoMinutos: number;
   detalles: {

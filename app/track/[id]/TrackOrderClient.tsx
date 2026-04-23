@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { getDeliveryProgressValue, getDeliveryStageLabel } from "@/lib/delivery";
+import { createSlug } from "@/lib/slug";
 import type { DeliveryPedidoPublico } from "@/types";
 
 interface Props {
@@ -50,7 +51,10 @@ export function TrackOrderClient({ initialData }: Props) {
     }
   }
 
-  const esRetiro = /retiro/i.test(data.zonaDelivery ?? "") || (!data.zonaDelivery && !data.direccionEntrega);
+  const esRetiro  = /retiro/i.test(data.zonaDelivery ?? "") || (!data.zonaDelivery && !data.direccionEntrega);
+  const menuUrl   = data.sucursalNombre
+    ? `https://pandaposs.com/pedir/${createSlug(data.sucursalNombre)}`
+    : null;
   const steps    = esRetiro ? stepsRetiro : stepsDelivery;
   const progress    = getDeliveryProgressValue(data.trackingStage);
   const activeIndex = steps.findIndex((s) => s.key === data.trackingStage);
@@ -95,13 +99,15 @@ export function TrackOrderClient({ initialData }: Props) {
             >
               <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
             </button>
-            <Link
-              href="/pedir"
-              className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-orange-400 active:scale-95"
-            >
-              Pedir de nuevo
-              <ArrowUpRight size={15} />
-            </Link>
+            {menuUrl && (
+              <Link
+                href={menuUrl}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-orange-400 active:scale-95"
+              >
+                Pedir de nuevo
+                <ArrowUpRight size={15} />
+              </Link>
+            )}
           </div>
         </header>
 

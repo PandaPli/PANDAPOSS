@@ -16,7 +16,7 @@ export default async function TrackOrderPage({ params }: Props) {
   const pedido = await prisma.pedido.findUnique({
     where: { id: pedidoId },
     include: {
-      usuario: { select: { sucursalId: true } },
+      usuario: { select: { sucursalId: true, sucursal: { select: { nombre: true } } } },
       repartidor: { select: { nombre: true } },
       delivery: { select: { zonaDelivery: true } },
       detalles: {
@@ -66,6 +66,7 @@ export default async function TrackOrderPage({ params }: Props) {
         total: subtotal + meta.cargoEnvio,
         repartidorNombre: pedido.repartidor?.nombre ?? null,
         zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
+        sucursalNombre: pedido.usuario.sucursal?.nombre ?? null,
         creadoEn: pedido.creadoEn.toISOString(),
         estimadoMinutos: estimateDeliveryMinutes(pedidosActivos, driversActivos),
         detalles: pedido.detalles.map((detalle) => ({
