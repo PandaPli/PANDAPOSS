@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin, Plus, Trash2 } from "lucide-react";
+import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin, Plus, Trash2, Star } from "lucide-react";
 import type { Rol } from "@/types";
 import ZonaMapEditor from "@/components/configuracion/ZonaMapEditor";
 
@@ -51,9 +51,12 @@ interface Props {
   sucursalFlayerUrl?: string | null;
   sucursalFlayerActivo?: boolean;
   sucursalMpAccessToken?: string | null;
+  sucursalPuntosActivo?: boolean;
+  sucursalPuntosPorMil?: number;
+  sucursalValorPunto?: number;
 }
 
-export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo, sucursalMpAccessToken }: Props) {
+export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, sucursalCartaBg, sucursalCartaTagline, sucursalCartaSaludo, sucursalSlug, sucursalPrinterPath, sucursalPrinterIp, sucursalRut, sucursalGiroComercial, sucursalTelefono, sucursalDireccion, sucursalZonasDelivery, sucursalSocialFacebook, sucursalSocialInstagram, sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok, sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo, sucursalMpAccessToken, sucursalPuntosActivo, sucursalPuntosPorMil, sucursalValorPunto }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
 
@@ -136,6 +139,13 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [mpToken, setMpToken] = useState(sucursalMpAccessToken ?? "");
   const [mpLoading, setMpLoading] = useState(false);
   const [mpMsg, setMpMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // --- Estado Sistema de Puntos ---
+  const [puntosActivo, setPuntosActivo] = useState<boolean>(sucursalPuntosActivo ?? false);
+  const [puntosPorMil, setPuntosPorMil] = useState<string>(String(sucursalPuntosPorMil ?? 10));
+  const [valorPunto, setValorPunto] = useState<string>(String(sucursalValorPunto ?? 1));
+  const [puntosLoading, setPuntosLoading] = useState(false);
+  const [puntosMsg, setPuntosMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
@@ -505,6 +515,29 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
       setFlayerMsg({ type: "error", text: (err as Error).message });
     } finally {
       setFlayerLoading(false);
+    }
+  }
+
+  async function handlePuntosSave() {
+    if (!sucursalId) return;
+    setPuntosLoading(true);
+    setPuntosMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}/config-puntos`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          puntosActivo,
+          puntosPorMil: parseFloat(puntosPorMil) || 0,
+          valorPunto: parseFloat(valorPunto) || 0,
+        }),
+      });
+      if (!res.ok) throw new Error("Error al guardar configuración de puntos");
+      setPuntosMsg({ type: "ok", text: "Configuración de puntos guardada." });
+    } catch (err) {
+      setPuntosMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setPuntosLoading(false);
     }
   }
 
@@ -1118,6 +1151,104 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
             </button>
           </div>
         </div>
+
+        {/* ── Sistema de Puntos ─────────────────────────────── */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Star size={18} className="text-amber-500" />
+            <h2 className="font-semibold text-surface-text">Sistema de Puntos</h2>
+            <span className="ml-auto text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+              Fidelización
+            </span>
+          </div>
+
+          <p className="text-sm text-surface-muted mb-5">
+            Los clientes registrados acumulan puntos en cada compra y los pueden canjear como descuento. Solo aplica en <strong>Caja Básica</strong>.
+          </p>
+
+          {puntosMsg && (
+            <div className={`mb-4 p-3 rounded-lg text-sm border ${puntosMsg.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-600"}`}>
+              {puntosMsg.text}
+            </div>
+          )}
+
+          {/* Toggle activar */}
+          <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3 mb-4">
+            <div>
+              <p className="text-sm font-semibold text-surface-text">Activar sistema de puntos</p>
+              <p className="text-xs text-surface-muted">Aparecerá búsqueda de clientes en la Caja Básica</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPuntosActivo(!puntosActivo)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${puntosActivo ? "bg-amber-500" : "bg-surface-border"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${puntosActivo ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+
+          {/* Config detallada (solo visible si activo) */}
+          {puntosActivo && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Puntos por cada $1.000</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={puntosPorMil}
+                    onChange={(e) => setPuntosPorMil(e.target.value)}
+                    min={0}
+                    step={1}
+                    placeholder="10"
+                  />
+                  <p className="mt-1 text-xs text-surface-muted">
+                    Ej: 10 → por cada $1.000 el cliente gana 10 pts
+                  </p>
+                </div>
+                <div>
+                  <label className="label">Valor monetario de 1 punto</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={valorPunto}
+                    onChange={(e) => setValorPunto(e.target.value)}
+                    min={0}
+                    step={0.01}
+                    placeholder="1"
+                  />
+                  <p className="mt-1 text-xs text-surface-muted">
+                    Ej: 1 → 100 pts valen $100 de descuento
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview de la equivalencia */}
+              {parseFloat(puntosPorMil) > 0 && parseFloat(valorPunto) > 0 && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm">
+                  <p className="font-semibold text-amber-800 mb-1">📊 Equivalencia actual</p>
+                  <p className="text-amber-700">
+                    Compra de <strong>$10.000</strong> → gana <strong>{Math.floor(10000 * parseFloat(puntosPorMil) / 1000)} pts</strong>
+                  </p>
+                  <p className="text-amber-700">
+                    <strong>100 pts</strong> = descuento de <strong>${(100 * parseFloat(valorPunto)).toLocaleString()}</strong>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handlePuntosSave}
+            disabled={puntosLoading}
+            className="btn-primary mt-5"
+          >
+            {puntosLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            Guardar Puntos
+          </button>
+        </div>
+
       </div>
     );
   }

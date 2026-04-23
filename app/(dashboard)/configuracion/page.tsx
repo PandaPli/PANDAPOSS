@@ -46,6 +46,9 @@ export default async function ConfiguracionPage() {
   let sucursalFlayerUrl:       string | null = null;
   let sucursalFlayerActivo:    boolean       = false;
   let sucursalMpAccessToken:   string | null = null;
+  let sucursalPuntosActivo:    boolean       = false;
+  let sucursalPuntosPorMil:    number        = 10;
+  let sucursalValorPunto:      number        = 1;
 
   if (rol === "RESTAURANTE" && sucursalId) {
     const suc = await prisma.sucursal.findUnique({
@@ -57,6 +60,7 @@ export default async function ConfiguracionPage() {
         socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
         socialYoutube: true, socialTiktok: true, socialTwitter: true,
         flayerUrl: true, flayerActivo: true, mpAccessToken: true,
+        puntosActivo: true, puntosPorMil: true, valorPunto: true,
       },
     });
     if (suc) {
@@ -80,6 +84,9 @@ export default async function ConfiguracionPage() {
       sucursalFlayerUrl       = suc.flayerUrl;
       sucursalFlayerActivo    = suc.flayerActivo;
       sucursalMpAccessToken   = suc.mpAccessToken;
+      sucursalPuntosActivo    = suc.puntosActivo;
+      sucursalPuntosPorMil    = Number(suc.puntosPorMil);
+      sucursalValorPunto      = Number(suc.valorPunto);
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -125,6 +132,9 @@ export default async function ConfiguracionPage() {
         sucursalFlayerUrl={sucursalFlayerUrl}
         sucursalFlayerActivo={sucursalFlayerActivo}
         sucursalMpAccessToken={sucursalMpAccessToken}
+        sucursalPuntosActivo={sucursalPuntosActivo}
+        sucursalPuntosPorMil={sucursalPuntosPorMil}
+        sucursalValorPunto={sucursalValorPunto}
       />
     </div>
   );
