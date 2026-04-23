@@ -23,7 +23,8 @@ export const TrackingService = {
     }
 
     const meta = parseDeliveryObservation(pedido.observacion);
-    const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId));
+    const esRetiro = /retiro/i.test(pedido.delivery?.zonaDelivery ?? "");
+    const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), esRetiro);
     const subtotal = pedido.detalles.reduce((acc, detalle) => {
       const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0);
       return acc + precio * detalle.cantidad;
@@ -50,7 +51,7 @@ export const TrackingService = {
       id: pedido.id,
       estado: pedido.estado,
       trackingStage,
-      trackingLabel: getDeliveryStageLabel(trackingStage),
+      trackingLabel: getDeliveryStageLabel(trackingStage, esRetiro),
       clienteNombre: meta.clienteNombre,
       telefonoCliente: pedido.telefonoCliente,
       direccionEntrega: pedido.direccionEntrega,

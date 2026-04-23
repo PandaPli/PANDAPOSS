@@ -73,24 +73,29 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
   }
 }
 
-export function getDeliveryTrackingStage(estado: EstadoPedido, repartidorAsignado: boolean): DeliveryTrackingStage {
+export function getDeliveryTrackingStage(
+  estado: EstadoPedido,
+  repartidorAsignado: boolean,
+  esRetiro = false
+): DeliveryTrackingStage {
   if (estado === "CANCELADO") return "CANCELADO";
   if (estado === "ENTREGADO") return "ENTREGADO";
-  if (estado === "LISTO" && repartidorAsignado) return "EN_CAMINO";
+  // Para retiro: LISTO equivale a "listo para retirar" (EN_CAMINO en el flujo)
+  if (estado === "LISTO" && (repartidorAsignado || esRetiro)) return "EN_CAMINO";
   if (estado === "EN_PROCESO" || estado === "LISTO") return "PREPARANDO";
   return "CONFIRMADO";
 }
 
-export function getDeliveryStageLabel(stage: DeliveryTrackingStage) {
+export function getDeliveryStageLabel(stage: DeliveryTrackingStage, esRetiro = false) {
   switch (stage) {
     case "CONFIRMADO":
       return "Pedido confirmado";
     case "PREPARANDO":
       return "Preparando";
     case "EN_CAMINO":
-      return "En camino";
+      return esRetiro ? "Listo para retirar" : "En camino";
     case "ENTREGADO":
-      return "Entregado";
+      return esRetiro ? "Retirado" : "Entregado";
     case "CANCELADO":
       return "Cancelado";
     default:

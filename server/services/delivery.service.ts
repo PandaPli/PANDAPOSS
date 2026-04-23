@@ -379,7 +379,8 @@ export const DeliveryService = {
 
     return pedidos.map((pedido) => {
       const meta = parseDeliveryObservation(pedido.observacion);
-      const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId));
+      const esRetiro = /retiro/i.test(pedido.delivery?.zonaDelivery ?? "");
+      const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), esRetiro);
       const subtotal = pedido.detalles.reduce((acc, detalle) => {
         // productos libres guardan el precio directamente en detalle.precio
         const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0);
@@ -392,7 +393,7 @@ export const DeliveryService = {
         meseroLlamado: pedido.meseroLlamado,
         llamadoTipo: pedido.llamadoTipo ?? null,
         trackingStage,
-        trackingLabel: getDeliveryStageLabel(trackingStage),
+        trackingLabel: getDeliveryStageLabel(trackingStage, esRetiro),
         clienteNombre: meta.clienteNombre,
         telefonoCliente: pedido.telefonoCliente,
         direccionEntrega: pedido.direccionEntrega,

@@ -83,7 +83,7 @@ export function TrackOrderClient({ initialData }: Props) {
               Pedido <span className="text-orange-400">#{data.id}</span>
             </h1>
             <p className="mt-2 text-sm text-white/50">
-              {getDeliveryStageLabel(data.trackingStage)} · estimado {data.estimadoMinutos} min
+              {getDeliveryStageLabel(data.trackingStage, esRetiro)} · estimado {data.estimadoMinutos} min
             </p>
           </div>
 
@@ -206,7 +206,7 @@ export function TrackOrderClient({ initialData }: Props) {
                   </p>
                   <p className="flex items-center gap-1.5 text-xs text-white/45">
                     <PackageCheck size={11} className="text-white/30" />
-                    {getDeliveryStageLabel(data.trackingStage)}
+                    {getDeliveryStageLabel(data.trackingStage, esRetiro)}
                   </p>
                 </div>
               </div>

@@ -409,7 +409,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           {/* Cliente */}
           <div>
             <p className="text-2xl font-black text-surface-text leading-tight">{pedido.clienteNombre}</p>
-            <p className="text-sm text-surface-muted mt-0.5">{getDeliveryStageLabel(pedido.trackingStage)}</p>
+            <p className="text-sm text-surface-muted mt-0.5">{getDeliveryStageLabel(pedido.trackingStage, /retiro/i.test(pedido.zonaDelivery ?? ""))}</p>
             {pedido.telefonoCliente && (
               <a
                 href={`tel:${pedido.telefonoCliente}`}

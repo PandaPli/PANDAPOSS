@@ -179,7 +179,7 @@ export default async function DeliveryPage() {
     return {
       id: pedido.id,
       estado: pedido.estado,
-      trackingStage: getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId)),
+      trackingStage: getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), /retiro/i.test(pedido.delivery?.zonaDelivery ?? "")),
       clienteNombre: meta.clienteNombre,
       telefonoCliente: pedido.telefonoCliente,
       direccionEntrega: pedido.direccionEntrega,

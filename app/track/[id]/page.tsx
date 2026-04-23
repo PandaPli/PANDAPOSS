@@ -18,6 +18,7 @@ export default async function TrackOrderPage({ params }: Props) {
     include: {
       usuario: { select: { sucursalId: true } },
       repartidor: { select: { nombre: true } },
+      delivery: { select: { zonaDelivery: true } },
       detalles: {
         include: {
           producto: { select: { nombre: true, precio: true } },
@@ -53,7 +54,7 @@ export default async function TrackOrderPage({ params }: Props) {
       initialData={{
         id: pedido.id,
         estado: pedido.estado,
-        trackingStage: getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId)),
+        trackingStage: getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), /retiro/i.test(pedido.delivery?.zonaDelivery ?? "")),
         clienteNombre: meta.clienteNombre,
         telefonoCliente: pedido.telefonoCliente ?? "",
         direccionEntrega: pedido.direccionEntrega ?? "",
@@ -64,6 +65,7 @@ export default async function TrackOrderPage({ params }: Props) {
         subtotal,
         total: subtotal + meta.cargoEnvio,
         repartidorNombre: pedido.repartidor?.nombre ?? null,
+        zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
         creadoEn: pedido.creadoEn.toISOString(),
         estimadoMinutos: estimateDeliveryMinutes(pedidosActivos, driversActivos),
         detalles: pedido.detalles.map((detalle) => ({
