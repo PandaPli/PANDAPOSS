@@ -656,13 +656,19 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
           <div className="text-5xl mb-4">🌙</div>
           <h1 className="text-2xl font-black text-white mb-2">{sucursal.nombre}</h1>
           <p className="text-white/60 text-sm mb-1">Por el momento no estamos recibiendo pedidos.</p>
-          <p className="text-white/40 text-xs">Vuelve cuando estemos abiertos.</p>
+          <p className="text-white/40 text-xs mb-6">Vuelve cuando estemos abiertos.</p>
+          <Link
+            href={`/vercarta/${slug}`}
+            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3 text-sm font-bold text-white transition w-full justify-center"
+          >
+            🍽️ Ver nuestra carta
+          </Link>
           {sucursal.telefono && (
             <a
               href={`https://wa.me/${sucursal.telefono.replace(/\D/g, "")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-3 text-sm font-bold text-white transition"
+              className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-3 text-sm font-bold text-white transition w-full justify-center"
             >
               Escribenos por WhatsApp
             </a>
