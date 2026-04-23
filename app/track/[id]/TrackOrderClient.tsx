@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Bike, Clock3, MapPin, PackageCheck, RefreshCw,
-  ShieldCheck, Navigation, CheckCircle2, ChefHat,
-  Truck, Star, ArrowUpRight, ExternalLink,
+  ShieldCheck, CheckCircle2, ChefHat,
+  Truck, Star, ArrowUpRight, ExternalLink, Package2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { getDeliveryProgressValue, getDeliveryStageLabel } from "@/lib/delivery";
@@ -15,11 +15,18 @@ interface Props {
   initialData: DeliveryPedidoPublico;
 }
 
-const steps = [
-  { key: "CONFIRMADO",  title: "Confirmado",  subtitle: "Pedido recibido",    icon: CheckCircle2 },
-  { key: "PREPARANDO",  title: "Preparando",  subtitle: "En la cocina",        icon: ChefHat      },
-  { key: "EN_CAMINO",   title: "En camino",   subtitle: "El rider va hacia ti", icon: Bike         },
-  { key: "ENTREGADO",   title: "Entregado",   subtitle: "¡Buen provecho!",     icon: Star         },
+const stepsDelivery = [
+  { key: "CONFIRMADO", title: "Confirmado",  subtitle: "Pedido recibido",     icon: CheckCircle2 },
+  { key: "PREPARANDO", title: "Preparando",  subtitle: "En la cocina",        icon: ChefHat      },
+  { key: "EN_CAMINO",  title: "En camino",   subtitle: "El rider va hacia ti", icon: Bike         },
+  { key: "ENTREGADO",  title: "Entregado",   subtitle: "¡Buen provecho!",     icon: Star         },
+] as const;
+
+const stepsRetiro = [
+  { key: "CONFIRMADO", title: "Confirmado",        subtitle: "Pedido recibido",      icon: CheckCircle2 },
+  { key: "PREPARANDO", title: "Preparando",         subtitle: "En la cocina",         icon: ChefHat      },
+  { key: "EN_CAMINO",  title: "Listo p/ retirar",  subtitle: "¡Tu pedido te espera!", icon: Package2     },
+  { key: "ENTREGADO",  title: "Retirado",           subtitle: "¡Buen provecho!",      icon: Star         },
 ] as const;
 
 export function TrackOrderClient({ initialData }: Props) {
@@ -43,6 +50,8 @@ export function TrackOrderClient({ initialData }: Props) {
     }
   }
 
+  const esRetiro = /retiro/i.test(data.zonaDelivery ?? "") || (!data.zonaDelivery && !data.direccionEntrega);
+  const steps    = esRetiro ? stepsRetiro : stepsDelivery;
   const progress    = getDeliveryProgressValue(data.trackingStage);
   const activeIndex = steps.findIndex((s) => s.key === data.trackingStage);
   const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.direccionEntrega)}`;
@@ -67,7 +76,7 @@ export function TrackOrderClient({ initialData }: Props) {
             <div className="flex items-center gap-2 mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-300">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
-                Seguimiento delivery
+                {esRetiro ? "Seguimiento retiro" : "Seguimiento delivery"}
               </span>
             </div>
             <h1 className="text-[clamp(2.2rem,8vw,3.5rem)] font-black leading-none tracking-tight">
@@ -174,16 +183,21 @@ export function TrackOrderClient({ initialData }: Props) {
                 {data.departamento && <p className="mt-0.5 text-xs text-white/40">Dpto: {data.departamento}</p>}
               </div>
 
-              {/* Despacho */}
+              {/* Despacho / Retiro */}
               <div className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 backdrop-blur-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-400/15">
-                    <Bike size={14} className="text-blue-300" />
+                  <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${esRetiro ? "bg-emerald-400/15" : "bg-blue-400/15"}`}>
+                    {esRetiro
+                      ? <Package2 size={14} className="text-emerald-300" />
+                      : <Bike size={14} className="text-blue-300" />
+                    }
                   </div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">Despacho</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/40">
+                    {esRetiro ? "Retiro en local" : "Despacho"}
+                  </p>
                 </div>
                 <p className="text-base font-black text-white">
-                  {data.repartidorNombre ?? "Por asignar"}
+                  {esRetiro ? "Pasa a retirar tu pedido" : (data.repartidorNombre ?? "Por asignar")}
                 </p>
                 <div className="mt-2 space-y-1.5">
                   <p className="flex items-center gap-1.5 text-xs text-white/45">

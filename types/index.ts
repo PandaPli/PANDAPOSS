@@ -181,6 +181,7 @@ export interface DeliveryPedidoPublico {
   total: number;
   repartidorNombre?: string | null;
   codigoEntrega?: string | null;
+  zonaDelivery?: string | null;
   creadoEn: string;
   estimadoMinutos: number;
   detalles: {

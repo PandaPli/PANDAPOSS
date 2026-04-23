@@ -8,7 +8,7 @@ export const TrackingService = {
       include: {
         usuario: { select: { sucursalId: true } },
         repartidor: { select: { nombre: true } },
-        delivery: { select: { codigoEntrega: true, estado: true } },
+        delivery: { select: { codigoEntrega: true, estado: true, zonaDelivery: true } },
         detalles: {
           include: {
             producto: { select: { nombre: true, precio: true } },
@@ -65,6 +65,7 @@ export const TrackingService = {
       codigoEntrega: ["EN_PROCESO", "LISTO", "ENTREGADO"].includes(pedido.estado)
         ? (pedido.delivery?.codigoEntrega ?? null)
         : null,
+      zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
       creadoEn: pedido.creadoEn.toISOString(),
       estimadoMinutos: estimateDeliveryMinutes(pedidosActivos, driversActivos),
       detalles: pedido.detalles.map((detalle) => ({
