@@ -439,7 +439,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                   )}
                 </div>
-                {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
+                {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && !esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && (
                   <div className="mt-0.5 flex flex-wrap gap-1">
                     {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
                       <span key={i} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", nightMode ? "bg-violet-900/60 text-violet-300" : "bg-violet-100 text-violet-700")}>

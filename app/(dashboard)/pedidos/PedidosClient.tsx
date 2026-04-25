@@ -145,11 +145,16 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   }
 
   async function handleReturnToProcess(id: number) {
-    await fetch(`/api/pedidos/${id}`, {
+    const res = await fetch(`/api/pedidos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ estado: "EN_PROCESO", meseroLlamado: false, llamadoTipo: null }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(`Error al devolver pedido: ${err?.error ?? res.statusText}`);
+      return;
+    }
     setPedidos(prev =>
       prev.map(p =>
         p.id === id

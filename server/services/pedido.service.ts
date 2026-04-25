@@ -39,7 +39,7 @@ export interface UpdatePedidoInput {
 const TRANSICIONES_VALIDAS: Partial<Record<EstadoPedido, EstadoPedido[]>> = {
   PENDIENTE:  ["EN_PROCESO", "CANCELADO"],
   EN_PROCESO: ["LISTO", "CANCELADO"],
-  LISTO:      ["ENTREGADO", "CANCELADO"],
+  LISTO:      ["ENTREGADO", "CANCELADO", "EN_PROCESO"],
   ENTREGADO:  [],  // terminal
   CANCELADO:  [],  // terminal
 };
