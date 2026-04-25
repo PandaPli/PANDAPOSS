@@ -448,7 +448,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     ))}
                   </div>
                 )}
-                {d.observacion && !d.cancelado && (
+                {d.observacion && !d.cancelado && !esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && (
                   <p className={cn("text-[11px] italic mt-0.5", nightMode ? "text-amber-400" : "text-amber-600")}>{d.observacion}</p>
                 )}
               </div>

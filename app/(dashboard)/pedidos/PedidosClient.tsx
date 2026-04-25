@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
 import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Moon, Sun, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -62,7 +62,10 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const estacionesRol = getRolEstaciones(rol);
 
   // ── Fetch todos los estados activos en paralelo ────────────────────────
+  // fetchSeq evita que una respuesta lenta y stale sobreescriba datos más frescos.
+  const fetchSeq = useRef(0);
   const fetchPedidos = useCallback(async () => {
+    const seq = ++fetchSeq.current;
     try {
       const [r1, r2, r3] = await Promise.all([
         fetch("/api/pedidos?estado=PENDIENTE"),
@@ -72,6 +75,8 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
       const p1 = r1.ok ? await r1.json() : [];
       const p2 = r2.ok ? await r2.json() : [];
       const p3 = r3.ok ? await r3.json() : [];
+      // Si llegó una respuesta más nueva mientras esperábamos, descartar ésta
+      if (seq !== fetchSeq.current) return;
       setPedidos([...p1, ...p2, ...p3]);
     } catch (e) {
       console.error(e);
