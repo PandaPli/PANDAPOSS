@@ -86,7 +86,7 @@ function generoIcon(g: string | null) {
   return "👤";
 }
 
-type OrdenKey = "nombre" | "edad_asc" | "edad_desc" | "cumple";
+type OrdenKey = "nombre" | "edad_asc" | "edad_desc" | "cumple" | "puntos";
 type FiltroGenero = "todos" | "M" | "F" | "O" | "N";
 
 export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdSesion }: Props) {
@@ -178,6 +178,7 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
         };
         return diasHasta(a.fechaNacimiento) - diasHasta(b.fechaNacimiento);
       }
+      if (orden === "puntos") return (b.puntos ?? 0) - (a.puntos ?? 0);
       return 0;
     });
 
@@ -464,6 +465,7 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
           <option value="edad_asc">Ordenar: Más joven</option>
           <option value="edad_desc">Ordenar: Mayor edad</option>
           <option value="cumple">Ordenar: Próx. cumpleaños</option>
+          <option value="puntos">Ordenar: Mayor puntos</option>
         </select>
         {isPandaAdmin && (
           <select
