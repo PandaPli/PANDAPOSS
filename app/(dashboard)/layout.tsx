@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { PandaNavbar } from "@/components/layout/PandaNavbar";
 import { SucursalNotifOverlay } from "@/components/layout/SucursalNotifOverlay";
+import { PandiAssistant } from "@/components/pandi/PandiAssistant";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -17,6 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </main>
       <SucursalNotifOverlay />
+      <PandiAssistant />
     </div>
   );
 }

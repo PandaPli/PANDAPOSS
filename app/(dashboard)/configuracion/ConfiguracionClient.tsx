@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin, Plus, Trash2, Star } from "lucide-react";
+import { Save, Loader2, Building2, Receipt, ImageIcon, Upload, X, Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin, Plus, Trash2, Star, Bot } from "lucide-react";
 import type { Rol } from "@/types";
 import ZonaMapEditor from "@/components/configuracion/ZonaMapEditor";
 
@@ -146,6 +146,20 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [valorPunto, setValorPunto] = useState<string>(String(sucursalValorPunto ?? 1));
   const [puntosLoading, setPuntosLoading] = useState(false);
   const [puntosMsg, setPuntosMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // --- Estado PANDI ---
+  const [pandiActivo, setPandiActivo] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("pandi_activo");
+    if (stored === "false") setPandiActivo(false);
+  }, []);
+
+  function handlePandiToggle(activo: boolean) {
+    setPandiActivo(activo);
+    localStorage.setItem("pandi_activo", String(activo));
+    window.dispatchEvent(new Event("pandi-toggle"));
+  }
 
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   
@@ -1247,6 +1261,48 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
             {puntosLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Guardar Puntos
           </button>
+        </div>
+
+        {/* ── Asistente PANDI ─────────────────────────────── */}
+        <div className="overflow-hidden rounded-2xl border border-surface-border bg-gradient-to-br from-surface-bg to-white">
+          <div className="flex items-center gap-3 border-b border-surface-border bg-white px-6 py-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-600 text-white">
+              <Bot size={17} />
+            </div>
+            <div>
+              <h2 className="font-semibold text-surface-text">Asistente PANDI</h2>
+              <p className="text-xs text-surface-muted">Ayuda inteligente integrada en el sistema</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Descripción */}
+            <div className="rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-800 space-y-1">
+              <p className="font-semibold">¿Qué es PANDI?</p>
+              <p className="text-purple-700 leading-relaxed">
+                PANDI es el asistente de ayuda integrado de PandaPoss. Responde preguntas sobre ventas, mesas, productos, delivery, cajas, reportes y configuración — sin salir del sistema. Aparece como botón flotante en la esquina inferior derecha de cada página.
+              </p>
+            </div>
+
+            {/* Toggle */}
+            <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-surface-text">Activar PANDI</p>
+                <p className="text-xs text-surface-muted">
+                  {pandiActivo
+                    ? "El asistente está visible en todas las páginas del sistema"
+                    : "El asistente está oculto"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handlePandiToggle(!pandiActivo)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${pandiActivo ? "bg-purple-600" : "bg-surface-border"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${pandiActivo ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>
