@@ -1,10 +1,12 @@
 "use client";
 
 import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPandiAnswer } from "@/lib/pandi/pandi-engine";
 import type { PandiAnswer, PandiMessage } from "@/lib/pandi/types";
 import { PANDI_QUICK_QUESTIONS } from "@/lib/pandi/knowledge";
+
+const STORAGE_KEY = "pp_pandi_activo";
 
 interface PandiAssistantProps {
   title?: string;
@@ -30,18 +32,28 @@ export function PandiAssistant({
     ),
   ]);
 
+  // Ref para auto-scroll al último mensaje
+  const bottomRef = useRef<HTMLDivElement>(null);
+
   // Leer preferencia inicial y escuchar cambios desde Configuración
   useEffect(() => {
-    const stored = localStorage.getItem("pandi_activo");
+    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "false") setPandiActivo(false);
 
     const handler = () => {
-      const val = localStorage.getItem("pandi_activo");
+      const val = localStorage.getItem(STORAGE_KEY);
       setPandiActivo(val !== "false");
     };
     window.addEventListener("pandi-toggle", handler);
     return () => window.removeEventListener("pandi-toggle", handler);
   }, []);
+
+  // Auto-scroll al fondo cuando llegan mensajes nuevos
+  useEffect(() => {
+    if (isOpen) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isThinking, isOpen]);
 
   const quickQuestions = useMemo(() => PANDI_QUICK_QUESTIONS.slice(0, 4), []);
 
@@ -134,6 +146,9 @@ export function PandiAssistant({
             Pensando...
           </div>
         ) : null}
+
+        {/* Ancla para auto-scroll */}
+        <div ref={bottomRef} />
       </div>
 
       <div className="border-t border-slate-100 bg-white p-3">

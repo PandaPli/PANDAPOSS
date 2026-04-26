@@ -12,7 +12,7 @@ export function StockAlertaBanner({ sucursalId }: Props) {
   if (alertas.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm">
+    <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-2 max-w-sm">
       <div className="rounded-xl border border-amber-300 bg-amber-50 shadow-lg p-3 flex items-start gap-3">
         <AlertTriangle size={18} className="text-amber-500 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">

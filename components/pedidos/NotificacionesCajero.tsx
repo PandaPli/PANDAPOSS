@@ -32,7 +32,7 @@ export function NotificacionesCajero() {
   if (visibles.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs">
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 max-w-xs">
       {visibles.map((p) => (
         <div
           key={p.id}

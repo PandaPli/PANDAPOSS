@@ -151,13 +151,13 @@ export function ConfiguracionClient({ config, rol, sucursalId, sucursalLogoUrl, 
   const [pandiActivo, setPandiActivo] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("pandi_activo");
+    const stored = localStorage.getItem("pp_pandi_activo");
     if (stored === "false") setPandiActivo(false);
   }, []);
 
   function handlePandiToggle(activo: boolean) {
     setPandiActivo(activo);
-    localStorage.setItem("pandi_activo", String(activo));
+    localStorage.setItem("pp_pandi_activo", String(activo));
     window.dispatchEvent(new Event("pandi-toggle"));
   }
 
