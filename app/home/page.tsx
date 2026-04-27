@@ -553,6 +553,93 @@ const SectionTestimonial = () => (
 );
 
 /* ─────────────────────────────────────────────────────────────
+   SECCIÓN 4.5 — PREVIEW DEL SISTEMA (imagen real)
+   → Sube tu captura a /public/preview.png para que aparezca aquí
+───────────────────────────────────────────────────────────── */
+const SectionPreview = () => (
+  <section style={{ padding:"80px 0 96px", background:"#f8fafc", position:"relative", overflow:"hidden" }}>
+    <Aurora op={0.35}/>
+    <div className="relative max-w-6xl mx-auto px-5 sm:px-8" style={{ zIndex:1 }}>
+
+      {/* Header */}
+      <div style={{ textAlign:"center", maxWidth:540, margin:"0 auto 48px" }}>
+        <span style={{ ...ou, color:"#6366f1", fontSize:11, fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" }}>Ve el sistema en acción</span>
+        <h2 style={{ ...ou, color:"#0f172a", fontSize:"clamp(1.9rem,3.5vw,2.8rem)", fontWeight:900, lineHeight:1.08, letterSpacing:"-.022em", marginTop:10 }}>
+          Todo desde una sola pantalla.
+        </h2>
+        <p style={{ ...ou, color:"#64748b", fontSize:16, marginTop:10, lineHeight:1.65 }}>
+          Panel de ventas, KDS, pedidos y clientes — en tiempo real.
+        </p>
+      </div>
+
+      {/* Browser mockup frame */}
+      <div style={{ maxWidth:900, margin:"0 auto", position:"relative" }}>
+        {/* Glow detrás */}
+        <div style={{ position:"absolute", inset:-60, background:"radial-gradient(ellipse,rgba(99,102,241,.18) 0%,transparent 70%)", filter:"blur(50px)", pointerEvents:"none", borderRadius:"50%" }}/>
+
+        <div style={{ position:"relative", borderRadius:16, overflow:"hidden",
+          boxShadow:"0 32px 80px rgba(99,102,241,.18), 0 8px 24px rgba(0,0,0,.1), 0 0 0 1px rgba(99,102,241,.15)",
+          background:"white" }}>
+
+          {/* Barra de navegador */}
+          <div style={{ background:"linear-gradient(135deg,#f8fafc,#f1f5f9)", borderBottom:"1px solid #e2e8f0",
+            padding:"10px 16px", display:"flex", alignItems:"center", gap:10 }}>
+            {/* Traffic lights */}
+            <div style={{ display:"flex", gap:6 }}>
+              {["#ff5f57","#febc2e","#28c840"].map(c=>(
+                <div key={c} style={{ width:12, height:12, borderRadius:"50%", background:c }}/>
+              ))}
+            </div>
+            {/* URL bar */}
+            <div style={{ flex:1, background:"white", border:"1px solid #e2e8f0", borderRadius:8,
+              padding:"5px 12px", display:"flex", alignItems:"center", gap:8, maxWidth:340, margin:"0 auto" }}>
+              <div style={{ width:6, height:6, borderRadius:"50%", background:"#16a34a", flexShrink:0 }}/>
+              <span style={{ ...ou, color:"#64748b", fontSize:11, fontWeight:500 }}>app.pandaposs.com/panel</span>
+            </div>
+          </div>
+
+          {/* Imagen del sistema — sube /public/preview.png */}
+          <div style={{ position:"relative", width:"100%", aspectRatio:"16/9", background:"linear-gradient(135deg,#f0f4ff 0%,#f5f3ff 50%,#f0fdf4 100%)", display:"flex", alignItems:"center", justifyContent:"center", minHeight:300 }}>
+            <img
+              src="/preview.png"
+              alt="PandaPOS Dashboard"
+              style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; (e.currentTarget.nextElementSibling as HTMLElement).style.display = "flex"; }}
+            />
+            {/* Placeholder si no existe preview.png */}
+            <div style={{ display:"none", position:"absolute", inset:0, flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16 }}>
+              <div style={{ width:72, height:72, borderRadius:20, background:"rgba(99,102,241,.1)", border:"2px dashed rgba(99,102,241,.3)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <Monitor size={32} style={{ color:"#6366f1", opacity:.5 }}/>
+              </div>
+              <div style={{ textAlign:"center" }}>
+                <p style={{ ...ou, color:"#6366f1", fontSize:14, fontWeight:700 }}>Sube tu captura aquí</p>
+                <p style={{ ...ou, color:"#94a3b8", fontSize:12, marginTop:4 }}>Guarda la imagen como <code style={{ background:"#f1f5f9", padding:"1px 6px", borderRadius:4, fontSize:11 }}>/public/preview.png</code></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Badges flotantes sobre el frame */}
+        <div className="float-a" style={{ position:"absolute", top:60, right:-24, zIndex:10,
+          background:"white", border:"1.5px solid #bbf7d0", borderRadius:14,
+          padding:"10px 14px", boxShadow:"0 8px 28px rgba(37,211,102,.15), 0 2px 8px rgba(0,0,0,.07)" }}>
+          <p style={{ ...ou, color:"#94a3b8", fontSize:9, textTransform:"uppercase", letterSpacing:".1em", fontWeight:600 }}>Pedidos hoy</p>
+          <p style={{ ...ou, color:"#16a34a", fontWeight:900, fontSize:22, lineHeight:1.2 }}>+147</p>
+        </div>
+
+        <div className="float-b" style={{ position:"absolute", bottom:60, left:-24, zIndex:10,
+          background:"white", border:"1.5px solid #c7d2fe", borderRadius:14,
+          padding:"10px 14px", boxShadow:"0 8px 28px rgba(99,102,241,.15), 0 2px 8px rgba(0,0,0,.07)" }}>
+          <p style={{ ...ou, color:"#94a3b8", fontSize:9, textTransform:"uppercase", letterSpacing:".1em", fontWeight:600 }}>Comisión pagada</p>
+          <p style={{ ...ou, color:"#6366f1", fontWeight:900, fontSize:22, lineHeight:1.2 }}>$0</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+);
+
+/* ─────────────────────────────────────────────────────────────
    SECCIÓN 5 — SISTEMA
 ───────────────────────────────────────────────────────────── */
 const FEATS = [
@@ -787,6 +874,7 @@ export default function HomePage() {
         <SectionSolution/>
         <SectionCycle/>
         <SectionTestimonial/>
+        <SectionPreview/>
         <SectionSystem/>
         <SectionBenefits/>
         <SectionPricing/>
