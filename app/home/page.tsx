@@ -84,7 +84,7 @@ const Styles = () => (
     }
     .grad-border-inner {
       border-radius: 15px;
-      background: #0c1022;
+      background: #1a1d3a;
     }
 
     /* Strikethrough animated */
@@ -194,7 +194,7 @@ const Panda = ({ size = 80, cls = "" }: { size?: number; cls?: string }) => (
    NAVBAR
 ───────────────────────────────────────────────────────────── */
 const Navbar = () => (
-  <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:200, backdropFilter:"blur(24px)", background:"rgba(10,14,26,.88)", borderBottom:"1px solid rgba(255,255,255,.07)" }}>
+  <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:200, backdropFilter:"blur(24px)", background:"rgba(20,22,52,.92)", borderBottom:"1px solid rgba(255,255,255,.07)" }}>
     <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16">
       <Link href="/home" className="flex items-center gap-2.5" style={{ ...sg, color:"white", fontWeight:900, fontSize:18, textDecoration:"none" }}>
         <img src="/logo.png" alt="PandaPOS" style={{ width:32, height:32, objectFit:"contain" }}/>
@@ -315,7 +315,7 @@ const WAMockup = () => (
 );
 
 const Hero = () => (
-  <section style={{ minHeight:"100vh", display:"flex", alignItems:"center", paddingTop:80, paddingBottom:64, background:"#0c1022", position:"relative", overflow:"hidden" }}>
+  <section style={{ minHeight:"100vh", display:"flex", alignItems:"center", paddingTop:80, paddingBottom:64, background:"#1a1d3a", position:"relative", overflow:"hidden" }}>
     <Aurora />
     <Dots />
     <div className="relative max-w-7xl mx-auto px-5 sm:px-8 w-full" style={{ zIndex:1 }}>
@@ -431,7 +431,7 @@ const StatsBar = () => (
    SECCIÓN 2 — SOLUCIÓN SIMPLE
 ───────────────────────────────────────────────────────────── */
 const SectionSolution = () => (
-  <section id="como-funciona" style={{ padding:"96px 0", background:"#0c1022", position:"relative", overflow:"hidden" }}>
+  <section id="como-funciona" style={{ padding:"96px 0", background:"#1a1d3a", position:"relative", overflow:"hidden" }}>
     <Aurora op={0.55}/>
     <Dots op={0.45}/>
     <div className="relative max-w-6xl mx-auto px-5 sm:px-8" style={{ zIndex:1 }}>
@@ -471,7 +471,7 @@ const SectionSolution = () => (
    SECCIÓN 3 — CICLO DE BOLETA
 ───────────────────────────────────────────────────────────── */
 const SectionCycle = () => (
-  <section style={{ padding:"96px 0", background:"#080e1c" }}>
+  <section style={{ padding:"96px 0", background:"#141830" }}>
     <div className="max-w-6xl mx-auto px-5 sm:px-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
         <div>
@@ -523,7 +523,7 @@ const SectionCycle = () => (
    SECCIÓN 4 — PRUEBA SOCIAL
 ───────────────────────────────────────────────────────────── */
 const SectionTestimonial = () => (
-  <section style={{ padding:"96px 0", background:"#0c1022", position:"relative", overflow:"hidden" }}>
+  <section style={{ padding:"96px 0", background:"#1a1d3a", position:"relative", overflow:"hidden" }}>
     <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:700, height:460, background:"radial-gradient(ellipse,rgba(139,47,201,.1) 0%,transparent 70%)", filter:"blur(55px)", pointerEvents:"none" }}/>
     <div className="max-w-2xl mx-auto px-5 sm:px-8" style={{ position:"relative", zIndex:1 }}>
       <div style={{ textAlign:"center", marginBottom:36 }}>
@@ -573,7 +573,7 @@ const FEATS = [
 ];
 
 const SectionSystem = () => (
-  <section id="sistema" style={{ padding:"96px 0", background:"#080e1c" }}>
+  <section id="sistema" style={{ padding:"96px 0", background:"#141830" }}>
     <div className="max-w-6xl mx-auto px-5 sm:px-8">
       <div style={{ textAlign:"center", maxWidth:540, margin:"0 auto 52px" }}>
         <div style={{ display:"flex", justifyContent:"center", marginBottom:14 }}>
@@ -617,7 +617,7 @@ const BENEFITS = [
 ];
 
 const SectionBenefits = () => (
-  <section style={{ padding:"96px 0", background:"#0c1022", position:"relative", overflow:"hidden" }}>
+  <section style={{ padding:"96px 0", background:"#1a1d3a", position:"relative", overflow:"hidden" }}>
     <Aurora op={0.45}/>
     <Dots op={0.35}/>
     <div className="relative max-w-6xl mx-auto px-5 sm:px-8" style={{ zIndex:1 }}>
@@ -670,7 +670,7 @@ const PLANS = [
 ];
 
 const SectionPricing = () => (
-  <section id="planes" style={{ padding:"96px 0", background:"#080e1c", position:"relative", overflow:"hidden" }}>
+  <section id="planes" style={{ padding:"96px 0", background:"#141830", position:"relative", overflow:"hidden" }}>
     <div className="relative max-w-6xl mx-auto px-5 sm:px-8" style={{ zIndex:1 }}>
       <div style={{ textAlign:"center", marginBottom:52 }}>
         <p style={{ ...dm, color:"#c084f5", fontSize:11, fontWeight:700, letterSpacing:".12em", textTransform:"uppercase", marginBottom:10 }}>Precios</p>
@@ -728,7 +728,7 @@ const SectionPricing = () => (
    SECCIÓN 8 — CTA FINAL
 ───────────────────────────────────────────────────────────── */
 const SectionCTA = () => (
-  <section style={{ padding:"120px 0", background:"#0c1022", position:"relative", overflow:"hidden" }}>
+  <section style={{ padding:"120px 0", background:"#1a1d3a", position:"relative", overflow:"hidden" }}>
     <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:800, height:500, background:"radial-gradient(ellipse,rgba(139,47,201,.17) 0%,rgba(37,211,102,.06) 50%,transparent 70%)", filter:"blur(60px)", pointerEvents:"none" }}/>
     <Dots op={0.32}/>
     <div className="relative max-w-3xl mx-auto px-5 sm:px-8 text-center" style={{ zIndex:1 }}>
@@ -767,7 +767,7 @@ const SectionCTA = () => (
    FOOTER
 ───────────────────────────────────────────────────────────── */
 const Footer = () => (
-  <footer style={{ background:"#060b18", borderTop:"1px solid rgba(255,255,255,.06)", padding:"32px 0" }}>
+  <footer style={{ background:"#0f1228", borderTop:"1px solid rgba(255,255,255,.06)", padding:"32px 0" }}>
     <div className="max-w-6xl mx-auto px-5 sm:px-8" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:16, flexWrap:"wrap" }}>
       <Link href="/home" style={{ display:"flex", alignItems:"center", gap:8, color:"white", fontWeight:800, fontSize:16, textDecoration:"none", ...sg }}>
         <img src="/logo.png" alt="PandaPOS" style={{ width:26, height:26, objectFit:"contain" }}/>
@@ -786,7 +786,7 @@ const Footer = () => (
 ───────────────────────────────────────────────────────────── */
 export default function HomePage() {
   return (
-    <div style={{ minHeight:"100vh", background:"#0c1022", ...dm }}>
+    <div style={{ minHeight:"100vh", background:"#1a1d3a", ...dm }}>
       <Styles/>
       <Navbar/>
       <main>
