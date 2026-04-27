@@ -144,61 +144,52 @@ export function PedidosDirectosPanel({ simbolo }: { simbolo: string }) {
 }
 
 function PedidoRow({ pedido, simbolo, dimmed = false }: { pedido: PedidoDirecto; simbolo: string; dimmed?: boolean }) {
-  const origen  = ORIGEN_CONFIG[pedido.origen];
-  const estado  = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, color: "bg-slate-100 text-slate-600 border-slate-200" };
+  const origen     = ORIGEN_CONFIG[pedido.origen];
+  const estado     = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, color: "bg-slate-100 text-slate-600 border-slate-200" };
   const OrigenIcon = origen.icon;
 
   return (
     <div className={cn(
-      "flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-bg/50",
+      "px-4 py-3 transition-colors hover:bg-surface-bg/50",
       dimmed && "opacity-60"
     )}>
 
-      {/* Origen badge */}
-      <span className={cn("flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold shrink-0", origen.color)}>
-        <OrigenIcon size={10} />
-        {origen.label}
-      </span>
-
-      {/* Número y cliente */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-black text-surface-text">#{pedido.numero}</span>
+      {/* Fila 1: origen + número/cliente + total */}
+      <div className="flex items-center gap-2">
+        <span className={cn("flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold shrink-0", origen.color)}>
+          <OrigenIcon size={10} />
+          {origen.label}
+        </span>
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <span className="text-xs font-black text-surface-text shrink-0">#{pedido.numero}</span>
           {pedido.clienteNombre && (
             <span className="text-xs text-surface-muted truncate">{pedido.clienteNombre}</span>
           )}
         </div>
-        {pedido.telefono && (
-          <p className="text-[10px] text-surface-muted truncate">{pedido.telefono}</p>
-        )}
+        <span className="text-sm font-black text-surface-text shrink-0 pl-2">
+          {formatCurrency(pedido.total, simbolo)}
+        </span>
       </div>
 
-      {/* Método de pago */}
-      {pedido.pagoMP ? (
-        <span className="flex items-center gap-1 rounded-full bg-blue-500 text-white px-2 py-0.5 text-[11px] font-bold shrink-0">
-          <CreditCard size={10} />
-          Mercado Pago
+      {/* Fila 2: estado + método + tiempo */}
+      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+        <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold shrink-0", estado.color)}>
+          {estado.label}
         </span>
-      ) : (
-        <span className="text-[11px] text-surface-muted shrink-0">
-          {METODO_LABEL[pedido.metodoPago] ?? pedido.metodoPago}
-        </span>
-      )}
-
-      {/* Estado */}
-      <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold shrink-0", estado.color)}>
-        {estado.label}
-      </span>
-
-      {/* Total */}
-      <span className="text-sm font-black text-surface-text shrink-0 min-w-[70px] text-right">
-        {formatCurrency(pedido.total, simbolo)}
-      </span>
-
-      {/* Tiempo */}
-      <div className="flex items-center gap-1 text-[11px] text-surface-muted shrink-0">
-        <Clock size={11} />
-        {timeAgo(pedido.creadoEn)}
+        {pedido.pagoMP ? (
+          <span className="flex items-center gap-1 rounded-full bg-blue-500 text-white px-2 py-0.5 text-[11px] font-bold shrink-0">
+            <CreditCard size={10} />
+            Mercado Pago
+          </span>
+        ) : (
+          <span className="text-[11px] text-surface-muted shrink-0">
+            {METODO_LABEL[pedido.metodoPago] ?? pedido.metodoPago}
+          </span>
+        )}
+        <div className="flex items-center gap-1 text-[11px] text-surface-muted ml-auto shrink-0">
+          <Clock size={10} />
+          {timeAgo(pedido.creadoEn)}
+        </div>
       </div>
     </div>
   );

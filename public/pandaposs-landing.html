@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PandaPOS — Vende directo. 0% comisión.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080f;
+  --bg2:#060609;
+  --violet:#7c3aed;
+  --violet-l:#a78bfa;
+  --violet-d:#c4b5fd;
+  --green:#25D366;
+  --green-l:#4ade80;
+  --red:#ef4444;
+  --red-l:#f87171;
+  --blue:#38bdf8;
+  --blue-l:#60a5fa;
+  --amber:#f59e0b;
+  --pink:#d946ef;
+  --sg:'Space Grotesk',sans-serif;
+  --dm:'DM Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:#fff;
+  font-family:var(--dm);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.4);border-radius:999px}
+
+/* ── Keyframes ── */
+@keyframes pulse-glow{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes float-up{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes float-dn{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+@keyframes glow-v{0%,100%{box-shadow:0 0 0 1px rgba(139,92,246,.6),0 8px 40px rgba(139,92,246,.15)}50%{box-shadow:0 0 0 1px rgba(139,92,246,1),0 8px 60px rgba(139,92,246,.4)}}
+@keyframes glow-g{0%,100%{box-shadow:0 0 0 1px rgba(37,211,102,.6),0 8px 40px rgba(37,211,102,.12)}50%{box-shadow:0 0 0 1px rgba(37,211,102,1),0 8px 60px rgba(37,211,102,.35)}}
+@keyframes glow-b{0%,100%{box-shadow:0 0 0 1px rgba(56,189,248,.6),0 8px 40px rgba(56,189,248,.12)}50%{box-shadow:0 0 0 1px rgba(56,189,248,1),0 8px 60px rgba(56,189,248,.35)}}
+@keyframes glow-r{0%,100%{box-shadow:0 0 0 1px rgba(239,68,68,.6),0 8px 40px rgba(239,68,68,.12)}50%{box-shadow:0 0 0 1px rgba(239,68,68,1),0 8px 60px rgba(239,68,68,.35)}}
+@keyframes glow-a{0%,100%{box-shadow:0 0 0 1px rgba(245,158,11,.6),0 8px 40px rgba(245,158,11,.12)}50%{box-shadow:0 0 0 1px rgba(245,158,11,1),0 8px 60px rgba(245,158,11,.35)}}
+@keyframes glow-p{0%,100%{box-shadow:0 0 0 1px rgba(217,70,239,.6),0 8px 40px rgba(217,70,239,.12)}50%{box-shadow:0 0 0 1px rgba(217,70,239,1),0 8px 60px rgba(217,70,239,.35)}}
+@keyframes spin-slow{to{transform:rotate(360deg)}}
+@keyframes glitch{
+  0%,95%,100%{transform:none;filter:none}
+  96%{transform:translateX(-3px);filter:hue-rotate(90deg)}
+  97%{transform:translateX(3px);filter:hue-rotate(-90deg)}
+  98%{transform:translateX(-2px) skewX(2deg);filter:brightness(1.4)}
+  99%{transform:translateX(2px);filter:none}
+}
+@keyframes ticker{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+
+/* ── Dots grid ── */
+.dots-grid{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(255,255,255,.07) 1px,transparent 1px);
+  background-size:28px 28px;
+  z-index:0;
+}
+
+/* ── Aurora ── */
+.aurora{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.aurora-blob{position:absolute;border-radius:50%;filter:blur(55px)}
+
+/* ── Glass card ── */
+.glass{
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-radius:1rem;
+  border:1px solid rgba(139,92,246,.7);
+  position:relative;overflow:hidden;
+}
+.glass::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.05) 0%,transparent 60%);
+  pointer-events:none;border-radius:inherit;
+}
+.glass.glow-v{animation:glow-v 3s ease-in-out infinite}
+.glass.glow-g{border-color:rgba(37,211,102,.7);animation:glow-g 3s ease-in-out infinite}
+.glass.glow-b{border-color:rgba(56,189,248,.7);animation:glow-b 3s ease-in-out infinite}
+.glass.glow-r{border-color:rgba(239,68,68,.7);animation:glow-r 3s ease-in-out infinite}
+.glass.glow-a{border-color:rgba(245,158,11,.7);animation:glow-a 3s ease-in-out infinite}
+.glass.glow-p{border-color:rgba(217,70,239,.7);animation:glow-p 3s ease-in-out infinite}
+
+.card-hover{transition:transform .22s ease,filter .22s ease}
+.card-hover:hover{transform:translateY(-4px) scale(1.015);filter:brightness(1.1)}
+
+/* ── Navbar ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  backdrop-filter:blur(24px);
+  background:rgba(8,8,15,.8);
+}
+.nav-inner{
+  max-width:1200px;margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;height:64px;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--sg);font-weight:900;font-size:18px;color:#fff;
+  text-decoration:none;
+}
+.nav-logo img{width:32px;height:32px;object-fit:contain}
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-link{
+  color:rgba(255,255,255,.35);font-size:13px;font-weight:700;
+  text-decoration:none;transition:color .2s;font-family:var(--dm);
+  letter-spacing:.02em;
+}
+.nav-link:hover{color:#fff}
+.btn-wa{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#25D366,#1db954);
+  padding:10px 20px;border-radius:12px;color:#fff;
+  font-family:var(--sg);font-weight:800;font-size:13px;
+  text-decoration:none;animation:glow-g 2.5s ease-in-out infinite;
+}
+@media(max-width:768px){.nav-links{display:none}}
+
+/* ── Hero ── */
+.hero{
+  min-height:100vh;display:flex;align-items:center;
+  padding:120px 24px 80px;background:var(--bg);
+  position:relative;overflow:hidden;
+}
+.hero-inner{max-width:1200px;margin:0 auto;width:100%;position:relative;z-index:1}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:999px;
+  background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.6);
+  margin-bottom:28px;backdrop-filter:blur(8px);
+  animation:glow-v 3s ease-in-out infinite;
+}
+.badge-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--violet-l);
+  box-shadow:0 0 10px var(--violet-l);
+  animation:pulse-glow 2s ease-in-out infinite;
+}
+.badge-text{
+  font-family:var(--dm);color:rgba(196,181,253,.9);
+  font-size:12px;font-weight:400;letter-spacing:.03em;
+}
+h1{
+  font-family:var(--sg);font-weight:900;
+  font-size:clamp(2.6rem,5vw,4.4rem);
+  line-height:1.03;letter-spacing:-.025em;color:#fff;
+  margin-bottom:14px;
+}
+.grad-violet{
+  background:linear-gradient(135deg,#a78bfa,#818cf8,#c4b5fd);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 22px rgba(139,92,246,.55));
+}
+.grad-green{
+  background:linear-gradient(135deg,#25D366,#4ade80);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(37,211,102,.45));
+}
+.hero-sub{
+  font-family:var(--dm);color:rgba(196,181,253,.6);
+  font-size:13px;font-weight:400;margin-bottom:16px;letter-spacing:.04em;
+}
+.hero-desc{
+  font-family:var(--dm);color:rgba(255,255,255,.4);
+  font-size:17px;line-height:1.7;max-width:480px;margin-bottom:36px;
+}
+.hero-desc strong{color:#fff;font-weight:600}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:44px}
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.05);
+  backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);
+  padding:14px 28px;border-radius:14px;color:#fff;
+  font-family:var(--sg);font-weight:800;font-size:14px;
+  text-decoration:none;transition:background .2s,border-color .2s;
+}
+.btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25)}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#25D366,#1db954);
+  padding:14px 28px;border-radius:14px;color:#fff;
+  font-family:var(--sg);font-weight:800;font-size:14px;
+  text-decoration:none;animation:glow-g 2.5s ease-in-out infinite;
+}
+.hero-stats{display:flex;gap:32px;flex-wrap:wrap}
+.hero-stat p:first-child{
+  font-family:var(--sg);font-weight:900;font-size:28px;
+}
+.hero-stat p:last-child{
+  font-family:var(--dm);color:rgba(255,255,255,.3);font-size:12px;margin-top:2px;
+}
+
+/* ── WhatsApp Mockup ── */
+.mockup-wrap{position:relative;padding:24px 0}
+.mockup-glow{
+  position:absolute;inset:-40px;
+  background:radial-gradient(ellipse,rgba(37,211,102,.2) 0%,rgba(139,92,246,.12) 50%,transparent 75%);
+  filter:blur(40px);border-radius:50%;pointer-events:none;
+}
+.wa-card{border-radius:1.25rem;box-shadow:0 32px 80px rgba(0,0,0,.6)}
+.wa-header{
+  background:rgba(255,255,255,.04);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  padding:14px 18px;display:flex;align-items:center;gap:10px;
+}
+.wa-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,#25D366,#1db954);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 18px rgba(37,211,102,.5);font-size:16px;
+}
+.wa-name{font-family:var(--sg);color:#fff;font-size:12px;font-weight:800}
+.wa-status{font-family:var(--dm);color:#25D366;font-size:10px;margin-top:1px}
+.wa-body{padding:18px;display:flex;flex-direction:column;gap:12px}
+.order-card{
+  max-width:90%;background:rgba(255,255,255,.04);
+  border:1px solid rgba(139,92,246,.7);border-radius:14px;
+  padding:14px;animation:glow-v 3.5s ease-in-out infinite;
+}
+.order-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.order-title{font-family:var(--sg);color:#fff;font-weight:800;font-size:13px}
+.order-badge{
+  background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.6);
+  color:#c4b5fd;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:999px;font-family:var(--dm);
+}
+.order-item{
+  display:flex;align-items:center;gap:6px;margin-bottom:5px;
+  font-family:var(--dm);color:rgba(255,255,255,.45);font-size:12px;
+}
+.item-dot{width:4px;height:4px;border-radius:50%;background:#a78bfa;flex-shrink:0}
+.order-footer{
+  border-top:1px solid rgba(255,255,255,.08);
+  margin-top:10px;padding-top:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.order-total-label{font-family:var(--dm);color:rgba(255,255,255,.3);font-size:11px}
+.order-total-val{font-family:var(--sg);color:#fff;font-weight:800;font-size:15px}
+.wa-msg{
+  align-self:flex-end;
+  background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.5);
+  border-radius:14px 14px 2px 14px;
+  padding:8px 12px;backdrop-filter:blur(8px);
+  font-family:var(--dm);color:#4ade80;font-size:11px;
+}
+.badge-float{
+  position:absolute;top:-10px;right:-20px;
+  background:rgba(239,68,68,.12);backdrop-filter:blur(16px);
+  border:1px solid rgba(239,68,68,.85);border-radius:14px;
+  padding:10px 16px;
+  box-shadow:0 0 30px rgba(239,68,68,.3),0 8px 32px rgba(0,0,0,.4);
+  animation:float-up 3s ease-in-out infinite;
+}
+.badge-float2{
+  position:absolute;bottom:-10px;left:-20px;
+  background:rgba(37,211,102,.1);backdrop-filter:blur(16px);
+  border:1px solid rgba(37,211,102,.85);border-radius:14px;
+  padding:10px 16px;
+  box-shadow:0 0 30px rgba(37,211,102,.25),0 8px 32px rgba(0,0,0,.4);
+  animation:float-dn 3.5s ease-in-out infinite;
+}
+.badge-label{font-family:var(--dm);font-size:9px;font-weight:400;letter-spacing:.08em;text-transform:uppercase}
+.badge-val{font-family:var(--sg);font-weight:900;font-size:22px;line-height:1.2}
+
+/* ── Ticker ── */
+.ticker-wrap{
+  overflow:hidden;background:rgba(139,92,246,.06);
+  border-top:1px solid rgba(139,92,246,.15);
+  border-bottom:1px solid rgba(139,92,246,.15);
+  padding:10px 0;white-space:nowrap;
+}
+.ticker-inner{
+  display:inline-flex;gap:0;
+  animation:ticker 22s linear infinite;
+}
+.ticker-item{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:0 32px;font-family:var(--sg);font-size:12px;font-weight:700;
+  color:rgba(167,139,250,.6);letter-spacing:.04em;
+}
+.ticker-sep{color:rgba(167,139,250,.25)}
+
+/* ── Stats bar ── */
+.stats-bar{
+  background:rgba(255,255,255,.025);
+  border-top:1px solid rgba(255,255,255,.07);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  backdrop-filter:blur(8px);
+}
+.stats-inner{
+  max-width:1200px;margin:0 auto;padding:0 24px;
+  display:grid;grid-template-columns:repeat(4,1fr);
+}
+@media(max-width:640px){.stats-inner{grid-template-columns:repeat(2,1fr)}}
+.stat-cell{
+  text-align:center;padding:28px 16px;
+  border-right:1px solid rgba(255,255,255,.06);
+}
+.stat-cell:last-child{border-right:none}
+.stat-val{
+  font-family:var(--sg);font-weight:900;font-size:32px;line-height:1;
+}
+.stat-lbl{font-family:var(--dm);color:rgba(255,255,255,.3);font-size:11px;margin-top:6px}
+
+/* ── Section shared ── */
+.section{padding:96px 0;position:relative}
+.section-inner{max-width:1200px;margin:0 auto;padding:0 24px}
+.section-tag{
+  font-family:var(--dm);font-size:11px;font-weight:400;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;
+}
+.section-h2{
+  font-family:var(--sg);color:#fff;font-weight:900;
+  font-size:clamp(2rem,4vw,3.2rem);line-height:1.06;
+  letter-spacing:-.022em;
+}
+.section-sub{
+  font-family:var(--dm);color:rgba(255,255,255,.38);
+  font-size:17px;line-height:1.65;margin-top:14px;
+}
+.text-center{text-align:center}
+.mb-56{margin-bottom:56px}
+
+/* ── Problem table ── */
+.table-wrap{border-radius:1.25rem;overflow:hidden}
+.tbl-head{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  background:rgba(255,255,255,.03);
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.tbl-h-cell{padding:20px 24px;font-family:var(--sg);font-weight:800;font-size:15px}
+.tbl-h-sep{border-left:1px solid rgba(255,255,255,.07)}
+.tbl-panda{background:rgba(139,92,246,.08)}
+.tbl-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid rgba(255,255,255,.05)}
+.tbl-row:last-child{border-bottom:none}
+.tbl-cell{padding:16px 24px;display:flex;align-items:center;font-family:var(--dm);font-size:13px}
+.tbl-cell.sep{border-left:1px solid rgba(255,255,255,.05)}
+.tbl-cell.panda-col{background:rgba(139,92,246,.05)}
+.bad{color:var(--red-l);font-family:var(--sg);font-weight:700;display:flex;align-items:center;gap:6px}
+.good{color:var(--green-l);font-family:var(--sg);font-weight:700;display:flex;align-items:center;gap:6px}
+.neutral{color:rgba(255,255,255,.45)}
+
+/* ── Steps ── */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:768px){.steps-grid{grid-template-columns:1fr}}
+.step-icon-wrap{
+  width:46px;height:46px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:20px;
+}
+.step-num{font-family:var(--sg);color:rgba(255,255,255,.08);font-weight:900;font-size:36px;margin-left:auto;margin-top:-42px}
+.step-h3{font-family:var(--sg);color:#fff;font-weight:800;font-size:17px;margin-bottom:8px}
+.step-p{font-family:var(--dm);color:rgba(255,255,255,.38);font-size:13px;line-height:1.65}
+
+/* ── Features bento ── */
+.bento{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:640px){.bento{grid-template-columns:1fr}}
+.bento-wide{grid-column:1/-1}
+.feat-wrap{display:flex;gap:18px;align-items:flex-start;padding:24px}
+.feat-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.feat-h3{font-family:var(--sg);color:#fff;font-weight:800;font-size:15px;margin-bottom:7px}
+.feat-p{font-family:var(--dm);color:rgba(255,255,255,.38);font-size:13px;line-height:1.65}
+
+/* ── Pricing ── */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:768px){.pricing-grid{grid-template-columns:1fr}}
+.plan-wrap{position:relative}
+.plan-badge{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#7c3aed,#6366f1);
+  box-shadow:0 0 24px rgba(124,58,237,.7),0 4px 16px rgba(0,0,0,.4);
+  padding:4px 18px;border-radius:999px;color:#fff;
+  font-size:11px;font-weight:800;white-space:nowrap;z-index:2;
+  font-family:var(--sg);
+}
+.plan-body{padding:28px 24px;display:flex;flex-direction:column;height:100%}
+.plan-label{font-family:var(--dm);color:rgba(255,255,255,.25);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.plan-name{font-family:var(--sg);color:#fff;font-weight:900;font-size:24px;margin-bottom:4px}
+.plan-price{display:flex;align-items:flex-end;gap:4px;margin-bottom:6px}
+.plan-price-val{font-family:var(--sg);color:#fff;font-weight:900;font-size:38px}
+.plan-price-per{font-family:var(--dm);color:rgba(255,255,255,.25);font-size:13px;padding-bottom:6px}
+.plan-pitch{font-family:var(--dm);color:rgba(255,255,255,.35);font-size:13px;margin-bottom:24px}
+.plan-items{display:flex;flex-direction:column;gap:10px;flex:1;margin-bottom:24px}
+.plan-item{display:flex;align-items:flex-start;gap:8px;font-family:var(--dm);color:rgba(255,255,255,.48);font-size:13px}
+.check-icon{color:var(--green-l);flex-shrink:0;margin-top:1px;filter:drop-shadow(0 0 4px rgba(74,222,128,.6))}
+.plan-cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 20px;border-radius:12px;color:#fff;
+  font-family:var(--sg);font-weight:800;font-size:13px;text-decoration:none;
+}
+
+/* ── Social proof ── */
+.testimonial{padding:48px 40px;text-align:center}
+.stars{display:flex;justify-content:center;gap:4px;margin-bottom:24px}
+.star{color:#fbbf24;font-size:20px;filter:drop-shadow(0 0 6px rgba(251,191,36,.6))}
+blockquote{
+  font-family:var(--sg);color:#fff;
+  font-size:clamp(1.05rem,2vw,1.3rem);font-weight:700;
+  line-height:1.55;margin-bottom:32px;
+}
+.author-wrap{display:flex;align-items:center;justify-content:center;gap:12px}
+.author-avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#4f46e5);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:900;font-size:16px;font-family:var(--sg);
+  box-shadow:0 0 22px rgba(124,58,237,.5);
+}
+.author-name{font-family:var(--sg);color:#fff;font-weight:800;font-size:13px}
+.author-role{font-family:var(--dm);color:rgba(255,255,255,.35);font-size:11px;margin-top:2px}
+
+/* ── Power cycle ── */
+.power-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+@media(max-width:768px){.power-grid{grid-template-columns:1fr}}
+.power-steps{display:flex;flex-direction:column;gap:12px}
+.power-step{display:flex;align-items:center;gap:14px;padding:16px 20px}
+.power-step-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;flex-shrink:0;
+}
+.power-step-num{font-family:var(--sg);color:rgba(255,255,255,.08);font-weight:900;font-size:26px;margin-left:auto}
+.power-step-h{font-family:var(--sg);color:#fff;font-weight:800;font-size:13px}
+.power-step-sub{font-family:var(--dm);color:rgba(255,255,255,.35);font-size:12px;margin-top:2px}
+
+/* ── CTA final ── */
+.cta-section{
+  padding:120px 0;background:var(--bg2);
+  position:relative;overflow:hidden;text-align:center;
+}
+.cta-icon{
+  width:64px;height:64px;border-radius:18px;
+  background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.85);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 28px;box-shadow:0 0 44px rgba(139,92,246,.4);
+  animation:glow-v 2.5s ease-in-out infinite;font-size:28px;
+}
+.cta-h2{
+  font-family:var(--sg);color:#fff;font-weight:900;
+  font-size:clamp(2.2rem,5vw,3.8rem);line-height:1.04;
+  letter-spacing:-.022em;margin-bottom:20px;
+  animation:glitch 8s ease-in-out infinite;
+}
+.cta-sub{font-family:var(--dm);color:rgba(255,255,255,.38);font-size:18px;margin-bottom:40px;line-height:1.65}
+.cta-note{font-family:var(--dm);color:rgba(255,255,255,.18);font-size:12px;margin-top:20px}
+
+/* ── Footer ── */
+footer{
+  background:#040407;border-top:1px solid rgba(255,255,255,.06);padding:36px 0;
+}
+.footer-inner{
+  max-width:1200px;margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+}
+.footer-logo{display:flex;align-items:center;gap:8px;color:#fff;font-weight:800;font-size:16px;text-decoration:none;font-family:var(--sg)}
+.footer-logo img{width:28px;height:28px;object-fit:contain}
+.footer-copy{font-family:var(--dm);color:rgba(255,255,255,.18);font-size:12px}
+.footer-wa{font-family:var(--dm);color:#25D366;font-size:13px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px}
+
+/* ── Scroll reveal base ── */
+.reveal{opacity:0;transform:translateY(36px)}
+.reveal-scale{opacity:0;transform:scale(.9) translateY(20px)}
+.reveal-left{opacity:0;transform:translateX(-40px)}
+.reveal-right{opacity:0;transform:translateX(40px)}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <img src="/logo.png" alt="PandaPOS"/>
+      PandaPOS
+    </a>
+    <div class="nav-links">
+      <a href="#problema" class="nav-link">El problema</a>
+      <a href="#como-funciona" class="nav-link">Cómo funciona</a>
+      <a href="#planes" class="nav-link">Planes</a>
+      <a href="https://wa.me/56999011141?text=Hola%2C%20quiero%20dejar%20de%20pagar%20comisiones" target="_blank" class="btn-wa">
+        💬 WhatsApp
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="aurora">
+    <div class="aurora-blob" style="top:-15%;left:5%;width:750px;height:580px;background:radial-gradient(ellipse,rgba(124,58,237,.24) 0%,transparent 65%);animation:pulse-glow 6s ease-in-out infinite"></div>
+    <div class="aurora-blob" style="top:25%;right:-8%;width:580px;height:580px;background:radial-gradient(ellipse,rgba(219,39,119,.15) 0%,transparent 65%);animation:pulse-glow 8s ease-in-out infinite;animation-delay:2s"></div>
+    <div class="aurora-blob" style="bottom:-10%;left:35%;width:660px;height:480px;background:radial-gradient(ellipse,rgba(37,211,102,.11) 0%,transparent 65%);animation:pulse-glow 7s ease-in-out infinite;animation-delay:4s"></div>
+  </div>
+  <div class="dots-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-badge" id="hero-badge">
+          <span class="badge-dot"></span>
+          <span class="badge-text">Sin comisiones · Pedidos directos · Empieza hoy</span>
+        </div>
+        <h1 id="hero-h1">
+          Las apps de delivery<br/>
+          <span class="grad-violet">te cobran un 30%</span><br/>
+          por cada pedido.
+        </h1>
+        <p class="hero-sub" id="hero-sub">Uber Eats · PedidosYa · Rappi · y todas las demás.</p>
+        <p class="hero-desc" id="hero-desc">
+          PandaPOS te da tu propio canal de ventas por <strong>QR y WhatsApp</strong>.
+          Tus clientes piden directo a ti. Sin comisión por orden.
+        </p>
+        <div class="hero-btns" id="hero-btns">
+          <a href="https://wa.me/56999011141?text=Hola%2C%20quiero%20dejar%20de%20pagar%20comisiones" target="_blank" class="btn-primary">
+            💬 Hablar por WhatsApp
+          </a>
+          <a href="#como-funciona" class="btn-secondary">
+            Ver cómo funciona →
+          </a>
+        </div>
+        <div class="hero-stats" id="hero-stats">
+          <div class="hero-stat">
+            <p style="color:#a78bfa;text-shadow:0 0 22px #a78bfa;font-family:var(--sg);font-weight:900;font-size:28px">0%</p>
+            <p>comisión por pedido</p>
+          </div>
+          <div class="hero-stat">
+            <p style="color:#4ade80;text-shadow:0 0 22px #4ade80;font-family:var(--sg);font-weight:900;font-size:28px">$7.900</p>
+            <p>desde /mes</p>
+          </div>
+          <div class="hero-stat">
+            <p style="color:#60a5fa;text-shadow:0 0 22px #60a5fa;font-family:var(--sg);font-weight:900;font-size:28px">24/7</p>
+            <p>automático</p>
+          </div>
+        </div>
+      </div>
+      <div id="hero-mockup" style="display:none" class="hero-mockup-col">
+        <!-- Desktop only, shown via JS -->
+      </div>
+    </div>
+    <!-- Mockup inline for layout -->
+    <div id="mockup-container" style="position:relative;padding:24px 0;display:none">
+      <div class="mockup-glow"></div>
+      <div class="glass glow-g wa-card">
+        <div class="wa-header">
+          <div class="wa-avatar">💬</div>
+          <div>
+            <div class="wa-name">Tu Restaurante · PandaPOS</div>
+            <div class="wa-status">● en línea</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:4px">
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2)"></div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2)"></div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2)"></div>
+          </div>
+        </div>
+        <div class="wa-body">
+          <div class="order-card">
+            <div class="order-header">
+              <span class="order-title">Pedido #1.247</span>
+              <span class="order-badge">Mesa 4</span>
+            </div>
+            <div class="order-item"><span class="item-dot"></span>2× Sushi Roll Salmón</div>
+            <div class="order-item"><span class="item-dot"></span>1× Causa Rellena</div>
+            <div class="order-item"><span class="item-dot"></span>3× Agua s/gas</div>
+            <div class="order-footer">
+              <span class="order-total-label">Total</span>
+              <span class="order-total-val">$22.500</span>
+            </div>
+          </div>
+          <div class="wa-msg">Pedido enviado al KDS ✓</div>
+          <div class="wa-msg">0% de comisión cobrada ✓</div>
+          <div class="wa-msg">Cliente guardado en tu base ✓</div>
+        </div>
+      </div>
+      <div class="badge-float">
+        <div class="badge-label" style="color:rgba(252,165,165,.8)">Uber Eats te cobraría</div>
+        <div class="badge-val" style="color:#f87171;text-shadow:0 0 22px rgba(239,68,68,.6)">−$6.750</div>
+      </div>
+      <div class="badge-float2">
+        <div class="badge-label" style="color:rgba(74,222,128,.8)">Con PandaPOS</div>
+        <div class="badge-val" style="color:#4ade80;text-shadow:0 0 22px rgba(37,211,102,.6)">$0 comisión</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner">
+    <span class="ticker-item">0% comisión <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Pedidos por WhatsApp <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Bot 24/7 <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">KDS en tiempo real <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Carta QR <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Delivery con zonas <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">POS rápido <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Desde $7.900/mes <span class="ticker-sep">✦</span></span>
+    <!-- duplicate for seamless loop -->
+    <span class="ticker-item">0% comisión <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Pedidos por WhatsApp <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Bot 24/7 <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">KDS en tiempo real <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Carta QR <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Delivery con zonas <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">POS rápido <span class="ticker-sep">✦</span></span>
+    <span class="ticker-item">Desde $7.900/mes <span class="ticker-sep">✦</span></span>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-cell">
+      <div class="stat-val" data-target="0" data-suffix="%" style="color:#a78bfa;text-shadow:0 0 26px rgba(167,139,250,.6)">0%</div>
+      <div class="stat-lbl">Comisión por pedido</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" data-target="30" data-suffix="%" style="color:#4ade80;text-shadow:0 0 26px rgba(74,222,128,.6)">0%</div>
+      <div class="stat-lbl">Margen que recuperas</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" data-target="5" data-suffix=" min" style="color:#60a5fa;text-shadow:0 0 26px rgba(96,165,250,.6)">0 min</div>
+      <div class="stat-lbl">Para activar</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-val" style="color:#f9a8d4;text-shadow:0 0 26px rgba(249,168,212,.6)">24/7</div>
+      <div class="stat-lbl">Pedidos automáticos</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="section" id="problema" style="background:var(--bg2)">
+  <div class="section-inner">
+    <div class="text-center mb-56">
+      <p class="section-tag reveal" style="color:#f87171;text-shadow:0 0 16px rgba(239,68,68,.5)">El problema real</p>
+      <h2 class="section-h2 reveal">
+        Las apps te consiguen pedidos.<br/>
+        <span style="background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 16px rgba(239,68,68,.4))">Y se quedan con el margen.</span>
+      </h2>
+    </div>
+    <div class="glass glow-r table-wrap reveal" style="border-radius:1.25rem;overflow:hidden">
+      <div class="tbl-head">
+        <div class="tbl-h-cell"></div>
+        <div class="tbl-h-cell tbl-h-sep" style="text-align:center;color:#f87171">
+          Apps de delivery
+          <div style="color:rgba(255,255,255,.25);font-size:11px;font-weight:400;margin-top:2px;font-family:var(--dm)">Uber Eats, PedidosYa, Rappi…</div>
+        </div>
+        <div class="tbl-h-cell tbl-h-sep tbl-panda" style="text-align:center;color:#c4b5fd">
+          PandaPOS
+          <div style="color:rgba(255,255,255,.25);font-size:11px;font-weight:400;margin-top:2px;font-family:var(--dm)">Tu canal directo</div>
+        </div>
+      </div>
+      <div class="tbl-row tbl-row-reveal"><div class="tbl-cell neutral">Comisión por pedido</div><div class="tbl-cell sep bad">✗ 18–30%</div><div class="tbl-cell sep panda-col good">✓ 0%</div></div>
+      <div class="tbl-row tbl-row-reveal"><div class="tbl-cell neutral">Dueño de tus clientes</div><div class="tbl-cell sep bad">✗ No</div><div class="tbl-cell sep panda-col good">✓ Sí</div></div>
+      <div class="tbl-row tbl-row-reveal"><div class="tbl-cell neutral">Canal de venta propio</div><div class="tbl-cell sep bad">✗ No</div><div class="tbl-cell sep panda-col good">✓ Sí</div></div>
+      <div class="tbl-row tbl-row-reveal"><div class="tbl-cell neutral">Datos del cliente</div><div class="tbl-cell sep bad">✗ Son de la app</div><div class="tbl-cell sep panda-col good">✓ Son tuyos</div></div>
+      <div class="tbl-row tbl-row-reveal"><div class="tbl-cell neutral">Costo mensual fijo</div><div class="tbl-cell sep neutral">Gratis* (+30%)</div><div class="tbl-cell sep panda-col" style="font-family:var(--sg);color:#fff;font-weight:700">Desde $7.900</div></div>
+    </div>
+    <p class="reveal" style="font-family:var(--dm);color:rgba(255,255,255,.2);font-size:11px;text-align:center;margin-top:16px">*Gratis para entrar, pero cada pedido te cuesta entre 18% y 30% de comisión.</p>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section class="section" id="como-funciona" style="background:var(--bg);overflow:hidden">
+  <div class="aurora" style="opacity:.55">
+    <div class="aurora-blob" style="top:-20%;right:-5%;width:600px;height:500px;background:radial-gradient(ellipse,rgba(124,58,237,.2) 0%,transparent 65%);animation:pulse-glow 7s ease-in-out infinite"></div>
+  </div>
+  <div class="dots-grid" style="opacity:.5"></div>
+  <div class="section-inner" style="position:relative;z-index:1">
+    <div class="text-center mb-56">
+      <p class="section-tag reveal" style="color:var(--violet-l)">La solución</p>
+      <h2 class="section-h2 reveal">Tu canal. Tu margen. Tus clientes.</h2>
+      <p class="section-sub reveal" style="max-width:540px;margin:14px auto 0">QR → Carta → Pedido → WhatsApp. Sin apps de por medio.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="glass glow-v card-hover reveal-scale" style="padding:28px 24px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div class="step-icon-wrap" style="background:rgba(139,92,246,.85);color:#fff;box-shadow:0 0 26px rgba(139,92,246,.5)">📱</div>
+          <span style="font-family:var(--sg);color:rgba(255,255,255,.08);font-weight:900;font-size:36px;margin-left:auto">01</span>
+        </div>
+        <h3 class="step-h3">Escanean tu QR</h3>
+        <p class="step-p">En la mesa, el packaging o la boleta. El cliente entra a tu menú en segundos.</p>
+      </div>
+      <div class="glass glow-b card-hover reveal-scale" style="padding:28px 24px;animation-delay:.15s">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div class="step-icon-wrap" style="background:rgba(56,189,248,.85);color:#fff;box-shadow:0 0 26px rgba(56,189,248,.5)">🛒</div>
+          <span style="font-family:var(--sg);color:rgba(255,255,255,.08);font-weight:900;font-size:36px;margin-left:auto">02</span>
+        </div>
+        <h3 class="step-h3">Ven tu carta y piden</h3>
+        <p class="step-p">Menú digital con fotos, variantes y precios. El pedido armado, sin confusión.</p>
+      </div>
+      <div class="glass glow-g card-hover reveal-scale" style="padding:28px 24px;animation-delay:.3s">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div class="step-icon-wrap" style="background:rgba(37,211,102,.85);color:#fff;box-shadow:0 0 26px rgba(37,211,102,.5)">💬</div>
+          <span style="font-family:var(--sg);color:rgba(255,255,255,.08);font-weight:900;font-size:36px;margin-left:auto">03</span>
+        </div>
+        <h3 class="step-h3">Llega directo a ti</h3>
+        <p class="step-p">El pedido llega confirmado. Sin intermediarios, sin porcentaje, sin esperas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- POWER CYCLE -->
+<section class="section" style="background:var(--bg2)">
+  <div class="section-inner">
+    <div class="power-grid">
+      <div>
+        <p class="section-tag reveal" style="color:var(--violet-l)">El ciclo que cambia todo</p>
+        <h2 class="section-h2 reveal" style="margin-bottom:18px">Convierte cada boleta en una nueva venta.</h2>
+        <p class="section-sub reveal" style="margin-bottom:32px;margin-top:0">
+          Imprime tu QR en la boleta. El cliente llega a casa, escanea y te vuelve a pedir por WhatsApp. Sin que tú hagas nada. Sin comisión.
+        </p>
+        <a href="https://wa.me/56999011141" target="_blank" class="btn-primary reveal" style="display:inline-flex">
+          💬 Activar ciclo directo
+        </a>
+      </div>
+      <div class="power-steps">
+        <div class="glass glow-v card-hover power-step reveal-right" style="animation-delay:0s">
+          <div class="power-step-icon" style="background:rgba(139,92,246,.85);color:#fff;box-shadow:0 0 22px rgba(139,92,246,.5)">🧾</div>
+          <div>
+            <div class="power-step-h">Entrega con QR impreso</div>
+            <div class="power-step-sub">Cada boleta lleva tu QR.</div>
+          </div>
+          <span class="power-step-num">1</span>
+        </div>
+        <div class="glass glow-b card-hover power-step reveal-right" style="animation-delay:.15s">
+          <div class="power-step-icon" style="background:rgba(56,189,248,.85);color:#fff;box-shadow:0 0 22px rgba(56,189,248,.5)">📲</div>
+          <div>
+            <div class="power-step-h">Escanea cuando quiere</div>
+            <div class="power-step-sub">Tu menú siempre disponible.</div>
+          </div>
+          <span class="power-step-num">2</span>
+        </div>
+        <div class="glass glow-g card-hover power-step reveal-right" style="animation-delay:.3s">
+          <div class="power-step-icon" style="background:rgba(37,211,102,.8);color:#fff;box-shadow:0 0 22px rgba(37,211,102,.5)">💬</div>
+          <div>
+            <div class="power-step-h">Nuevo pedido, cero comisión</div>
+            <div class="power-step-sub">Tú cobras el 100%.</div>
+          </div>
+          <span class="power-step-num">3</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOCIAL PROOF -->
+<section class="section" style="background:var(--bg);overflow:hidden">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:500px;background:radial-gradient(ellipse,rgba(139,92,246,.1) 0%,transparent 70%);filter:blur(50px);pointer-events:none"></div>
+  <div class="section-inner" style="position:relative;z-index:1;max-width:780px">
+    <div class="glass glow-v reveal">
+      <div class="testimonial">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <blockquote>
+          "Antes le pagábamos casi 28% entre comisiones y promos. Con PandaPOS, la mitad de los pedidos ya son directos por WhatsApp y ese margen volvió a la caja. En el primer mes recuperamos lo que costó el sistema."
+        </blockquote>
+        <div class="author-wrap">
+          <div class="author-avatar">M</div>
+          <div style="text-align:left">
+            <div class="author-name">María P.</div>
+            <div class="author-role">Dueña de dark kitchen · Santiago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES BENTO -->
+<section class="section" style="background:var(--bg2)" id="features">
+  <div class="section-inner">
+    <div class="text-center mb-56">
+      <p class="section-tag reveal" style="color:var(--violet-l)">Todo incluido</p>
+      <h2 class="section-h2 reveal">Un sistema. Sin fricción.</h2>
+      <p class="section-sub reveal">Todo lo que necesitas para operar, vender y crecer.</p>
+    </div>
+    <div class="bento">
+      <div class="glass glow-v card-hover bento-wide reveal-scale">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(139,92,246,.85);color:#fff;box-shadow:0 0 28px rgba(139,92,246,.5)">🖥️</div>
+          <div>
+            <h3 class="feat-h3">KDS — Cocina en tiempo real</h3>
+            <p class="feat-p">Pantallas que reciben pedidos al instante desde cualquier canal. Filtra por estación, muestra tiempos y notifica al área correcta cuando el pedido está listo.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass glow-g card-hover reveal-scale">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(37,211,102,.85);color:#fff;box-shadow:0 0 28px rgba(37,211,102,.5)">🤖</div>
+          <div>
+            <h3 class="feat-h3">Bot de WhatsApp 24/7</h3>
+            <p class="feat-p">El bot arma el carrito, pregunta retiro o delivery y envía al KDS. Sin intervención humana.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass glow-b card-hover reveal-scale">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(56,189,248,.85);color:#fff;box-shadow:0 0 28px rgba(56,189,248,.5)">🛒</div>
+          <div>
+            <h3 class="feat-h3">Carta online y kiosko</h3>
+            <p class="feat-p">Menú digital por QR o link. Personaliza, elige zona, paga con MP o transferencia.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass glow-a card-hover reveal-scale">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(245,158,11,.85);color:#fff;box-shadow:0 0 28px rgba(245,158,11,.5)">🚴</div>
+          <div>
+            <h3 class="feat-h3">Gestión de delivery</h3>
+            <p class="feat-p">Asigna repartidores, define zonas con precios y haz seguimiento en tiempo real.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass glow-r card-hover reveal-scale">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(239,68,68,.85);color:#fff;box-shadow:0 0 28px rgba(239,68,68,.5)">💳</div>
+          <div>
+            <h3 class="feat-h3">Punto de venta (POS)</h3>
+            <p class="feat-p">Caja rápida con multipago, boleta térmica y gestión de mesas.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass glow-b card-hover bento-wide reveal-scale">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(56,189,248,.85);color:#fff;box-shadow:0 0 28px rgba(56,189,248,.5)">📊</div>
+          <div>
+            <h3 class="feat-h3">Panel de ventas</h3>
+            <p class="feat-p">Ventas del día y mes, ticket promedio, ranking de clientes y pedidos directos en tiempo real.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass glow-p card-hover reveal-scale" style="grid-column:1/-1">
+        <div class="feat-wrap">
+          <div class="feat-icon" style="background:rgba(217,70,239,.85);color:#fff;box-shadow:0 0 28px rgba(217,70,239,.5)">🔔</div>
+          <div>
+            <h3 class="feat-h3">Notificaciones por área</h3>
+            <p class="feat-p">Mesero, cajero y rider reciben solo lo que les corresponde. Menos ruido, más velocidad.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="planes" style="background:var(--bg);overflow:hidden">
+  <div class="aurora" style="opacity:.35">
+    <div class="aurora-blob" style="top:0;left:0;width:700px;height:500px;background:radial-gradient(ellipse,rgba(124,58,237,.18) 0%,transparent 65%);animation:pulse-glow 6s ease-in-out infinite"></div>
+  </div>
+  <div class="section-inner" style="position:relative;z-index:1">
+    <div class="text-center mb-56">
+      <p class="section-tag reveal" style="color:var(--violet-l)">Precios</p>
+      <h2 class="section-h2 reveal">Más barato que una semana de comisiones.</h2>
+      <p class="section-sub reveal">Elige un plan. Recupera margen. Cobra directo.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- Basic -->
+      <div class="plan-wrap reveal-scale">
+        <div class="glass glow-v card-hover" style="border-color:rgba(255,255,255,.2);animation:glow-v 4s ease-in-out infinite;height:100%">
+          <div class="plan-body">
+            <div class="plan-label">Plan</div>
+            <div class="plan-name">Basic</div>
+            <div class="plan-price"><span class="plan-price-val">$7.900</span><span class="plan-price-per">/mes</span></div>
+            <div class="plan-pitch">Para dejar de pagar comisión desde ya.</div>
+            <div class="plan-items">
+              <div class="plan-item"><span class="check-icon">✓</span>Carta QR con menú digital</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Pedidos por WhatsApp</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Gestión de mesas</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Soporte de arranque</div>
+            </div>
+            <a href="https://wa.me/56999011141" target="_blank" class="plan-cta" style="background:rgba(255,255,255,.08)">💬 Empezar con Basic</a>
+          </div>
+        </div>
+      </div>
+      <!-- Pro -->
+      <div class="plan-wrap reveal-scale" style="animation-delay:.12s">
+        <div class="plan-badge">Más elegido</div>
+        <div class="glass glow-v card-hover" style="height:100%">
+          <div class="plan-body">
+            <div class="plan-label">Plan</div>
+            <div class="plan-name">Pro</div>
+            <div class="plan-price"><span class="plan-price-val">$11.900</span><span class="plan-price-per">/mes</span></div>
+            <div class="plan-pitch">Para crecer con control total del día a día.</div>
+            <div class="plan-items">
+              <div class="plan-item"><span class="check-icon">✓</span>Todo de Basic</div>
+              <div class="plan-item"><span class="check-icon">✓</span>KDS de cocina</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Bot de WhatsApp 24/7</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Delivery con zonas</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Panel de ventas y reportes</div>
+            </div>
+            <a href="https://wa.me/56999011141" target="_blank" class="plan-cta" style="background:linear-gradient(135deg,#7c3aed,#6366f1);box-shadow:0 0 32px rgba(124,58,237,.5)">💬 Elegir Pro</a>
+          </div>
+        </div>
+      </div>
+      <!-- Prime -->
+      <div class="plan-wrap reveal-scale" style="animation-delay:.24s">
+        <div class="glass glow-a card-hover" style="height:100%">
+          <div class="plan-body">
+            <div class="plan-label">Plan</div>
+            <div class="plan-name">Prime</div>
+            <div class="plan-price"><span class="plan-price-val">$14.900</span><span class="plan-price-per">/mes</span></div>
+            <div class="plan-pitch">Para operar sin límites y escalar.</div>
+            <div class="plan-items">
+              <div class="plan-item"><span class="check-icon">✓</span>Todo de Pro</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Multi-sucursal</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Kiosko de autoatención</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Pagos con Mercado Pago</div>
+              <div class="plan-item"><span class="check-icon">✓</span>Soporte prioritario</div>
+            </div>
+            <a href="https://wa.me/56999011141" target="_blank" class="plan-cta" style="background:rgba(255,255,255,.08)">💬 Ir por Prime</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="reveal" style="font-family:var(--dm);color:rgba(255,255,255,.2);font-size:12px;text-align:center;margin-top:24px">¿Tienes dudas sobre qué plan elegir? Hablamos por WhatsApp y te recomendamos el mejor.</p>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:800px;height:500px;background:radial-gradient(ellipse,rgba(124,58,237,.18) 0%,rgba(37,211,102,.06) 50%,transparent 70%);filter:blur(60px);pointer-events:none"></div>
+  <div class="dots-grid" style="opacity:.4"></div>
+  <div style="max-width:780px;margin:0 auto;padding:0 24px;position:relative;z-index:1">
+    <div class="cta-icon reveal">⚡</div>
+    <h2 class="cta-h2 reveal">
+      Deja de pagar comisiones.
+      <span class="grad-green"> Empieza a cobrar directo hoy.</span>
+    </h2>
+    <p class="cta-sub reveal">Más dinero por orden. Clientes que son tuyos. Control total.</p>
+    <a href="https://wa.me/56999011141?text=Hola%2C%20quiero%20dejar%20de%20pagar%20comisiones" target="_blank" class="btn-primary reveal" style="font-size:16px;padding:18px 44px;border-radius:16px;display:inline-flex">
+      💬 Hablar por WhatsApp ahora
+    </a>
+    <p class="cta-note reveal">Sin contratos. Sin permanencia. Activa hoy.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="footer-logo">
+      <img src="/logo.png" alt="PandaPOS"/>
+      PandaPOS
+    </a>
+    <p class="footer-copy">© 2026 PandaPOS · Todos los derechos reservados</p>
+    <a href="https://wa.me/56999011141" target="_blank" class="footer-wa">💬 WhatsApp</a>
+  </div>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ── Navbar shrink on scroll ── */
+ScrollTrigger.create({
+  start: "top -60px",
+  onUpdate: (self) => {
+    const nav = document.getElementById("navbar");
+    nav.style.background = self.progress > 0
+      ? "rgba(8,8,15,.95)"
+      : "rgba(8,8,15,.8)";
+  }
+});
+
+/* ── Hero entrance ── */
+const heroTL = gsap.timeline({ delay: 0.15 });
+heroTL
+  .from("#hero-badge", { y: 20, opacity: 0, duration: 0.55, ease: "power3.out" })
+  .from("#hero-h1", {
+    y: 50, opacity: 0, duration: 0.75, ease: "expo.out",
+    onComplete: () => {
+      /* word-by-word shimmer after entrance */
+    }
+  }, "-=0.2")
+  .from("#hero-sub", { y: 20, opacity: 0, duration: 0.45, ease: "power2.out" }, "-=0.35")
+  .from("#hero-desc", { y: 24, opacity: 0, duration: 0.5, ease: "power2.out" }, "-=0.3")
+  .from("#hero-btns", { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" }, "-=0.25")
+  .from("#hero-stats .hero-stat", {
+    y: 16, opacity: 0, duration: 0.4, ease: "power2.out", stagger: 0.12
+  }, "-=0.2");
+
+/* ── Stats counter ── */
+function animateCounter(el, target, suffix) {
+  const obj = { val: 0 };
+  gsap.to(obj, {
+    val: target, duration: 1.6, ease: "power2.out",
+    onUpdate: () => { el.textContent = Math.round(obj.val) + suffix; }
+  });
+}
+
+ScrollTrigger.create({
+  trigger: ".stats-bar",
+  start: "top 85%",
+  once: true,
+  onEnter: () => {
+    document.querySelectorAll(".stat-val[data-target]").forEach(el => {
+      animateCounter(el, +el.dataset.target, el.dataset.suffix);
+    });
+  }
+});
+
+/* ── Generic reveal: .reveal ── */
+gsap.utils.toArray(".reveal").forEach((el, i) => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: el, start: "top 88%", once: true },
+    y: 36, opacity: 0, duration: 0.62, ease: "power3.out",
+    delay: 0
+  });
+});
+
+/* ── Scale reveal: .reveal-scale ── */
+gsap.utils.toArray(".reveal-scale").forEach((el, i) => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: el, start: "top 88%", once: true },
+    scale: 0.88, y: 22, opacity: 0, duration: 0.65,
+    ease: "back.out(1.5)",
+    delay: i * 0.07
+  });
+});
+
+/* ── Left reveal ── */
+gsap.utils.toArray(".reveal-left").forEach(el => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: el, start: "top 85%", once: true },
+    x: -40, opacity: 0, duration: 0.6, ease: "power3.out"
+  });
+});
+
+/* ── Right reveal ── */
+gsap.utils.toArray(".reveal-right").forEach((el, i) => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: el, start: "top 88%", once: true },
+    x: 40, opacity: 0, duration: 0.6, ease: "power3.out",
+    delay: i * 0.1
+  });
+});
+
+/* ── Table rows stagger ── */
+gsap.utils.toArray(".tbl-row-reveal").forEach((el, i) => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: ".table-wrap", start: "top 85%", once: true },
+    x: -30, opacity: 0, duration: 0.45, ease: "power2.out",
+    delay: 0.15 + i * 0.08
+  });
+});
+
+/* ── Pricing cards 3D flip-in ── */
+gsap.utils.toArray(".plan-wrap").forEach((el, i) => {
+  gsap.from(el, {
+    scrollTrigger: { trigger: el, start: "top 88%", once: true },
+    rotationY: 12, scale: 0.9, opacity: 0, duration: 0.7,
+    ease: "power3.out",
+    delay: i * 0.12,
+    transformPerspective: 900
+  });
+});
+
+/* ── Parallax aurora blobs ── */
+document.querySelectorAll(".aurora-blob").forEach((blob, i) => {
+  gsap.to(blob, {
+    y: i % 2 === 0 ? -60 : 60,
+    ease: "none",
+    scrollTrigger: {
+      trigger: blob.closest(".aurora, .hero"),
+      start: "top bottom",
+      end: "bottom top",
+      scrub: 1.5
+    }
+  });
+});
+</script>
+</body>
+</html>

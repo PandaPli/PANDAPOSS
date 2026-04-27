@@ -305,7 +305,7 @@ export default async function VentasPage() {
               <p className="text-[11px] font-semibold uppercase tracking-wide text-surface-muted mb-1">
                 {k.label}
               </p>
-              <p className="text-2xl font-bold text-surface-text leading-tight truncate">
+              <p className="text-lg sm:text-2xl font-bold text-surface-text leading-tight truncate">
                 {k.value}
               </p>
               <p className={`text-xs mt-1 ${k.subColor}`}>

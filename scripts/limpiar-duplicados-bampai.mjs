@@ -2,138 +2,106 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
- * Script de limpieza BAMPAI (sucursal 6):
- * 1. Reasigna pedidos/direcciones de duplicados "Luis Rodrigo Vargas" al original (ID 272)
- * 2. Elimina duplicados vaciados
- * 3. Corrige nombres rotos por parsing de PDF
- * 4. Asigna género a los que faltan
+ * Elimina duplicados de BAMPAI (sucursal 6).
+ * Para cada grupo: conserva el que tiene más datos (email > teléfono > más antiguo),
+ * reasigna todas las relaciones al original y elimina los sobrantes.
  */
 
-const ID_ORIGINAL_VARGAS = 272;
-const IDS_DUPLICADOS_VARGAS = [412, 419, 420, 422, 423, 424, 425, 428, 430, 431, 433, 434, 435, 438, 440, 442, 443, 444, 445, 446, 447, 448];
-
-// Nombres rotos por PDF → nombre correcto + género
-const CORRECCIONES_NOMBRE = [
-  { id: 103, nombre: "Francisca Nilo", genero: "F" },
-  { id: 105, nombre: "Francesca Reyes", genero: "F" },
-  { id: 106, nombre: "Francisca", genero: "F" },
-  { id: 116, nombre: "Kassandra Manosalva", genero: "F" },
-  { id: 139, nombre: "Raimundo Silva", genero: "M" },
-  { id: 147, nombre: "Constanza Velasquez", genero: "F" },
-  { id: 163, nombre: "Jacqueline Duarte", genero: "F" },
-  { id: 214, nombre: "Constanza Torres Soto", genero: "F" },
-  { id: 278, nombre: "Sofia Barrios", genero: "F" },
-  { id: 323, nombre: "Angelina Osorio", genero: "F" },
-  { id: 324, nombre: "Constanza Romero", genero: "F" },
-  { id: 330, nombre: "Estefanía Ampuero", genero: "F" },
+// Grupos: [id_a_conservar, ...ids_a_eliminar]
+const GRUPOS = [
+  // Allison .      — conservar 74 (tiene email)
+  [74,  [467]],
+  // Vivi Vasquez   — conservar 183 (tiene email)
+  [183, [466]],
+  // Luis R. Vargas — conservar 272 (tiene email + tel)
+  [272, [474, 477, 478]],
+  // Sebastian M.   — conservar 360 (tiene email)
+  [360, [489]],
+  // Elena          — conservar 49 (tiene email)
+  [49,  [495]],
+  // yesica (test)  — conservar 479 (el más antiguo), resto borrar
+  [479, [483, 484, 487, 488, 492, 493, 498, 518, 519]],
+  // Ambar          — conservar 486
+  [486, [497]],
+  // Paola          — conservar 494 (tiene teléfono)
+  [494, [490]],
+  // Gabriel E.G.A. — conservar 503 (tiene email)
+  [503, [504]],
+  // Javiera Muñoz  — conservar 506
+  [506, [507]],
 ];
 
-const ASIGNAR_GENERO = [
-  { id: 1, genero: "M" },     // Angelo manquecoy
-  { id: 414, genero: "M" },   // Ivan Quiroz
-  { id: 415, genero: "M" },   // ivan
-  { id: 418, genero: "F" },   // Alejandra Jeria
-  { id: 426, genero: "F" },   // Susana
-  { id: 437, genero: "F" },   // Sabrina Valeria Díaz vásquez
-];
+async function reasignarYEliminar(keepId, dupIds) {
+  let totalReasignados = 0;
+
+  for (const dupId of dupIds) {
+    // Reasignar todas las relaciones al cliente a conservar
+    const [dir, ped, venta, puntos] = await Promise.all([
+      prisma.direccionCliente.updateMany({ where: { clienteId: dupId }, data: { clienteId: keepId } }),
+      prisma.pedidoDelivery.updateMany({ where: { clienteId: dupId }, data: { clienteId: keepId } }),
+      prisma.venta.updateMany({ where: { clienteId: dupId }, data: { clienteId: keepId } }),
+      prisma.movimientoPuntos.updateMany({ where: { clienteId: dupId }, data: { clienteId: keepId } }),
+    ]);
+
+    const cambios = dir.count + ped.count + venta.count + puntos.count;
+    if (cambios > 0) {
+      console.log(`    ID ${dupId}: reasignados ${dir.count} dir, ${ped.count} ped, ${venta.count} ventas, ${puntos.count} puntos`);
+    }
+    totalReasignados += cambios;
+
+    await prisma.cliente.delete({ where: { id: dupId } });
+  }
+
+  return totalReasignados;
+}
 
 async function main() {
   console.log(`\n═══════════════════════════════════════════════`);
   console.log(`  LIMPIEZA DE DUPLICADOS — BAMPAI`);
   console.log(`═══════════════════════════════════════════════\n`);
 
-  // --- 1. Reasignar relaciones de duplicados al original ---
-  console.log(`🔄 Reasignando relaciones de duplicados de "Luis Rodrigo Vargas" al ID ${ID_ORIGINAL_VARGAS}...`);
+  let totalEliminados = 0;
 
-  for (const dupId of IDS_DUPLICADOS_VARGAS) {
-    // Reasignar direcciones al cliente original
-    const dirUpdate = await prisma.direccionCliente.updateMany({
-      where: { clienteId: dupId },
-      data: { clienteId: ID_ORIGINAL_VARGAS },
+  for (const [keepId, dupIds] of GRUPOS) {
+    const keeper = await prisma.cliente.findUnique({ where: { id: keepId }, select: { nombre: true } });
+    if (!keeper) { console.log(`  ⚠️  ID ${keepId} no existe, saltando`); continue; }
+
+    // Filtrar IDs que existan realmente
+    const existentes = await prisma.cliente.findMany({
+      where: { id: { in: dupIds } },
+      select: { id: true },
     });
+    const idsExistentes = existentes.map(c => c.id);
 
-    // Reasignar pedidos de delivery al cliente original
-    const pedUpdate = await prisma.pedidoDelivery.updateMany({
-      where: { clienteId: dupId },
-      data: { clienteId: ID_ORIGINAL_VARGAS },
-    });
-
-    // Reasignar ventas al cliente original
-    const ventaUpdate = await prisma.venta.updateMany({
-      where: { clienteId: dupId },
-      data: { clienteId: ID_ORIGINAL_VARGAS },
-    });
-
-    // Reasignar movimientos de puntos
-    const puntosUpdate = await prisma.movimientoPuntos.updateMany({
-      where: { clienteId: dupId },
-      data: { clienteId: ID_ORIGINAL_VARGAS },
-    });
-
-    const cambios = dirUpdate.count + pedUpdate.count + ventaUpdate.count + puntosUpdate.count;
-    if (cambios > 0) {
-      console.log(`  ID ${dupId}: reasignados ${dirUpdate.count} dir, ${pedUpdate.count} ped, ${ventaUpdate.count} ventas, ${puntosUpdate.count} puntos`);
+    if (idsExistentes.length === 0) {
+      console.log(`  ✓ "${keeper.nombre}" — sin duplicados pendientes`);
+      continue;
     }
+
+    console.log(`  🗑️  "${keeper.nombre}" (conservar ID ${keepId}) → eliminar IDs: ${idsExistentes.join(", ")}`);
+    await reasignarYEliminar(keepId, idsExistentes);
+    totalEliminados += idsExistentes.length;
+    console.log(`      ✅ ${idsExistentes.length} eliminados\n`);
   }
 
-  // --- 2. Eliminar duplicados ya vaciados ---
-  console.log(`\n🗑️  Eliminando duplicados vaciados...`);
+  // Asignar género a los nuevos que quedaron sin él
+  console.log(`🏷️  Asignando género a nuevos clientes sin detectar...`);
+  await prisma.cliente.updateMany({ where: { sucursalId: 6, genero: null, nombre: { in: ["yesica", "Ambar", "Paola", "Elena"] } }, data: { genero: "F" } });
+  await prisma.cliente.updateMany({ where: { sucursalId: 6, genero: null, nombre: { contains: "Gabriel" } }, data: { genero: "M" } });
+  await prisma.cliente.updateMany({ where: { sucursalId: 6, genero: null, nombre: { contains: "Javiera" } }, data: { genero: "F" } });
 
-  let eliminados = 0;
-  for (const dupId of IDS_DUPLICADOS_VARGAS) {
-    // Verificar que ya no tiene relaciones
-    const dirs = await prisma.direccionCliente.count({ where: { clienteId: dupId } });
-    const peds = await prisma.pedidoDelivery.count({ where: { clienteId: dupId } });
-    const ventas = await prisma.venta.count({ where: { clienteId: dupId } });
-    const puntos = await prisma.movimientoPuntos.count({ where: { clienteId: dupId } });
-
-    if (dirs + peds + ventas + puntos === 0) {
-      await prisma.cliente.delete({ where: { id: dupId } });
-      eliminados++;
-    } else {
-      console.log(`  ⚠️  ID ${dupId} aún tiene relaciones — NO eliminado`);
-    }
-  }
-  console.log(`  ✅ Eliminados ${eliminados} duplicados de "Luis Rodrigo Vargas"`);
-  console.log(`  📌 Conservado: ID ${ID_ORIGINAL_VARGAS} (con email, teléfono y todas las relaciones reasignadas)`);
-
-  // --- 3. Corregir nombres rotos + asignar género ---
-  console.log(`\n🔧 Corrigiendo nombres rotos por PDF...`);
-
-  for (const { id, nombre, genero } of CORRECCIONES_NOMBRE) {
-    const c = await prisma.cliente.findUnique({ where: { id }, select: { nombre: true } });
-    if (c) {
-      await prisma.cliente.update({ where: { id }, data: { nombre, genero } });
-      console.log(`  ✅ ID ${id}: "${c.nombre}" → "${nombre}" (${genero})`);
-    }
-  }
-
-  // --- 4. Asignar género faltante ---
-  console.log(`\n🏷️  Asignando género faltante...`);
-
-  for (const { id, genero } of ASIGNAR_GENERO) {
-    const c = await prisma.cliente.findUnique({ where: { id }, select: { nombre: true } });
-    if (c) {
-      await prisma.cliente.update({ where: { id }, data: { genero } });
-      console.log(`  ✅ ID ${id}: "${c.nombre}" → ${genero}`);
-    }
-  }
-
-  // --- 5. Verificación final ---
-  console.log(`\n🔍 Verificación final...`);
-
+  // Re-ejecutar asignación masiva para cualquier otro nuevo sin género
   const sinGenero = await prisma.cliente.findMany({
     where: { sucursalId: 6, genero: null },
     select: { id: true, nombre: true },
   });
 
   if (sinGenero.length > 0) {
-    console.log(`  ⚠️  Aún quedan ${sinGenero.length} sin género:`);
+    console.log(`  ⚠️  Quedan ${sinGenero.length} sin género:`);
     sinGenero.forEach(c => console.log(`    ID ${c.id}: ${c.nombre}`));
-  } else {
-    console.log(`  ✅ Todos los clientes tienen género asignado`);
   }
 
+  // Resumen
   const [total, f, m, sinG] = await Promise.all([
     prisma.cliente.count({ where: { sucursalId: 6 } }),
     prisma.cliente.count({ where: { sucursalId: 6, genero: "F" } }),
@@ -144,6 +112,7 @@ async function main() {
   console.log(`\n═══════════════════════════════════════════════`);
   console.log(`  RESUMEN FINAL`);
   console.log(`═══════════════════════════════════════════════`);
+  console.log(`  Duplicados eliminados: ${totalEliminados}`);
   console.log(`  Total clientes BAMPAI: ${total}`);
   console.log(`  👩 Mujeres:    ${f}`);
   console.log(`  👨 Hombres:    ${m}`);

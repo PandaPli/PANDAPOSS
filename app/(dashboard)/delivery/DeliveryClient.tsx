@@ -580,7 +580,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
 
       {/* ── Alerta nuevo pedido ── */}
       {newOrderAlert && (
-        <div className="fixed top-20 right-4 z-50 flex items-center gap-4 rounded-2xl border border-amber-200 bg-white px-5 py-4 shadow-2xl max-w-sm">
+        <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-4 z-50 flex items-center gap-4 rounded-2xl border border-amber-200 bg-white px-5 py-4 shadow-2xl sm:max-w-sm">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white animate-pulse">
             <Bell size={22} />
           </div>
@@ -687,12 +687,12 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       )}
 
       {/* ── Grid compacto + Visor de detalle ── */}
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
 
         {/* Grid de tarjetas compactas */}
         <div className="flex-1 min-w-0">
           {filteredActivos.length > 0 ? (
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {filteredActivos.map((pedido) => renderCompactCard(pedido))}
             </div>
           ) : (
@@ -706,7 +706,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         </div>
 
         {/* Visor de detalle — sticky */}
-        <div className="w-80 xl:w-96 shrink-0 sticky top-4">
+        <div className="w-full lg:w-80 xl:w-96 shrink-0 lg:sticky top-4">
           {renderDetailPanel()}
         </div>
       </div>

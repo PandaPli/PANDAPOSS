@@ -183,7 +183,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
           <div className="flex items-start justify-between">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-brand-100 uppercase tracking-wide">Ventas Hoy</p>
-              <p className="text-2xl font-black mt-1 truncate">{formatCurrency(totalHoy, simbolo)}</p>
+              <p className="text-lg sm:text-2xl font-black mt-1 truncate">{formatCurrency(totalHoy, simbolo)}</p>
               <p className="text-xs text-brand-100 mt-0.5">{txHoy} {txHoy === 1 ? "transacción" : "transacciones"}</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
@@ -197,7 +197,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold text-surface-muted uppercase tracking-wide">Pedidos Activos</p>
-              <p className={`text-2xl font-black mt-1 ${pedidosActivos > 0 ? "text-amber-600" : "text-surface-text"}`}>
+              <p className={`text-lg sm:text-2xl font-black mt-1 ${pedidosActivos > 0 ? "text-amber-600" : "text-surface-text"}`}>
                 {pedidosActivos}
               </p>
               <p className="text-xs text-surface-muted mt-0.5">En cocina / bar</p>
@@ -221,7 +221,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold text-surface-muted uppercase tracking-wide">Mesas</p>
-              <p className="text-2xl font-black mt-1 text-surface-text">
+              <p className="text-lg sm:text-2xl font-black mt-1 text-surface-text">
                 {mesasOcupadas}
                 <span className="text-base font-medium text-surface-muted"> / {totalMesas}</span>
               </p>
@@ -246,7 +246,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold text-surface-muted uppercase tracking-wide">Clientes</p>
-              <p className="text-2xl font-black mt-1 text-surface-text">{totalClientes.toLocaleString("es-CL")}</p>
+              <p className="text-lg sm:text-2xl font-black mt-1 text-surface-text">{totalClientes.toLocaleString("es-CL")}</p>
               <p className="text-xs text-surface-muted mt-0.5">Registrados</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">

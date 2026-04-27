@@ -102,7 +102,7 @@ export function TrackOrderClient({ initialData }: Props) {
               {esRetiro ? "Retiro en local" : "Seguimiento delivery"}
               {data.sucursalNombre && <> · {data.sucursalNombre}</>}
             </p>
-            <h1 className="text-3xl font-black leading-none tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black leading-none tracking-tight">
               Pedido <span className="text-orange-400">#{data.id}</span>
             </h1>
           </div>
@@ -118,7 +118,7 @@ export function TrackOrderClient({ initialData }: Props) {
             {menuUrl && (
               <Link
                 href={menuUrl}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-orange-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-orange-400 active:scale-95"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-orange-500 px-2.5 py-2 text-xs sm:px-3 sm:text-sm font-bold text-white transition hover:bg-orange-400 active:scale-95"
               >
                 Pedir de nuevo <ArrowUpRight size={13} />
               </Link>
@@ -145,7 +145,7 @@ export function TrackOrderClient({ initialData }: Props) {
                   {currentStep && <currentStep.icon size={24} />}
                 </div>
                 <div>
-                  <p className="text-2xl font-black leading-tight">
+                  <p className="text-xl sm:text-2xl font-black leading-tight">
                     {currentStep?.title ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
                   </p>
                   <p className="text-sm text-white/40 mt-0.5">{subtitle}</p>
@@ -284,7 +284,7 @@ export function TrackOrderClient({ initialData }: Props) {
                   {digits.map((d, i) => (
                     <div
                       key={i}
-                      className="flex h-12 w-11 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-2xl font-black text-white"
+                      className="flex h-10 w-9 sm:h-12 sm:w-11 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-xl sm:text-2xl font-black text-white"
                     >
                       {d}
                     </div>

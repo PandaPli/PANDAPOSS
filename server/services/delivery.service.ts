@@ -184,29 +184,52 @@ export const DeliveryService = {
       });
 
       // 2. Crear o buscar Cliente
-      // Solo buscamos por teléfono si es un número válido (≥12 chars: +56912345678)
-      const telefonoValido = cliente.telefono.trim().length >= 12 ? cliente.telefono.trim() : null;
+      // Normalizar teléfono: quedarse con los últimos 8 dígitos para comparar
+      const rawTel = cliente.telefono?.trim() ?? "";
+      const digitos = rawTel.replace(/\D/g, "");
+      // Teléfono almacenable: mínimo 8 dígitos
+      const telefonoValido = digitos.length >= 8 ? digitos.slice(-8) : null;
+
+      // Buscar cliente existente en la misma sucursal por teléfono (últimos 8 dígitos)
       let dbCliente = telefonoValido
-        ? await tx.cliente.findFirst({ where: { telefono: telefonoValido } })
+        ? await tx.cliente.findFirst({
+            where: {
+              sucursalId,
+              telefono: { endsWith: telefonoValido },
+            },
+          })
         : null;
 
+      // Si no encontró por teléfono, buscar por nombre exacto en la misma sucursal
       if (!dbCliente) {
-        // Cliente nuevo: registrar con nombre, teléfono y dirección principal
+        const nombreNorm = cliente.nombre.trim().toLowerCase();
+        const candidatos = await tx.cliente.findMany({
+          where: { sucursalId },
+        });
+        dbCliente = candidatos.find(
+          (c) => c.nombre.trim().toLowerCase() === nombreNorm
+        ) ?? null;
+      }
+
+      if (!dbCliente) {
+        // Cliente realmente nuevo
         dbCliente = await tx.cliente.create({
           data: {
             nombre:    cliente.nombre.trim(),
-            telefono:  telefonoValido,
-            direccion: cliente.direccion.trim() || null,
+            telefono:  digitos.length >= 8 ? rawTel : null,
+            direccion: cliente.direccion?.trim() || null,
             sucursalId,
           },
         });
       } else {
-        // Cliente existente: actualizar nombre y dirección si cambió
+        // Cliente existente: actualizar datos si vienen con más información
         await tx.cliente.update({
           where: { id: dbCliente.id },
           data: {
-            nombre:    cliente.nombre.trim(),
-            direccion: cliente.direccion.trim() || null,
+            nombre: cliente.nombre.trim(),
+            // Actualizar teléfono solo si el cliente no tenía uno
+            ...((!dbCliente.telefono && digitos.length >= 8) ? { telefono: rawTel } : {}),
+            direccion: cliente.direccion?.trim() || dbCliente.direccion || null,
           },
         });
       }

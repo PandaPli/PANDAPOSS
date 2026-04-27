@@ -103,12 +103,12 @@ export default function ProductoViewer({
         onTouchEnd={handleTouchEnd}
       >
         {/* ── IMAGEN HERO ── */}
-        <div className="relative shrink-0 bg-stone-100" style={{ height: "52vw", maxHeight: 300 }}>
+        <div className="relative shrink-0 bg-stone-100" style={{ height: "62vw", maxHeight: 340 }}>
           {producto.imagen ? (
             <img
               src={producto.imagen}
               alt={producto.nombre}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
               draggable={false}
             />
           ) : (
@@ -140,7 +140,7 @@ export default function ProductoViewer({
         </div>
 
         {/* ── CONTENIDO ── */}
-        <div className="flex flex-col gap-3 overflow-y-auto px-6 py-5">
+        <div className="flex flex-1 min-h-0 flex-col gap-3 overflow-y-auto px-6 py-5">
           {/* Nombre */}
           <h2 className="text-2xl font-black leading-tight text-stone-900">{producto.nombre}</h2>
 

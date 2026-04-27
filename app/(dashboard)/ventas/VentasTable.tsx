@@ -267,11 +267,11 @@ function VentaModal({
             </span>
             <button
               onClick={() => reimprimir(venta, simbolo)}
-              className="flex items-center gap-1.5 rounded-xl border border-surface-border px-3 py-1.5 text-xs font-medium text-surface-muted hover:bg-brand-50 hover:text-brand-600 transition-colors"
+              className="flex items-center gap-1.5 rounded-xl border border-surface-border px-2.5 sm:px-3 py-1.5 text-xs font-medium text-surface-muted hover:bg-brand-50 hover:text-brand-600 transition-colors"
               title="Reimprimir boleta"
             >
               <Printer size={13} />
-              Reimprimir
+              <span className="hidden sm:inline">Reimprimir</span>
             </button>
             <button
               onClick={onClose}
