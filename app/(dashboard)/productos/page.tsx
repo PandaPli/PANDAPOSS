@@ -56,6 +56,7 @@ export default async function ProductosPage() {
     precio: Number(p.precio),
     stock: Number(p.stock),
     stockMinimo: Number(p.stockMinimo),
+    inventariable: p.inventariable,
     imagen: p.imagen,
     activo: p.activo,
     enMenu: p.enMenu,

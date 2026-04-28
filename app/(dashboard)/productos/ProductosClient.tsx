@@ -38,6 +38,9 @@ interface Producto {
   nombre: string;
   descripcion: string | null;
   precio: number;
+  stock: number;
+  stockMinimo: number;
+  inventariable: boolean;
   imagen: string | null;
   activo: boolean;
   enMenu: boolean;
@@ -194,6 +197,7 @@ const emptyForm = {
   enMenu: true,
   enMenuQR: true,
   enKiosko: true,
+  inventariable: false,
 };
 
 export function ProductosClient({ productos: initial, categorias, sucursales, simbolo, rol }: Props) {
@@ -203,6 +207,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [search, setSearch] = useState("");
   const [catFiltro, setCatFiltro] = useState<number | null>(null);
   const [sucFiltro, setSucFiltro] = useState<number | null>(null);
+  const [soloInventariados, setSoloInventariados] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -355,7 +360,8 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
         || normalize(p.categoria?.nombre ?? "").includes(q);
       const matchCat = !catFiltro || p.categoriaId === catFiltro;
       const matchSuc = !sucFiltro || p.sucursalId === sucFiltro;
-      return matchSearch && matchCat && matchSuc;
+      const matchInv = !soloInventariados || p.inventariable === true;
+      return matchSearch && matchCat && matchSuc && matchInv;
     });
   }, [productos, search, catFiltro, sucFiltro]);
 
@@ -473,6 +479,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       enMenu: p.enMenu,
       enMenuQR: p.enMenuQR,
       enKiosko: p.enKiosko ?? true,
+      inventariable: p.inventariable ?? false,
     });
     setError("");
     setVariantesLocal([]);
@@ -599,6 +606,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       enMenu: form.enMenu,
       enMenuQR: form.enMenuQR,
       enKiosko: form.enKiosko,
+      inventariable: form.inventariable,
     };
 
     try {
@@ -751,6 +759,18 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
             <option key={c.id} value={c.id}>{c.nombre}</option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setSoloInventariados((v) => !v)}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+            soloInventariados
+              ? "bg-teal-500 text-white border-teal-500 shadow-sm"
+              : "bg-white text-surface-muted border-surface-border hover:border-teal-300 hover:text-teal-600"
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${soloInventariados ? "bg-white" : "bg-teal-400"}`} />
+          Inventariados
+        </button>
         {rol === "ADMIN_GENERAL" && (
           <select value={sucFiltro ?? ""} onChange={(e) => setSucFiltro(e.target.value ? Number(e.target.value) : null)} className="input w-auto">
             <option value="">Todas las sucursales</option>
@@ -1377,10 +1397,11 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                 <p className="text-[11px] font-bold uppercase tracking-wider text-surface-muted">Visibilidad</p>
 
                 {[
-                  { key: "enMenu",    label: "Visible en POS / App",  desc: "Aparece en ventas y punto de venta" },
-                  { key: "enMenuQR",  label: "Visible en Carta QR",    desc: "Aparece en el menú digital para clientes" },
-                  { key: "enKiosko",  label: "Visible en Kiosko",      desc: "Aparece en el kiosko de autoatención" },
-                  { key: "ivaActivo", label: "Aplica IVA",             desc: "Agrega el porcentaje de IVA al precio" },
+                  { key: "enMenu",       label: "Visible en POS / App",  desc: "Aparece en ventas y punto de venta" },
+                  { key: "enMenuQR",    label: "Visible en Carta QR",    desc: "Aparece en el menú digital para clientes" },
+                  { key: "enKiosko",    label: "Visible en Kiosko",      desc: "Aparece en el kiosko de autoatención" },
+                  { key: "ivaActivo",   label: "Aplica IVA",             desc: "Agrega el porcentaje de IVA al precio" },
+                  { key: "inventariable", label: "Control de inventario", desc: "Activa seguimiento de stock para este producto" },
                 ].map(({ key, label, desc }) => (
                   <div key={key} className="flex items-center justify-between gap-4 rounded-xl border border-surface-border bg-surface-bg/40 px-4 py-3">
                     <div>

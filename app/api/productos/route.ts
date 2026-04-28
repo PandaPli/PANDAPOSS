@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const body = await req.json();
-  const { codigo, nombre, descripcion, precio, costo, stock, stockMinimo, categoriaId, ivaActivo, ivaPorc, imagen, enMenu, enMenuQR, enKiosko } = body;
+  const { codigo, nombre, descripcion, precio, costo, stock, stockMinimo, categoriaId, ivaActivo, ivaPorc, imagen, enMenu, enMenuQR, enKiosko, inventariable } = body;
 
   if (!codigo || !nombre || precio === undefined) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       enMenu: enMenu ?? true,
       enMenuQR: enMenuQR ?? true,
       enKiosko: enKiosko ?? true,
+      inventariable: inventariable ?? false,
       // Asignar sucursal al producto (salvo ADMIN_GENERAL que puede crear globales)
       sucursalId: rol !== "ADMIN_GENERAL" ? sucursalId : (body.sucursalId ?? null),
     },
@@ -114,7 +115,7 @@ export async function PATCH(req: NextRequest) {
   // Whitelist de campos editables — previene mass-assignment de sucursalId, activo, etc.
   const CAMPOS: string[] = [
     "nombre", "descripcion", "precio", "costo", "stock", "stockMinimo",
-    "categoriaId", "ivaActivo", "ivaPorc", "imagen", "enMenu", "enMenuQR", "enKiosko",
+    "categoriaId", "ivaActivo", "ivaPorc", "imagen", "enMenu", "enMenuQR", "enKiosko", "inventariable",
   ];
   const data: Record<string, unknown> = {};
   for (const campo of CAMPOS) {
