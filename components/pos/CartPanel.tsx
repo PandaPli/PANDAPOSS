@@ -5,6 +5,8 @@ import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ba
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem, RondaPedido } from "@/types";
+import { CustomerSelector } from "@/components/pos/CustomerSelector";
+import type { ProductoCatalogo } from "@/components/pos/CustomerSelector";
 
 interface Props {
   simbolo?: string;
@@ -15,6 +17,9 @@ interface Props {
   ordenLoading?: boolean;
   canCancelItems?: boolean;
   rondas?: RondaPedido[];
+  /** Catálogo de productos para el CustomerSelector */
+  productos?: ProductoCatalogo[];
+  puntosConfig?: { activo: boolean; puntosPorMil: number; valorPunto: number };
 }
 
 const GRUPOS_DISPONIBLES = ["A1", "A2", "A3", "A4", "A5"];
@@ -42,7 +47,7 @@ interface SplitState {
   cantidades: Record<string, number>;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [] }: Props) {
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [], productos = [], puntosConfig }: Props) {
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
@@ -407,6 +412,12 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         )}
       </div>
 
+      {/* Customer Selector */}
+      <CustomerSelector
+        simbolo={simbolo}
+        puntosConfig={puntosConfig}
+        productos={productos}
+      />
 
       {/* Items */}
       <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">

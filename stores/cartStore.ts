@@ -23,6 +23,8 @@ interface CartState {
   pedidoId: number | null;
   descuento: number;
   ivaPorc: number;
+  /** Puntos a canjear en la venta actual */
+  puntosCanjeados: number;
   /** Nombres personalizados para cada grupo: { A1: "Roro", A2: "María", ... } */
   grupoNombres: Record<string, string>;
 
@@ -36,6 +38,7 @@ interface CartState {
   setPedido: (id: number | null) => void;
   setDescuento: (v: number) => void;
   setIva: (v: number) => void;
+  setPuntosCanjeados: (v: number) => void;
   cancelItem: (id: number, tipo: "producto" | "combo", detalleId?: number) => void;
   clear: () => void;
   setInitialState: (items: CartItem[], pedidoId: number, mesaId?: number | null) => void;
@@ -80,6 +83,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   pedidoId: null,
   descuento: 0,
   ivaPorc: 0,
+  puntosCanjeados: 0,
   grupoNombres: {},
 
   addItem(item) {
@@ -174,12 +178,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     })),
 
   setMesa: (id) => set({ mesaId: id }),
-  setMesaFresh: (id) => set({ items: [], mesaId: id, pedidoId: null, clienteId: null, descuento: 0, grupoNombres: {} }),
+  setMesaFresh: (id) => set({ items: [], mesaId: id, pedidoId: null, clienteId: null, descuento: 0, puntosCanjeados: 0, grupoNombres: {} }),
   setCliente: (id) => set({ clienteId: id }),
   setPedido: (id) => set({ pedidoId: id }),
   setDescuento: (v) => set({ descuento: v }),
   setIva: (v) => set({ ivaPorc: v }),
-  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0, ivaPorc: 0, grupoNombres: {} }),
+  setPuntosCanjeados: (v) => set({ puntosCanjeados: v }),
+  clear: () => set({ items: [], mesaId: null, clienteId: null, pedidoId: null, descuento: 0, ivaPorc: 0, puntosCanjeados: 0, grupoNombres: {} }),
   setInitialState: (items, pedidoId, mesaId) => set({ items, pedidoId, mesaId: mesaId ?? null }),
   // Solo marca como guardados los ítems que aún no lo estaban (los recién enviados al KDS)
   markAsSaved: () => set((s) => ({ items: s.items.map((i) => i.guardado ? i : { ...i, guardado: true }) })),

@@ -72,6 +72,7 @@ export function CheckoutModal({
     mesaId,
     clienteId,
     pedidoId,
+    puntosCanjeados,
     clear,
     markGrupoPagado,
   } = useCartStore();
@@ -277,6 +278,10 @@ export function CheckoutModal({
       descuento: descuentoMonto,
       impuesto: impuestoMonto,
       total: totalValue,
+      // Puntos canjeados por el cliente (solo en modo normal, no en grupo)
+      ...(!modoGrupo && clienteId && puntosCanjeados > 0
+        ? { puntosCanjeados }
+        : {}),
       pagos: pagos.map((p) => ({
         metodoPago: p.metodoPago,
         monto: p.monto,

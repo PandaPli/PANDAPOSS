@@ -46,6 +46,7 @@ interface Props {
   sucursalTelefono?: string | null;
   sucursalDireccion?: string | null;
   sucursalGiroComercial?: string | null;
+  puntosConfig?: { activo: boolean; puntosPorMil: number; valorPunto: number };
 }
 
 export function NuevaVentaClient({
@@ -66,6 +67,7 @@ export function NuevaVentaClient({
   sucursalTelefono,
   sucursalDireccion,
   sucursalGiroComercial,
+  puntosConfig,
 }: Props) {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -368,6 +370,14 @@ export function NuevaVentaClient({
             onPrecuenta={handleOpenPrecuenta}
             ordenLoading={ordenLoading}
             canCancelItems={userRol ? CANCEL_ROLES.includes(userRol) : false}
+            productos={productosFiltrados.map((p) => ({
+              id: p.id,
+              nombre: p.nombre,
+              precio: p.precio,
+              codigo: p.codigo,
+              imagen: p.imagen,
+            }))}
+            puntosConfig={puntosConfig}
           />
         </div>
       </div>
