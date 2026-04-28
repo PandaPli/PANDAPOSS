@@ -166,6 +166,16 @@ export const VentaService = {
 
     const puntosCanjeados = puntosCanjeadosInput ?? 0;
 
+    // ── Auto-resolver clienteId desde pedido delivery si no viene en el input ─
+    let resolvedClienteId = clienteId ?? null;
+    if (!resolvedClienteId && pedidoId && !modoGrupo) {
+      const delivery = await prisma.pedidoDelivery.findUnique({
+        where: { pedidoId },
+        select: { clienteId: true },
+      });
+      if (delivery?.clienteId) resolvedClienteId = delivery.clienteId;
+    }
+
     // ── V3: Recalcular totales en el servidor ────────────────────────────────
     // Nunca confiar en subtotal/total enviados por el cliente
     const serverSubtotal = items.reduce(
@@ -190,7 +200,7 @@ export const VentaService = {
     }
 
     // Descuento por canje de puntos
-    const descuentoPuntos = puntosActivo && clienteId && puntosCanjeados > 0
+    const descuentoPuntos = puntosActivo && resolvedClienteId && puntosCanjeados > 0
       ? calcularDescuentoPuntos(puntosCanjeados, valorPunto)
       : 0;
 
@@ -246,7 +256,7 @@ export const VentaService = {
             data: {
               numero,
               cajaId: cajaId ?? null,
-              clienteId: clienteId ?? null,
+              clienteId: resolvedClienteId ?? null,
               usuarioId,
               // En modo grupo: no linkeamos pedidoId (múltiples ventas por mesa)
               pedidoId: modoGrupo ? null : (pedidoId ?? null),
@@ -290,15 +300,15 @@ export const VentaService = {
           }
 
           // ── PUNTOS: canjear primero, luego ganar ─────────────────────────────
-          if (puntosActivo && clienteId) {
+          if (puntosActivo && resolvedClienteId) {
             if (puntosCanjeados > 0) {
-              await PuntosService.canjearPuntos(tx, clienteId, v.id, puntosCanjeados, descuentoPuntos);
+              await PuntosService.canjearPuntos(tx, resolvedClienteId, v.id, puntosCanjeados, descuentoPuntos);
             }
 
             // Puntos ganados se calculan sobre el total pagado (ya con descuento)
             const puntosGanados = calcularPuntosGanados(serverTotal, puntosPorMil);
             if (puntosGanados > 0) {
-              await PuntosService.ganarPuntos(tx, clienteId, v.id, puntosGanados, serverTotal);
+              await PuntosService.ganarPuntos(tx, resolvedClienteId, v.id, puntosGanados, serverTotal);
               await tx.venta.update({
                 where: { id: v.id },
                 data: { puntosGanados },
