@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NuevaVentaClient } from "./NuevaVentaClient";
+import { CajaBasicaClient } from "@/app/(dashboard)/ventas/caja/CajaBasicaClient";
 import type { CartItem, RondaPedido } from "@/types";
 
 export const metadata: Metadata = { title: "PP — Caja" };
@@ -139,9 +140,72 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
   const userRol = (session?.user as { rol?: string })?.rol ?? undefined;
 
   const params = await searchParams;
+  const modo = params.modo;
   const pedidoId = params.pedido ? Number(params.pedido) : undefined;
   const mesaId = params.mesa ? Number(params.mesa) : undefined;
 
+  // ── Modo Express: renderiza la Caja Rápida integrada ──────────────────────
+  if (modo === "express") {
+    const [productosExpress, cajaAbierta, sucursalExpress] = await Promise.all([
+      prisma.producto.findMany({
+        where: { activo: true, enMenu: true, ...(sucursalId ? { sucursalId } : {}) },
+        include: { categoria: { select: { nombre: true } } },
+        orderBy: [{ categoria: { nombre: "asc" } }, { nombre: "asc" }],
+      }),
+      getCajaAbierta(sucursalId),
+      sucursalId
+        ? prisma.sucursal.findUnique({
+            where: { id: sucursalId },
+            select: {
+              simbolo: true,
+              nombre: true,
+              rut: true,
+              telefono: true,
+              direccion: true,
+              giroComercial: true,
+              puntosActivo: true,
+              puntosPorMil: true,
+              valorPunto: true,
+            },
+          })
+        : null,
+    ]);
+
+    return (
+      <CajaBasicaClient
+        productos={productosExpress.map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          precio: Number(p.precio),
+          codigo: p.codigo,
+          imagen: p.imagen,
+          categoria: p.categoria ? { nombre: p.categoria.nombre } : undefined,
+        }))}
+        simbolo={sucursalExpress?.simbolo ?? sessionSimbolo}
+        cajaId={cajaAbierta?.id}
+        cajaNombre={cajaAbierta?.nombre}
+        usuarioId={userId}
+        sucursalId={sucursalId}
+        sucursalNombre={sucursalExpress?.nombre ?? null}
+        sucursalRut={sucursalExpress?.rut ?? null}
+        sucursalTelefono={sucursalExpress?.telefono ?? null}
+        sucursalDireccion={sucursalExpress?.direccion ?? null}
+        sucursalGiroComercial={sucursalExpress?.giroComercial ?? null}
+        puntosConfig={
+          sucursalExpress?.puntosActivo
+            ? {
+                activo: true,
+                puntosPorMil: Number(sucursalExpress.puntosPorMil),
+                valorPunto: Number(sucursalExpress.valorPunto),
+              }
+            : { activo: false, puntosPorMil: 0, valorPunto: 0 }
+        }
+        modoExpress
+      />
+    );
+  }
+
+  // ── Modo Normal ────────────────────────────────────────────────────────────
   const [productos, cajaAbierta, pedidoInfo, sucursalBranding, mesaInfo] = await Promise.all([
     getProductos(sucursalId),
     getCajaAbierta(sucursalId),

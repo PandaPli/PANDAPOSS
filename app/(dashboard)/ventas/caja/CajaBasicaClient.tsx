@@ -21,6 +21,8 @@ import {
   Tag,
   Star,
   UserCircle,
+  Zap,
+  LayoutGrid,
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,8 @@ interface Props {
   sucursalDireccion?: string | null;
   sucursalGiroComercial?: string | null;
   puntosConfig?: PuntosConfig;
+  /** Cuando es true el componente fue abierto desde /ventas/nueva?modo=express */
+  modoExpress?: boolean;
 }
 
 let _cnt = 0;
@@ -105,6 +109,7 @@ export function CajaBasicaClient({
   sucursalDireccion,
   sucursalGiroComercial,
   puntosConfig,
+  modoExpress = false,
 }: Props) {
   /* ── State ── */
   const [items, setItems] = useState<LineItem[]>([]);
@@ -375,7 +380,7 @@ export function CajaBasicaClient({
       {/* ── Top bar ── */}
       <div className="flex flex-shrink-0 items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 shadow-sm">
         <Link
-          href="/ventas/caja"
+          href={modoExpress ? "/ventas/nueva" : "/panel"}
           className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm font-semibold text-stone-600 shadow-sm hover:bg-stone-50 transition"
         >
           <ArrowLeft size={14} />
@@ -383,11 +388,36 @@ export function CajaBasicaClient({
         </Link>
 
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600">
-            <ShoppingCart size={14} className="text-white" />
-          </div>
-          <h1 className="font-bold text-stone-800">Caja Básica</h1>
+          {modoExpress ? (
+            <>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500">
+                <Zap size={14} className="fill-white text-white" />
+              </div>
+              <h1 className="font-bold text-stone-800">Express</h1>
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                Venta rápida
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600">
+                <ShoppingCart size={14} className="text-white" />
+              </div>
+              <h1 className="font-bold text-stone-800">Caja Básica</h1>
+            </>
+          )}
         </div>
+
+        {modoExpress && (
+          <Link
+            href="/ventas/nueva"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-stone-600 shadow-sm hover:bg-stone-100 transition"
+            title="Volver al modo completo con mesas y comandas"
+          >
+            <LayoutGrid size={13} />
+            <span className="hidden sm:inline">Modo Completo</span>
+          </Link>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           {cajaId ? (

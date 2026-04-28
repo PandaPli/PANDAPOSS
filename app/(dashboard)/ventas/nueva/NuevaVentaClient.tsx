@@ -8,7 +8,8 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Zap } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -293,6 +294,14 @@ export function NuevaVentaClient({
           <span>Volver a Mesas</span>
         </button>
         <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
+        <Link
+          href="/ventas/nueva?modo=express"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700 shadow-sm hover:bg-amber-100 active:scale-95 transition-all"
+          title="Modo Express — venta rápida sin mesa"
+        >
+          <Zap size={14} className="fill-amber-400 text-amber-500" />
+          <span className="hidden sm:inline">Express</span>
+        </Link>
 
         {ordenMsg && (
           <span className="inline-flex animate-fade-in items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
