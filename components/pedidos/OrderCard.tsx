@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store, CreditCard, Banknote, ArrowLeftRight } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store, CreditCard, Banknote, ArrowLeftRight, Pencil, Check } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
 import type { Rol } from "@/types";
@@ -210,6 +210,57 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
   const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
   const [savedNotas, setSavedNotas] = useState<Record<number, boolean>>({});
 
+  // ── Edición rápida (método de pago / modalidad) ─────────────────────────
+  const [editMode, setEditMode] = useState(false);
+  const [localObs, setLocalObs] = useState<string | null>(pedido.observacion);
+  const [localZona, setLocalZona] = useState<string | null | undefined>(pedido.delivery?.zonaDelivery);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savedEdit, setSavedEdit] = useState(false);
+
+  /** Extrae metodoPago del JSON de observacion "[DELIVERY]{...}" */
+  function getMetodoPagoFromObs(obs: string | null): string | null {
+    if (!obs?.startsWith("[DELIVERY]")) return null;
+    try {
+      const data = JSON.parse(obs.replace("[DELIVERY]", ""));
+      return data.metodoPago ?? null;
+    } catch { return null; }
+  }
+
+  /** Guarda cambios de pago o modalidad via PATCH /api/pedidos/[id] */
+  async function guardarEdicion(fields: { observacion?: string | null; zonaDelivery?: string | null }) {
+    setSavingEdit(true);
+    try {
+      await fetch(`/api/pedidos/${pedido.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      if (fields.observacion !== undefined) setLocalObs(fields.observacion);
+      if (fields.zonaDelivery !== undefined) setLocalZona(fields.zonaDelivery);
+      setSavedEdit(true);
+      setTimeout(() => setSavedEdit(false), 2000);
+    } catch { /* silencioso */ } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  /** Cambia el metodoPago dentro del JSON de observacion */
+  async function cambiarMetodoPago(metodo: "EFECTIVO" | "TARJETA" | "TRANSFERENCIA") {
+    if (!localObs?.startsWith("[DELIVERY]")) return;
+    try {
+      const data = JSON.parse(localObs.replace("[DELIVERY]", ""));
+      data.metodoPago = metodo;
+      const newObs = "[DELIVERY]" + JSON.stringify(data);
+      await guardarEdicion({ observacion: newObs });
+    } catch { /* obs malformada */ }
+  }
+
+  /** Cambia la modalidad DELIVERY ↔ RETIRO */
+  async function cambiarModalidad(mod: "DELIVERY" | "RETIRO") {
+    const nuevaZona = mod === "RETIRO" ? "Retiro en local" : "";
+    await guardarEdicion({ zonaDelivery: nuevaZona });
+  }
+
   const isDeliveryRole = rol === "DELIVERY";
   const canConfirm = canConfirmOrders(rol);
   const canPrepare = canPrepareOrders(rol);
@@ -306,9 +357,15 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
 
   const tiempoStr = timeAgo(pedido.creadoEn);
   const origen = detectarOrigen(pedido);
-  const modalidad = detectarModalidad(pedido);
+  // Usar estado local para reflejar ediciones inmediatamente
+  const pedidoLocal = {
+    ...pedido,
+    observacion: localObs,
+    delivery: pedido.delivery ? { ...pedido.delivery, zonaDelivery: localZona } : pedido.delivery,
+  };
+  const modalidad = detectarModalidad(pedidoLocal as typeof pedido);
   const modStyles = getModalidadStyles(modalidad, nightMode);
-  const estadoPago = detectarEstadoPago(pedido);
+  const estadoPago = detectarEstadoPago(pedidoLocal as typeof pedido);
   const pagoStyles = estadoPago ? getEstadoPagoStyles(estadoPago, nightMode) : null;
 
   // Urgencia: PENDIENTE > 2 min
@@ -323,9 +380,9 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
   const callBannerText = pedido.llamadoTipo === "RIDER" ? "Listo para Rider" : pedido.llamadoTipo === "CAJERO" ? "Listo para Cajero" : "Mesero solicitado";
   const callBannerColor = pedido.llamadoTipo === "RIDER" ? "bg-blue-500" : pedido.llamadoTipo === "CAJERO" ? "bg-purple-500" : "bg-amber-400";
 
-  // ── Parsear titulo y observacion ────────────────────────────────────────
+  // ── Parsear titulo y observacion (desde estado local) ───────────────────
   let customerName = "";
-  let cleanObservation = pedido.observacion || "";
+  let cleanObservation = localObs || "";
 
   if (pedido.tipo === "DELIVERY" && cleanObservation.startsWith("[DELIVERY]")) {
     try {
@@ -400,9 +457,27 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
               </div>
             )}
           </div>
-          <div className={cn("flex items-center gap-1 text-[11px] shrink-0", nightMode ? "text-gray-400" : "text-surface-muted")}>
-            <Clock size={11} />
-            <span className={cn(urgente && "text-red-400 font-bold")}>{tiempoStr}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Botón editar — solo en PENDIENTE + DELIVERY + canConfirm */}
+            {pedido.estado === "PENDIENTE" && pedido.tipo === "DELIVERY" && canConfirm && (
+              <button
+                onClick={() => setEditMode(e => !e)}
+                title="Editar método de pago / modalidad"
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all",
+                  editMode
+                    ? nightMode ? "bg-violet-500/30 text-violet-300 border border-violet-500/50" : "bg-violet-100 text-violet-700 border border-violet-300"
+                    : nightMode ? "text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100 border border-gray-200"
+                )}
+              >
+                <Pencil size={9} />
+                Editar
+              </button>
+            )}
+            <div className={cn("flex items-center gap-1 text-[11px]", nightMode ? "text-gray-400" : "text-surface-muted")}>
+              <Clock size={11} />
+              <span className={cn(urgente && "text-red-400 font-bold")}>{tiempoStr}</span>
+            </div>
           </div>
         </div>
         <div className="min-w-0">
@@ -481,6 +556,82 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
       {cleanObservation && (
         <div className={cn("mx-3 mb-2 text-[11px] rounded px-2 py-1", nightMode ? "text-gray-400 bg-white/5 border border-white/10" : "text-surface-muted bg-amber-50 border border-amber-200")}>
           {cleanObservation}
+        </div>
+      )}
+
+      {/* ── Panel edición rápida ──────────────────────────────────── */}
+      {editMode && pedido.tipo === "DELIVERY" && (
+        <div className={cn(
+          "mx-3 mb-2 rounded-xl p-3 space-y-2.5",
+          nightMode ? "bg-violet-900/20 border border-violet-500/30" : "bg-violet-50 border border-violet-200"
+        )}>
+          <div className="flex items-center justify-between mb-1">
+            <p className={cn("text-[10px] font-black uppercase tracking-widest", nightMode ? "text-violet-400" : "text-violet-600")}>
+              ✎ Editar pedido
+            </p>
+            {savingEdit && <Loader2 size={11} className={cn("animate-spin", nightMode ? "text-violet-400" : "text-violet-500")} />}
+            {savedEdit && !savingEdit && (
+              <span className={cn("text-[10px] font-bold flex items-center gap-1", nightMode ? "text-emerald-400" : "text-emerald-600")}>
+                <Check size={10} /> Guardado
+              </span>
+            )}
+          </div>
+
+          {/* Método de pago */}
+          {getMetodoPagoFromObs(localObs) !== null && (
+            <div>
+              <p className={cn("text-[10px] font-semibold mb-1.5", nightMode ? "text-gray-400" : "text-gray-500")}>Método de pago</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {(["EFECTIVO", "TARJETA", "TRANSFERENCIA"] as const).map(m => {
+                  const actual = getMetodoPagoFromObs(localObs);
+                  const selected = actual === m;
+                  const icons = { EFECTIVO: <Banknote size={11}/>, TARJETA: <CreditCard size={11}/>, TRANSFERENCIA: <ArrowLeftRight size={11}/> };
+                  const labels = { EFECTIVO: "Efectivo", TARJETA: "Tarjeta", TRANSFERENCIA: "Transfer." };
+                  return (
+                    <button
+                      key={m}
+                      disabled={savingEdit}
+                      onClick={() => void cambiarMetodoPago(m)}
+                      className={cn(
+                        "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all border disabled:opacity-50",
+                        selected
+                          ? nightMode ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50" : "bg-emerald-100 text-emerald-700 border-emerald-300"
+                          : nightMode ? "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                      )}
+                    >
+                      {icons[m]} {labels[m]} {selected && <Check size={9}/>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Modalidad: Delivery / Retiro */}
+          <div>
+            <p className={cn("text-[10px] font-semibold mb-1.5", nightMode ? "text-gray-400" : "text-gray-500")}>Modalidad de entrega</p>
+            <div className="flex gap-1.5">
+              {(["DELIVERY", "RETIRO"] as const).map(mod => {
+                const selected = modalidad === mod;
+                const icons = { DELIVERY: <Bike size={11}/>, RETIRO: <ShoppingBag size={11}/> };
+                return (
+                  <button
+                    key={mod}
+                    disabled={savingEdit}
+                    onClick={() => void cambiarModalidad(mod)}
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all border disabled:opacity-50",
+                      selected
+                        ? nightMode ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50" : "bg-cyan-100 text-cyan-700 border-cyan-300"
+                        : nightMode ? "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                    )}
+                  >
+                    {icons[mod]} {mod} {selected && <Check size={9}/>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 

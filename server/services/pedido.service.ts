@@ -33,6 +33,10 @@ export interface UpdatePedidoInput {
   telefonoCliente?: string | null;
   nuevosItems?: PedidoItem[];
   usuarioId?: number | null;
+  /** Reemplaza la observación completa del pedido (ej: para cambiar metodoPago en JSON) */
+  observacion?: string | null;
+  /** Actualiza zonaDelivery en PedidoDelivery (ej: cambiar DELIVERY ↔ RETIRO) */
+  zonaDelivery?: string | null;
 }
 
 // M3: Transiciones de estado válidas — máquina de estados explícita
@@ -147,7 +151,7 @@ export const PedidoService = {
   },
 
   async update(id: number, input: UpdatePedidoInput) {
-    const { estado, meseroLlamado, llamadoTipo, repartidorId, direccionEntrega, telefonoCliente } = input;
+    const { estado, meseroLlamado, llamadoTipo, repartidorId, direccionEntrega, telefonoCliente, observacion, zonaDelivery } = input;
 
     // Leer el pedido actual para validaciones
     const pedidoActual = await prisma.pedido.findUnique({
@@ -185,6 +189,7 @@ export const PedidoService = {
     if (repartidorId !== undefined) data.repartidorId = repartidorId ?? null;
     if (direccionEntrega !== undefined) data.direccionEntrega = direccionEntrega ?? null;
     if (telefonoCliente !== undefined) data.telefonoCliente = telefonoCliente ?? null;
+    if (observacion !== undefined) data.observacion = observacion ?? null;
     if (estado === "ENTREGADO") { data.meseroLlamado = false; data.llamadoTipo = null; }
 
     // Capturar timestamps de preparación
@@ -231,6 +236,14 @@ export const PedidoService = {
       await prisma.mesa.update({
         where: { id: pedido.mesaId },
         data: { estado: "OCUPADA" },
+      });
+    }
+
+    // Actualizar zonaDelivery en PedidoDelivery si se solicitó (cambio DELIVERY ↔ RETIRO)
+    if (zonaDelivery !== undefined) {
+      await prisma.pedidoDelivery.updateMany({
+        where: { pedidoId: id },
+        data: { zonaDelivery: zonaDelivery ?? null },
       });
     }
 
