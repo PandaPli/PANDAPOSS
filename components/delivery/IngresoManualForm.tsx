@@ -20,6 +20,7 @@ import {
   Percent,
   Gift,
   Package2,
+  Phone,
 } from "lucide-react";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,12 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [searching, setSearching] = useState(false);
   const [clienteEncontrado, setClienteEncontrado] = useState<ClienteEncontrado | null>(null);
   const [clienteNotFound, setClienteNotFound] = useState(false);
+
+  /* ── Name lookup ── */
+  const [nameQuery, setNameQuery] = useState("");
+  const [nameSearching, setNameSearching] = useState(false);
+  const [nameResults, setNameResults] = useState<ClienteEncontrado[]>([]);
+  const [nameNotFound, setNameNotFound] = useState(false);
 
   /* ── Form fields ── */
   const [nombre, setNombre] = useState("");
@@ -204,9 +211,43 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     setPhoneDigits("");
     setClienteEncontrado(null);
     setClienteNotFound(false);
+    setNameQuery("");
+    setNameResults([]);
+    setNameNotFound(false);
     setNombre("");
     setDireccion("");
     setReferencia("");
+  }
+
+  /* ── Name search ── */
+  async function buscarClientePorNombre() {
+    const q = nameQuery.trim();
+    if (q.length < 2) return;
+    setNameSearching(true);
+    setNameResults([]);
+    setNameNotFound(false);
+    try {
+      const res = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
+      const data: ClienteEncontrado[] = await res.json();
+      if (data.length > 0) {
+        setNameResults(data.slice(0, 5));
+      } else {
+        setNameNotFound(true);
+      }
+    } catch {
+      setNameNotFound(true);
+    } finally {
+      setNameSearching(false);
+    }
+  }
+
+  function seleccionarClienteNombre(c: ClienteEncontrado) {
+    setClienteEncontrado(c);
+    setNombre(c.nombre);
+    setDireccion(c.direccion ?? "");
+    if (c.telefono) setPhoneDigits(c.telefono.replace(/\D/g, "").slice(-8));
+    setNameResults([]);
+    setNameQuery("");
   }
 
   /* ── Cupones ── */
@@ -394,59 +435,115 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       {/* ══ LEFT: Form ══ */}
       <div className="space-y-5">
 
-        {/* ── Phone lookup ── */}
-        <div className="rounded-[1.75rem] border border-surface-border bg-white p-5 shadow-sm">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-surface-muted">
-            Buscar cliente por teléfono
-          </p>
-
-          {clienteEncontrado ? (
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100">
-                  <CheckCircle2 size={18} className="text-emerald-600" />
-                </div>
-                <div>
-                  <p className="font-bold text-emerald-800">{clienteEncontrado.nombre}</p>
-                  <p className="text-xs text-emerald-600">{phone}</p>
-                </div>
+        {/* ── Buscadores lado a lado ── */}
+        {clienteEncontrado ? (
+          /* Cliente encontrado — banner verde unificado */
+          <div className="flex items-center justify-between gap-3 rounded-[1.75rem] border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500 shadow-md shadow-emerald-200">
+                <CheckCircle2 size={20} className="text-white" />
               </div>
-              <button onClick={resetCliente} className="rounded-xl p-1.5 hover:bg-emerald-100 transition">
-                <X size={16} className="text-emerald-600" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <div className="flex flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
-                <span className="flex-shrink-0 text-sm font-semibold text-stone-500">+569</span>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={8}
-                  value={phoneDigits}
-                  onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
-                  placeholder="12345678"
-                  className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-stone-300"
-                />
+              <div>
+                <p className="font-black text-emerald-900">{clienteEncontrado.nombre}</p>
+                <p className="text-xs font-semibold text-emerald-600">{phone || "Sin teléfono"}</p>
               </div>
-              <button
-                onClick={buscarCliente}
-                disabled={phoneDigits.length < 8 || searching}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-stone-700 disabled:opacity-40 active:scale-95"
-              >
-                {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-                Buscar
-              </button>
             </div>
-          )}
+            <button onClick={resetCliente} className="rounded-xl p-2 hover:bg-emerald-100 transition">
+              <X size={16} className="text-emerald-600" />
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
 
-          {clienteNotFound && (
-            <p className="mt-2 text-xs font-semibold text-amber-600">
-              Cliente no encontrado — ingresa los datos manualmente
-            </p>
-          )}
-        </div>
+            {/* — Widget TELÉFONO — índigo */}
+            <div className="rounded-[1.5rem] border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/60 p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 shadow shadow-indigo-300">
+                  <Phone size={13} className="text-white" />
+                </div>
+                <p className="text-xs font-black uppercase tracking-widest text-indigo-700">Por teléfono</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-indigo-200 bg-white px-2.5 py-2">
+                  <span className="flex-shrink-0 text-xs font-bold text-indigo-400">+569</span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={phoneDigits}
+                    onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, ""))}
+                    onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
+                    placeholder="12345678"
+                    className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-indigo-200"
+                  />
+                </div>
+                <button
+                  onClick={buscarCliente}
+                  disabled={phoneDigits.length < 8 || searching}
+                  className="flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-white shadow shadow-indigo-300 transition hover:bg-indigo-700 disabled:opacity-40 active:scale-95"
+                >
+                  {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                </button>
+              </div>
+              {clienteNotFound && (
+                <p className="mt-2 text-xs font-semibold text-amber-600">No encontrado</p>
+              )}
+            </div>
+
+            {/* — Widget NOMBRE — violeta */}
+            <div className="rounded-[1.5rem] border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-100/60 p-4 shadow-sm relative">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500 shadow shadow-violet-300">
+                  <User size={13} className="text-white" />
+                </div>
+                <p className="text-xs font-black uppercase tracking-widest text-violet-700">Por nombre</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-violet-200 bg-white px-2.5 py-2">
+                  <input
+                    type="text"
+                    value={nameQuery}
+                    onChange={(e) => setNameQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && buscarClientePorNombre()}
+                    placeholder="Ej: María López"
+                    className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-violet-200"
+                  />
+                </div>
+                <button
+                  onClick={buscarClientePorNombre}
+                  disabled={nameQuery.trim().length < 2 || nameSearching}
+                  className="flex items-center justify-center rounded-xl bg-violet-600 px-3 py-2 text-white shadow shadow-violet-300 transition hover:bg-violet-700 disabled:opacity-40 active:scale-95"
+                >
+                  {nameSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                </button>
+              </div>
+              {nameNotFound && (
+                <p className="mt-2 text-xs font-semibold text-amber-600">No encontrado</p>
+              )}
+              {/* Dropdown resultados */}
+              {nameResults.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-xl shadow-violet-100">
+                  {nameResults.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => seleccionarClienteNombre(c)}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-violet-50 border-b border-violet-50 last:border-0"
+                    >
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
+                        <User size={13} className="text-violet-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-stone-800">{c.nombre}</p>
+                        {c.telefono && <p className="text-xs text-stone-400">{c.telefono}</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
 
         {/* ── Customer data ── */}
         <div className="rounded-[1.75rem] border border-surface-border bg-white p-5 shadow-sm">
