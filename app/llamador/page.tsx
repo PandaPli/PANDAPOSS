@@ -7,15 +7,15 @@ import type { Rol } from "@/types";
 
 export const metadata = { title: "Llamador de Órdenes · PandaPOS" };
 
+// Página fuera del layout del dashboard — pantalla completa para TV/monitor
 export default async function LlamadorPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/auth/signin");
+  if (!session) redirect("/login");
 
   const rol = (session.user as { rol: Rol }).rol;
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const isAdmin = rol === "ADMIN_GENERAL";
 
-  // Nombre de sucursal
   let sucursalNombre = "PandaPOS";
   if (sucursalId) {
     const suc = await prisma.sucursal.findUnique({
@@ -25,7 +25,6 @@ export default async function LlamadorPage() {
     if (suc) sucursalNombre = suc.nombre;
   }
 
-  // Ventana de tiempo desde caja abierta
   let desde: Date;
   try {
     const caja = await prisma.caja.findFirst({
@@ -41,7 +40,6 @@ export default async function LlamadorPage() {
     desde = new Date(Date.now() - 8 * 60 * 60 * 1000);
   }
 
-  // Datos iniciales (SSR)
   const initialData = await prisma.pedido.findMany({
     where: {
       estado: "LISTO",
