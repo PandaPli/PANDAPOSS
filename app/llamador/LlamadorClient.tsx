@@ -24,7 +24,23 @@ function detectarSeccion(o: OrdenLista): Seccion {
 }
 
 /* ── Paletas de colores (sin clases Tailwind no-estándar) ─────────── */
-const PALETAS = {
+interface Paleta {
+  label: string;
+  Icon: React.ElementType;
+  colBorder: string;
+  colBg: string;
+  headerBg: string;
+  titleColor: string;
+  badgeBg: string;
+  badgeBorder: string;
+  badgeColor: string;
+  cardBorder: string;
+  numColor: string;
+  dotColor: string;
+  glowColor: string;
+}
+
+const PALETAS: Record<Seccion, Paleta> = {
   COCINA: {
     label: "Cocina",
     Icon: UtensilsCrossed,
@@ -70,7 +86,7 @@ const PALETAS = {
     dotColor:    "#06b6d4",
     glowColor:   "rgba(6,182,212,0.08)",
   },
-} as const;
+};
 
 const SECCIONES: Seccion[] = ["COCINA", "KIOSKO", "DELIVERY"];
 
@@ -92,7 +108,7 @@ function Reloj() {
 }
 
 /* ── Tarjeta de orden ─────────────────────────────────────────────── */
-function OrdenCard({ orden, pal, isNew }: { orden: OrdenLista; pal: typeof PALETAS.COCINA; isNew: boolean }) {
+function OrdenCard({ orden, pal, isNew }: { orden: OrdenLista; pal: Paleta; isNew: boolean }) {
   const subLabel = orden.mesa?.nombre
     ? orden.mesa.nombre
     : orden.tipo === "DELIVERY"
@@ -161,7 +177,7 @@ function OrdenCard({ orden, pal, isNew }: { orden: OrdenLista; pal: typeof PALET
 
 /* ── Columna de sección ───────────────────────────────────────────── */
 function SeccionCol({ sec, ordenes, newIds }: { sec: Seccion; ordenes: OrdenLista[]; newIds: Set<number> }) {
-  const pal = PALETAS[sec];
+  const pal: Paleta = PALETAS[sec];
 
   return (
     <div style={{
