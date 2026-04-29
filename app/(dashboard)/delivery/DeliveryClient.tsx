@@ -5,7 +5,7 @@ import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, MapPin,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
   Flame, ChefHat, Truck, LayoutList, ArrowRight,
-  Package2, Printer, XCircle,
+  Package2, Printer, XCircle, Copy, Check,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
@@ -82,6 +82,56 @@ interface Props {
 }
 
 type FilterKey = "todos" | "pendiente" | "en_proceso" | "listo";
+
+/* ── Botón copiar link de seguimiento ───────────────────────────── */
+function CopyTrackLink({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(`https://${url}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      // fallback para contextos sin clipboard API
+      const el = document.createElement("textarea");
+      el.value = `https://${url}`;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={cn(
+        "w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 border transition-all text-left",
+        copied
+          ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+          : "bg-surface-bg border-surface-border hover:border-brand-300 hover:bg-brand-50/40 text-surface-muted"
+      )}
+    >
+      {copied
+        ? <Check size={14} className="shrink-0 text-emerald-600" />
+        : <Copy size={14} className="shrink-0 text-brand-400" />
+      }
+      <span className={cn("text-xs font-semibold flex-1 truncate", copied ? "text-emerald-700" : "text-surface-muted")}>
+        {url}
+      </span>
+      <span className={cn(
+        "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0",
+        copied
+          ? "bg-emerald-100 text-emerald-700"
+          : "bg-brand-100 text-brand-600"
+      )}>
+        {copied ? "¡Copiado!" : "Copiar"}
+      </span>
+    </button>
+  );
+}
 
 const STAGE_STYLE = {
   PENDIENTE:  { border: "border-amber-300",   dot: "bg-amber-400",   badge: "bg-amber-100 text-amber-800",   ring: "ring-amber-300",  cardBg: "bg-amber-50/40"  },
@@ -374,6 +424,8 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       /retiro/i.test(pedido.zonaDelivery ?? "") ||
       (!pedido.zonaDelivery && !pedido.direccionEntrega);
 
+    const trackUrl = `pandaposs.com/track/${pedido.id}`;
+
     return (
       <div className="rounded-2xl border border-surface-border bg-white shadow-sm overflow-hidden">
 
@@ -437,6 +489,9 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
               {!esRetiro && pedido.departamento ? <span className="text-surface-muted/60"> · {pedido.departamento}</span> : null}
             </p>
           </div>
+
+          {/* Link de seguimiento — copiar al portapapeles */}
+          <CopyTrackLink url={trackUrl} />
 
           {/* Pago + repartidor/modo */}
           <div className="grid grid-cols-2 gap-2">
