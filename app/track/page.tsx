@@ -58,7 +58,7 @@ export default function TrackIndexPage() {
         </div>
 
         <h1 style={{ color: "white", fontWeight: 900, fontSize: 26, marginBottom: 6, letterSpacing: "-.02em" }}>
-          Visor ODS
+          ODS
         </h1>
         <p style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
           Ingresa el número de pedido para ver su estado en tiempo real.
