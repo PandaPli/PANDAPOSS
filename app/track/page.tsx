@@ -61,7 +61,7 @@ export default function TrackIndexPage() {
           Visor ODS
         </h1>
         <p style={{ color: "rgba(255,255,255,.5)", fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
-          Ingresá el número de pedido para ver su estado en tiempo real.
+          Ingresa el número de pedido para ver su estado en tiempo real.
         </p>
 
         {/* Steps decorativos */}
