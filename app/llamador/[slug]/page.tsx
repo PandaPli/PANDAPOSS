@@ -22,11 +22,22 @@ export default async function LlamadorPublicoPage({ params }: Props) {
   if (!branch) notFound();
 
   const sucursalId = branch.id;
-  const desde = new Date(Date.now() - 8 * 60 * 60 * 1000);
+
+  let desde: Date;
+  try {
+    const caja = await prisma.caja.findFirst({
+      where: { estado: "ABIERTA", sucursalId },
+      orderBy: { abiertaEn: "desc" },
+      select: { abiertaEn: true },
+    });
+    desde = caja?.abiertaEn ?? new Date(Date.now() - 10 * 60 * 60 * 1000);
+  } catch {
+    desde = new Date(Date.now() - 10 * 60 * 60 * 1000);
+  }
 
   const initialData = await prisma.pedido.findMany({
     where: {
-      estado: "LISTO",
+      estado: { in: ["EN_PROCESO", "LISTO"] },
       creadoEn: { gte: desde },
       AND: [
         { OR: [{ mpStatus: null }, { mpStatus: { not: "pending_payment" } }] },
@@ -44,12 +55,13 @@ export default async function LlamadorPublicoPage({ params }: Props) {
       id: true,
       numero: true,
       tipo: true,
+      estado: true,
       observacion: true,
       listoEn: true,
       mesa: { select: { nombre: true } },
       delivery: { select: { zonaDelivery: true } },
     },
-    orderBy: { listoEn: "asc" },
+    orderBy: { creadoEn: "asc" },
   });
 
   return (

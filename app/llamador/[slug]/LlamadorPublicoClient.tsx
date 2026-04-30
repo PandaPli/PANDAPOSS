@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io as ioClient, Socket } from "socket.io-client";
-import { Bike, ChefHat, Maximize2, Monitor, RefreshCw, UtensilsCrossed } from "lucide-react";
+import { Bike, ChefHat, Maximize2, Monitor, RefreshCw, UtensilsCrossed, CheckCircle2 } from "lucide-react";
 
 /* ── Tipos ───────────────────────────────────────────────────────── */
-interface OrdenLista {
+interface Orden {
   id: number;
   numero: number;
   tipo: string;
+  estado: string;
   observacion: string | null;
   listoEn: string | null;
   mesa: { nombre: string } | null;
@@ -17,74 +18,30 @@ interface OrdenLista {
 
 type Seccion = "COCINA" | "KIOSKO" | "DELIVERY";
 
-function detectarSeccion(o: OrdenLista): Seccion {
+function detectarSeccion(o: Orden): Seccion {
   if (o.tipo === "DELIVERY") return "DELIVERY";
   if (o.observacion?.includes("KIOSKO")) return "KIOSKO";
   return "COCINA";
 }
 
 /* ── Secciones ───────────────────────────────────────────────────── */
-const SECCIONES = [
-  {
-    key: "COCINA" as Seccion,
-    label: "Cocina",
-    Icon: UtensilsCrossed,
-    border: "border-amber-500/40",
-    badge: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    title: "text-amber-300",
-    num: "text-amber-100",
-    cardBorder: "border-amber-500/30",
-    cardShadow: "shadow-amber-500/10",
-    dot: "bg-amber-400",
-    glow: "rgba(245,158,11,.06)",
-  },
-  {
-    key: "KIOSKO" as Seccion,
-    label: "Kiosko",
-    Icon: Monitor,
-    border: "border-violet-500/40",
-    badge: "bg-violet-500/20 text-violet-300 border-violet-500/40",
-    title: "text-violet-300",
-    num: "text-violet-100",
-    cardBorder: "border-violet-500/30",
-    cardShadow: "shadow-violet-500/10",
-    dot: "bg-violet-400",
-    glow: "rgba(139,92,246,.06)",
-  },
-  {
-    key: "DELIVERY" as Seccion,
-    label: "Delivery",
-    Icon: Bike,
-    border: "border-cyan-500/40",
-    badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
-    title: "text-cyan-300",
-    num: "text-cyan-100",
-    cardBorder: "border-cyan-500/30",
-    cardShadow: "shadow-cyan-500/10",
-    dot: "bg-cyan-400",
-    glow: "rgba(6,182,212,.06)",
-  },
-] as const;
+const SECCIONES: {
+  key: Seccion;
+  label: string;
+  Icon: React.ElementType;
+  border: string;
+  badge: string;
+  titleCls: string;
+  glow: string;
+}[] = [
+  { key: "COCINA",   label: "Cocina",   Icon: UtensilsCrossed, border: "border-amber-500/40",  badge: "bg-amber-500/20 text-amber-300 border-amber-500/40",  titleCls: "text-amber-300",  glow: "rgba(245,158,11,.08)"  },
+  { key: "KIOSKO",   label: "Kiosko",   Icon: Monitor,         border: "border-violet-500/40", badge: "bg-violet-500/20 text-violet-300 border-violet-500/40", titleCls: "text-violet-300", glow: "rgba(139,92,246,.08)"  },
+  { key: "DELIVERY", label: "Delivery", Icon: Bike,            border: "border-cyan-500/40",   badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",       titleCls: "text-cyan-300",   glow: "rgba(6,182,212,.08)"   },
+];
 
-/* ── Reloj ───────────────────────────────────────────────────────── */
-function Reloj() {
-  const [time, setTime] = useState("");
-  useEffect(() => {
-    const tick = () =>
-      setTime(new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-  return <span className="font-mono text-2xl font-bold text-white/50 tabular-nums">{time}</span>;
-}
-
-/* ── Tarjeta orden ───────────────────────────────────────────────── */
-function OrdenCard({ orden, cfg, isNew }: {
-  orden: OrdenLista;
-  cfg: typeof SECCIONES[number];
-  isNew: boolean;
-}) {
+/* ── Tarjeta de orden ────────────────────────────────────────────── */
+function OrdenCard({ orden, isNew }: { orden: Orden; isNew: boolean }) {
+  const esListo = orden.estado === "LISTO";
   const esRetiro = orden.delivery?.zonaDelivery && /retiro/i.test(orden.delivery.zonaDelivery);
   const sublabel = orden.mesa?.nombre
     ? orden.mesa.nombre
@@ -94,68 +51,139 @@ function OrdenCard({ orden, cfg, isNew }: {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border p-5 flex flex-col items-center justify-center gap-2 transition-all duration-500 shadow-lg ${cfg.cardBorder} ${cfg.cardShadow}`}
       style={{
-        background: "rgba(255,255,255,0.04)",
+        position: "relative",
+        borderRadius: 20,
+        border: esListo ? "2px solid rgba(34,197,94,.5)" : "1.5px solid rgba(255,255,255,.08)",
+        background: esListo
+          ? "linear-gradient(135deg, rgba(34,197,94,.12) 0%, rgba(16,185,129,.08) 100%)"
+          : "rgba(255,255,255,0.04)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
+        padding: "20px 16px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        boxShadow: esListo ? "0 0 24px rgba(34,197,94,.2)" : "none",
         animation: isNew ? "newOrder .55s cubic-bezier(.34,1.56,.64,1) both" : undefined,
       }}
     >
-      {isNew && (
-        <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${cfg.dot} animate-ping`} />
-      )}
-      <p
-        className={`font-black leading-none tabular-nums ${cfg.num}`}
-        style={{ fontSize: "clamp(2.8rem,5.5vw,5.2rem)", letterSpacing: "-0.03em" }}
-      >
+      {/* Badge estado */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 5,
+        padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+        textTransform: "uppercase", letterSpacing: ".08em",
+        background: esListo ? "rgba(34,197,94,.2)" : "rgba(245,158,11,.15)",
+        border: esListo ? "1px solid rgba(34,197,94,.4)" : "1px solid rgba(245,158,11,.3)",
+        color: esListo ? "#4ade80" : "#fbbf24",
+      }}>
+        {esListo
+          ? <><CheckCircle2 size={10} /> ¡Listo!</>
+          : <><ChefHat size={10} /> Preparando</>
+        }
+      </div>
+
+      {/* Número — MUY GRANDE */}
+      <p style={{
+        fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
+        fontSize: "clamp(2.8rem, 5.2vw, 5rem)",
+        color: esListo ? "#86efac" : "rgba(255,255,255,.85)",
+      }}>
         #{orden.numero}
       </p>
+
+      {/* Sublabel (mesa/zona) */}
       {sublabel && (
-        <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${cfg.badge}`}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em",
+          padding: "2px 10px", borderRadius: 999,
+          background: "rgba(255,255,255,.07)", color: "rgba(255,255,255,.5)",
+        }}>
           {sublabel}
         </span>
+      )}
+
+      {/* Punto pulsante si es nuevo */}
+      {isNew && (
+        <div style={{
+          position: "absolute", top: 10, right: 10,
+          width: 10, height: 10, borderRadius: "50%",
+          background: esListo ? "#4ade80" : "#fbbf24",
+          animation: "pingDot 1s ease-in-out infinite",
+        }} />
       )}
     </div>
   );
 }
 
-/* ── Columna sección ─────────────────────────────────────────────── */
+/* ── Columna de sección ──────────────────────────────────────────── */
 function SeccionCol({ cfg, ordenes, newIds }: {
   cfg: typeof SECCIONES[number];
-  ordenes: OrdenLista[];
+  ordenes: Orden[];
   newIds: Set<number>;
 }) {
+  const listos = ordenes.filter(o => o.estado === "LISTO").length;
+
   return (
-    <div
-      className={`flex flex-col flex-1 min-w-0 rounded-3xl border ${cfg.border} overflow-hidden`}
-      style={{
-        background: `linear-gradient(160deg, rgba(255,255,255,.025) 0%, ${cfg.glow} 100%)`,
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        boxShadow: `0 0 40px 0 ${cfg.glow}`,
-      }}
-    >
+    <div style={{
+      display: "flex", flexDirection: "column", flex: 1, minWidth: 0,
+      borderRadius: 24, border: `1px solid ${cfg.border.replace("border-", "").replace("/40", "")}`,
+      borderColor: cfg.border.includes("amber") ? "rgba(245,158,11,.3)"
+        : cfg.border.includes("violet") ? "rgba(139,92,246,.3)"
+        : "rgba(6,182,212,.3)",
+      overflow: "hidden",
+      background: `linear-gradient(160deg, rgba(255,255,255,.025) 0%, ${cfg.glow} 100%)`,
+      backdropFilter: "blur(24px)",
+      WebkitBackdropFilter: "blur(24px)",
+    }}>
       {/* Header */}
-      <div className={`flex items-center gap-3 px-6 py-4 border-b ${cfg.border}`}
-        style={{ background: "rgba(0,0,0,.15)" }}>
-        <cfg.Icon size={22} className={cfg.title} />
-        <h2 className={`text-xl font-black uppercase tracking-widest ${cfg.title}`}>{cfg.label}</h2>
-        <span className={`ml-auto text-sm font-black px-3 py-0.5 rounded-full border ${cfg.badge}`}>
-          {ordenes.length}
-        </span>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "14px 20px",
+        borderBottom: "1px solid rgba(255,255,255,.06)",
+        background: "rgba(0,0,0,.15)",
+      }}>
+        <cfg.Icon size={20} style={{ color: cfg.titleCls.includes("amber") ? "#fbbf24" : cfg.titleCls.includes("violet") ? "#a78bfa" : "#67e8f9", flexShrink: 0 }} />
+        <h2 style={{ color: cfg.titleCls.includes("amber") ? "#fbbf24" : cfg.titleCls.includes("violet") ? "#a78bfa" : "#67e8f9",
+          fontWeight: 900, fontSize: 18, textTransform: "uppercase", letterSpacing: ".1em", flex: 1 }}>
+          {cfg.label}
+        </h2>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {listos > 0 && (
+            <span style={{
+              fontSize: 11, fontWeight: 800, padding: "2px 8px", borderRadius: 999,
+              background: "rgba(34,197,94,.2)", border: "1px solid rgba(34,197,94,.4)", color: "#4ade80",
+            }}>
+              {listos} listo{listos !== 1 ? "s" : ""}
+            </span>
+          )}
+          <span style={{
+            fontSize: 12, fontWeight: 800, padding: "2px 10px", borderRadius: 999,
+            background: "rgba(255,255,255,.07)", color: "rgba(255,255,255,.5)",
+          }}>
+            {ordenes.length}
+          </span>
+        </div>
       </div>
 
-      {/* Lista */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Órdenes */}
+      <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
         {ordenes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 opacity-20">
-            <cfg.Icon size={48} className={cfg.title} />
-            <p className="text-white text-sm font-bold">Sin órdenes listas</p>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            height: 160, gap: 12, opacity: .18 }}>
+            <cfg.Icon size={44} style={{ color: "white" }} />
+            <p style={{ color: "white", fontSize: 13, fontWeight: 700 }}>Sin pedidos activos</p>
           </div>
         ) : (
-          ordenes.map(o => (
-            <OrdenCard key={o.id} orden={o} cfg={cfg} isNew={newIds.has(o.id)} />
+          // LISTO primero, luego EN_PROCESO
+          [...ordenes].sort((a, b) => {
+            if (a.estado === "LISTO" && b.estado !== "LISTO") return -1;
+            if (b.estado === "LISTO" && a.estado !== "LISTO") return 1;
+            return 0;
+          }).map(o => (
+            <OrdenCard key={o.id} orden={o} isNew={newIds.has(o.id)} />
           ))
         )}
       </div>
@@ -163,17 +191,29 @@ function SeccionCol({ cfg, ordenes, newIds }: {
   );
 }
 
+/* ── Reloj ───────────────────────────────────────────────────────── */
+function Reloj() {
+  const [time, setTime] = useState("");
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <span style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 700, color: "rgba(255,255,255,.45)", letterSpacing: ".04em" }}>{time}</span>;
+}
+
 /* ── Componente principal ────────────────────────────────────────── */
 interface Props {
   sucursalId: number;
   sucursalNombre: string;
-  initialData: OrdenLista[];
+  initialData: Orden[];
 }
 
 let socket: Socket | null = null;
 
 export function LlamadorPublicoClient({ sucursalId, sucursalNombre, initialData }: Props) {
-  const [ordenes, setOrdenes] = useState<OrdenLista[]>(initialData);
+  const [ordenes, setOrdenes] = useState<Orden[]>(initialData);
   const [newIds, setNewIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const prevIdsRef = useRef<Set<number>>(new Set(initialData.map(o => o.id)));
@@ -183,7 +223,7 @@ export function LlamadorPublicoClient({ sucursalId, sucursalNombre, initialData 
     try {
       const res = await fetch(`/api/llamador/publico?sucursalId=${sucursalId}`);
       if (!res.ok) return;
-      const data: OrdenLista[] = await res.json();
+      const data: Orden[] = await res.json();
 
       const dataIds = new Set(data.map(o => o.id));
       const nuevos = new Set<number>();
@@ -206,13 +246,12 @@ export function LlamadorPublicoClient({ sucursalId, sucursalNombre, initialData 
     }
   }, [sucursalId]);
 
-  /* Socket en tiempo real */
+  /* Socket tiempo real */
   useEffect(() => {
     if (!socket || socket.disconnected) {
       socket = ioClient({ path: "/api/socket/io", reconnectionAttempts: 10 });
     }
     socket.emit("kds:join", sucursalId);
-
     const handleUpdate = () => void fetchOrdenes();
     socket.on("pedido:nuevo", handleUpdate);
     socket.on("pedido:update", handleUpdate);
@@ -222,16 +261,11 @@ export function LlamadorPublicoClient({ sucursalId, sucursalNombre, initialData 
     };
   }, [sucursalId, fetchOrdenes]);
 
-  /* Polling de respaldo cada 30 s */
+  /* Polling cada 20 s */
   useEffect(() => {
-    const id = setInterval(() => void fetchOrdenes(), 30_000);
+    const id = setInterval(() => void fetchOrdenes(), 20_000);
     return () => clearInterval(id);
   }, [fetchOrdenes]);
-
-  function toggleFullscreen() {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-    else document.exitFullscreen().catch(() => {});
-  }
 
   const porSeccion = {
     COCINA:   ordenes.filter(o => detectarSeccion(o) === "COCINA"),
@@ -239,151 +273,126 @@ export function LlamadorPublicoClient({ sucursalId, sucursalNombre, initialData 
     DELIVERY: ordenes.filter(o => detectarSeccion(o) === "DELIVERY"),
   };
 
-  const total = ordenes.length;
+  const totalListos = ordenes.filter(o => o.estado === "LISTO").length;
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; }
 
         @keyframes newOrder {
-          0%   { opacity: 0; transform: scale(.82) translateY(12px); }
+          0%   { opacity: 0; transform: scale(.82) translateY(14px); }
           100% { opacity: 1; transform: scale(1)   translateY(0); }
+        }
+        @keyframes pingDot {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50%       { transform: scale(1.4); opacity: .6; }
         }
         @keyframes ambientPulse {
           0%, 100% { opacity: 1; }
-          50%       { opacity: .5; }
+          50%       { opacity: .45; }
         }
 
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }
-
-        html, body { height: 100%; overflow: hidden; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
       `}</style>
 
-      <div
-        style={{
-          fontFamily: "'Outfit', system-ui, sans-serif",
-          minHeight: "100vh",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          background: "linear-gradient(160deg, #050d1a 0%, #080816 55%, #060f10 100%)",
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
+      <div style={{
+        fontFamily: "'Outfit', system-ui, sans-serif",
+        height: "100vh", display: "flex", flexDirection: "column",
+        background: "linear-gradient(160deg, #060d1c 0%, #080816 55%, #05100e 100%)",
+        overflow: "hidden", position: "relative",
+      }}>
+
         {/* Glows ambientales */}
         <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-          {[
-            { top: "-15%", left: "5%",  w: 700, h: 550, c: "rgba(245,158,11,.07)", d: "8s",  dd: "0s" },
-            { top: "25%",  right: "3%", w: 550, h: 450, c: "rgba(139,92,246,.07)", d: "11s", dd: "3s" },
-            { bottom: "5%",left: "32%", w: 650, h: 400, c: "rgba(6,182,212,.06)",  d: "9s",  dd: "6s" },
-          ].map((g, i) => (
+          {([
+            { t:"-15%", l:"5%",  w:700, h:550, c:"rgba(245,158,11,.06)", d:"8s",  dd:"0s"  },
+            { t:"25%",  r:"3%",  w:550, h:450, c:"rgba(139,92,246,.06)", d:"11s", dd:"3s"  },
+            { b:"5%",   l:"30%", w:650, h:400, c:"rgba(6,182,212,.05)",  d:"9s",  dd:"6s"  },
+          ] as {t?:string;b?:string;l?:string;r?:string;w:number;h:number;c:string;d:string;dd:string}[]).map((g, i) => (
             <div key={i} style={{
-              position: "absolute",
-              top: g.top, left: (g as {left?: string}).left, right: (g as {right?: string}).right, bottom: (g as {bottom?: string}).bottom,
-              width: g.w, height: g.h,
-              borderRadius: "50%",
-              background: `radial-gradient(ellipse, ${g.c} 0%, transparent 72%)`,
-              filter: "blur(90px)",
-              animation: `ambientPulse ${g.d} ease-in-out infinite`,
-              animationDelay: g.dd,
+              position:"absolute", top:g.t, bottom:g.b, left:g.l, right:g.r,
+              width:g.w, height:g.h, borderRadius:"50%",
+              background:`radial-gradient(ellipse, ${g.c} 0%, transparent 72%)`,
+              filter:"blur(90px)",
+              animation:`ambientPulse ${g.d} ease-in-out infinite`,
+              animationDelay:g.dd,
             }} />
           ))}
         </div>
 
-        {/* ── HEADER ─────────────────────────────────────────────── */}
+        {/* HEADER */}
         <header style={{
-          position: "relative", zIndex: 10,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 28px",
-          borderBottom: "1px solid rgba(255,255,255,.06)",
-          flexShrink: 0,
+          position:"relative", zIndex:10, flexShrink:0,
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"12px 24px",
+          borderBottom:"1px solid rgba(255,255,255,.06)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/logo.png" alt="PandaPOS" style={{ width: 38, height: 38, objectFit: "contain" }} />
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <img src="/logo.png" alt="PandaPOS" style={{ width:36, height:36, objectFit:"contain" }} />
             <div>
-              <p style={{ color: "white", fontWeight: 900, fontSize: 22, lineHeight: 1, letterSpacing: "-.02em" }}>
+              <p style={{ color:"white", fontWeight:900, fontSize:20, lineHeight:1, letterSpacing:"-.02em" }}>
                 {sucursalNombre}
               </p>
-              <p style={{ color: "rgba(255,255,255,.3)", fontSize: 11, fontWeight: 600,
-                textTransform: "uppercase", letterSpacing: ".1em", marginTop: 3 }}>
-                Órdenes listas para retirar
+              <p style={{ color:"rgba(255,255,255,.3)", fontSize:10, fontWeight:600,
+                textTransform:"uppercase", letterSpacing:".1em", marginTop:3 }}>
+                Estado de pedidos en tiempo real
               </p>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {total > 0 && (
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            {totalListos > 0 && (
               <div style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "7px 16px", borderRadius: 999,
-                background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)",
+                display:"flex", alignItems:"center", gap:8,
+                padding:"6px 16px", borderRadius:999,
+                background:"rgba(34,197,94,.12)", border:"1px solid rgba(34,197,94,.3)",
               }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80",
-                  animation: "ambientPulse 1.5s ease-in-out infinite" }} />
-                <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>
-                  {total} lista{total !== 1 ? "s" : ""}
+                <div style={{ width:8, height:8, borderRadius:"50%", background:"#4ade80",
+                  animation:"pingDot 1.5s ease-in-out infinite" }} />
+                <span style={{ color:"#4ade80", fontWeight:800, fontSize:13 }}>
+                  {totalListos} listo{totalListos !== 1 ? "s" : ""} para retirar
                 </span>
               </div>
             )}
-
             <Reloj />
-
-            <button
-              onClick={() => void fetchOrdenes()}
-              disabled={loading}
-              title="Actualizar"
-              style={{
-                background: "none", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12,
-                padding: 8, cursor: "pointer", color: "rgba(255,255,255,.4)",
-                transition: "all .18s", display: "flex",
-              }}
-            >
-              <RefreshCw size={18} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
+            <button onClick={() => void fetchOrdenes()} disabled={loading}
+              style={{ background:"none", border:"1px solid rgba(255,255,255,.1)", borderRadius:10,
+                padding:8, cursor:"pointer", color:"rgba(255,255,255,.4)", display:"flex" }}>
+              <RefreshCw size={16} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
             </button>
-
-            <button
-              onClick={toggleFullscreen}
-              title="Pantalla completa"
-              style={{
-                background: "none", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12,
-                padding: 8, cursor: "pointer", color: "rgba(255,255,255,.4)",
-                transition: "all .18s", display: "flex",
-              }}
-            >
-              <Maximize2 size={18} />
+            <button onClick={() => document.fullscreenElement
+              ? document.exitFullscreen()
+              : document.documentElement.requestFullscreen()}
+              style={{ background:"none", border:"1px solid rgba(255,255,255,.1)", borderRadius:10,
+                padding:8, cursor:"pointer", color:"rgba(255,255,255,.4)", display:"flex" }}>
+              <Maximize2 size={16} />
             </button>
           </div>
         </header>
 
-        {/* ── COLUMNAS ────────────────────────────────────────────── */}
+        {/* COLUMNAS */}
         <main style={{
-          position: "relative", zIndex: 10,
-          display: "flex", flex: 1, gap: 16, padding: 16,
-          overflow: "hidden",
+          position:"relative", zIndex:10,
+          display:"flex", flex:1, gap:12, padding:12,
+          overflow:"hidden",
         }}>
           {SECCIONES.map(cfg => (
-            <SeccionCol
-              key={cfg.key}
-              cfg={cfg}
-              ordenes={porSeccion[cfg.key]}
-              newIds={newIds}
-            />
+            <SeccionCol key={cfg.key} cfg={cfg} ordenes={porSeccion[cfg.key]} newIds={newIds} />
           ))}
         </main>
 
-        {/* ── FOOTER ─────────────────────────────────────────────── */}
+        {/* FOOTER */}
         <footer style={{
-          position: "relative", zIndex: 10,
-          textAlign: "center", padding: "8px 0", flexShrink: 0,
-          borderTop: "1px solid rgba(255,255,255,.04)",
+          position:"relative", zIndex:10, flexShrink:0,
+          textAlign:"center", padding:"6px 0",
+          borderTop:"1px solid rgba(255,255,255,.04)",
         }}>
-          <p style={{ color: "rgba(255,255,255,.12)", fontSize: 11,
-            fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" }}>
+          <p style={{ color:"rgba(255,255,255,.1)", fontSize:10, fontWeight:600,
+            textTransform:"uppercase", letterSpacing:".1em" }}>
             PandaPOS · Llamador de órdenes
           </p>
         </footer>
