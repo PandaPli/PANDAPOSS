@@ -24,6 +24,45 @@ function detectarSeccion(o: Orden): Seccion {
   return "COCINA";
 }
 
+/**
+ * Extrae el primer nombre del cliente desde el campo observacion.
+ * Soporta tres formatos:
+ *   1. [DELIVERY]{...json con clienteNombre...}  (pedidos delivery)
+ *   2. "... · 👤 Nombre · ..."                   (pedidos kiosko)
+ *   3. "... Cliente: Nombre ..."                  (chatbot WhatsApp / otros)
+ */
+function extractNombre(o: Orden): string | null {
+  const obs = o.observacion;
+  if (!obs) return null;
+
+  // 1. Delivery: JSON embebido
+  if (obs.startsWith("[DELIVERY]")) {
+    try {
+      const data = JSON.parse(obs.replace("[DELIVERY]", "")) as { clienteNombre?: string };
+      if (data.clienteNombre) {
+        const primero = data.clienteNombre.trim().split(/\s+/)[0];
+        return primero.charAt(0).toUpperCase() + primero.slice(1).toLowerCase();
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 2. Kiosko: "👤 NombreCliente"
+  const matchEmoji = obs.match(/👤\s*([^·\n|]+)/);
+  if (matchEmoji) {
+    const primero = matchEmoji[1].trim().split(/\s+/)[0];
+    return primero.charAt(0).toUpperCase() + primero.slice(1).toLowerCase();
+  }
+
+  // 3. WhatsApp / otros: "Cliente: Nombre"
+  const matchCliente = obs.match(/Cliente:\s*([^,\n|]+)/i);
+  if (matchCliente) {
+    const primero = matchCliente[1].replace(/\(.*?\)/, "").trim().split(/\s+/)[0];
+    return primero.charAt(0).toUpperCase() + primero.slice(1).toLowerCase();
+  }
+
+  return null;
+}
+
 /* ── Secciones ───────────────────────────────────────────────────── */
 const SECCIONES: {
   key: Seccion;
@@ -43,11 +82,18 @@ const SECCIONES: {
 function OrdenCard({ orden, isNew }: { orden: Orden; isNew: boolean }) {
   const esListo = orden.estado === "LISTO";
   const esRetiro = orden.delivery?.zonaDelivery && /retiro/i.test(orden.delivery.zonaDelivery);
+  const nombre = extractNombre(orden);
+  const numOrden = orden.numero || orden.id;
+
+  // Sublabel: mesa > zona delivery > nada
   const sublabel = orden.mesa?.nombre
     ? orden.mesa.nombre
     : orden.tipo === "DELIVERY"
     ? (esRetiro ? "Retiro" : "Delivery")
     : null;
+
+  const colorPrimario = esListo ? "#86efac" : "rgba(255,255,255,.85)";
+  const colorSecundario = esListo ? "rgba(134,239,172,.5)" : "rgba(255,255,255,.35)";
 
   return (
     <div
@@ -60,12 +106,12 @@ function OrdenCard({ orden, isNew }: { orden: Orden; isNew: boolean }) {
           : "rgba(255,255,255,0.04)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
-        padding: "20px 16px",
+        padding: "18px 16px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        gap: 6,
         boxShadow: esListo ? "0 0 24px rgba(34,197,94,.2)" : "none",
         animation: isNew ? "newOrder .55s cubic-bezier(.34,1.56,.64,1) both" : undefined,
       }}
@@ -85,14 +131,38 @@ function OrdenCard({ orden, isNew }: { orden: Orden; isNew: boolean }) {
         }
       </div>
 
-      {/* Número — MUY GRANDE */}
-      <p style={{
-        fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
-        fontSize: "clamp(2.8rem, 5.2vw, 5rem)",
-        color: esListo ? "#86efac" : "rgba(255,255,255,.85)",
-      }}>
-        #{orden.numero || orden.id}
-      </p>
+      {nombre ? (
+        /* Con nombre: nombre grande + número secundario */
+        <>
+          <p style={{
+            fontWeight: 900, lineHeight: 1.05, letterSpacing: "-0.02em",
+            fontSize: "clamp(1.9rem, 3.8vw, 3.4rem)",
+            color: colorPrimario,
+            textAlign: "center",
+            wordBreak: "break-word",
+          }}>
+            {nombre}
+          </p>
+          <p style={{
+            fontWeight: 700, lineHeight: 1, letterSpacing: "-0.01em",
+            fontVariantNumeric: "tabular-nums",
+            fontSize: "clamp(1rem, 1.8vw, 1.5rem)",
+            color: colorSecundario,
+          }}>
+            #{numOrden}
+          </p>
+        </>
+      ) : (
+        /* Sin nombre: número grande solo */
+        <p style={{
+          fontWeight: 900, lineHeight: 1, letterSpacing: "-0.03em",
+          fontVariantNumeric: "tabular-nums",
+          fontSize: "clamp(2.8rem, 5.2vw, 5rem)",
+          color: colorPrimario,
+        }}>
+          #{numOrden}
+        </p>
+      )}
 
       {/* Sublabel (mesa/zona) */}
       {sublabel && (
