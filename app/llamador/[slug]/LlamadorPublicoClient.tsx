@@ -91,7 +91,7 @@ function OrdenCard({ orden, isNew }: { orden: Orden; isNew: boolean }) {
         fontSize: "clamp(2.8rem, 5.2vw, 5rem)",
         color: esListo ? "#86efac" : "rgba(255,255,255,.85)",
       }}>
-        #{orden.numero}
+        #{orden.numero || orden.id}
       </p>
 
       {/* Sublabel (mesa/zona) */}

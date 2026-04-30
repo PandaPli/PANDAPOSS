@@ -326,7 +326,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
       if (d.cancelado) {
         return `<div class="item" style="opacity:0.5;"><div class="item-row" style="text-decoration:line-through;"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span><span style="font-size:11px;margin-left:6px;">[ANULADO]</span></div></div>`;
       }
-      const notaTabla = esTabla(nombre) && tablaNotas[d.id] ? tablaNotas[d.id].trim() : null;
+      const notaCocina = tablaNotas[d.id]?.trim() || null;
       return `
         <div class="item">
           <div class="item-row"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span></div>
@@ -334,8 +334,8 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
             ? (d.opciones as { opcionNombre: string; precio: number }[]).map(o =>
                 `<div class="item-obs" style="color:#7c3aed;">* ${o.opcionNombre}${o.precio > 0 ? ` +${o.precio}` : ""}</div>`
               ).join("") : ""}
-          ${d.observacion ? `<div class="item-obs">-> ${d.observacion}</div>` : ""}
-          ${notaTabla ? `<div class="item-obs" style="font-weight:bold;font-style:normal;">* ${notaTabla}</div>` : ""}
+          ${d.observacion && !notaCocina ? `<div class="item-obs">-> ${d.observacion}</div>` : ""}
+          ${notaCocina ? `<div class="item-obs" style="font-weight:bold;font-style:normal;">* ${notaCocina}</div>` : ""}
         </div>`;
     }).join("");
 
@@ -514,7 +514,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                   )}
                 </div>
-                {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && !esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && (
+                {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
                   <div className="mt-0.5 flex flex-wrap gap-1">
                     {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
                       <span key={i} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", nightMode ? "bg-violet-900/60 text-violet-300" : "bg-violet-100 text-violet-700")}>
@@ -523,16 +523,13 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     ))}
                   </div>
                 )}
-                {d.observacion && !d.cancelado && !esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && (
-                  <p className={cn("text-[11px] italic mt-0.5", nightMode ? "text-amber-400" : "text-amber-600")}>{d.observacion}</p>
-                )}
               </div>
             </div>
-            {esTabla(d.producto?.nombre ?? d.combo?.nombre ?? "") && !d.cancelado && (
-              <div className="mt-1 px-1">
+            {!d.cancelado && (
+              <div className="mt-0.5 px-1">
                 <textarea
-                  rows={2}
-                  placeholder="Nota cocina: envoltorio, relleno..."
+                  rows={1}
+                  placeholder="Nota cocina..."
                   value={tablaNotas[d.id] ?? (d.observacion ?? "")}
                   onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
                   onBlur={() => void guardarNota(d.id)}
@@ -543,9 +540,14 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                       (e.target as HTMLTextAreaElement).blur();
                     }
                   }}
-                  className="w-full rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 placeholder-amber-400 resize-none focus:outline-none focus:border-amber-500"
+                  className={cn(
+                    "w-full rounded border px-2 py-0.5 text-[11px] resize-none focus:outline-none transition-colors",
+                    nightMode
+                      ? "bg-amber-900/10 border-amber-500/20 text-amber-200 placeholder-amber-600 focus:border-amber-500/50"
+                      : "bg-amber-50 border-amber-200 text-amber-900 placeholder-amber-400 focus:border-amber-400"
+                  )}
                 />
-                {savedNotas[d.id] && <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">Nota guardada</p>}
+                {savedNotas[d.id] && <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">✓ Guardado</p>}
               </div>
             )}
           </React.Fragment>
@@ -778,15 +780,16 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                 <button
                   onClick={handleReturnToProcess}
                   disabled={loadingReturn}
-                  title="Devolver a preparacion (solo Cajera / Admin Sucursal)"
+                  title="Devolver a preparacion"
                   className={cn(
-                    "px-3 py-3 transition-all flex items-center justify-center disabled:opacity-50",
+                    "flex items-center gap-1 px-3 py-3 text-[11px] font-bold transition-all disabled:opacity-50",
                     nightMode
                       ? "border-l border-white/10 text-red-400 hover:bg-red-900/30 hover:text-red-300"
                       : "border-l border-surface-border text-red-500 hover:bg-red-50 hover:text-red-600"
                   )}
                 >
-                  {loadingReturn ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                  {loadingReturn ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                  Volver
                 </button>
               )}
               <button

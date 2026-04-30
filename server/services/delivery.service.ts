@@ -274,6 +274,12 @@ export const DeliveryService = {
         );
       }
 
+      // Asignar numero = id (mismo patron que PedidoService.create)
+      await tx.pedido.update({
+        where: { id: pedido.id },
+        data: { numero: pedido.id },
+      });
+
       return pedido;
     });
 
