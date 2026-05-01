@@ -48,6 +48,111 @@ function filtrarPorEstacion(
   return { ...pedido, detalles: detallesFiltrados };
 }
 
+/* ── Agrupa pedidos de la misma mesa en una sola tarjeta ──────────────────
+ * Los pedidos de otras mesas (o sin mesa) se mantienen independientes.
+ * Para cada grupo con >1 orden, inyecta un "detalle separador" (id < 0)
+ * con el timestamp del segundo pedido, para que OrderCard muestre el divisor.
+ * Los handlers son envueltos para operar sobre TODAS las órdenes del grupo
+ * en el estado correcto (Accept → todas PENDIENTE; Complete → todas EN_PROCESO).
+ */
+type MergedEntry = {
+  pedido: PedidoConDetalles;
+  onUpdateEstado: (id: number, estado: EstadoPedido) => Promise<void>;
+  onLlamarMesero: (id: number) => Promise<void>;
+  onReturnToProcess: (id: number) => Promise<void>;
+};
+
+function mergeByMesa(
+  pedidos: PedidoConDetalles[],
+  updateEstado: (id: number, estado: EstadoPedido) => Promise<void>,
+  llamarMesero: (id: number) => Promise<void>,
+  returnToProcess: (id: number) => Promise<void>,
+): MergedEntry[] {
+  // Agrupar por nombre de mesa (único por sucursal)
+  const byMesa = new Map<string, PedidoConDetalles[]>();
+  const sinMesa: PedidoConDetalles[] = [];
+
+  for (const p of pedidos) {
+    if (!p.mesa) { sinMesa.push(p); continue; }
+    const key = p.mesa.nombre;
+    byMesa.set(key, [...(byMesa.get(key) ?? []), p]);
+  }
+
+  const result: MergedEntry[] = [];
+
+  // Órdenes sin mesa → sin cambios
+  for (const p of sinMesa) {
+    result.push({ pedido: p, onUpdateEstado: updateEstado, onLlamarMesero: llamarMesero, onReturnToProcess: returnToProcess });
+  }
+
+  // Grupos de mesa
+  for (const [, group] of byMesa) {
+    // Más antiguo primero (el principal)
+    const sorted = [...group].sort(
+      (a, b) => new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime()
+    );
+    const [primary, ...extras] = sorted;
+
+    if (extras.length === 0) {
+      result.push({ pedido: primary, onUpdateEstado: updateEstado, onLlamarMesero: llamarMesero, onReturnToProcess: returnToProcess });
+      continue;
+    }
+
+    // Estado combinado: el más urgente gana
+    const estadoPriority: Record<EstadoPedido, number> = { PENDIENTE: 3, EN_PROCESO: 2, LISTO: 1, ENTREGADO: 0, CANCELADO: 0 };
+    const estadoCombinado = sorted.reduce<EstadoPedido>(
+      (acc, p) => (estadoPriority[p.estado] ?? 0) > (estadoPriority[acc] ?? 0) ? p.estado : acc,
+      primary.estado
+    );
+
+    // Detalles combinados: principal + separador + extras
+    const detallesMerged: PedidoConDetalles["detalles"] = [...primary.detalles];
+    for (const extra of extras) {
+      // Separador: id negativo, timestamp en observacion
+      detallesMerged.push({
+        id: -extra.id,
+        cantidad: 0,
+        observacion: extra.creadoEn, // usado por OrderCard para mostrar el tiempo
+        cancelado: false,
+        producto: null,
+        combo: null,
+      });
+      detallesMerged.push(...extra.detalles);
+    }
+
+    const pedidoMerged: PedidoConDetalles = {
+      ...primary,
+      estado: estadoCombinado,
+      detalles: detallesMerged,
+    };
+
+    // Handlers agrupados
+    const onUpdateEstado = async (_id: number, estado: EstadoPedido) => {
+      const target = estado === "EN_PROCESO"  ? ["PENDIENTE"] as EstadoPedido[]
+                   : estado === "LISTO"       ? ["EN_PROCESO"] as EstadoPedido[]
+                   : estado === "ENTREGADO"   ? ["LISTO"] as EstadoPedido[]
+                   : estado === "CANCELADO"   ? ["PENDIENTE", "EN_PROCESO"] as EstadoPedido[]
+                   : null;
+      const toUpdate = target ? sorted.filter(p => target.includes(p.estado)) : [primary];
+      await Promise.all(toUpdate.map(p => updateEstado(p.id, estado)));
+    };
+
+    const onLlamarMesero = async (_id: number) => {
+      const activos = sorted.filter(p => p.estado === "EN_PROCESO" || p.estado === "LISTO");
+      await Promise.all((activos.length ? activos : [primary]).map(p => llamarMesero(p.id)));
+    };
+
+    const onReturnToProcess = async (_id: number) => {
+      const listos = sorted.filter(p => p.estado === "LISTO");
+      await Promise.all((listos.length ? listos : [primary]).map(p => returnToProcess(p.id)));
+    };
+
+    result.push({ pedido: pedidoMerged, onUpdateEstado, onLlamarMesero, onReturnToProcess });
+  }
+
+  return result;
+}
+
 export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const isDelivery = rol === "DELIVERY";
   const { filter, setFilter, nightMode, toggleNightMode } = useKdsUI();
@@ -122,6 +227,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const displayed = filter === "EN_CURSO" ? enCurso : listos;
 
   // ── Handlers ───────────────────────────────────────────────────────────
+
   async function handleUpdateEstado(id: number, estado: EstadoPedido) {
     await fetch(`/api/pedidos/${id}`, {
       method: "PATCH",
@@ -319,17 +425,19 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-          {displayed.map(pedido => (
-            <OrderCard
-              key={pedido.id}
-              pedido={pedido}
-              onUpdateEstado={handleUpdateEstado}
-              onLlamarMesero={handleLlamarMesero}
-              onReturnToProcess={handleReturnToProcess}
-              rol={rol}
-              nightMode={nightMode}
-            />
-          ))}
+          {mergeByMesa(displayed, handleUpdateEstado, handleLlamarMesero, handleReturnToProcess).map(
+            ({ pedido, onUpdateEstado, onLlamarMesero, onReturnToProcess }) => (
+              <OrderCard
+                key={pedido.id}
+                pedido={pedido}
+                onUpdateEstado={onUpdateEstado}
+                onLlamarMesero={onLlamarMesero}
+                onReturnToProcess={onReturnToProcess}
+                rol={rol}
+                nightMode={nightMode}
+              />
+            )
+          )}
         </div>
       )}
     </div>

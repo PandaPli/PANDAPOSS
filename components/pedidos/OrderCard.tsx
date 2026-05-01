@@ -267,6 +267,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
   const styles = getEstadoStyles(pedido.estado, nightMode);
 
   async function guardarNota(detalleId: number) {
+    if (detalleId < 0) return; // separador de comanda agrupada — no guardar
     const nota = tablaNotas[detalleId]?.trim() ?? "";
     try {
       await fetch(`/api/pedidos/detalles/${detalleId}`, {
@@ -322,6 +323,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
     const tipo = tipoLabel[pedido.tipo] ?? pedido.tipo;
 
     const itemsHtml = pedido.detalles.map(d => {
+      if (d.id < 0) return ""; // separador de agrupación — no imprimir
       const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "--";
       if (d.cancelado) {
         return `<div class="item" style="opacity:0.5;"><div class="item-row" style="text-decoration:line-through;"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span><span style="font-size:11px;margin-left:6px;">[ANULADO]</span></div></div>`;
@@ -496,59 +498,76 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
       <div className="px-3 pb-2 space-y-1">
         {pedido.detalles.map(d => (
           <React.Fragment key={d.id}>
-            <div className={cn(
-              "flex items-start gap-2 rounded px-2 py-1",
-              d.cancelado
-                ? nightMode ? "bg-gray-800 opacity-50" : "bg-gray-100 opacity-60"
-                : nightMode ? "bg-white/5" : "bg-surface-bg"
-            )}>
-              <span className={cn("font-bold text-sm shrink-0 w-7", d.cancelado ? "text-gray-500 line-through" : "text-brand-500")}>
-                {d.cantidad}x
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className={cn("text-sm font-semibold leading-tight", d.cancelado ? "line-through text-gray-400" : nightMode ? "text-gray-100" : "text-surface-text")}>
-                    {d.producto?.nombre ?? d.combo?.nombre ?? "--"}
-                  </p>
-                  {d.cancelado && (
-                    <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
-                  )}
+            {d.id < 0 ? (
+              /* ── Separador de comanda agregada ─────────────────── */
+              <div className="flex items-center gap-2 py-1.5 px-1">
+                <div className={cn("flex-1 h-px", nightMode ? "bg-white/10" : "bg-amber-200")} />
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider whitespace-nowrap px-1",
+                  nightMode ? "text-amber-400" : "text-amber-600"
+                )}>
+                  + agregado {timeAgo(d.observacion ?? new Date().toISOString())}
+                </span>
+                <div className={cn("flex-1 h-px", nightMode ? "bg-white/10" : "bg-amber-200")} />
+              </div>
+            ) : (
+              /* ── Producto normal ─────────────────────────────── */
+              <>
+                <div className={cn(
+                  "flex items-start gap-2 rounded px-2 py-1",
+                  d.cancelado
+                    ? nightMode ? "bg-gray-800 opacity-50" : "bg-gray-100 opacity-60"
+                    : nightMode ? "bg-white/5" : "bg-surface-bg"
+                )}>
+                  <span className={cn("font-bold text-sm shrink-0 w-7", d.cancelado ? "text-gray-500 line-through" : "text-brand-500")}>
+                    {d.cantidad}x
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className={cn("text-sm font-semibold leading-tight", d.cancelado ? "line-through text-gray-400" : nightMode ? "text-gray-100" : "text-surface-text")}>
+                        {d.producto?.nombre ?? d.combo?.nombre ?? "--"}
+                      </p>
+                      {d.cancelado && (
+                        <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
+                      )}
+                    </div>
+                    {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
+                      <div className="mt-0.5 flex flex-wrap gap-1">
+                        {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
+                          <span key={i} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", nightMode ? "bg-violet-900/60 text-violet-300" : "bg-violet-100 text-violet-700")}>
+                            {o.opcionNombre}{o.precio > 0 ? ` +${o.precio}` : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
-                  <div className="mt-0.5 flex flex-wrap gap-1">
-                    {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
-                      <span key={i} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", nightMode ? "bg-violet-900/60 text-violet-300" : "bg-violet-100 text-violet-700")}>
-                        {o.opcionNombre}{o.precio > 0 ? ` +${o.precio}` : ""}
-                      </span>
-                    ))}
+                {!d.cancelado && (
+                  <div className="mt-0.5 px-1">
+                    <textarea
+                      rows={1}
+                      placeholder="Nota cocina..."
+                      value={tablaNotas[d.id] ?? (d.observacion ?? "")}
+                      onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
+                      onBlur={() => void guardarNota(d.id)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void guardarNota(d.id);
+                          (e.target as HTMLTextAreaElement).blur();
+                        }
+                      }}
+                      className={cn(
+                        "w-full rounded border px-2 py-0.5 text-[11px] resize-none focus:outline-none transition-colors",
+                        nightMode
+                          ? "bg-amber-900/10 border-amber-500/20 text-amber-200 placeholder-amber-600 focus:border-amber-500/50"
+                          : "bg-amber-50 border-amber-200 text-amber-900 placeholder-amber-400 focus:border-amber-400"
+                      )}
+                    />
+                    {savedNotas[d.id] && <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">✓ Guardado</p>}
                   </div>
                 )}
-              </div>
-            </div>
-            {!d.cancelado && (
-              <div className="mt-0.5 px-1">
-                <textarea
-                  rows={1}
-                  placeholder="Nota cocina..."
-                  value={tablaNotas[d.id] ?? (d.observacion ?? "")}
-                  onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
-                  onBlur={() => void guardarNota(d.id)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void guardarNota(d.id);
-                      (e.target as HTMLTextAreaElement).blur();
-                    }
-                  }}
-                  className={cn(
-                    "w-full rounded border px-2 py-0.5 text-[11px] resize-none focus:outline-none transition-colors",
-                    nightMode
-                      ? "bg-amber-900/10 border-amber-500/20 text-amber-200 placeholder-amber-600 focus:border-amber-500/50"
-                      : "bg-amber-50 border-amber-200 text-amber-900 placeholder-amber-400 focus:border-amber-400"
-                  )}
-                />
-                {savedNotas[d.id] && <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">✓ Guardado</p>}
-              </div>
+              </>
             )}
           </React.Fragment>
         ))}
