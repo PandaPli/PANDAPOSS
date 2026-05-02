@@ -40,6 +40,15 @@ const subtitlesDelivery: Record<string, string> = {
   ENTREGADO: "¡Buen provecho!",
 };
 
+/* ── Paleta ──────────────────────────────────────────────────────── */
+const C = {
+  darkest: "#49225B",
+  dark:    "#6E3482",
+  mid:     "#A56ABD",
+  pale:    "#E7DBEF",
+  faint:   "#F5EBFA",
+} as const;
+
 export function TrackOrderClient({ initialData }: Props) {
   const [data, setData]             = useState(initialData);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,39 +95,71 @@ export function TrackOrderClient({ initialData }: Props) {
   const subtitle    = esRetiro ? subtitles[data.trackingStage] : subtitlesDelivery[data.trackingStage];
 
   return (
-    <main className="min-h-screen bg-[#080b10] text-white selection:bg-orange-400/30">
+    <main style={{
+      minHeight: "100vh",
+      background: `linear-gradient(160deg, ${C.faint} 0%, ${C.pale} 55%, ${C.faint} 100%)`,
+      color: C.darkest,
+      fontFamily: "'Outfit', system-ui, sans-serif",
+    }}>
 
-      {/* Glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -top-32 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-orange-500/10 blur-[90px]" />
+      {/* Glow suave */}
+      <div style={{
+        pointerEvents: "none", position: "fixed", inset: 0, overflow: "hidden",
+      }} aria-hidden>
+        <div style={{
+          position: "absolute", top: -128, left: "50%", transform: "translateX(-50%)",
+          height: 420, width: 420, borderRadius: "50%",
+          background: `radial-gradient(circle, rgba(165,106,189,0.18) 0%, transparent 70%)`,
+          filter: "blur(60px)",
+        }} />
       </div>
 
-      <div className="relative mx-auto max-w-2xl px-4 pb-20 pt-6 lg:max-w-5xl">
+      <div style={{ position: "relative", margin: "0 auto", maxWidth: 672, padding: "24px 16px 80px", }}>
 
         {/* ── Header ── */}
-        <header className="mb-5 flex items-center justify-between gap-3">
+        <header style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-1">
+            <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, marginBottom: 4 }}>
               {esRetiro ? "Retiro en local" : "Seguimiento delivery"}
               {data.sucursalNombre && <> · {data.sucursalNombre}</>}
             </p>
-            <h1 className="text-2xl sm:text-3xl font-black leading-none tracking-tight">
-              Pedido <span className="text-orange-400">#{data.id}</span>
+            <h1 style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em", color: C.darkest, margin: 0 }}>
+              Pedido <span style={{ color: C.dark }}>#{data.id}</span>
             </h1>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div style={{ display: "flex", flexShrink: 0, alignItems: "center", gap: 8 }}>
             <button
               onClick={() => void refresh()}
               aria-label="Actualizar"
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40 transition hover:text-white active:scale-95"
+              style={{
+                display: "flex", height: 36, width: 36, cursor: "pointer",
+                alignItems: "center", justifyContent: "center",
+                borderRadius: 12, border: `1.5px solid rgba(110,52,130,.22)`,
+                background: "white", color: C.mid,
+                transition: "color .18s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = C.dark)}
+              onMouseLeave={e => (e.currentTarget.style.color = C.mid)}
             >
-              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+              <RefreshCw size={14} style={refreshing ? { animation: "spin 1s linear infinite" } : {}} />
             </button>
             {menuUrl && (
               <Link
                 href={menuUrl}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-orange-500 px-2.5 py-2 text-xs sm:px-3 sm:text-sm font-bold text-white transition hover:bg-orange-400 active:scale-95"
+                style={{
+                  display: "inline-flex", cursor: "pointer",
+                  alignItems: "center", gap: 6,
+                  borderRadius: 12,
+                  background: `linear-gradient(135deg, ${C.dark}, ${C.darkest})`,
+                  padding: "8px 12px",
+                  fontSize: 12, fontWeight: 800, color: "white",
+                  textDecoration: "none",
+                  boxShadow: `0 4px 14px rgba(110,52,130,.30)`,
+                  transition: "opacity .18s",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = ".88")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
               >
                 Pedir de nuevo <ArrowUpRight size={13} />
               </Link>
@@ -126,223 +167,309 @@ export function TrackOrderClient({ initialData }: Props) {
           </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div style={{ display: "grid", gap: 16 }}>
 
-          {/* ── LEFT ── */}
-          <div className="space-y-3">
+          {/* ── Estado + pasos en UNA sola card ── */}
+          <div style={{
+            borderRadius: 24, border: `1px solid rgba(110,52,130,.18)`,
+            background: "white",
+            boxShadow: `0 2px 16px rgba(73,34,91,.06)`,
+            padding: 20,
+          }}>
 
-            {/* ── Estado + pasos en UNA sola card ── */}
-            <div className="rounded-3xl border border-white/8 bg-white/[0.04] p-5 backdrop-blur-sm">
-
-              {/* Estado actual */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 transition-all
-                  ${isDone
-                    ? "border-emerald-400 bg-emerald-400/15 text-emerald-300"
-                    : "border-orange-400 bg-orange-400/15 text-orange-300 shadow-[0_0_24px_rgba(251,146,60,0.2)]"
-                  }`}
-                >
-                  {currentStep && <currentStep.icon size={24} />}
-                </div>
-                <div>
-                  <p className="text-xl sm:text-2xl font-black leading-tight">
-                    {currentStep?.title ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
-                  </p>
-                  <p className="text-sm text-white/40 mt-0.5">{subtitle}</p>
-                  {!isDone && (
-                    <p className="text-xs text-white/25 mt-1">~ {data.estimadoMinutos} min estimados</p>
-                  )}
-                </div>
+            {/* Estado actual */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+              <div style={{
+                display: "flex", height: 56, width: 56, flexShrink: 0,
+                alignItems: "center", justifyContent: "center",
+                borderRadius: 18, borderWidth: 2, borderStyle: "solid",
+                transition: "all .3s",
+                ...(isDone
+                  ? { borderColor: "#10b981", background: "rgba(16,185,129,.12)", color: "#059669" }
+                  : { borderColor: C.dark, background: `rgba(110,52,130,.12)`, color: C.dark,
+                      boxShadow: `0 0 24px rgba(110,52,130,.20)` }
+                ),
+              }}>
+                {currentStep && <currentStep.icon size={24} />}
               </div>
+              <div>
+                <p style={{ fontSize: "clamp(18px,4vw,22px)", fontWeight: 900, lineHeight: 1.1, color: C.darkest, margin: "0 0 4px" }}>
+                  {currentStep?.title ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
+                </p>
+                <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>{subtitle}</p>
+                {!isDone && (
+                  <p style={{ fontSize: 11, color: C.mid, opacity: .6, marginTop: 4 }}>~ {data.estimadoMinutos} min estimados</p>
+                )}
+              </div>
+            </div>
 
-              {/* Pasos inline */}
-              <div className="flex items-center gap-0">
-                {steps.map((step, i) => {
-                  const done    = i < activeIndex;
-                  const current = i === activeIndex;
-                  const Icon    = step.icon;
-                  return (
-                    <div key={step.key} className="flex flex-1 flex-col items-center gap-1.5">
-                      {/* Connector line */}
-                      <div className="relative flex w-full items-center justify-center">
-                        {i > 0 && (
-                          <div className={`absolute right-1/2 top-1/2 h-px w-full -translate-y-1/2
-                            ${done || current ? "bg-gradient-to-r from-orange-400/60 to-emerald-400/60" : "bg-white/10"}`}
-                          />
-                        )}
-                        <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-xl border transition-all duration-300
-                          ${done    ? "border-emerald-400/60 bg-emerald-400/15 text-emerald-300" : ""}
-                          ${current ? "border-orange-400 bg-orange-400/15 text-orange-300 shadow-[0_0_14px_rgba(251,146,60,0.3)]" : ""}
-                          ${!done && !current ? "border-white/10 bg-white/[0.03] text-white/20" : ""}
-                        `}>
-                          {done ? <CheckCircle2 size={14} /> : <Icon size={14} />}
-                        </div>
+            {/* Pasos inline */}
+            <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+              {steps.map((step, i) => {
+                const done    = i < activeIndex;
+                const current = i === activeIndex;
+                const Icon    = step.icon;
+                return (
+                  <div key={step.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    {/* Connector line */}
+                    <div style={{ position: "relative", display: "flex", width: "100%", alignItems: "center", justifyContent: "center" }}>
+                      {i > 0 && (
+                        <div style={{
+                          position: "absolute", right: "50%", top: "50%", height: 1, width: "100%",
+                          transform: "translateY(-50%)",
+                          background: (done || current)
+                            ? `linear-gradient(to right, rgba(110,52,130,.50), rgba(16,185,129,.50))`
+                            : `rgba(110,52,130,.15)`,
+                        }} />
+                      )}
+                      <div style={{
+                        position: "relative", zIndex: 10,
+                        display: "flex", height: 32, width: 32,
+                        alignItems: "center", justifyContent: "center",
+                        borderRadius: 10, borderWidth: 1.5, borderStyle: "solid",
+                        transition: "all .3s",
+                        ...(done
+                          ? { borderColor: "rgba(16,185,129,.60)", background: "rgba(16,185,129,.12)", color: "#059669" }
+                          : current
+                          ? { borderColor: C.dark, background: `rgba(110,52,130,.12)`, color: C.dark,
+                              boxShadow: `0 0 14px rgba(110,52,130,.25)` }
+                          : { borderColor: `rgba(110,52,130,.15)`, background: C.faint, color: C.mid, opacity: .5 }
+                        ),
+                      }}>
+                        {done ? <CheckCircle2 size={14} /> : <Icon size={14} />}
                       </div>
-                      <p className={`text-[9px] font-bold text-center leading-tight w-full
-                        ${current ? "text-orange-300" : done ? "text-emerald-300" : "text-white/20"}`}
-                      >
-                        {step.title}
-                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ── YA RETIRÉ ── */}
-            {esRetiro && data.trackingStage === "EN_CAMINO" && !retirado && (
-              <button
-                onClick={() => void confirmarRetiro()}
-                disabled={confirming}
-                className="w-full flex items-center justify-center gap-2 rounded-3xl border border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-[.99] disabled:opacity-60 px-5 py-4 text-base font-black text-emerald-300 transition-all"
-              >
-                {confirming
-                  ? <span className="h-5 w-5 rounded-full border-2 border-emerald-300/30 border-t-emerald-300 animate-spin" />
-                  : <Package2 size={18} />
-                }
-                {confirming ? "Confirmando…" : "Ya retiré mi pedido"}
-              </button>
-            )}
-
-            {/* Confirmación exitosa */}
-            {esRetiro && retirado && (
-              <div className="flex items-center gap-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-4">
-                <Star size={20} className="text-emerald-300 shrink-0" />
-                <div>
-                  <p className="font-black text-emerald-300">¡Listo, buen provecho!</p>
-                  <p className="text-xs text-white/35 mt-0.5">Retiro confirmado · ¡Gracias!</p>
-                </div>
-              </div>
-            )}
-
-            {/* ── Info row (solo lo relevante) ── */}
-            <div className="grid gap-3 sm:grid-cols-2">
-
-              {/* Delivery: dirección */}
-              {!esRetiro && data.direccionEntrega && (
-                <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin size={12} className="text-orange-300" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/30">Dirección</p>
+                    <p style={{
+                      fontSize: 9, fontWeight: 800, textAlign: "center", lineHeight: 1.2,
+                      letterSpacing: "0.04em", width: "100%",
+                      color: current ? C.dark : done ? "#059669" : C.mid,
+                      opacity: (!done && !current) ? .55 : 1,
+                    }}>
+                      {step.title}
+                    </p>
                   </div>
-                  <p className="text-sm font-semibold text-white/80 leading-snug">{data.direccionEntrega}</p>
-                  {data.referencia   && <p className="mt-1 text-xs text-white/30">Ref: {data.referencia}</p>}
-                  {data.departamento && <p className="text-xs text-white/30">Dpto: {data.departamento}</p>}
-                </div>
-              )}
-
-              {/* Retiro: local / Delivery: rider */}
-              <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  {esRetiro
-                    ? <Store size={12} className="text-emerald-300" />
-                    : <Bike  size={12} className="text-blue-300"    />
-                  }
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/30">
-                    {esRetiro ? "Retiro en local" : "Repartidor"}
-                  </p>
-                </div>
-                <p className="text-sm font-black text-white">
-                  {esRetiro
-                    ? (data.sucursalNombre ?? "Pasa a retirar")
-                    : (data.repartidorNombre ?? "Por asignar")}
-                </p>
-                <p className="mt-1.5 flex items-center gap-1 text-xs text-white/30">
-                  <Clock3 size={10} className="shrink-0" />
-                  {new Date(data.creadoEn).toLocaleString("es-CL")}
-                </p>
-              </div>
+                );
+              })}
             </div>
-
-            {/* Google Maps — solo delivery con dirección real */}
-            {!esRetiro && data.direccionEntrega && (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-blue-500/15 bg-blue-950/40 p-3.5 transition hover:border-blue-400/30"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
-                  <MapPin size={16} className="text-blue-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Ver en Google Maps</p>
-                  <p className="mt-0.5 truncate text-xs text-white/50">{data.direccionEntrega}</p>
-                </div>
-                <ExternalLink size={13} className="shrink-0 text-blue-400/50 group-hover:text-blue-300" />
-              </a>
-            )}
-
-            {/* Código de entrega */}
-            {digits && (
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-950/40 p-4 text-center">
-                <div className="flex items-center justify-center gap-1.5 mb-3">
-                  <ShieldCheck size={13} className="text-amber-400" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-400">Código de entrega</p>
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  {digits.map((d, i) => (
-                    <div
-                      key={i}
-                      className="flex h-10 w-9 sm:h-12 sm:w-11 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-xl sm:text-2xl font-black text-white"
-                    >
-                      {d}
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-2.5 text-xs text-white/30">Dile este código al repartidor</p>
-              </div>
-            )}
           </div>
 
-          {/* ── RIGHT — Resumen ── */}
-          <aside className="rounded-3xl border border-white/8 bg-white/[0.04] p-4 backdrop-blur-sm lg:self-start lg:sticky lg:top-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Truck size={12} className="text-emerald-300" />
-              <p className="text-[9px] font-black uppercase tracking-widest text-white/30">Resumen</p>
+          {/* ── YA RETIRÉ ── */}
+          {esRetiro && data.trackingStage === "EN_CAMINO" && !retirado && (
+            <button
+              onClick={() => void confirmarRetiro()}
+              disabled={confirming}
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                borderRadius: 24, border: "1.5px solid rgba(16,185,129,.35)",
+                background: "rgba(16,185,129,.10)",
+                padding: "16px 20px", fontSize: 15, fontWeight: 900,
+                color: "#059669", cursor: "pointer",
+                transition: "all .18s",
+                opacity: confirming ? .6 : 1,
+              }}
+              onMouseEnter={e => !confirming && (e.currentTarget.style.background = "rgba(16,185,129,.18)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(16,185,129,.10)")}
+            >
+              {confirming
+                ? <span style={{ height: 20, width: 20, borderRadius: "50%", border: "2px solid rgba(5,150,105,.3)", borderTopColor: "#059669", display: "inline-block", animation: "spin 1s linear infinite" }} />
+                : <Package2 size={18} />
+              }
+              {confirming ? "Confirmando…" : "Ya retiré mi pedido"}
+            </button>
+          )}
+
+          {/* Confirmación exitosa */}
+          {esRetiro && retirado && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 16,
+              borderRadius: 24, border: "1.5px solid rgba(16,185,129,.25)",
+              background: "rgba(16,185,129,.08)", padding: "16px 20px",
+            }}>
+              <Star size={20} style={{ color: "#059669", flexShrink: 0 }} />
+              <div>
+                <p style={{ fontWeight: 900, color: "#059669", margin: "0 0 2px" }}>¡Listo, buen provecho!</p>
+                <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>Retiro confirmado · ¡Gracias!</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Info row ── */}
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+
+            {/* Delivery: dirección */}
+            {!esRetiro && data.direccionEntrega && (
+              <div style={{
+                borderRadius: 18, border: `1px solid rgba(110,52,130,.18)`,
+                background: "white", padding: 16,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <MapPin size={12} style={{ color: C.dark }} />
+                  <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, margin: 0 }}>Dirección</p>
+                </div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.darkest, lineHeight: 1.4, margin: 0 }}>{data.direccionEntrega}</p>
+                {data.referencia   && <p style={{ marginTop: 4, fontSize: 11, color: C.mid }}>Ref: {data.referencia}</p>}
+                {data.departamento && <p style={{ fontSize: 11, color: C.mid }}>Dpto: {data.departamento}</p>}
+              </div>
+            )}
+
+            {/* Retiro: local / Delivery: rider */}
+            <div style={{
+              borderRadius: 18, border: `1px solid rgba(110,52,130,.18)`,
+              background: "white", padding: 16,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                {esRetiro
+                  ? <Store size={12} style={{ color: "#059669" }} />
+                  : <Bike  size={12} style={{ color: C.dark }}    />
+                }
+                <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, margin: 0 }}>
+                  {esRetiro ? "Retiro en local" : "Repartidor"}
+                </p>
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 900, color: C.darkest, margin: "0 0 6px" }}>
+                {esRetiro
+                  ? (data.sucursalNombre ?? "Pasa a retirar")
+                  : (data.repartidorNombre ?? "Por asignar")}
+              </p>
+              <p style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid, margin: 0 }}>
+                <Clock3 size={10} style={{ flexShrink: 0 }} />
+                {new Date(data.creadoEn).toLocaleString("es-CL")}
+              </p>
+            </div>
+          </div>
+
+          {/* Google Maps — solo delivery con dirección real */}
+          {!esRetiro && data.direccionEntrega && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", cursor: "pointer", alignItems: "center", gap: 12,
+                borderRadius: 18, border: `1px solid rgba(110,52,130,.20)`,
+                background: `rgba(110,52,130,.06)`, padding: 14,
+                textDecoration: "none",
+                transition: "border-color .18s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = `rgba(110,52,130,.40)`)}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = `rgba(110,52,130,.20)`)}
+            >
+              <div style={{
+                display: "flex", height: 36, width: 36, flexShrink: 0,
+                alignItems: "center", justifyContent: "center",
+                borderRadius: 11, background: `rgba(110,52,130,.12)`,
+              }}>
+                <MapPin size={16} style={{ color: C.dark }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.dark, margin: "0 0 2px" }}>Ver en Google Maps</p>
+                <p style={{ fontSize: 11, color: C.mid, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.direccionEntrega}</p>
+              </div>
+              <ExternalLink size={13} style={{ flexShrink: 0, color: C.mid }} />
+            </a>
+          )}
+
+          {/* Código de entrega */}
+          {digits && (
+            <div style={{
+              borderRadius: 18, border: `1px solid rgba(110,52,130,.25)`,
+              background: `rgba(110,52,130,.07)`, padding: 16, textAlign: "center",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
+                <ShieldCheck size={13} style={{ color: C.dark }} />
+                <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.dark, margin: 0 }}>Código de entrega</p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {digits.map((d, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex", height: 44, width: 38,
+                      alignItems: "center", justifyContent: "center",
+                      borderRadius: 12, border: `1.5px solid rgba(110,52,130,.30)`,
+                      background: `rgba(110,52,130,.10)`,
+                      fontSize: 22, fontWeight: 900, color: C.darkest,
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <p style={{ marginTop: 10, fontSize: 11, color: C.mid }}>Dile este código al repartidor</p>
+            </div>
+          )}
+
+          {/* ── Resumen ── */}
+          <div style={{
+            borderRadius: 24, border: `1px solid rgba(110,52,130,.18)`,
+            background: "white",
+            boxShadow: `0 2px 16px rgba(73,34,91,.06)`,
+            padding: 16,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <Truck size={12} style={{ color: "#059669" }} />
+              <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, margin: 0 }}>Resumen</p>
             </div>
 
-            <div className="space-y-1">
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {data.detalles.map((item) => (
                 <div
                   key={`${item.nombre}-${item.subtotal}`}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2"
+                  style={{
+                    display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
+                    borderRadius: 12, border: `1px solid rgba(110,52,130,.12)`,
+                    background: C.faint, padding: "8px 12px",
+                  }}
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white/80 leading-snug">{item.nombre}</p>
-                    <p className="text-xs text-white/25">{item.cantidad} × {formatCurrency(item.precio, "$")}</p>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: C.darkest, lineHeight: 1.3, margin: "0 0 2px" }}>{item.nombre}</p>
+                    <p style={{ fontSize: 11, color: C.mid, margin: 0 }}>{item.cantidad} × {formatCurrency(item.precio, "$")}</p>
                   </div>
-                  <p className="shrink-0 text-sm font-black text-white/70">
+                  <p style={{ flexShrink: 0, fontSize: 13, fontWeight: 900, color: C.darkest }}>
                     {formatCurrency(item.subtotal, "$")}
                   </p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-3 rounded-xl border border-white/8 bg-white/[0.03] p-3 space-y-1.5">
-              <div className="flex justify-between text-xs text-white/35">
+            <div style={{
+              marginTop: 12, borderRadius: 12, border: `1px solid rgba(110,52,130,.15)`,
+              background: C.faint, padding: 12, display: "flex", flexDirection: "column", gap: 6,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid }}>
                 <span>Subtotal</span>
                 <span>{formatCurrency(data.subtotal, "$")}</span>
               </div>
               {!esRetiro && (
-                <div className="flex justify-between text-xs text-white/35">
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid }}>
                   <span>Despacho</span>
                   <span>{data.cargoEnvio > 0 ? formatCurrency(data.cargoEnvio, "$") : "Gratis"}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-white/8 pt-2">
-                <span className="text-sm font-black text-white">Total</span>
-                <span className="text-lg font-black text-orange-400">{formatCurrency(data.total, "$")}</span>
+              <div style={{
+                display: "flex", justifyContent: "space-between",
+                borderTop: `1px solid rgba(110,52,130,.15)`, paddingTop: 8,
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 900, color: C.darkest }}>Total</span>
+                <span style={{ fontSize: 18, fontWeight: 900, color: C.dark }}>{formatCurrency(data.total, "$")}</span>
               </div>
             </div>
 
-            <div className="mt-2 flex justify-between rounded-xl bg-white/[0.03] px-3 py-2">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-white/25">Pago</span>
-              <span className="text-xs font-black text-white/50">{data.metodoPago}</span>
+            <div style={{
+              marginTop: 8, display: "flex", justifyContent: "space-between",
+              borderRadius: 12, background: C.faint, padding: "8px 12px",
+            }}>
+              <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid }}>Pago</span>
+              <span style={{ fontSize: 11, fontWeight: 900, color: C.darkest }}>{data.metodoPago}</span>
             </div>
-          </aside>
+          </div>
+
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </main>
   );
 }
