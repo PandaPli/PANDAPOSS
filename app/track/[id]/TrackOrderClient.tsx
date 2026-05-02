@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Bike, Clock3, MapPin, RefreshCw, ShieldCheck,
   CheckCircle2, ChefHat, Truck, Star, ArrowUpRight,
-  ExternalLink, Package2, Store,
+  ExternalLink, Package2, Store, Navigation,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
@@ -14,40 +14,146 @@ import type { DeliveryPedidoPublico } from "@/types";
 
 interface Props { initialData: DeliveryPedidoPublico }
 
-const stepsDelivery = [
-  { key: "CONFIRMADO", title: "Confirmado",       icon: CheckCircle2 },
-  { key: "PREPARANDO", title: "Preparando",        icon: ChefHat      },
-  { key: "EN_CAMINO",  title: "En camino",         icon: Bike         },
-  { key: "ENTREGADO",  title: "Entregado",         icon: Star         },
-] as const;
-
-const stepsRetiro = [
-  { key: "CONFIRMADO", title: "Confirmado",        icon: CheckCircle2 },
-  { key: "PREPARANDO", title: "Preparando",         icon: ChefHat      },
-  { key: "EN_CAMINO",  title: "Listo p/ retirar",  icon: Package2     },
-  { key: "ENTREGADO",  title: "Retirado",           icon: Star         },
-] as const;
-
-const subtitles: Record<string, string> = {
-  CONFIRMADO: "Pedido recibido",
-  PREPARANDO: "En cocina",
-  EN_CAMINO:  "¡Tu pedido te espera!",
-  ENTREGADO:  "¡Buen provecho!",
-};
-const subtitlesDelivery: Record<string, string> = {
-  ...subtitles,
-  EN_CAMINO: "El rider va hacia ti",
-  ENTREGADO: "¡Buen provecho!",
-};
-
-/* ── Paleta ──────────────────────────────────────────────────────── */
+/* ─── Paleta ─────────────────────────────────────────────────────── */
 const C = {
   darkest: "#49225B",
   dark:    "#6E3482",
   mid:     "#A56ABD",
   pale:    "#E7DBEF",
   faint:   "#F5EBFA",
+  emerald: "#059669",
+  emeraldBg: "rgba(16,185,129,.10)",
+  emeraldBorder: "rgba(16,185,129,.28)",
 } as const;
+
+/* ─── Steps ──────────────────────────────────────────────────────── */
+const stepsDelivery = [
+  { key: "CONFIRMADO", title: "Confirmado",      short: "OK",   icon: CheckCircle2 },
+  { key: "PREPARANDO", title: "Preparando",       short: "Chef", icon: ChefHat      },
+  { key: "EN_CAMINO",  title: "En camino",        short: "Ruta", icon: Bike         },
+  { key: "ENTREGADO",  title: "Entregado",        short: "¡Ya!", icon: Star         },
+] as const;
+
+const stepsRetiro = [
+  { key: "CONFIRMADO", title: "Confirmado",       short: "OK",   icon: CheckCircle2 },
+  { key: "PREPARANDO", title: "Preparando",        short: "Chef", icon: ChefHat      },
+  { key: "EN_CAMINO",  title: "Listo p/ retirar", short: "Listo",icon: Package2     },
+  { key: "ENTREGADO",  title: "Retirado",          short: "¡Ya!", icon: Star         },
+] as const;
+
+/* ─── Subtítulos hero ────────────────────────────────────────────── */
+const HERO_SUB: Record<string, string> = {
+  CONFIRMADO: "Tu pedido fue recibido con éxito",
+  PREPARANDO: "La cocina ya está en acción",
+  EN_CAMINO:  "¡Ya viene en camino hacia ti!",
+  ENTREGADO:  "¡Que lo disfrutes mucho!",
+};
+const HERO_SUB_RETIRO: Record<string, string> = {
+  ...HERO_SUB,
+  EN_CAMINO: "Ya puedes pasar a buscarlo",
+  ENTREGADO: "¡Gracias por elegirnos!",
+};
+
+/* ─── CSS keyframes (global scope, prefixed con "t-") ─────────────── */
+const STYLES = `
+  @keyframes t-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(110,52,130,.50); }
+    65%  { box-shadow: 0 0 0 22px rgba(110,52,130,0); }
+    100% { box-shadow: 0 0 0 0 rgba(110,52,130,0); }
+  }
+  @keyframes t-pulse-done {
+    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.45); }
+    65%  { box-shadow: 0 0 0 22px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+  @keyframes t-float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    40%       { transform: translateY(-7px) rotate(-4deg); }
+    70%       { transform: translateY(-4px) rotate(2deg); }
+  }
+  @keyframes t-float-done {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.12); }
+  }
+  @keyframes t-shimmer {
+    0%   { transform: translateX(-200%); }
+    100% { transform: translateX(300%); }
+  }
+  @keyframes t-spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes t-fade-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  @keyframes t-breathe {
+    0%, 100% { opacity: .55; transform: scale(1); }
+    50%       { opacity: .85; transform: scale(1.08); }
+  }
+  @keyframes t-step-pop {
+    0%   { transform: scale(.7); opacity: 0; }
+    60%  { transform: scale(1.12); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes t-dot-march {
+    0%   { background-position: 0 0; }
+    100% { background-position: 24px 0; }
+  }
+
+  .t-hero-active  { animation: t-pulse  2.4s ease-out infinite; }
+  .t-hero-done    { animation: t-pulse-done 2.8s ease-out infinite; }
+  .t-float-active { animation: t-float  3.6s ease-in-out infinite; }
+  .t-float-done   { animation: t-float-done 2.8s ease-in-out infinite; }
+  .t-spin         { animation: t-spin   1s linear infinite; }
+  .t-breathe      { animation: t-breathe 4s ease-in-out infinite; }
+  .t-step-pop     { animation: t-step-pop .45s cubic-bezier(.34,1.56,.64,1) both; }
+  .t-shimmer-wrap { position:relative; overflow:hidden; }
+  .t-shimmer-wrap::after {
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,255,255,.75) 50%,
+      transparent 100%);
+    animation: t-shimmer 1.9s linear infinite;
+  }
+  .t-dot-march {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(110,52,130,.22) 0px,
+      rgba(110,52,130,.22) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+    background-size: 24px 3px;
+    animation: t-dot-march .7s linear infinite;
+  }
+  .t-card {
+    animation: t-fade-up .5s ease both;
+    border-radius: 24px;
+    border: 1px solid rgba(110,52,130,.15);
+    background: white;
+    box-shadow: 0 2px 12px rgba(73,34,91,.06), 0 8px 32px rgba(73,34,91,.05);
+  }
+  .t-card-sm {
+    animation: t-fade-up .5s ease both;
+    border-radius: 20px;
+    border: 1px solid rgba(110,52,130,.14);
+    background: white;
+    box-shadow: 0 2px 10px rgba(73,34,91,.05);
+  }
+  .t-icon-badge {
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:10px;
+    background: rgba(110,52,130,.09);
+    flex-shrink:0;
+  }
+  .t-btn-refresh:hover { color: ${C.dark} !important; border-color: rgba(110,52,130,.40) !important; }
+  .t-btn-refresh:active { transform: scale(.93); }
+  .t-maps-card:hover { border-color: rgba(110,52,130,.38) !important; box-shadow: 0 4px 20px rgba(110,52,130,.12) !important; }
+  .t-reorder:hover { opacity: .86 !important; }
+  .t-retiro-btn:hover:not(:disabled) { background: rgba(16,185,129,.18) !important; }
+`;
 
 export function TrackOrderClient({ initialData }: Props) {
   const [data, setData]             = useState(initialData);
@@ -92,384 +198,503 @@ export function TrackOrderClient({ initialData }: Props) {
   const currentStep = steps[activeIndex];
   const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.direccionEntrega ?? "")}`;
   const digits      = "codigoEntrega" in data && data.codigoEntrega ? data.codigoEntrega.split("") : null;
-  const subtitle    = esRetiro ? subtitles[data.trackingStage] : subtitlesDelivery[data.trackingStage];
+  const heroSub     = esRetiro ? HERO_SUB_RETIRO[data.trackingStage] : HERO_SUB[data.trackingStage];
 
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: `linear-gradient(160deg, ${C.faint} 0%, ${C.pale} 55%, ${C.faint} 100%)`,
-      color: C.darkest,
-      fontFamily: "'Outfit', system-ui, sans-serif",
-    }}>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
 
-      {/* Glow suave */}
-      <div style={{
-        pointerEvents: "none", position: "fixed", inset: 0, overflow: "hidden",
-      }} aria-hidden>
-        <div style={{
-          position: "absolute", top: -128, left: "50%", transform: "translateX(-50%)",
-          height: 420, width: 420, borderRadius: "50%",
-          background: `radial-gradient(circle, rgba(165,106,189,0.18) 0%, transparent 70%)`,
-          filter: "blur(60px)",
-        }} />
-      </div>
+      <main style={{
+        minHeight: "100vh",
+        background: `linear-gradient(155deg, ${C.faint} 0%, ${C.pale} 48%, ${C.faint} 100%)`,
+        fontFamily: "'Outfit', system-ui, sans-serif",
+        color: C.darkest,
+      }}>
 
-      <div style={{ position: "relative", margin: "0 auto", maxWidth: 672, padding: "24px 16px 80px", }}>
+        {/* ── Orb de fondo ── */}
+        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden" }} aria-hidden>
+          <div
+            className="t-breathe"
+            style={{
+              position: "absolute", top: "-8%", left: "50%", transform: "translateX(-50%)",
+              width: 640, height: 640, borderRadius: "50%",
+              background: `radial-gradient(circle, rgba(165,106,189,.16) 0%, transparent 65%)`,
+              filter: "blur(40px)",
+            }}
+          />
+        </div>
 
-        {/* ── Header ── */}
-        <header style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div>
-            <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, marginBottom: 4 }}>
-              {esRetiro ? "Retiro en local" : "Seguimiento delivery"}
-              {data.sucursalNombre && <> · {data.sucursalNombre}</>}
-            </p>
-            <h1 style={{ fontSize: "clamp(22px,5vw,28px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em", color: C.darkest, margin: 0 }}>
-              Pedido <span style={{ color: C.dark }}>#{data.id}</span>
-            </h1>
-          </div>
+        <div style={{ position: "relative", margin: "0 auto", maxWidth: 680, padding: "28px 16px 88px" }}>
 
-          <div style={{ display: "flex", flexShrink: 0, alignItems: "center", gap: 8 }}>
-            <button
-              onClick={() => void refresh()}
-              aria-label="Actualizar"
-              style={{
-                display: "flex", height: 36, width: 36, cursor: "pointer",
-                alignItems: "center", justifyContent: "center",
-                borderRadius: 12, border: `1.5px solid rgba(110,52,130,.22)`,
-                background: "white", color: C.mid,
-                transition: "color .18s",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = C.dark)}
-              onMouseLeave={e => (e.currentTarget.style.color = C.mid)}
-            >
-              <RefreshCw size={14} style={refreshing ? { animation: "spin 1s linear infinite" } : {}} />
-            </button>
-            {menuUrl && (
-              <Link
-                href={menuUrl}
-                style={{
-                  display: "inline-flex", cursor: "pointer",
-                  alignItems: "center", gap: 6,
-                  borderRadius: 12,
-                  background: `linear-gradient(135deg, ${C.dark}, ${C.darkest})`,
-                  padding: "8px 12px",
-                  fontSize: 12, fontWeight: 800, color: "white",
-                  textDecoration: "none",
-                  boxShadow: `0 4px 14px rgba(110,52,130,.30)`,
-                  transition: "opacity .18s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = ".88")}
-                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-              >
-                Pedir de nuevo <ArrowUpRight size={13} />
-              </Link>
-            )}
-          </div>
-        </header>
-
-        <div style={{ display: "grid", gap: 16 }}>
-
-          {/* ── Estado + pasos en UNA sola card ── */}
-          <div style={{
-            borderRadius: 24, border: `1px solid rgba(110,52,130,.18)`,
-            background: "white",
-            boxShadow: `0 2px 16px rgba(73,34,91,.06)`,
-            padding: 20,
+          {/* ── Header ── */}
+          <header style={{
+            marginBottom: 24,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+            animation: "t-fade-up .4s ease both",
           }}>
-
-            {/* Estado actual */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-              <div style={{
-                display: "flex", height: 56, width: 56, flexShrink: 0,
-                alignItems: "center", justifyContent: "center",
-                borderRadius: 18, borderWidth: 2, borderStyle: "solid",
-                transition: "all .3s",
-                ...(isDone
-                  ? { borderColor: "#10b981", background: "rgba(16,185,129,.12)", color: "#059669" }
-                  : { borderColor: C.dark, background: `rgba(110,52,130,.12)`, color: C.dark,
-                      boxShadow: `0 0 24px rgba(110,52,130,.20)` }
-                ),
+            <div>
+              <p style={{
+                fontSize: 10, fontWeight: 800, textTransform: "uppercase",
+                letterSpacing: "0.13em", color: C.mid, margin: "0 0 5px",
               }}>
-                {currentStep && <currentStep.icon size={24} />}
+                {esRetiro ? "Retiro en local" : "Seguimiento delivery"}
+                {data.sucursalNombre && <> · {data.sucursalNombre}</>}
+              </p>
+              <h1 style={{
+                fontSize: "clamp(22px,5vw,30px)", fontWeight: 900,
+                letterSpacing: "-0.025em", lineHeight: 1, margin: 0, color: C.darkest,
+              }}>
+                Pedido&nbsp;<span style={{ color: C.dark }}>#{data.id}</span>
+              </h1>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => void refresh()}
+                aria-label="Actualizar"
+                className="t-btn-refresh"
+                style={{
+                  display: "flex", height: 40, width: 40,
+                  alignItems: "center", justifyContent: "center",
+                  borderRadius: 14, border: `1.5px solid rgba(110,52,130,.22)`,
+                  background: "white", color: C.mid, cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(73,34,91,.06)",
+                  transition: "all .2s",
+                }}
+              >
+                <RefreshCw
+                  size={15}
+                  className={refreshing ? "t-spin" : ""}
+                />
+              </button>
+
+              {menuUrl && (
+                <Link
+                  href={menuUrl}
+                  className="t-reorder"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    borderRadius: 14,
+                    background: `linear-gradient(135deg, ${C.dark}, ${C.darkest})`,
+                    padding: "10px 16px",
+                    fontSize: 12, fontWeight: 800, color: "white",
+                    textDecoration: "none",
+                    boxShadow: `0 4px 18px rgba(110,52,130,.32)`,
+                    transition: "opacity .2s",
+                  }}
+                >
+                  <Navigation size={12} /> Pedir de nuevo
+                </Link>
+              )}
+            </div>
+          </header>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* ════════════════════════════════════════════
+                HERO STATUS CARD
+            ════════════════════════════════════════════ */}
+            <div
+              className="t-card"
+              style={{ padding: "36px 28px 28px", textAlign: "center", animationDelay: ".05s" }}
+            >
+
+              {/* Ícono grande con pulso */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}>
+                <div
+                  className={isDone ? "t-hero-done" : "t-hero-active"}
+                  style={{
+                    display: "flex", width: 88, height: 88,
+                    alignItems: "center", justifyContent: "center",
+                    borderRadius: 30,
+                    border: `2.5px solid`,
+                    transition: "all .6s ease",
+                    ...(isDone
+                      ? { borderColor: C.emerald, background: C.emeraldBg, color: C.emerald }
+                      : { borderColor: C.dark, background: `rgba(110,52,130,.10)`, color: C.dark }
+                    ),
+                  }}
+                >
+                  {currentStep && (
+                    <span className={isDone ? "t-float-done" : "t-float-active"} style={{ display: "flex" }}>
+                      <currentStep.icon size={36} strokeWidth={1.8} />
+                    </span>
+                  )}
+                </div>
               </div>
-              <div>
-                <p style={{ fontSize: "clamp(18px,4vw,22px)", fontWeight: 900, lineHeight: 1.1, color: C.darkest, margin: "0 0 4px" }}>
-                  {currentStep?.title ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
-                </p>
-                <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>{subtitle}</p>
-                {!isDone && (
-                  <p style={{ fontSize: 11, color: C.mid, opacity: .6, marginTop: 4 }}>~ {data.estimadoMinutos} min estimados</p>
-                )}
+
+              {/* Título */}
+              <h2 style={{
+                fontSize: "clamp(26px,6vw,36px)", fontWeight: 900,
+                letterSpacing: "-0.03em", lineHeight: 1.05,
+                color: C.darkest, margin: "0 0 10px",
+                transition: "all .5s ease",
+              }}>
+                {currentStep?.title ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
+              </h2>
+
+              {/* Subtítulo */}
+              <p style={{ fontSize: 14, color: C.mid, margin: "0 0 18px", lineHeight: 1.55 }}>
+                {heroSub}
+              </p>
+
+              {/* ETA pill */}
+              {!isDone && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  borderRadius: 999,
+                  background: `rgba(110,52,130,.08)`,
+                  border: `1.5px solid rgba(110,52,130,.18)`,
+                  padding: "7px 16px",
+                  fontSize: 12, fontWeight: 700, color: C.dark,
+                  marginBottom: 28,
+                }}>
+                  <Clock3 size={13} />
+                  ~ {data.estimadoMinutos} min estimados
+                </div>
+              )}
+              {isDone && <div style={{ marginBottom: 28 }} />}
+
+              {/* ════ STEPPER ════ */}
+              <div style={{ display: "flex", alignItems: "flex-start", padding: "0 4px" }}>
+                {steps.map((step, i) => {
+                  const done    = i < activeIndex;
+                  const current = i === activeIndex;
+                  const pending = i > activeIndex;
+                  const Icon    = step.icon;
+
+                  /* estado de la línea izquierda (de i-1 → i) */
+                  const leftDone    = done || current;   // esa transición ya pasó
+                  /* estado de la línea derecha (de i → i+1) */
+                  const rightDone   = done;              // pasó
+                  const rightActive = current;           // en tránsito → shimmer
+                  /* la línea derecha "pending" es cuando !done && !current */
+
+                  return (
+                    <div
+                      key={step.key}
+                      style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}
+                    >
+
+                      {/* Fila: línea-izq + círculo + línea-der */}
+                      <div style={{ display: "flex", alignItems: "center", width: "100%", marginBottom: 8 }}>
+
+                        {/* Línea izquierda */}
+                        {i > 0 && (
+                          <div
+                            className={leftDone ? "t-shimmer-wrap" : ""}
+                            style={{
+                              flex: 1, height: 3, borderRadius: 99,
+                              overflow: "hidden",
+                              transition: "background .55s ease",
+                              background: leftDone
+                                ? `linear-gradient(90deg, rgba(16,185,129,.7), rgba(110,52,130,.6))`
+                                : `rgba(110,52,130,.13)`,
+                            }}
+                          />
+                        )}
+
+                        {/* Círculo del paso */}
+                        <div
+                          className={current ? "t-step-pop" : ""}
+                          style={{
+                            flexShrink: 0,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            width:  current ? 46 : 38,
+                            height: current ? 46 : 38,
+                            borderRadius: current ? 16 : 13,
+                            border: `2px solid`,
+                            transition: "all .45s cubic-bezier(.34,1.56,.64,1)",
+                            ...(done
+                              ? { borderColor: C.emerald, background: C.emerald, color: "white" }
+                              : current
+                              ? { borderColor: C.dark, background: C.dark, color: "white",
+                                  boxShadow: `0 0 0 5px rgba(110,52,130,.16), 0 6px 22px rgba(110,52,130,.28)` }
+                              : { borderColor: `rgba(110,52,130,.18)`, background: C.faint, color: C.mid }
+                            ),
+                          }}
+                        >
+                          {done
+                            ? <CheckCircle2 size={17} />
+                            : <Icon size={current ? 20 : 16} />
+                          }
+                        </div>
+
+                        {/* Línea derecha */}
+                        {i < steps.length - 1 && (
+                          <div
+                            className={rightActive ? "t-shimmer-wrap" : (pending ? "t-dot-march" : "")}
+                            style={{
+                              flex: 1, height: 3, borderRadius: 99,
+                              overflow: "hidden",
+                              transition: "background .55s ease",
+                              background: rightDone
+                                ? `linear-gradient(90deg, rgba(110,52,130,.6), rgba(16,185,129,.7))`
+                                : rightActive
+                                ? `linear-gradient(90deg, rgba(110,52,130,.45), rgba(110,52,130,.18))`
+                                : "transparent",
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Etiqueta */}
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, letterSpacing: "0.02em",
+                        textAlign: "center", lineHeight: 1.3, maxWidth: 62,
+                        transition: "color .45s ease, opacity .45s ease",
+                        color: done ? C.emerald : current ? C.dark : C.mid,
+                        opacity: pending ? .45 : 1,
+                      }}>
+                        {step.title}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Pasos inline */}
-            <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-              {steps.map((step, i) => {
-                const done    = i < activeIndex;
-                const current = i === activeIndex;
-                const Icon    = step.icon;
-                return (
-                  <div key={step.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                    {/* Connector line */}
-                    <div style={{ position: "relative", display: "flex", width: "100%", alignItems: "center", justifyContent: "center" }}>
-                      {i > 0 && (
-                        <div style={{
-                          position: "absolute", right: "50%", top: "50%", height: 1, width: "100%",
-                          transform: "translateY(-50%)",
-                          background: (done || current)
-                            ? `linear-gradient(to right, rgba(110,52,130,.50), rgba(16,185,129,.50))`
-                            : `rgba(110,52,130,.15)`,
-                        }} />
-                      )}
-                      <div style={{
-                        position: "relative", zIndex: 10,
-                        display: "flex", height: 32, width: 32,
-                        alignItems: "center", justifyContent: "center",
-                        borderRadius: 10, borderWidth: 1.5, borderStyle: "solid",
-                        transition: "all .3s",
-                        ...(done
-                          ? { borderColor: "rgba(16,185,129,.60)", background: "rgba(16,185,129,.12)", color: "#059669" }
-                          : current
-                          ? { borderColor: C.dark, background: `rgba(110,52,130,.12)`, color: C.dark,
-                              boxShadow: `0 0 14px rgba(110,52,130,.25)` }
-                          : { borderColor: `rgba(110,52,130,.15)`, background: C.faint, color: C.mid, opacity: .5 }
-                        ),
-                      }}>
-                        {done ? <CheckCircle2 size={14} /> : <Icon size={14} />}
-                      </div>
+            {/* ════ YA RETIRÉ ════ */}
+            {esRetiro && data.trackingStage === "EN_CAMINO" && !retirado && (
+              <button
+                onClick={() => void confirmarRetiro()}
+                disabled={confirming}
+                className="t-retiro-btn"
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  borderRadius: 20, border: `2px solid ${C.emeraldBorder}`,
+                  background: C.emeraldBg,
+                  padding: "17px 20px", fontSize: 15, fontWeight: 900,
+                  color: C.emerald, cursor: "pointer",
+                  transition: "all .22s",
+                  opacity: confirming ? .6 : 1,
+                  animation: "t-fade-up .5s ease both",
+                  animationDelay: ".1s",
+                }}
+              >
+                {confirming
+                  ? <span className="t-spin" style={{ height: 20, width: 20, borderRadius: "50%", border: `2.5px solid rgba(5,150,105,.28)`, borderTopColor: C.emerald, display: "inline-block" }} />
+                  : <Package2 size={18} />
+                }
+                {confirming ? "Confirmando…" : "Ya retiré mi pedido"}
+              </button>
+            )}
+
+            {/* ════ RETIRO CONFIRMADO ════ */}
+            {esRetiro && retirado && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 16,
+                borderRadius: 20, border: `1.5px solid ${C.emeraldBorder}`,
+                background: C.emeraldBg, padding: "17px 20px",
+                animation: "t-fade-up .4s ease both",
+              }}>
+                <Star size={22} style={{ color: C.emerald, flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontWeight: 900, color: C.emerald, margin: "0 0 2px" }}>¡Listo, buen provecho!</p>
+                  <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>Retiro confirmado · ¡Gracias!</p>
+                </div>
+              </div>
+            )}
+
+            {/* ════ INFO CARDS ════ */}
+            <div style={{
+              display: "grid", gap: 12,
+              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            }}>
+
+              {/* Dirección */}
+              {!esRetiro && data.direccionEntrega && (
+                <div className="t-card-sm" style={{ padding: 18, animationDelay: ".12s" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <div className="t-icon-badge">
+                      <MapPin size={14} style={{ color: C.dark }} />
                     </div>
-                    <p style={{
-                      fontSize: 9, fontWeight: 800, textAlign: "center", lineHeight: 1.2,
-                      letterSpacing: "0.04em", width: "100%",
-                      color: current ? C.dark : done ? "#059669" : C.mid,
-                      opacity: (!done && !current) ? .55 : 1,
-                    }}>
-                      {step.title}
+                    <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.mid, margin: 0 }}>
+                      Dirección
                     </p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: C.darkest, lineHeight: 1.45, margin: 0 }}>
+                    {data.direccionEntrega}
+                  </p>
+                  {data.referencia   && <p style={{ marginTop: 5, fontSize: 11, color: C.mid, margin: "5px 0 0" }}>Ref: {data.referencia}</p>}
+                  {data.departamento && <p style={{ fontSize: 11, color: C.mid, margin: "3px 0 0" }}>Dpto: {data.departamento}</p>}
+                </div>
+              )}
 
-          {/* ── YA RETIRÉ ── */}
-          {esRetiro && data.trackingStage === "EN_CAMINO" && !retirado && (
-            <button
-              onClick={() => void confirmarRetiro()}
-              disabled={confirming}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                borderRadius: 24, border: "1.5px solid rgba(16,185,129,.35)",
-                background: "rgba(16,185,129,.10)",
-                padding: "16px 20px", fontSize: 15, fontWeight: 900,
-                color: "#059669", cursor: "pointer",
-                transition: "all .18s",
-                opacity: confirming ? .6 : 1,
-              }}
-              onMouseEnter={e => !confirming && (e.currentTarget.style.background = "rgba(16,185,129,.18)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "rgba(16,185,129,.10)")}
-            >
-              {confirming
-                ? <span style={{ height: 20, width: 20, borderRadius: "50%", border: "2px solid rgba(5,150,105,.3)", borderTopColor: "#059669", display: "inline-block", animation: "spin 1s linear infinite" }} />
-                : <Package2 size={18} />
-              }
-              {confirming ? "Confirmando…" : "Ya retiré mi pedido"}
-            </button>
-          )}
-
-          {/* Confirmación exitosa */}
-          {esRetiro && retirado && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 16,
-              borderRadius: 24, border: "1.5px solid rgba(16,185,129,.25)",
-              background: "rgba(16,185,129,.08)", padding: "16px 20px",
-            }}>
-              <Star size={20} style={{ color: "#059669", flexShrink: 0 }} />
-              <div>
-                <p style={{ fontWeight: 900, color: "#059669", margin: "0 0 2px" }}>¡Listo, buen provecho!</p>
-                <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>Retiro confirmado · ¡Gracias!</p>
+              {/* Rider / Local */}
+              <div className="t-card-sm" style={{ padding: 18, animationDelay: ".17s" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div className="t-icon-badge" style={{ background: esRetiro ? C.emeraldBg : undefined }}>
+                    {esRetiro
+                      ? <Store size={14} style={{ color: C.emerald }} />
+                      : <Bike  size={14} style={{ color: C.dark }}   />
+                    }
+                  </div>
+                  <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.mid, margin: 0 }}>
+                    {esRetiro ? "Retiro en local" : "Repartidor"}
+                  </p>
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 900, color: C.darkest, margin: "0 0 6px" }}>
+                  {esRetiro ? (data.sucursalNombre ?? "Pasa a retirar") : (data.repartidorNombre ?? "Por asignar")}
+                </p>
+                <p style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.mid, margin: 0 }}>
+                  <Clock3 size={11} style={{ flexShrink: 0 }} />
+                  {new Date(data.creadoEn).toLocaleString("es-CL")}
+                </p>
               </div>
             </div>
-          )}
 
-          {/* ── Info row ── */}
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-
-            {/* Delivery: dirección */}
+            {/* ════ GOOGLE MAPS ════ */}
             {!esRetiro && data.direccionEntrega && (
-              <div style={{
-                borderRadius: 18, border: `1px solid rgba(110,52,130,.18)`,
-                background: "white", padding: 16,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <MapPin size={12} style={{ color: C.dark }} />
-                  <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, margin: 0 }}>Dirección</p>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="t-card-sm t-maps-card"
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "14px 18px", textDecoration: "none",
+                  transition: "all .22s",
+                  animationDelay: ".22s",
+                }}
+              >
+                <div style={{
+                  width: 44, height: 44, borderRadius: 15, flexShrink: 0,
+                  background: `rgba(110,52,130,.09)`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <MapPin size={19} style={{ color: C.dark }} />
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.darkest, lineHeight: 1.4, margin: 0 }}>{data.direccionEntrega}</p>
-                {data.referencia   && <p style={{ marginTop: 4, fontSize: 11, color: C.mid }}>Ref: {data.referencia}</p>}
-                {data.departamento && <p style={{ fontSize: 11, color: C.mid }}>Dpto: {data.departamento}</p>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: C.dark, margin: "0 0 3px" }}>
+                    Ver en Google Maps
+                  </p>
+                  <p style={{ fontSize: 12, color: C.mid, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {data.direccionEntrega}
+                  </p>
+                </div>
+                <ExternalLink size={15} style={{ flexShrink: 0, color: C.mid }} />
+              </a>
+            )}
+
+            {/* ════ CÓDIGO DE ENTREGA ════ */}
+            {digits && (
+              <div className="t-card-sm" style={{ padding: "22px 20px", textAlign: "center", animationDelay: ".27s" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginBottom: 16 }}>
+                  <ShieldCheck size={15} style={{ color: C.dark }} />
+                  <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.dark, margin: 0 }}>
+                    Código de entrega
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                  {digits.map((d, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex", height: 58, width: 48,
+                        alignItems: "center", justifyContent: "center",
+                        borderRadius: 16,
+                        border: `2px solid rgba(110,52,130,.24)`,
+                        background: C.faint,
+                        fontSize: 28, fontWeight: 900, color: C.darkest,
+                        boxShadow: "0 2px 8px rgba(73,34,91,.07)",
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                <p style={{ marginTop: 14, fontSize: 12, color: C.mid }}>Dile este código al repartidor</p>
               </div>
             )}
 
-            {/* Retiro: local / Delivery: rider */}
-            <div style={{
-              borderRadius: 18, border: `1px solid rgba(110,52,130,.18)`,
-              background: "white", padding: 16,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                {esRetiro
-                  ? <Store size={12} style={{ color: "#059669" }} />
-                  : <Bike  size={12} style={{ color: C.dark }}    />
-                }
-                <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, margin: 0 }}>
-                  {esRetiro ? "Retiro en local" : "Repartidor"}
+            {/* ════ RESUMEN DEL PEDIDO ════ */}
+            <div className="t-card" style={{ padding: 22, animationDelay: ".32s" }}>
+
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div className="t-icon-badge" style={{ background: C.emeraldBg }}>
+                  <Truck size={14} style={{ color: C.emerald }} />
+                </div>
+                <p style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.mid, margin: 0 }}>
+                  Tu pedido
                 </p>
               </div>
-              <p style={{ fontSize: 13, fontWeight: 900, color: C.darkest, margin: "0 0 6px" }}>
-                {esRetiro
-                  ? (data.sucursalNombre ?? "Pasa a retirar")
-                  : (data.repartidorNombre ?? "Por asignar")}
-              </p>
-              <p style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid, margin: 0 }}>
-                <Clock3 size={10} style={{ flexShrink: 0 }} />
-                {new Date(data.creadoEn).toLocaleString("es-CL")}
-              </p>
-            </div>
-          </div>
 
-          {/* Google Maps — solo delivery con dirección real */}
-          {!esRetiro && data.direccionEntrega && (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex", cursor: "pointer", alignItems: "center", gap: 12,
-                borderRadius: 18, border: `1px solid rgba(110,52,130,.20)`,
-                background: `rgba(110,52,130,.06)`, padding: 14,
-                textDecoration: "none",
-                transition: "border-color .18s",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = `rgba(110,52,130,.40)`)}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = `rgba(110,52,130,.20)`)}
-            >
-              <div style={{
-                display: "flex", height: 36, width: 36, flexShrink: 0,
-                alignItems: "center", justifyContent: "center",
-                borderRadius: 11, background: `rgba(110,52,130,.12)`,
-              }}>
-                <MapPin size={16} style={{ color: C.dark }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.dark, margin: "0 0 2px" }}>Ver en Google Maps</p>
-                <p style={{ fontSize: 11, color: C.mid, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.direccionEntrega}</p>
-              </div>
-              <ExternalLink size={13} style={{ flexShrink: 0, color: C.mid }} />
-            </a>
-          )}
-
-          {/* Código de entrega */}
-          {digits && (
-            <div style={{
-              borderRadius: 18, border: `1px solid rgba(110,52,130,.25)`,
-              background: `rgba(110,52,130,.07)`, padding: 16, textAlign: "center",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
-                <ShieldCheck size={13} style={{ color: C.dark }} />
-                <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.dark, margin: 0 }}>Código de entrega</p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                {digits.map((d, i) => (
+              {/* Items */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
+                {data.detalles.map((item) => (
                   <div
-                    key={i}
+                    key={`${item.nombre}-${item.subtotal}`}
                     style={{
-                      display: "flex", height: 44, width: 38,
-                      alignItems: "center", justifyContent: "center",
-                      borderRadius: 12, border: `1.5px solid rgba(110,52,130,.30)`,
-                      background: `rgba(110,52,130,.10)`,
-                      fontSize: 22, fontWeight: 900, color: C.darkest,
+                      display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
+                      borderRadius: 14, border: `1px solid rgba(110,52,130,.10)`,
+                      background: C.faint, padding: "10px 14px",
                     }}
                   >
-                    {d}
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: C.darkest, lineHeight: 1.35, margin: "0 0 2px" }}>
+                        {item.nombre}
+                      </p>
+                      <p style={{ fontSize: 11, color: C.mid, margin: 0 }}>
+                        {item.cantidad} × {formatCurrency(item.precio, "$")}
+                      </p>
+                    </div>
+                    <p style={{ flexShrink: 0, fontSize: 13, fontWeight: 900, color: C.darkest, margin: 0 }}>
+                      {formatCurrency(item.subtotal, "$")}
+                    </p>
                   </div>
                 ))}
               </div>
-              <p style={{ marginTop: 10, fontSize: 11, color: C.mid }}>Dile este código al repartidor</p>
-            </div>
-          )}
 
-          {/* ── Resumen ── */}
-          <div style={{
-            borderRadius: 24, border: `1px solid rgba(110,52,130,.18)`,
-            background: "white",
-            boxShadow: `0 2px 16px rgba(73,34,91,.06)`,
-            padding: 16,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <Truck size={12} style={{ color: "#059669" }} />
-              <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid, margin: 0 }}>Resumen</p>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {data.detalles.map((item) => (
-                <div
-                  key={`${item.nombre}-${item.subtotal}`}
-                  style={{
-                    display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
-                    borderRadius: 12, border: `1px solid rgba(110,52,130,.12)`,
-                    background: C.faint, padding: "8px 12px",
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: C.darkest, lineHeight: 1.3, margin: "0 0 2px" }}>{item.nombre}</p>
-                    <p style={{ fontSize: 11, color: C.mid, margin: 0 }}>{item.cantidad} × {formatCurrency(item.precio, "$")}</p>
-                  </div>
-                  <p style={{ flexShrink: 0, fontSize: 13, fontWeight: 900, color: C.darkest }}>
-                    {formatCurrency(item.subtotal, "$")}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div style={{
-              marginTop: 12, borderRadius: 12, border: `1px solid rgba(110,52,130,.15)`,
-              background: C.faint, padding: 12, display: "flex", flexDirection: "column", gap: 6,
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid }}>
-                <span>Subtotal</span>
-                <span>{formatCurrency(data.subtotal, "$")}</span>
-              </div>
-              {!esRetiro && (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid }}>
-                  <span>Despacho</span>
-                  <span>{data.cargoEnvio > 0 ? formatCurrency(data.cargoEnvio, "$") : "Gratis"}</span>
-                </div>
-              )}
+              {/* Totales */}
               <div style={{
-                display: "flex", justifyContent: "space-between",
-                borderTop: `1px solid rgba(110,52,130,.15)`, paddingTop: 8,
+                borderRadius: 16, border: `1px solid rgba(110,52,130,.12)`,
+                background: C.faint, padding: 16,
+                display: "flex", flexDirection: "column", gap: 9,
               }}>
-                <span style={{ fontSize: 14, fontWeight: 900, color: C.darkest }}>Total</span>
-                <span style={{ fontSize: 18, fontWeight: 900, color: C.dark }}>{formatCurrency(data.total, "$")}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid }}>
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(data.subtotal, "$")}</span>
+                </div>
+                {!esRetiro && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid }}>
+                    <span>Despacho</span>
+                    <span>{data.cargoEnvio > 0 ? formatCurrency(data.cargoEnvio, "$") : "Gratis"}</span>
+                  </div>
+                )}
+                <div style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  borderTop: `1.5px solid rgba(110,52,130,.14)`, paddingTop: 12,
+                }}>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: C.darkest }}>Total</span>
+                  <span style={{
+                    fontSize: 22, fontWeight: 900, color: C.dark,
+                    letterSpacing: "-0.02em",
+                  }}>
+                    {formatCurrency(data.total, "$")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Pago */}
+              <div style={{
+                marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center",
+                borderRadius: 12, background: C.pale, padding: "10px 14px",
+              }}>
+                <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.mid }}>
+                  Método de pago
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 900, color: C.darkest }}>
+                  {data.metodoPago}
+                </span>
               </div>
             </div>
 
-            <div style={{
-              marginTop: 8, display: "flex", justifyContent: "space-between",
-              borderRadius: 12, background: C.faint, padding: "8px 12px",
-            }}>
-              <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: C.mid }}>Pago</span>
-              <span style={{ fontSize: 11, fontWeight: 900, color: C.darkest }}>{data.metodoPago}</span>
-            </div>
           </div>
-
         </div>
-      </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-    </main>
+      </main>
+    </>
   );
 }
