@@ -430,41 +430,40 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
 
   /* ── Render ── */
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+    <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
 
       {/* ══ LEFT: Form ══ */}
-      <div className="space-y-5">
+      <div className="space-y-3">
 
-        {/* ── Buscadores lado a lado ── */}
+        {/* ── Widget: Buscar cliente ── */}
         {clienteEncontrado ? (
-          /* Cliente encontrado — banner verde unificado */
-          <div className="flex items-center justify-between gap-3 rounded-[1.75rem] border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500 shadow-md shadow-emerald-200">
-                <CheckCircle2 size={20} className="text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 shadow shadow-emerald-200">
+                <CheckCircle2 size={18} className="text-white" />
               </div>
               <div>
                 <p className="font-black text-emerald-900">{clienteEncontrado.nombre}</p>
                 <p className="text-xs font-semibold text-emerald-600">{phone || "Sin teléfono"}</p>
               </div>
             </div>
-            <button onClick={resetCliente} className="rounded-xl p-2 hover:bg-emerald-100 transition">
-              <X size={16} className="text-emerald-600" />
+            <button onClick={resetCliente} className="rounded-xl p-1.5 hover:bg-emerald-100 transition">
+              <X size={15} className="text-emerald-600" />
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
 
             {/* — Widget TELÉFONO — índigo */}
-            <div className="rounded-[1.5rem] border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/60 p-4 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
+            <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/60 p-3.5 shadow-sm">
+              <div className="mb-2.5 flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 shadow shadow-indigo-300">
                   <Phone size={13} className="text-white" />
                 </div>
                 <p className="text-xs font-black uppercase tracking-widest text-indigo-700">Por teléfono</p>
               </div>
               <div className="flex gap-2">
-                <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-indigo-200 bg-white px-2.5 py-2">
+                <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-indigo-200 bg-white px-2.5 py-1.5">
                   <span className="flex-shrink-0 text-xs font-bold text-indigo-400">+569</span>
                   <input
                     type="tel"
@@ -480,26 +479,26 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 <button
                   onClick={buscarCliente}
                   disabled={phoneDigits.length < 8 || searching}
-                  className="flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-2 text-white shadow shadow-indigo-300 transition hover:bg-indigo-700 disabled:opacity-40 active:scale-95"
+                  className="flex items-center justify-center rounded-xl bg-indigo-600 px-3 py-1.5 text-white shadow shadow-indigo-300 transition hover:bg-indigo-700 disabled:opacity-40 active:scale-95"
                 >
                   {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
                 </button>
               </div>
               {clienteNotFound && (
-                <p className="mt-2 text-xs font-semibold text-amber-600">No encontrado</p>
+                <p className="mt-1.5 text-xs font-semibold text-amber-600">No encontrado</p>
               )}
             </div>
 
             {/* — Widget NOMBRE — violeta */}
-            <div className="rounded-[1.5rem] border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-100/60 p-4 shadow-sm relative">
-              <div className="mb-3 flex items-center gap-2">
+            <div className="relative rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-purple-100/60 p-3.5 shadow-sm">
+              <div className="mb-2.5 flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500 shadow shadow-violet-300">
                   <User size={13} className="text-white" />
                 </div>
                 <p className="text-xs font-black uppercase tracking-widest text-violet-700">Por nombre</p>
               </div>
               <div className="flex gap-2">
-                <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-violet-200 bg-white px-2.5 py-2">
+                <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-violet-200 bg-white px-2.5 py-1.5">
                   <input
                     type="text"
                     value={nameQuery}
@@ -512,25 +511,24 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 <button
                   onClick={buscarClientePorNombre}
                   disabled={nameQuery.trim().length < 2 || nameSearching}
-                  className="flex items-center justify-center rounded-xl bg-violet-600 px-3 py-2 text-white shadow shadow-violet-300 transition hover:bg-violet-700 disabled:opacity-40 active:scale-95"
+                  className="flex items-center justify-center rounded-xl bg-violet-600 px-3 py-1.5 text-white shadow shadow-violet-300 transition hover:bg-violet-700 disabled:opacity-40 active:scale-95"
                 >
                   {nameSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
                 </button>
               </div>
               {nameNotFound && (
-                <p className="mt-2 text-xs font-semibold text-amber-600">No encontrado</p>
+                <p className="mt-1.5 text-xs font-semibold text-amber-600">No encontrado</p>
               )}
-              {/* Dropdown resultados */}
               {nameResults.length > 0 && (
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-xl shadow-violet-100">
                   {nameResults.map((c) => (
                     <button
                       key={c.id}
                       onClick={() => seleccionarClienteNombre(c)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-violet-50 border-b border-violet-50 last:border-0"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-violet-50 border-b border-violet-50 last:border-0"
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
-                        <User size={13} className="text-violet-600" />
+                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
+                        <User size={12} className="text-violet-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-stone-800">{c.nombre}</p>
@@ -545,30 +543,46 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           </div>
         )}
 
-        {/* ── Customer data ── */}
-        <div className="rounded-[1.75rem] border border-surface-border bg-white p-5 shadow-sm">
-          <p className="mb-4 text-xs font-bold uppercase tracking-widest text-surface-muted">
-            Datos del cliente
-          </p>
-          <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-stone-500">Nombre *</label>
-              <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
-                <User size={14} className="flex-shrink-0 text-stone-400" />
+        {/* ── Widget: Datos del cliente ── */}
+        <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-stone-800 shadow">
+              <User size={13} className="text-white" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest text-stone-600">Datos del cliente</p>
+          </div>
+          <div className="space-y-2">
+            {/* Nombre + Referencia lado a lado */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-400">Nombre *</label>
+                <div className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-2.5 py-2">
+                  <User size={13} className="flex-shrink-0 text-stone-400" />
+                  <input
+                    type="text"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Nombre"
+                    className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-400">Referencia</label>
                 <input
                   type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Nombre del cliente"
-                  className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
+                  value={referencia}
+                  onChange={(e) => setReferencia(e.target.value)}
+                  placeholder="Depto, piso..."
+                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-2.5 py-2 text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300 focus:border-brand-400"
                 />
               </div>
             </div>
-
+            {/* Dirección */}
             <div>
-              <label className="mb-1 block text-xs font-semibold text-stone-500">Dirección *</label>
-              <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5">
-                <MapPin size={14} className="flex-shrink-0 text-stone-400" />
+              <label className="mb-1 block text-xs font-semibold text-stone-400">Dirección *</label>
+              <div className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-2.5 py-2">
+                <MapPin size={13} className="flex-shrink-0 text-stone-400" />
                 <input
                   type="text"
                   value={direccion}
@@ -578,278 +592,244 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 />
               </div>
             </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-stone-500">Referencia</label>
-              <input
-                type="text"
-                value={referencia}
-                onChange={(e) => setReferencia(e.target.value)}
-                placeholder="Depto, piso, color de puerta..."
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-              />
-            </div>
-
-            {/* Zona de delivery */}
-            <div>
-              <label className="mb-2 block text-xs font-black uppercase tracking-widest text-stone-500">
-                Zona / Modalidad de entrega
-              </label>
-              <div className="grid grid-cols-1 gap-2">
-                {/* Opción RETIRO */}
-                <button
-                  type="button"
-                  onClick={() => setZonaId(RETIRO_ID)}
-                  className={cn(
-                    "flex items-center justify-between rounded-2xl border-2 px-4 py-3 text-left transition-all",
-                    esRetiro
-                      ? "border-emerald-400 bg-emerald-50"
-                      : "border-stone-200 bg-stone-50 hover:border-stone-300"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", esRetiro ? "bg-emerald-100" : "bg-stone-100")}>
-                      <Package2 size={18} className={esRetiro ? "text-emerald-600" : "text-stone-400"} />
-                    </div>
-                    <div>
-                      <p className={cn("text-sm font-black uppercase tracking-wide", esRetiro ? "text-emerald-800" : "text-stone-700")}>
-                        Retiro en local
-                      </p>
-                      <p className={cn("text-xs font-semibold", esRetiro ? "text-emerald-600" : "text-stone-400")}>
-                        Sin costo de envío
-                      </p>
-                    </div>
-                  </div>
-                  <span className={cn("text-base font-black", esRetiro ? "text-emerald-700" : "text-stone-400")}>
-                    GRATIS
-                  </span>
-                </button>
-
-                {/* Zonas configuradas */}
-                {zonasDelivery.map((z) => {
-                  const isSelected = zonaId === z.id;
-                  return (
-                    <button
-                      key={z.id}
-                      type="button"
-                      onClick={() => setZonaId(z.id)}
-                      className={cn(
-                        "flex items-center justify-between rounded-2xl border-2 px-4 py-3 text-left transition-all",
-                        isSelected
-                          ? "border-brand-400 bg-brand-50"
-                          : "border-stone-200 bg-stone-50 hover:border-stone-300"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", isSelected ? "bg-brand-100" : "bg-stone-100")}>
-                          <Truck size={18} className={isSelected ? "text-brand-600" : "text-stone-400"} />
-                        </div>
-                        <p className={cn("text-sm font-black uppercase tracking-wide", isSelected ? "text-brand-800" : "text-stone-700")}>
-                          {z.nombre}
-                        </p>
-                      </div>
-                      <span className={cn("text-base font-black", isSelected ? "text-brand-700" : "text-stone-500")}>
-                        {formatCurrency(z.precio, simbolo)}
-                      </span>
-                    </button>
-                  );
-                })}
-
-                {/* Sin zonas: input manual */}
-                {zonasDelivery.length === 0 && !esRetiro && (
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                    <p className="mb-2 text-xs font-black uppercase tracking-widest text-stone-400">Costo de envío manual</p>
-                    <input
-                      type="number"
-                      value={cargoManual}
-                      onChange={(e) => setCargoManual(Math.max(0, Number(e.target.value)))}
-                      min={0}
-                      step={100}
-                      className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-base font-black text-stone-800 outline-none focus:border-brand-400"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-
-            {/* Payment method */}
-            <div>
-              <label className="mb-2 block text-xs font-semibold text-stone-500">Tipo de pago</label>
-              <div className="grid grid-cols-3 gap-2">
-                {METODOS.map((m) => (
-                  <button
-                    key={m.key}
-                    onClick={() => setMetodo(m.key)}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-2xl border-2 py-3 text-xs font-bold transition-all active:scale-95",
-                      metodo === m.key ? m.active : m.inactive
-                    )}
-                  >
-                    {m.icon}
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Descuentos (colapsible) ── */}
-            <div className={cn(
-              "rounded-2xl border-2 border-dashed transition-colors",
-              showDescuentos || descuentoTotal > 0
-                ? "border-emerald-200 bg-emerald-50/60"
-                : "border-stone-200 bg-stone-50/60"
-            )}>
-              {/* Header toggle */}
-              <button
-                type="button"
-                onClick={() => setShowDescuentos((v) => !v)}
-                className="flex w-full items-center justify-between px-4 py-3"
-              >
-                <span className={cn(
-                  "flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest",
-                  showDescuentos || descuentoTotal > 0 ? "text-emerald-700" : "text-stone-400"
-                )}>
-                  <Tag size={12} />
-                  Descuentos
-                  {descuentoTotal > 0 && (
-                    <span className="ml-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
-                      -{formatCurrency(descuentoTotal, simbolo)}
-                    </span>
-                  )}
-                </span>
-                <ChevronDown
-                  size={14}
-                  className={cn(
-                    "transition-transform duration-200",
-                    showDescuentos ? "rotate-180 text-emerald-600" : "text-stone-300"
-                  )}
-                />
-              </button>
-
-              {/* Contenido expandible */}
-              {showDescuentos && (
-                <div className="px-4 pb-4 space-y-3">
-                  {/* % descuento manual */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-stone-500">Descuento %</label>
-                    <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                      <Percent size={14} className="flex-shrink-0 text-stone-400" />
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={descPorcentaje || ""}
-                        onChange={(e) => setDescPorcentaje(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
-                        placeholder="0"
-                        className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
-                      />
-                      {descPorcentaje > 0 && (
-                        <span className="text-xs font-bold text-emerald-600">
-                          -{formatCurrency(descuentoPorcentajeMonto, simbolo)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Monto fijo */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-stone-500">Monto fijo ($)</label>
-                    <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                      <span className="flex-shrink-0 text-sm font-bold text-stone-400">{simbolo}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={descMontoFijo || ""}
-                        onChange={(e) => setDescMontoFijo(Math.max(0, Number(e.target.value) || 0))}
-                        placeholder="0"
-                        className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
-                      />
-                      {descMontoFijo > 0 && (
-                        <span className="text-xs font-bold text-emerald-600">
-                          -{formatCurrency(descMontoFijoAplicado, simbolo)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cupón */}
-                  {cuponAplicado ? (
-                    <div className={cn(
-                      "flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5",
-                      cuponAplicado.esCumple
-                        ? "border-pink-200 bg-pink-50"
-                        : "border-emerald-200 bg-emerald-50"
-                    )}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        {cuponAplicado.esCumple
-                          ? <Gift size={15} className="flex-shrink-0 text-pink-500" />
-                          : <Tag size={15} className="flex-shrink-0 text-emerald-600" />
-                        }
-                        <div className="min-w-0">
-                          <p className={cn("text-xs font-bold truncate", cuponAplicado.esCumple ? "text-pink-700" : "text-emerald-700")}>
-                            {cuponAplicado.esCumple ? "🎂 Descuento Cumpleaños" : cuponAplicado.codigo}
-                          </p>
-                          <p className="text-xs text-stone-500">
-                            -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
-                          </p>
-                        </div>
-                      </div>
-                      <button onClick={quitarCupon} className="flex-shrink-0 rounded-lg p-1 hover:bg-white transition">
-                        <X size={14} className="text-stone-400" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold text-stone-500">Código de cupón</label>
-                      <div className="flex gap-2">
-                        <div className="flex flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                          <Tag size={14} className="flex-shrink-0 text-stone-400" />
-                          <input
-                            type="text"
-                            value={codigoCupon}
-                            onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setCuponError(""); }}
-                            onKeyDown={(e) => e.key === "Enter" && aplicarCupon()}
-                            placeholder="CODIGO o CUMPLEAÑOS"
-                            className="flex-1 bg-transparent text-sm font-semibold uppercase outline-none placeholder:normal-case placeholder:font-normal placeholder:text-stone-300"
-                          />
-                        </div>
-                        <button
-                          onClick={aplicarCupon}
-                          disabled={!codigoCupon.trim() || cuponLoading || !subtotal}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-40 active:scale-95"
-                        >
-                          {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
-                        </button>
-                      </div>
-                      {cuponError && (
-                        <p className="mt-1.5 text-xs font-semibold text-red-500">{cuponError}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* ── Product search ── */}
-        <div className="rounded-[1.75rem] border border-surface-border bg-white p-5 shadow-sm">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-surface-muted">
-            Selección de productos
-          </p>
-          <div className="relative mb-3">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+        {/* ── Widget: Zona de entrega ── */}
+        <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500 shadow shadow-brand-200">
+              <Truck size={13} className="text-white" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest text-stone-600">Zona / Entrega</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {/* Retiro */}
+            <button
+              type="button"
+              onClick={() => setZonaId(RETIRO_ID)}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs font-bold transition-all active:scale-95",
+                esRetiro
+                  ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                  : "border-stone-200 bg-stone-50 text-stone-600 hover:border-stone-300"
+              )}
+            >
+              <Package2 size={14} className={esRetiro ? "text-emerald-600" : "text-stone-400"} />
+              Retiro en local
+              <span className={cn("font-black", esRetiro ? "text-emerald-700" : "text-stone-400")}>· GRATIS</span>
+            </button>
+
+            {/* Zonas configuradas */}
+            {zonasDelivery.map((z) => {
+              const isSelected = zonaId === z.id;
+              return (
+                <button
+                  key={z.id}
+                  type="button"
+                  onClick={() => setZonaId(z.id)}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs font-bold transition-all active:scale-95",
+                    isSelected
+                      ? "border-brand-400 bg-brand-50 text-brand-800"
+                      : "border-stone-200 bg-stone-50 text-stone-600 hover:border-stone-300"
+                  )}
+                >
+                  <Truck size={14} className={isSelected ? "text-brand-600" : "text-stone-400"} />
+                  {z.nombre}
+                  <span className={cn("font-black", isSelected ? "text-brand-700" : "text-stone-400")}>
+                    · {formatCurrency(z.precio, simbolo)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sin zonas: input manual */}
+          {zonasDelivery.length === 0 && !esRetiro && (
+            <div className="mt-3">
+              <label className="mb-1 block text-xs font-semibold text-stone-400">Costo de envío manual</label>
+              <input
+                type="number"
+                value={cargoManual}
+                onChange={(e) => setCargoManual(Math.max(0, Number(e.target.value)))}
+                min={0}
+                step={100}
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-base font-black text-stone-800 outline-none focus:border-brand-400"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ── Widget: Pago ── */}
+        <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-violet-500 shadow shadow-violet-200">
+              <CreditCard size={13} className="text-white" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest text-stone-600">Método de pago</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {METODOS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMetodo(m.key)}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-xs font-bold transition-all active:scale-95",
+                  metodo === m.key ? m.active : m.inactive
+                )}
+              >
+                {m.icon}
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Widget: Descuentos (colapsible) ── */}
+        <div className={cn(
+          "rounded-2xl border-2 border-dashed transition-colors",
+          showDescuentos || descuentoTotal > 0
+            ? "border-emerald-200 bg-emerald-50/60"
+            : "border-stone-200 bg-stone-50/60"
+        )}>
+          <button
+            type="button"
+            onClick={() => setShowDescuentos((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3"
+          >
+            <span className={cn(
+              "flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest",
+              showDescuentos || descuentoTotal > 0 ? "text-emerald-700" : "text-stone-400"
+            )}>
+              <Tag size={12} />
+              Descuentos
+              {descuentoTotal > 0 && (
+                <span className="ml-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">
+                  -{formatCurrency(descuentoTotal, simbolo)}
+                </span>
+              )}
+            </span>
+            <ChevronDown
+              size={14}
+              className={cn("transition-transform duration-200", showDescuentos ? "rotate-180 text-emerald-600" : "text-stone-300")}
+            />
+          </button>
+
+          {showDescuentos && (
+            <div className="px-4 pb-4 space-y-3">
+              {/* % + monto fijo lado a lado */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-stone-500">Descuento %</label>
+                  <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2">
+                    <Percent size={13} className="flex-shrink-0 text-stone-400" />
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={descPorcentaje || ""}
+                      onChange={(e) => setDescPorcentaje(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                      placeholder="0"
+                      className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
+                    />
+                    {descPorcentaje > 0 && (
+                      <span className="text-xs font-bold text-emerald-600">-{formatCurrency(descuentoPorcentajeMonto, simbolo)}</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-stone-500">Monto fijo</label>
+                  <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2">
+                    <span className="flex-shrink-0 text-sm font-bold text-stone-400">{simbolo}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={descMontoFijo || ""}
+                      onChange={(e) => setDescMontoFijo(Math.max(0, Number(e.target.value) || 0))}
+                      placeholder="0"
+                      className="flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-stone-300"
+                    />
+                    {descMontoFijo > 0 && (
+                      <span className="text-xs font-bold text-emerald-600">-{formatCurrency(descMontoFijoAplicado, simbolo)}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cupón */}
+              {cuponAplicado ? (
+                <div className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border px-3 py-2",
+                  cuponAplicado.esCumple ? "border-pink-200 bg-pink-50" : "border-emerald-200 bg-emerald-50"
+                )}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {cuponAplicado.esCumple
+                      ? <Gift size={14} className="flex-shrink-0 text-pink-500" />
+                      : <Tag size={14} className="flex-shrink-0 text-emerald-600" />
+                    }
+                    <div className="min-w-0">
+                      <p className={cn("text-xs font-bold truncate", cuponAplicado.esCumple ? "text-pink-700" : "text-emerald-700")}>
+                        {cuponAplicado.esCumple ? "🎂 Cumpleaños" : cuponAplicado.codigo}
+                      </p>
+                      <p className="text-xs text-stone-500">-{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}</p>
+                    </div>
+                  </div>
+                  <button onClick={quitarCupon} className="flex-shrink-0 rounded-lg p-1 hover:bg-white transition">
+                    <X size={13} className="text-stone-400" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-stone-500">Código de cupón</label>
+                  <div className="flex gap-2">
+                    <div className="flex flex-1 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2">
+                      <Tag size={13} className="flex-shrink-0 text-stone-400" />
+                      <input
+                        type="text"
+                        value={codigoCupon}
+                        onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setCuponError(""); }}
+                        onKeyDown={(e) => e.key === "Enter" && aplicarCupon()}
+                        placeholder="CODIGO o CUMPLEAÑOS"
+                        className="flex-1 bg-transparent text-sm font-semibold uppercase outline-none placeholder:normal-case placeholder:font-normal placeholder:text-stone-300"
+                      />
+                    </div>
+                    <button
+                      onClick={aplicarCupon}
+                      disabled={!codigoCupon.trim() || cuponLoading || !subtotal}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:opacity-40 active:scale-95"
+                    >
+                      {cuponLoading ? <Loader2 size={14} className="animate-spin" /> : "Aplicar"}
+                    </button>
+                  </div>
+                  {cuponError && <p className="mt-1 text-xs font-semibold text-red-500">{cuponError}</p>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Widget: Selección de productos ── */}
+        <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 shadow shadow-amber-200">
+              <Package2 size={13} className="text-white" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest text-stone-600">Selección de productos</p>
+          </div>
+
+          <div className="relative mb-2.5">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
               value={searchProd}
               onChange={(e) => setSearchProd(e.target.value)}
               placeholder="Buscar en carta..."
-              className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2.5 pl-8 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
             />
           </div>
 
-          <div className="max-h-64 space-y-1 overflow-y-auto">
+          <div className="max-h-56 space-y-1 overflow-y-auto">
             {productosFiltrados.slice(0, 40).map((p) => {
               const inCart = cart.find((i) => i.productoId === p.id);
               return (
@@ -857,16 +837,16 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   key={p.id}
                   onClick={() => addProduct(p)}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition active:scale-[0.98]",
+                    "flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.98]",
                     inCart
                       ? "border-brand-200 bg-brand-50"
                       : "border-stone-100 bg-stone-50 hover:border-stone-200 hover:bg-white"
                   )}
                 >
                   {p.imagen ? (
-                    <img src={p.imagen} alt={p.nombre} className="h-9 w-9 flex-shrink-0 rounded-lg object-cover" />
+                    <img src={p.imagen} alt={p.nombre} className="h-8 w-8 flex-shrink-0 rounded-lg object-cover" />
                   ) : (
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-stone-200 text-sm">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-stone-200 text-sm">
                       🍽️
                     </div>
                   )}
@@ -875,30 +855,26 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                     {p.categoria && <p className="text-[10px] text-stone-400">{p.categoria.nombre}</p>}
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-2">
-                    <span className="text-sm font-black text-brand-600">
-                      {formatCurrency(p.precio, simbolo)}
-                    </span>
+                    <span className="text-sm font-black text-brand-600">{formatCurrency(p.precio, simbolo)}</span>
                     {inCart ? (
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
                         {inCart.cantidad}
                       </span>
                     ) : (
-                      <Plus size={14} className="text-stone-400" />
+                      <Plus size={13} className="text-stone-400" />
                     )}
                   </div>
                 </button>
               );
             })}
             {productosFiltrados.length === 0 && (
-              <p className="py-6 text-center text-sm text-stone-400">Sin resultados</p>
+              <p className="py-5 text-center text-sm text-stone-400">Sin resultados</p>
             )}
           </div>
 
           {/* ── Producto Libre ── */}
-          <div className="mt-4 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-4">
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-amber-700">
-              ✏️ Producto Libre
-            </p>
+          <div className="mt-3 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-3">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-amber-700">✏️ Producto libre</p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -915,15 +891,15 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 onChange={(e) => setLibrePrecio(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addLibre()}
                 placeholder="Precio"
-                className="w-24 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                className="w-20 rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
               />
               <button
                 onClick={addLibre}
                 disabled={!libreNombre.trim() || !librePrecio}
                 className="inline-flex items-center gap-1 rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-40"
               >
-                <Plus size={15} />
-                Agregar
+                <Plus size={14} />
+                Add
               </button>
             </div>
           </div>
