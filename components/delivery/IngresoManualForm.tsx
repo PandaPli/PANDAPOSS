@@ -597,30 +597,33 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
 
         {/* ── Widget: Zona de entrega ── */}
         <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500 shadow shadow-brand-200">
-              <Truck size={13} className="text-white" />
+          {/* Header: título + Retiro en local como acción destacada */}
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500 shadow shadow-brand-200">
+                <Truck size={13} className="text-white" />
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest text-stone-600">Zona / Entrega</p>
             </div>
-            <p className="text-xs font-black uppercase tracking-widest text-stone-600">Zona / Entrega</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Retiro */}
+            {/* Retiro en local — siempre visible, color propio */}
             <button
               type="button"
               onClick={() => setZonaId(RETIRO_ID)}
               className={cn(
-                "flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs font-bold transition-all active:scale-95",
+                "flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-all active:scale-95",
                 esRetiro
-                  ? "border-emerald-400 bg-emerald-50 text-emerald-800"
-                  : "border-stone-200 bg-stone-50 text-stone-600 hover:border-stone-300"
+                  ? "border-emerald-500 bg-emerald-500 text-white shadow shadow-emerald-200"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100"
               )}
             >
-              <Package2 size={14} className={esRetiro ? "text-emerald-600" : "text-stone-400"} />
+              <Package2 size={13} />
               Retiro en local
-              <span className={cn("font-black", esRetiro ? "text-emerald-700" : "text-stone-400")}>· GRATIS</span>
+              <span className={cn("font-black", esRetiro ? "text-emerald-100" : "text-emerald-500")}>· GRATIS</span>
             </button>
+          </div>
 
-            {/* Zonas configuradas */}
+          {/* Zonas de delivery */}
+          <div className="flex flex-wrap gap-2">
             {zonasDelivery.map((z) => {
               const isSelected = zonaId === z.id;
               return (
