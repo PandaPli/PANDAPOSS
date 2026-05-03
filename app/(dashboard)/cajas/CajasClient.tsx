@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Wallet, DoorOpen, DoorClosed, Plus, Loader2, X,
-  TrendingUp, TrendingDown, Minus, Clock, Banknote, CreditCard, Receipt, FileWarning, ArrowLeftRight, History, Shuffle
+  TrendingUp, TrendingDown, Minus, Clock, Banknote, CreditCard, Receipt, FileWarning,
+  ArrowLeftRight, History, Shuffle, AlertTriangle, Trash2, UtensilsCrossed, Bike, ShoppingBag, ChevronLeft,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -30,6 +31,16 @@ interface ArqueoHistorial {
   diferencia: number | null;
   observacion: string | null;
   cajero: string;
+}
+
+interface PedidoActivo {
+  id: number;
+  tipo: string;
+  estado: string;
+  mesaId: number | null;
+  mesa: { nombre: string } | null;
+  detalles: { id: number }[];
+  creadoEn: string;
 }
 
 interface Props {
@@ -63,6 +74,12 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre, canCreate }
 
   // Bug 8: Confirmación antes de cerrar
   const [confirmCierre, setConfirmCierre] = useState(false);
+
+  // Pedidos activos al cerrar caja
+  const [pedidosActivos, setPedidosActivos] = useState<PedidoActivo[]>([]);
+  const [pasoTurno, setPasoTurno] = useState<"pedidos" | "advertencia" | "formulario">("formulario");
+  const [confirmBorrar, setConfirmBorrar] = useState(false);
+  const [borrandoPedidos, setBorrandoPedidos] = useState(false);
 
   async function abrirCaja() {
     if (!modal || modal.type !== "abrir" || !modal.cajaId) return;
@@ -165,19 +182,47 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre, canCreate }
     setError("");
     setLoading(cajaId);
     try {
-      const res = await fetch(`/api/cajas/${cajaId}/resumen`);
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error ?? "No se pudo obtener el reporte la caja");
+      const [resumenRes, pedidosRes] = await Promise.all([
+        fetch(`/api/cajas/${cajaId}/resumen`),
+        fetch(`/api/cajas/${cajaId}/pedidos-activos`),
+      ]);
+      if (!resumenRes.ok) {
+        const d = await resumenRes.json();
+        throw new Error(d.error ?? "No se pudo obtener el reporte de la caja");
       }
-      const data = await res.json();
-      setResumenZ(data);
+      const resumen = await resumenRes.json();
+      const pedidos: PedidoActivo[] = pedidosRes.ok ? await pedidosRes.json() : [];
+
+      setResumenZ(resumen);
+      setPedidosActivos(pedidos);
       setConfirmCierre(false);
+      setConfirmBorrar(false);
+      setPasoTurno(pedidos.length > 0 ? "pedidos" : "formulario");
       setModal({ type: "cerrar", cajaId });
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(null);
+    }
+  }
+
+  async function borrarPedidosYContinuar() {
+    if (!modal?.cajaId) return;
+    setBorrandoPedidos(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/cajas/${modal.cajaId}/pedidos-activos`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Error al cancelar los pedidos");
+      }
+      setPedidosActivos([]);
+      setConfirmBorrar(false);
+      setPasoTurno("formulario");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBorrandoPedidos(false);
     }
   }
 
@@ -241,7 +286,31 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre, canCreate }
     setError("");
     setConfirmCierre(false);
     setHistorialData([]);
+    setPedidosActivos([]);
+    setPasoTurno("formulario");
+    setConfirmBorrar(false);
+    setBorrandoPedidos(false);
   }
+
+  /* ── Helpers de visualización de pedidos activos ── */
+  function getPedidoIcon(p: PedidoActivo) {
+    if (p.mesa) return <UtensilsCrossed size={14} className="text-orange-500 shrink-0" />;
+    if (p.tipo === "DELIVERY") return <Bike size={14} className="text-blue-500 shrink-0" />;
+    return <ShoppingBag size={14} className="text-violet-500 shrink-0" />;
+  }
+
+  function getPedidoLabel(p: PedidoActivo) {
+    if (p.mesa) return `Mesa ${p.mesa.nombre}`;
+    if (p.tipo === "DELIVERY") return "Delivery";
+    if (p.tipo === "MOSTRADOR") return "Mostrador";
+    return "Directo";
+  }
+
+  const ESTADO_BADGE: Record<string, string> = {
+    PENDIENTE:  "bg-amber-100 text-amber-700",
+    EN_PROCESO: "bg-blue-100 text-blue-700",
+    LISTO:      "bg-emerald-100 text-emerald-700",
+  };
 
   return (
     <>
@@ -531,7 +600,118 @@ export function CajasClient({ cajas: initial, simbolo, meseroNombre, canCreate }
                 </div>
               )}
 
-              {modal.type === "cerrar" && !result && resumenZ && (
+              {/* ══ PASO 1: Pedidos activos ══ */}
+              {modal.type === "cerrar" && !result && pasoTurno === "pedidos" && pedidosActivos.length > 0 && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-300">
+                    <p className="font-bold text-amber-800 flex items-center gap-2 mb-1">
+                      <AlertTriangle size={18} />
+                      {pedidosActivos.length} pedido{pedidosActivos.length !== 1 ? "s" : ""} activo{pedidosActivos.length !== 1 ? "s" : ""}
+                    </p>
+                    <p className="text-sm text-amber-700">
+                      ¿Qué hacemos con ellos al cerrar la caja?
+                    </p>
+                  </div>
+
+                  {/* Lista de pedidos activos */}
+                  <div className="max-h-52 overflow-y-auto space-y-1.5 pr-0.5">
+                    {pedidosActivos.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-surface-border text-sm shadow-sm"
+                      >
+                        {getPedidoIcon(p)}
+                        <span className="flex-1 font-semibold text-surface-text truncate">
+                          {getPedidoLabel(p)}
+                        </span>
+                        <span className="text-surface-muted text-xs">
+                          {p.detalles.length} ítem{p.detalles.length !== 1 ? "s" : ""}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            ESTADO_BADGE[p.estado] ?? "bg-surface-bg text-surface-muted"
+                          }`}
+                        >
+                          {p.estado}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Botones de decisión */}
+                  <button
+                    onClick={() => setPasoTurno("formulario")}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors"
+                  >
+                    ✅ Sí, dejarlos para el próximo turno
+                  </button>
+                  <button
+                    onClick={() => setPasoTurno("advertencia")}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    No, borrar todos los pedidos
+                  </button>
+                </div>
+              )}
+
+              {/* ══ PASO 2: Advertencia irreversible ══ */}
+              {modal.type === "cerrar" && !result && pasoTurno === "advertencia" && (
+                <div className="space-y-4">
+                  {/* Bloque de advertencia grande */}
+                  <div className="p-6 rounded-2xl bg-red-50 border-2 border-red-500 text-center shadow-sm">
+                    <AlertTriangle size={48} className="mx-auto text-red-500 mb-3" />
+                    <p className="text-2xl font-black text-red-700 uppercase tracking-wide leading-tight">
+                      ⚠️ Esta acción no se puede deshacer
+                    </p>
+                    <p className="mt-3 text-sm text-red-600 leading-relaxed">
+                      Se cancelarán{" "}
+                      <strong>{pedidosActivos.length} pedido{pedidosActivos.length !== 1 ? "s" : ""} activo{pedidosActivos.length !== 1 ? "s" : ""}</strong>{" "}
+                      y las mesas quedarán libres.
+                      <br />
+                      <strong>Los pedidos borrados NO podrán recuperarse.</strong>
+                    </p>
+                  </div>
+
+                  {/* Checkbox de confirmación */}
+                  <label className="flex items-start gap-3 p-4 bg-red-50 border border-red-400 rounded-xl cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={confirmBorrar}
+                      onChange={(e) => setConfirmBorrar(e.target.checked)}
+                      className="mt-0.5 accent-red-600 w-4 h-4 shrink-0"
+                    />
+                    <span className="text-sm text-red-800 font-semibold leading-relaxed">
+                      Entiendo que esta acción es permanente e irreversible. Quiero borrar los {pedidosActivos.length} pedidos activos.
+                    </span>
+                  </label>
+
+                  {/* Botones */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => { setConfirmBorrar(false); setPasoTurno("pedidos"); }}
+                      disabled={borrandoPedidos}
+                      className="flex items-center justify-center gap-1.5 py-3 rounded-xl border border-surface-border bg-white text-surface-text font-semibold hover:bg-surface-bg transition-colors disabled:opacity-50"
+                    >
+                      <ChevronLeft size={15} />
+                      Volver
+                    </button>
+                    <button
+                      onClick={borrarPedidosYContinuar}
+                      disabled={!confirmBorrar || borrandoPedidos}
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {borrandoPedidos ? (
+                        <><Loader2 size={15} className="animate-spin" /> Borrando...</>
+                      ) : (
+                        <><Trash2 size={15} /> Confirmar y borrar</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {modal.type === "cerrar" && !result && resumenZ && pasoTurno === "formulario" && (
                 <>
                   <div className="bg-surface-bg p-4 rounded-xl space-y-3 mb-4 text-sm border border-surface-border">
                      <h3 className="font-semibold text-surface-text flex items-center gap-2 border-b border-surface-border pb-2">
