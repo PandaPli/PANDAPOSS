@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X, Users } from "lucide-react";
+import { ArrowLeftRight, Banknote, CheckCircle2, CreditCard, Loader2, Plus, Printer, Trash2, X, Users, WifiOff } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem, MetodoPago, PagoItem } from "@/types";
+import { fetchVentaOffline } from "@/lib/offline/offlineFetch";
 
 interface ReceiptItem {
   nombre: string;
@@ -14,6 +15,7 @@ interface ReceiptItem {
 
 interface CompletedSale {
   ventaId: number;
+  offlineSale?: true;
   items: ReceiptItem[];
   subtotal: number;
   descuentoMonto: number;
@@ -30,6 +32,7 @@ interface Props {
   simbolo?: string;
   cajaId?: number;
   usuarioId: number;
+  sucursalId?: number | null;
   logoUrl?: string | null;
   meseroNombre?: string;
   mesaNombre?: string;
@@ -51,6 +54,7 @@ export function CheckoutModal({
   simbolo = "$",
   cajaId,
   usuarioId,
+  sucursalId,
   logoUrl,
   meseroNombre,
   mesaNombre,
@@ -308,31 +312,16 @@ export function CheckoutModal({
     }
 
     try {
-      const res = await fetch("/api/ventas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const venta = await fetchVentaOffline(body, sucursalId ?? 0);
 
-      if (!res.ok) {
-        let errorMsg = "Error al registrar la venta";
-        try {
-          const d = await res.json();
-          errorMsg = d.error ?? errorMsg;
-        } catch {
-          // respuesta no JSON
-        }
-        throw new Error(errorMsg);
-      }
-
-      const venta = await res.json();
       const tieneEfectivo = pagos.some((p) => p.metodoPago === "EFECTIVO");
       if (tieneEfectivo && sobrepago > 0) {
         setVueltoFinal(sobrepago);
       }
 
       setCompletedSale({
-        ventaId: venta.id,
+        ventaId: venta.offline ? (`offline_${venta.localId ?? venta.id}` as unknown as number) : (venta.id as number),
+        offlineSale: venta.offline,
         items: snapshotItems,
         subtotal: subtotalValue,
         descuentoMonto,
@@ -368,6 +357,11 @@ export function CheckoutModal({
           <h2 className="mb-1 text-xl font-bold text-surface-text">
             {modoGrupo ? `Grupo ${completedSale.grupoNombre} cobrado` : "Venta completada"}
           </h2>
+          {completedSale.offlineSale && (
+            <div className="mb-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+              <WifiOff size={11} /> Guardada offline · se sincronizará al reconectar
+            </div>
+          )}
           <p className="text-sm text-surface-muted">Total cobrado: {formatCurrency(completedSale.total, simbolo)}</p>
           {vueltoFinal > 0 && (
             <div className="mt-4 rounded-xl bg-emerald-50 p-3 font-semibold text-emerald-700">

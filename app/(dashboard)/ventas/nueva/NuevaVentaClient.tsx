@@ -9,7 +9,8 @@ import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Zap } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Zap, WifiOff } from "lucide-react";
+import { fetchPedidoOffline } from "@/lib/offline/offlineFetch";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -183,28 +184,23 @@ export function NuevaVentaClient({
         })),
       };
 
-      const res = await fetch("/api/pedidos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Error al enviar orden");
-      }
-
-      const pedido = await res.json();
-      setPedido(pedido.id);
+      const pedido = await fetchPedidoOffline(body, sucursalId ?? 0);
+      setPedido(pedido.id as number);
       markAsSaved();
 
-      setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
-      setTimeout(() => setOrdenMsg(""), 4000);
-      setTicketData({
-        pedidoNum: pedido.id,
-        mesa: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : null),
-        items: nuevosItems,
-      });
+      if (pedido.offline) {
+        setOrdenMsg("📴 Orden guardada offline — se enviará al KDS al reconectar");
+      } else {
+        setOrdenMsg(`Orden #${pedido.id} enviada al KDS`);
+      }
+      setTimeout(() => setOrdenMsg(""), 5000);
+      if (!pedido.offline) {
+        setTicketData({
+          pedidoNum: pedido.id as number,
+          mesa: mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : null),
+          items: nuevosItems,
+        });
+      }
     } catch (e) {
       setOrdenMsg((e as Error).message);
     } finally {
@@ -405,6 +401,7 @@ export function NuevaVentaClient({
           simbolo={simbolo}
           cajaId={cajaId}
           usuarioId={usuarioId}
+          sucursalId={sucursalId}
           meseroNombre={meseroNombre}
           mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
