@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { subHours } from "date-fns";
 
 interface ListOptions {
   sucursalId?: number | null;
@@ -22,11 +23,13 @@ export const PedidoRepo = {
         orderBy: { abiertaEn: "desc" },
         select: { abiertaEn: true },
       });
+      const limite12h = subHours(new Date(), 12);
       if (cajaAbierta?.abiertaEn) {
-        turnoDesde = cajaAbierta.abiertaEn;
+        // Usar el más reciente entre apertura de caja y hace 12h
+        // Evita mostrar pedidos viejos cuando la caja no fue cerrada entre turnos
+        turnoDesde = cajaAbierta.abiertaEn > limite12h ? cajaAbierta.abiertaEn : limite12h;
       } else {
-        turnoDesde = new Date();
-        turnoDesde.setHours(0, 0, 0, 0);
+        turnoDesde = limite12h;
       }
     } else {
       turnoDesde = new Date();
