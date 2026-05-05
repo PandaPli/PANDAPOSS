@@ -2,9 +2,19 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw, Bell, BellOff } from "lucide-react";
+import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw, Bell, BellOff, Star, Gift, Clock, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import type { PlanTipo } from "@/core/billing/planConfig";
+
+type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
+
+const PAGO_CONFIG: Record<EstadoPago, { label: string; color: string; bg: string; border: string; cardBg: string; icon: React.ReactNode }> = {
+  SOCIO:     { label: "Socio",     color: "text-violet-700",  bg: "bg-violet-100",  border: "border-violet-300", cardBg: "bg-violet-50",  icon: <Star size={11} /> },
+  AL_DIA:    { label: "Al día",    color: "text-emerald-700", bg: "bg-emerald-100", border: "border-emerald-300", cardBg: "bg-emerald-50", icon: <CheckCircle2 size={11} /> },
+  GRATIS:    { label: "Gratis",    color: "text-blue-700",    bg: "bg-blue-100",    border: "border-blue-300",    cardBg: "bg-blue-50",    icon: <Gift size={11} /> },
+  PENDIENTE: { label: "Pendiente", color: "text-amber-700",   bg: "bg-amber-100",   border: "border-amber-300",   cardBg: "bg-white",      icon: <Clock size={11} /> },
+  ATRASADO:  { label: "Atrasado",  color: "text-red-700",     bg: "bg-red-100",     border: "border-red-300",     cardBg: "bg-red-50",     icon: <AlertTriangle size={11} /> },
+};
 
 interface Props {
   s: any; // Sucursal Type
@@ -49,12 +59,17 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva, onToggleNotif 
     opacity: isDragging ? 0.8 : 1,
   };
 
+  const estadoPago = s.estadoPago as EstadoPago | undefined;
+  const pagoCfg = estadoPago ? PAGO_CONFIG[estadoPago] : null;
+  const cardBg = pagoCfg ? pagoCfg.cardBg : "bg-white";
+  const cardBorder = pagoCfg ? pagoCfg.border : "border-surface-border";
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white rounded-xl border shadow-card p-5 transition-shadow relative group pl-8 ${
-        s.activa ? "border-surface-border" : "border-surface-border opacity-70"
+      className={`${cardBg} rounded-xl border shadow-card p-5 transition-shadow relative group pl-8 ${
+        s.activa ? cardBorder : "border-surface-border opacity-70"
       } ${isDragging ? "shadow-2xl ring-2 ring-brand-500 scale-[1.02]" : ""}`}
     >
       {/* Drag Handle */}
@@ -111,16 +126,30 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva, onToggleNotif 
         {!s.direccion && !s.telefono && !s.email && (
           <p className="italic text-xs">Sin información de contacto</p>
         )}
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
-          s.plan === "DEMO"  ? "bg-violet-100 text-violet-700 border-violet-300" :
-          s.plan === "PRIME" ? "bg-purple-50 text-purple-700 border-purple-300" :
-          s.plan === "PRO"   ? "bg-amber-50 text-amber-700 border-amber-300" :
-                               "bg-slate-100 text-slate-600 border-slate-300"
-        }`}>
-          {s.plan === "DEMO"  ? "🧪 DEMO" :
-           s.plan === "PRIME" ? "👑 PRIME" :
-           s.plan === "PRO"   ? "⭐ PRO" : "INICIAL"}
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
+            s.plan === "DEMO"  ? "bg-violet-100 text-violet-700 border-violet-300" :
+            s.plan === "PRIME" ? "bg-purple-50 text-purple-700 border-purple-300" :
+            s.plan === "PRO"   ? "bg-amber-50 text-amber-700 border-amber-300" :
+                                 "bg-slate-100 text-slate-600 border-slate-300"
+          }`}>
+            {s.plan === "DEMO"  ? "🧪 DEMO" :
+             s.plan === "PRIME" ? "👑 PRIME" :
+             s.plan === "PRO"   ? "⭐ PRO" : "INICIAL"}
+          </span>
+          {pagoCfg && (
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${pagoCfg.bg} ${pagoCfg.color} ${pagoCfg.border}`}>
+              {pagoCfg.icon}
+              {pagoCfg.label}
+              {estadoPago === "GRATIS" && s.mesesGratis > 0 && ` · ${s.mesesGratis}m`}
+            </span>
+          )}
+          {s.notaPago && (
+            <span className="text-[10px] text-surface-muted italic truncate max-w-[150px]" title={s.notaPago}>
+              {s.notaPago}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

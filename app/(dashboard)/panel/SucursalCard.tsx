@@ -39,8 +39,17 @@ export function SucursalCard({ s, plan, limits, ventasHoy, deliveryOk, menuQROk,
     }
   }
 
+  const bgCard: Record<EstadoPago, string> = {
+    SOCIO:     "bg-violet-50 border-violet-200",
+    AL_DIA:    "bg-emerald-50 border-emerald-200",
+    GRATIS:    "bg-blue-50 border-blue-200",
+    PENDIENTE: "bg-white border-surface-border",
+    ATRASADO:  "bg-red-50 border-red-200",
+  };
+  const cardClass = (PAGO_CONFIG[estadoPago as EstadoPago] ? bgCard[estadoPago as EstadoPago] : "bg-white border-surface-border");
+
   return (
-    <div className="card p-5 space-y-4">
+    <div className={`rounded-xl border shadow-card p-5 space-y-4 ${cardClass}`}>
       {/* Nombre + plan + Logo Thumb */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">

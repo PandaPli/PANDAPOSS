@@ -21,6 +21,9 @@ interface Sucursal {
   sector: SectorTipo;
   logoUrl: string | null;
   creadoEn: string | Date;
+  estadoPago: string;
+  mesesGratis: number;
+  notaPago: string | null;
   _count: { usuarios: number; cajas: number };
 }
 
