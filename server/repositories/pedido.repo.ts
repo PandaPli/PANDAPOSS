@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { subHours } from "date-fns";
+import { subHours, subMinutes } from "date-fns";
 
 interface ListOptions {
   sucursalId?: number | null;
@@ -10,30 +10,44 @@ interface ListOptions {
 
 export const PedidoRepo = {
   async list({ sucursalId, isAdmin, tipo, estado }: ListOptions) {
-    // Filtrar desde que se abrió el turno actual (caja abierta).
-    // Soporta turnos nocturnos que cruzan medianoche (ej: 20:00 → 04:00).
-    // Fallback: inicio del día actual si no hay caja abierta.
+    // ── Lógica de turno ────────────────────────────────────────────────────
+    // Un turno comienza cuando abre la PRIMERA caja y termina cuando
+    // cierran TODAS las cajas. Entre turnos hay una gracia de 30 min
+    // (cuadratura). El KDS del nuevo turno hereda las mesas pendientes.
+    // Hard cap: nunca mostrar más de 16h hacia atrás (seguridad si caja
+    // quedó abierta por error varios días).
     let turnoDesde: Date;
-    if (sucursalId || isAdmin) {
-      const cajaAbierta = await prisma.caja.findFirst({
-        where: {
-          estado: "ABIERTA",
-          ...(sucursalId && !isAdmin ? { sucursalId } : {}),
-        },
-        orderBy: { abiertaEn: "desc" },
-        select: { abiertaEn: true },
-      });
-      const limite12h = subHours(new Date(), 12);
-      if (cajaAbierta?.abiertaEn) {
-        // Usar el más reciente entre apertura de caja y hace 12h
-        // Evita mostrar pedidos viejos cuando la caja no fue cerrada entre turnos
-        turnoDesde = cajaAbierta.abiertaEn > limite12h ? cajaAbierta.abiertaEn : limite12h;
-      } else {
-        turnoDesde = limite12h;
-      }
+    const ahora = new Date();
+    const limite16h = subHours(ahora, 16);
+    const sucursalFilter = sucursalId && !isAdmin ? { sucursalId } : {};
+
+    // Primera caja abierta = inicio del turno actual
+    const primeraAbierta = await prisma.caja.findFirst({
+      where: { estado: "ABIERTA", ...sucursalFilter },
+      orderBy: { abiertaEn: "asc" }, // la MÁS ANTIGUA = inicio de turno
+      select: { abiertaEn: true },
+    });
+
+    if (primeraAbierta?.abiertaEn) {
+      // Turno activo: desde cuando abrió la primera caja (cap 16h)
+      turnoDesde = primeraAbierta.abiertaEn > limite16h
+        ? primeraAbierta.abiertaEn
+        : limite16h;
     } else {
-      turnoDesde = new Date();
-      turnoDesde.setHours(0, 0, 0, 0);
+      // Sin cajas abiertas: turno terminó.
+      // Mostrar desde 30 min antes del cierre de la última caja
+      // para que el nuevo turno vea las mesas pendientes heredadas.
+      const ultimaCerrada = await prisma.caja.findFirst({
+        where: { estado: "CERRADA", cerradaEn: { not: null }, ...sucursalFilter },
+        orderBy: { cerradaEn: "desc" },
+        select: { cerradaEn: true },
+      });
+      if (ultimaCerrada?.cerradaEn) {
+        const desde30antesDelCierre = subMinutes(ultimaCerrada.cerradaEn, 30);
+        turnoDesde = desde30antesDelCierre > limite16h ? desde30antesDelCierre : limite16h;
+      } else {
+        turnoDesde = subHours(ahora, 8); // fallback: últimas 8h
+      }
     }
 
     return prisma.pedido.findMany({

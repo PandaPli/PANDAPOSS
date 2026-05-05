@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { subHours } from "date-fns";
+import { subHours, subMinutes } from "date-fns";
 
 /**
  * GET /api/cron/cierre-turno
  * Vercel Cron — corre a las 06:00 UTC (03:00 Chile) todos los días.
  *
- * Cierra automáticamente todo lo que quedó abierto de un turno anterior:
- *  1. Pedidos PENDIENTE / EN_PROCESO con más de 12h → CANCELADO
- *  2. Mesas OCUPADA / CUENTA sin pedido activo → LIBRE
- *  3. Cajas ABIERTA con más de 16h → CERRADA
+ * Lógica de turno:
+ *  - El turno inicia cuando abre la primera caja y termina cuando cierran TODAS.
+ *  - Hay 30 min de gracia entre turnos (cuadratura).
+ *  - Las mesas con pedidos activos se heredan al nuevo turno (no se tocan).
+ *
+ * Acciones:
+ *  1. Pedidos huérfanos (sin mesa, +12h) → CANCELADO
+ *  2. Mesas OCUPADA/CUENTA sin ningún pedido activo → LIBRE
+ *  3. Cajas ABIERTA con +16h y sin actividad reciente → CERRADA
  */
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -20,25 +25,29 @@ export async function GET(req: NextRequest) {
   const ahora = new Date();
   const limite12h = subHours(ahora, 12);
   const limite16h = subHours(ahora, 16);
+  const limite30min = subMinutes(ahora, 30);
 
-  // ── 1. Cancelar pedidos viejos ──────────────────────────────────────────
+  // ── 1. Cancelar pedidos huérfanos ──────────────────────────────────────
+  // Solo cancela pedidos SIN mesa y SIN delivery activo que llevan +12h.
+  // Los pedidos de mesa se heredan al turno siguiente.
   const pedidosCancelados = await prisma.pedido.updateMany({
     where: {
       estado: { in: ["PENDIENTE", "EN_PROCESO"] },
       creadoEn: { lt: limite12h },
+      mesaId: null,       // sin mesa = huérfano
+      delivery: null,     // sin delivery activo
     },
-    data: {
-      estado: "CANCELADO",
-    },
+    data: { estado: "CANCELADO" },
   });
 
-  // ── 2. Liberar mesas sin pedido activo ─────────────────────────────────
-  // Primero obtenemos las mesas que siguen ocupadas pero ya no tienen pedido activo
+  // ── 2. Liberar mesas sin ningún pedido activo ───────────────────────────
+  // Las mesas que tienen pedidos pendientes o en proceso se heredan al turno
+  // siguiente, por lo que NO se tocan aquí.
   const mesasOcupadas = await prisma.mesa.findMany({
     where: { estado: { in: ["OCUPADA", "CUENTA", "RESERVADA"] } },
     include: {
       pedidos: {
-        where: { estado: { in: ["PENDIENTE", "EN_PROCESO"] } },
+        where: { estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] } },
         select: { id: true },
       },
     },
@@ -55,17 +64,34 @@ export async function GET(req: NextRequest) {
       })
     : { count: 0 };
 
-  // ── 3. Cerrar cajas abiertas hace más de 16h ────────────────────────────
-  const cajasCerradas = await prisma.caja.updateMany({
+  // ── 3. Cerrar cajas abandonadas ─────────────────────────────────────────
+  // Solo cierra cajas que llevan +16h abiertas Y no tuvieron actividad
+  // en los últimos 30 min (ninguna venta reciente = turno terminado).
+  const cajasAbiertas = await prisma.caja.findMany({
     where: {
       estado: "ABIERTA",
       abiertaEn: { lt: limite16h },
     },
-    data: {
-      estado: "CERRADA",
-      cerradaEn: ahora,
+    select: {
+      id: true,
+      ventas: {
+        where: { creadoEn: { gte: limite30min } },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
+
+  const cajasAbandonadas = cajasAbiertas
+    .filter((c) => c.ventas.length === 0)
+    .map((c) => c.id);
+
+  const cajasCerradas = cajasAbandonadas.length > 0
+    ? await prisma.caja.updateMany({
+        where: { id: { in: cajasAbandonadas } },
+        data: { estado: "CERRADA", cerradaEn: ahora },
+      })
+    : { count: 0 };
 
   const resumen = {
     ok: true,
