@@ -2,9 +2,19 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-import { Building2, Users, Package, Truck, QrCode, Mail, TrendingUp, CreditCard, Image as ImageIcon, Check, X, Loader2 } from "lucide-react";
+import { Building2, Truck, QrCode, Mail, CreditCard, Image as ImageIcon, Check, X, Loader2, Star, Gift, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
-export function SucursalCard({ s, plan, limits, ventasHoy, deliveryOk, menuQROk, correoOk }: any) {
+type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
+
+const PAGO_CONFIG: Record<EstadoPago, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
+  SOCIO:     { label: "Socio",     color: "text-violet-700",  bg: "bg-violet-100",  icon: <Star size={11} /> },
+  AL_DIA:    { label: "Al día",    color: "text-emerald-700", bg: "bg-emerald-100", icon: <CheckCircle2 size={11} /> },
+  GRATIS:    { label: "Gratis",    color: "text-blue-700",    bg: "bg-blue-100",    icon: <Gift size={11} /> },
+  PENDIENTE: { label: "Pendiente", color: "text-amber-700",   bg: "bg-amber-100",   icon: <Clock size={11} /> },
+  ATRASADO:  { label: "Atrasado",  color: "text-red-700",     bg: "bg-red-100",     icon: <AlertTriangle size={11} /> },
+};
+
+export function SucursalCard({ s, plan, limits, ventasHoy, deliveryOk, menuQROk, correoOk, estadoPago, mesesGratis }: any) {
   const [isEditingLogo, setIsEditingLogo] = useState(false);
   const [logoUrl, setLogoUrl] = useState(s.logoUrl || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -49,13 +59,28 @@ export function SucursalCard({ s, plan, limits, ventasHoy, deliveryOk, menuQROk,
             </p>
           </div>
         </div>
-        <span
-          className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${
-            plan === "PRO" ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700"
-          }`}
-        >
-          {plan}
-        </span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              plan === "PRIME" ? "bg-brand-100 text-brand-700" :
+              plan === "PRO" ? "bg-violet-100 text-violet-700" :
+              plan === "DEMO" ? "bg-slate-100 text-slate-600" :
+              "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {plan}
+          </span>
+          {estadoPago && (() => {
+            const cfg = PAGO_CONFIG[estadoPago as EstadoPago];
+            return cfg ? (
+              <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                {cfg.icon}
+                {cfg.label}
+                {estadoPago === "GRATIS" && mesesGratis > 0 && ` · ${mesesGratis}m`}
+              </span>
+            ) : null;
+          })()}
+        </div>
       </div>
 
       {/* Editor Logo Dropdown */}

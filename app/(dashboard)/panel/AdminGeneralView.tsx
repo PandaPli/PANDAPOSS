@@ -130,7 +130,7 @@ export async function AdminGeneralView() {
 
               return (
                 <StaggerItem key={s.id}>
-                  <SucursalCard 
+                  <SucursalCard
                     s={s}
                     plan={plan}
                     limits={limits}
@@ -138,6 +138,8 @@ export async function AdminGeneralView() {
                     deliveryOk={deliveryOk}
                     menuQROk={menuQROk}
                     correoOk={correoOk}
+                    estadoPago={s.estadoPago}
+                    mesesGratis={s.mesesGratis}
                   />
                 </StaggerItem>
               );
