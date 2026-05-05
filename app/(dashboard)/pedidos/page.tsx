@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { PedidosClient } from "./PedidosClient";
 import type { Rol } from "@/types";
 
-export const metadata: Metadata = { title: "PP — KDS" };
+export const metadata: Metadata = { title: "PP — Pedidos" };
 
 /* Micro-mensajes por rol */
 const WELCOME: Partial<Record<Rol, { emoji: string; msg: string }>> = {
