@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const data: Record<string, unknown> = {};
 
-  if (typeof body.estadoPago === "string" && ["PENDIENTE", "AL_DIA", "ATRASADO", "GRATIS"].includes(body.estadoPago)) {
+  if (typeof body.estadoPago === "string" && ["PENDIENTE", "AL_DIA", "ATRASADO", "GRATIS", "SOCIO"].includes(body.estadoPago)) {
     data.estadoPago = body.estadoPago;
   }
   if (typeof body.mesesGratis === "number" && body.mesesGratis >= 0) {

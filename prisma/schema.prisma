@@ -864,6 +864,7 @@ enum EstadoPago {
   AL_DIA
   ATRASADO
   GRATIS
+  SOCIO
 }
 
 enum TipoCupon {

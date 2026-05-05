@@ -3,10 +3,10 @@
 import { useState } from "react";
 import {
   CreditCard, Building2, Gift, CheckCircle2, AlertTriangle,
-  Clock, Crown, Save, Loader2, StickyNote,
+  Clock, Crown, Save, Loader2, StickyNote, Star,
 } from "lucide-react";
 
-type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS";
+type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
 
 interface SucursalPago {
   id: number;
@@ -27,6 +27,7 @@ const ESTADO_CONFIG: Record<EstadoPago, { label: string; color: string; bg: stri
   PENDIENTE: { label: "Pendiente", color: "text-amber-700",   bg: "bg-amber-100",   icon: <Clock size={14} /> },
   ATRASADO:  { label: "Atrasado",  color: "text-red-700",     bg: "bg-red-100",     icon: <AlertTriangle size={14} /> },
   GRATIS:    { label: "Gratis",    color: "text-blue-700",    bg: "bg-blue-100",    icon: <Gift size={14} /> },
+  SOCIO:     { label: "Socio",     color: "text-violet-700",  bg: "bg-violet-100",  icon: <Star size={14} /> },
 };
 
 const PLAN_COLORS: Record<string, string> = {
@@ -53,6 +54,7 @@ export function PagosClient({ sucursales: initial }: { sucursales: SucursalPago[
     pendiente: sucursales.filter((s) => s.estadoPago === "PENDIENTE").length,
     atrasado: sucursales.filter((s) => s.estadoPago === "ATRASADO").length,
     gratis: sucursales.filter((s) => s.estadoPago === "GRATIS").length,
+    socio: sucursales.filter((s) => s.estadoPago === "SOCIO").length,
     mesesGratisTotal: sucursales.reduce((sum, s) => sum + s.mesesGratis, 0),
   };
 
@@ -81,8 +83,9 @@ export function PagosClient({ sucursales: initial }: { sucursales: SucursalPago[
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
         <StatCard label="Total" value={counts.total} color="text-surface-text" onClick={() => setFilter("TODOS")} active={filter === "TODOS"} />
+        <StatCard label="Socios" value={counts.socio} color="text-violet-600" onClick={() => setFilter("SOCIO")} active={filter === "SOCIO"} />
         <StatCard label="Al día" value={counts.alDia} color="text-emerald-600" onClick={() => setFilter("AL_DIA")} active={filter === "AL_DIA"} />
         <StatCard label="Pendiente" value={counts.pendiente} color="text-amber-600" onClick={() => setFilter("PENDIENTE")} active={filter === "PENDIENTE"} />
         <StatCard label="Atrasado" value={counts.atrasado} color="text-red-600" onClick={() => setFilter("ATRASADO")} active={filter === "ATRASADO"} />
@@ -225,10 +228,11 @@ function SucursalPayRow({ sucursal: s, onUpdate }: {
               onChange={(e) => setEstado(e.target.value as EstadoPago)}
               className="w-full text-sm border border-surface-border rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             >
-              <option value="PENDIENTE">Pendiente</option>
+              <option value="SOCIO">Socio (marca propia)</option>
               <option value="AL_DIA">Al día</option>
+              <option value="GRATIS">Gratis (meses gratis)</option>
+              <option value="PENDIENTE">Pendiente</option>
               <option value="ATRASADO">Atrasado</option>
-              <option value="GRATIS">Gratis</option>
             </select>
           </div>
 
