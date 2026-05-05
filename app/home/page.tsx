@@ -5,6 +5,7 @@ import {
   MessageCircle, ArrowRight, Zap, Monitor, Bot,
   ShoppingCart, Bike, CreditCard, BarChart3, Bell,
   Check, Star, TrendingUp, Shield, Clock, Users, DollarSign,
+  Gift, Tablet, Package, Quote,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────
@@ -516,38 +517,93 @@ const SectionCycle = () => (
 );
 
 /* ─────────────────────────────────────────────────────────────
-   SECCIÓN 4 — TESTIMONIAL
+   SECCIÓN 4 — TESTIMONIALES (3 marcas reales)
 ───────────────────────────────────────────────────────────── */
-const SectionTestimonial = () => (
+const TESTIMONIALS = [
+  {
+    quote: "El KDS cambió cómo trabaja la cocina. Los pedidos llegan al instante y ya no perdemos comandas. Menos caos, más velocidad — y el equipo lo notó desde el primer turno.",
+    highlight: "→ Cero comandas perdidas desde que activamos el KDS",
+    name: "Rodrigo M.",
+    role: "Fundador · BamPai",
+    initial: "B",
+    grad: "linear-gradient(135deg,#6366f1,#8b2fc9)",
+    glow: "rgba(99,102,241,.4)",
+    color: "card-indigo",
+  },
+  {
+    quote: "La carta QR nos sacó de las llamadas por teléfono. Los clientes piden solos desde la mesa y yo tengo los datos de cada uno. Eso antes no lo teníamos con ninguna app.",
+    highlight: "→ Base de clientes propia, sin intermediarios",
+    name: "Pedro K.",
+    role: "Dueño · Kairo Sushi",
+    initial: "K",
+    grad: "linear-gradient(135deg,#ef4444,#f97316)",
+    glow: "rgba(239,68,68,.35)",
+    color: "card-red",
+  },
+  {
+    quote: "Activamos el bot de WhatsApp y en el primer mes los pedidos directos se duplicaron. Todo el margen que antes se llevaba la plataforma ahora queda en la caja.",
+    highlight: "→ Pedidos directos x2 en el primer mes",
+    name: "Carlos W.",
+    role: "Gerente · WokiDoki",
+    initial: "W",
+    grad: "linear-gradient(135deg,#059669,#25D366)",
+    glow: "rgba(37,211,102,.35)",
+    color: "card-green",
+  },
+];
+
+const SectionTestimonials = () => (
   <section style={{ padding:"96px 0", background:"linear-gradient(160deg,#f5f3ff,#f0fdf4)", position:"relative", overflow:"hidden" }}>
     <Aurora op={0.4}/>
-    <div className="max-w-2xl mx-auto px-5 sm:px-8" style={{ position:"relative", zIndex:1 }}>
-      <div style={{ textAlign:"center", marginBottom:32 }}>
-        <span style={{ ...ou, color:"#6366f1", fontSize:11, fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" }}>Lo que dicen nuestros clientes</span>
+    <div className="max-w-6xl mx-auto px-5 sm:px-8" style={{ position:"relative", zIndex:1 }}>
+      <div style={{ textAlign:"center", maxWidth:520, margin:"0 auto 48px" }}>
+        <span style={{ ...ou, color:"#6366f1", fontSize:11, fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" }}>
+          Lo que dicen quienes ya lo usan
+        </span>
+        <h2 style={{ ...ou, color:"#0f172a", fontSize:"clamp(1.9rem,3.5vw,2.8rem)", fontWeight:900, lineHeight:1.07, letterSpacing:"-.022em", marginTop:10 }}>
+          Resultados reales.<br/>No promesas.
+        </h2>
       </div>
-      <Card color="card-indigo" style={{ background:"rgba(255,255,255,.92)", borderRadius:"1.5rem" }}>
-        <div style={{ padding:"44px 38px", textAlign:"center" }}>
-          <div style={{ display:"flex", justifyContent:"center", gap:4, marginBottom:22 }}>
-            {[...Array(5)].map((_,i)=><Star key={i} size={17} style={{ color:"#f59e0b", fill:"#f59e0b" }}/>)}
-          </div>
-          <blockquote style={{ ...ou, color:"#1e293b", fontSize:"clamp(1rem,1.9vw,1.22rem)", fontWeight:700, lineHeight:1.58, marginBottom:20 }}>
-            "Antes le pagábamos casi 28% entre comisiones y promos. Con PandaPOS, la mitad de los pedidos ya son directos por WhatsApp y ese margen volvió a la caja."
-          </blockquote>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"9px 18px", borderRadius:999,
-            background:"#f0fdf4", border:"1px solid #86efac", marginBottom:26 }}>
-            <span style={{ ...ou, color:"#16a34a", fontSize:13, fontWeight:800 }}>→ Recuperamos el costo en el primer mes</span>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:11 }}>
-            <div style={{ width:44, height:44, borderRadius:"50%", background:"linear-gradient(135deg,#6366f1,#8b2fc9)",
-              display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:900, fontSize:16,
-              boxShadow:"0 4px 16px rgba(99,102,241,.4)" }}>M</div>
-            <div style={{ textAlign:"left" }}>
-              <p style={{ ...ou, color:"#0f172a", fontWeight:800, fontSize:13 }}>María P.</p>
-              <p style={{ ...ou, color:"#64748b", fontSize:11 }}>Dueña de dark kitchen · Santiago</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {TESTIMONIALS.map(t => (
+          <Card key={t.name} color={t.color} style={{ background:"rgba(255,255,255,.92)" }}>
+            <div style={{ padding:"28px 24px", display:"flex", flexDirection:"column", height:"100%" }}>
+              {/* Estrellas */}
+              <div style={{ display:"flex", gap:3, marginBottom:18 }}>
+                {[...Array(5)].map((_,i) => (
+                  <Star key={i} size={14} style={{ color:"#f59e0b", fill:"#f59e0b" }}/>
+                ))}
+              </div>
+
+              {/* Quote */}
+              <blockquote style={{ ...ou, color:"#1e293b", fontSize:14, fontWeight:600, lineHeight:1.68, marginBottom:16, flex:1 }}>
+                "{t.quote}"
+              </blockquote>
+
+              {/* Highlight pill */}
+              <div style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 12px", borderRadius:10,
+                background:"#f0fdf4", border:"1px solid #86efac", marginBottom:20 }}>
+                <span style={{ ...ou, color:"#16a34a", fontSize:11, fontWeight:800 }}>{t.highlight}</span>
+              </div>
+
+              {/* Author */}
+              <div style={{ display:"flex", alignItems:"center", gap:10, borderTop:"1px solid #f1f5f9", paddingTop:18 }}>
+                <div style={{ width:40, height:40, borderRadius:"50%", background:t.grad, flexShrink:0,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  color:"white", fontWeight:900, fontSize:15,
+                  boxShadow:`0 4px 16px ${t.glow}` }}>
+                  {t.initial}
+                </div>
+                <div>
+                  <p style={{ ...ou, color:"#0f172a", fontWeight:800, fontSize:13 }}>{t.name}</p>
+                  <p style={{ ...ou, color:"#64748b", fontSize:11 }}>{t.role}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </Card>
+          </Card>
+        ))}
+      </div>
     </div>
   </section>
 );
@@ -673,13 +729,15 @@ const SectionPreview = () => (
    SECCIÓN 5 — SISTEMA
 ───────────────────────────────────────────────────────────── */
 const FEATS = [
-  { icon:<Monitor size={20}/>, t:"KDS — Tu cocina nunca pierde un pedido",    d:"Cada orden llega a pantalla en tiempo real. Menos errores, más velocidad.", wide:true,  color:"card-indigo", ic:"#6366f1", ibg:"#f0f0ff" },
-  { icon:<Bot size={20}/>,      t:"Bot WhatsApp — Vende mientras duermes",      d:"El bot arma el carrito, confirma y manda a cocina. Sin intervención humana.", wide:false, color:"card-green",  ic:"#16a34a", ibg:"#f0fdf4" },
-  { icon:<ShoppingCart size={20}/>, t:"Carta QR — Tu menú en cualquier lugar", d:"Mesa, packaging, redes. El cliente escanea, elige y pide. Sin llamadas.",    wide:false, color:"card-sky",    ic:"#0ea5e9", ibg:"#f0f9ff" },
-  { icon:<Bike size={20}/>,     t:"Delivery — Control total del reparto",       d:"Asigna repartidores, define zonas y sigue cada pedido.",                       wide:false, color:"card-amber",  ic:"#d97706", ibg:"#fffbeb" },
-  { icon:<CreditCard size={20}/>, t:"POS — Caja rápida, cero caos",            d:"Multipago, boleta térmica y mesas. Menos colas, más rotación.",               wide:false, color:"card-red",    ic:"#ef4444", ibg:"#fff1f2" },
-  { icon:<BarChart3 size={20}/>, t:"Panel — Sabe exactamente cuánto ganas",    d:"Ventas del día, ticket promedio, ranking de clientes. Decisiones con datos.", wide:true,  color:"card-sky",    ic:"#0ea5e9", ibg:"#f0f9ff" },
-  { icon:<Bell size={20}/>,     t:"Notificaciones — Cada área recibe lo suyo", d:"Mesero, cajero y rider ven solo lo que les corresponde.",                      wide:false, color:"card-purple", ic:"#8b2fc9", ibg:"#faf0ff" },
+  { icon:<Monitor size={20}/>,     t:"KDS — Tu cocina nunca pierde un pedido",    d:"Cada orden llega a pantalla en tiempo real. Menos errores, más velocidad.",               wide:true,  color:"card-indigo", ic:"#6366f1", ibg:"#f0f0ff" },
+  { icon:<Bot size={20}/>,          t:"Bot WhatsApp — Vende mientras duermes",      d:"El bot arma el carrito, confirma y manda a cocina. Sin intervención humana.",             wide:false, color:"card-green",  ic:"#16a34a", ibg:"#f0fdf4" },
+  { icon:<ShoppingCart size={20}/>, t:"Carta QR — Tu menú en cualquier lugar",     d:"Mesa, packaging, redes. El cliente escanea, elige y pide. Sin llamadas.",                 wide:false, color:"card-sky",    ic:"#0ea5e9", ibg:"#f0f9ff" },
+  { icon:<Bike size={20}/>,         t:"Delivery — Control total del reparto",       d:"Asigna repartidores, define zonas y rastrea cada pedido en tiempo real.",                 wide:false, color:"card-amber",  ic:"#d97706", ibg:"#fffbeb" },
+  { icon:<CreditCard size={20}/>,   t:"POS — Caja rápida, cero caos",              d:"Multipago, boleta térmica y mesas. Menos colas, más rotación de clientes.",               wide:false, color:"card-red",    ic:"#ef4444", ibg:"#fff1f2" },
+  { icon:<Gift size={20}/>,         t:"Puntos — Fidelización que retiene clientes",d:"Tus clientes acumulan puntos en cada compra y los canjean contigo. La lealtad es tuya.", wide:false, color:"card-purple", ic:"#8b2fc9", ibg:"#faf0ff" },
+  { icon:<Tablet size={20}/>,       t:"Kiosko — Autoatención con pago MP",         d:"El cliente elige y paga solo desde el kiosko. Sin colas, sin cajero ocupado.",            wide:false, color:"card-amber",  ic:"#d97706", ibg:"#fffbeb" },
+  { icon:<Package size={20}/>,      t:"Inventario — Nunca más te quedas sin stock",d:"Alertas de quiebre en tiempo real. Productos e ingredientes bajo control.",               wide:false, color:"card-teal",   ic:"#0f766e", ibg:"#f0fdfa" },
+  { icon:<BarChart3 size={20}/>,    t:"Panel — Sabe exactamente cuánto ganas",     d:"Ventas del día, ticket promedio, ranking de clientes. Decisiones con datos.",             wide:true,  color:"card-sky",    ic:"#0ea5e9", ibg:"#f0f9ff" },
 ];
 
 const SectionSystem = () => (
@@ -771,8 +829,8 @@ const PLANS = [
   },
   {
     name:"Prime", price:"$14.900", hook:"Escala sin límites",
-    pitch:"Multi-sucursal, kiosko y pagos avanzados.",
-    items:["Todo de Pro","Multi-sucursal","Kiosko de autoatención","Pagos con Mercado Pago","Soporte prioritario"],
+    pitch:"Kiosko, fidelización y pagos avanzados. Todo sin fricción.",
+    items:["Todo de Pro","Kiosko de autoatención","Pagos con Mercado Pago","Sistema de puntos y fidelidad","Inventario avanzado + alertas","Soporte prioritario"],
     cta:"Ir por Prime",
     ctaStyle:{ background:"#fffbeb", border:"1.5px solid #fcd34d", color:"#92400e" } as React.CSSProperties,
     color:"card-amber", badge:null, accent:"#d97706",
@@ -903,7 +961,7 @@ export default function HomePage() {
         <StatsBar/>
         <SectionSolution/>
         <SectionCycle/>
-        <SectionTestimonial/>
+        <SectionTestimonials/>
         <SectionPreview/>
         <SectionSystem/>
         <SectionBenefits/>
