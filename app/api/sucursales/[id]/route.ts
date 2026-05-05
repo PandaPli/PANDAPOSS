@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso, productoMesActivo, productoDiaActivo, ofertaFugazActivo } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -61,6 +61,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (flayerUrl    !== undefined) data.flayerUrl    = (flayerUrl    as string)?.trim() || null;
     if (flayerActivo !== undefined) data.flayerActivo = Boolean(flayerActivo);
     if (mpAccessToken !== undefined) data.mpAccessToken = (mpAccessToken as string)?.trim() || null;
+    if (productoMesActivo !== undefined) data.productoMesActivo = Boolean(productoMesActivo);
+    if (productoDiaActivo !== undefined) data.productoDiaActivo = Boolean(productoDiaActivo);
+    if (ofertaFugazActivo !== undefined) data.ofertaFugazActivo = Boolean(ofertaFugazActivo);
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();

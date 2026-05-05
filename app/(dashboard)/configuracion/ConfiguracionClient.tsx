@@ -6,6 +6,7 @@ import {
   Save, Loader2, Building2, Receipt, ImageIcon, Upload, X,
   Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin,
   Plus, Trash2, Star, Bot, Bike, QrCode, CreditCard, Globe,
+  Trophy, Sun, Zap, Sparkles,
 } from "lucide-react";
 import type { Rol } from "@/types";
 import ZonaMapEditor from "@/components/configuracion/ZonaMapEditor";
@@ -61,6 +62,9 @@ interface Props {
   sucursalPuntosActivo?: boolean;
   sucursalPuntosPorMil?: number;
   sucursalValorPunto?: number;
+  sucursalProductoMesActivo?: boolean;
+  sucursalProductoDiaActivo?: boolean;
+  sucursalOfertaFugazActivo?: boolean;
 }
 
 // ─── Widget primitives ────────────────────────────────────────────────────────
@@ -194,6 +198,7 @@ export function ConfiguracionClient({
   sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok,
   sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo,
   sucursalMpAccessToken, sucursalPuntosActivo, sucursalPuntosPorMil, sucursalValorPunto,
+  sucursalProductoMesActivo, sucursalProductoDiaActivo, sucursalOfertaFugazActivo,
 }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
@@ -283,6 +288,13 @@ export function ConfiguracionClient({
   const [valorPunto, setValorPunto] = useState<string>(String(sucursalValorPunto ?? 1));
   const [puntosLoading, setPuntosLoading] = useState(false);
   const [puntosMsg, setPuntosMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // Estado Vitrina Especial
+  const [productoMesActivo, setProductoMesActivo] = useState<boolean>(sucursalProductoMesActivo ?? false);
+  const [productoDiaActivo, setProductoDiaActivo] = useState<boolean>(sucursalProductoDiaActivo ?? false);
+  const [ofertaFugazActivo, setOfertaFugazActivo] = useState<boolean>(sucursalOfertaFugazActivo ?? false);
+  const [vitrinaLoading, setVitrinaLoading] = useState(false);
+  const [vitrinaMsg, setVitrinaMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   // Estado PANDI
   const [pandiActivo, setPandiActivo] = useState(true);
@@ -572,6 +584,21 @@ export function ConfiguracionClient({
       setPuntosMsg({ type: "ok", text: "Configuración de puntos guardada." });
     } catch (err) { setPuntosMsg({ type: "error", text: (err as Error).message }); }
     finally { setPuntosLoading(false); }
+  }
+
+  async function handleVitrinaToggle(campo: "productoMesActivo" | "productoDiaActivo" | "ofertaFugazActivo", valor: boolean) {
+    if (!sucursalId) return;
+    setVitrinaLoading(true); setVitrinaMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [campo]: valor }),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      setVitrinaMsg({ type: "ok", text: "Guardado" });
+      setTimeout(() => setVitrinaMsg(null), 2000);
+    } catch (err) { setVitrinaMsg({ type: "error", text: (err as Error).message }); }
+    finally { setVitrinaLoading(false); }
   }
 
   // ─── Vista RESTAURANTE ────────────────────────────────────────────────────
@@ -1025,6 +1052,75 @@ export function ConfiguracionClient({
                 {puntosLoading ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 Guardar puntos
               </button>
+            </WidgetCard>
+
+            {/* Vitrina Especial */}
+            <WidgetCard
+              icon={<Sparkles size={17} />}
+              iconBg="bg-indigo-600"
+              title="Vitrina Especial"
+              description="Activa secciones destacadas en tu carta digital y punto de venta"
+              badge={productoMesActivo || productoDiaActivo || ofertaFugazActivo ? "Activo" : "Inactivo"}
+              badgeVariant={productoMesActivo || productoDiaActivo || ofertaFugazActivo ? "active" : "inactive"}
+            >
+              <Msg msg={vitrinaMsg} />
+
+              {/* Producto del Mes */}
+              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
+                <div className="min-w-0 pr-4">
+                  <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
+                    <Trophy size={13} className="text-amber-500 shrink-0" />
+                    Producto del Mes
+                  </p>
+                  <p className="text-xs text-surface-muted mt-0.5">Destaca un producto especial cada mes en tu carta</p>
+                </div>
+                <Toggle
+                  checked={productoMesActivo}
+                  disabled={vitrinaLoading}
+                  onChange={(v) => { setProductoMesActivo(v); handleVitrinaToggle("productoMesActivo", v); }}
+                  activeColor="bg-amber-500"
+                />
+              </div>
+
+              {/* Producto del Día */}
+              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
+                <div className="min-w-0 pr-4">
+                  <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
+                    <Sun size={13} className="text-orange-500 shrink-0" />
+                    Producto del Día
+                  </p>
+                  <p className="text-xs text-surface-muted mt-0.5">Rotativo diario visible en carta QR y kiosko</p>
+                </div>
+                <Toggle
+                  checked={productoDiaActivo}
+                  disabled={vitrinaLoading}
+                  onChange={(v) => { setProductoDiaActivo(v); handleVitrinaToggle("productoDiaActivo", v); }}
+                  activeColor="bg-orange-500"
+                />
+              </div>
+
+              {/* Oferta Fugaz */}
+              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
+                <div className="min-w-0 pr-4">
+                  <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
+                    <Zap size={13} className="text-red-500 shrink-0" />
+                    Oferta Fugaz
+                  </p>
+                  <p className="text-xs text-surface-muted mt-0.5">Promociones de tiempo limitado con contador visible</p>
+                </div>
+                <Toggle
+                  checked={ofertaFugazActivo}
+                  disabled={vitrinaLoading}
+                  onChange={(v) => { setOfertaFugazActivo(v); handleVitrinaToggle("ofertaFugazActivo", v); }}
+                  activeColor="bg-red-500"
+                />
+              </div>
+
+              {vitrinaLoading && (
+                <div className="flex items-center justify-center gap-2 text-xs text-surface-muted py-1">
+                  <Loader2 size={12} className="animate-spin" /> Guardando…
+                </div>
+              )}
             </WidgetCard>
           </div>
         </Section>

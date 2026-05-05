@@ -61,6 +61,9 @@ model Sucursal {
   puntosPorMil    Decimal        @default(10.00) @db.Decimal(8, 2)
   valorPunto      Decimal        @default(1.00)  @db.Decimal(8, 2)
   notifAviso      Boolean        @default(false)
+  productoMesActivo   Boolean    @default(false)
+  productoDiaActivo   Boolean    @default(false)
+  ofertaFugazActivo   Boolean    @default(false)
   asistencias     Asistencia[]
   cajas         Caja[]
   clientes      Cliente[]

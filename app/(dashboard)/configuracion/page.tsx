@@ -46,9 +46,12 @@ export default async function ConfiguracionPage() {
   let sucursalFlayerUrl:       string | null = null;
   let sucursalFlayerActivo:    boolean       = false;
   let sucursalMpAccessToken:   string | null = null;
-  let sucursalPuntosActivo:    boolean       = false;
-  let sucursalPuntosPorMil:    number        = 10;
-  let sucursalValorPunto:      number        = 1;
+  let sucursalPuntosActivo:      boolean = false;
+  let sucursalPuntosPorMil:      number  = 10;
+  let sucursalValorPunto:        number  = 1;
+  let sucursalProductoMesActivo: boolean = false;
+  let sucursalProductoDiaActivo: boolean = false;
+  let sucursalOfertaFugazActivo: boolean = false;
 
   if (rol === "RESTAURANTE" && sucursalId) {
     const suc = await prisma.sucursal.findUnique({
@@ -61,6 +64,7 @@ export default async function ConfiguracionPage() {
         socialYoutube: true, socialTiktok: true, socialTwitter: true,
         flayerUrl: true, flayerActivo: true, mpAccessToken: true,
         puntosActivo: true, puntosPorMil: true, valorPunto: true,
+        productoMesActivo: true, productoDiaActivo: true, ofertaFugazActivo: true,
       },
     });
     if (suc) {
@@ -84,9 +88,12 @@ export default async function ConfiguracionPage() {
       sucursalFlayerUrl       = suc.flayerUrl;
       sucursalFlayerActivo    = suc.flayerActivo;
       sucursalMpAccessToken   = suc.mpAccessToken;
-      sucursalPuntosActivo    = suc.puntosActivo;
-      sucursalPuntosPorMil    = Number(suc.puntosPorMil);
-      sucursalValorPunto      = Number(suc.valorPunto);
+      sucursalPuntosActivo      = suc.puntosActivo;
+      sucursalPuntosPorMil      = Number(suc.puntosPorMil);
+      sucursalValorPunto        = Number(suc.valorPunto);
+      sucursalProductoMesActivo = suc.productoMesActivo;
+      sucursalProductoDiaActivo = suc.productoDiaActivo;
+      sucursalOfertaFugazActivo = suc.ofertaFugazActivo;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
@@ -135,6 +142,9 @@ export default async function ConfiguracionPage() {
         sucursalPuntosActivo={sucursalPuntosActivo}
         sucursalPuntosPorMil={sucursalPuntosPorMil}
         sucursalValorPunto={sucursalValorPunto}
+        sucursalProductoMesActivo={sucursalProductoMesActivo}
+        sucursalProductoDiaActivo={sucursalProductoDiaActivo}
+        sucursalOfertaFugazActivo={sucursalOfertaFugazActivo}
       />
     </div>
   );
