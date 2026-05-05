@@ -78,6 +78,12 @@ model Sucursal {
   vacaciones    Vacacion[]
   agente        AgenteWsp?
 
+  // ─── BILLING ──────────────────────────────────────────────────────
+  estadoPago      EstadoPago @default(PENDIENTE)
+  mesesGratis     Int        @default(0)
+  fechaInicioPlan DateTime?
+  notaPago        String?    @db.VarChar(300)
+
   @@index([tenantId], map: "sucursales_tenantId_fkey")
   @@map("sucursales")
 }
@@ -851,6 +857,13 @@ enum EstadoRepartidor {
   DISPONIBLE
   EN_RUTA
   INACTIVO
+}
+
+enum EstadoPago {
+  PENDIENTE
+  AL_DIA
+  ATRASADO
+  GRATIS
 }
 
 enum TipoCupon {
