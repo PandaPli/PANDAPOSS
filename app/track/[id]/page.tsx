@@ -30,6 +30,21 @@ export default async function TrackOrderPage({ params }: Props) {
 
   if (!pedido || pedido.tipo !== "DELIVERY") notFound();
 
+  // Expirar el track después de 48h — los datos siguen en historial/informes
+  const horasDesdeCreacion = (Date.now() - pedido.creadoEn.getTime()) / 1000 / 3600;
+  if (horasDesdeCreacion > 48) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 text-center">
+        <div className="text-5xl mb-4">📦</div>
+        <h1 className="text-xl font-bold text-slate-700 mb-2">Enlace expirado</h1>
+        <p className="text-slate-500 text-sm max-w-xs">
+          El seguimiento de este pedido ya no está disponible.<br />
+          Tu pedido fue entregado correctamente.
+        </p>
+      </div>
+    );
+  }
+
   const meta = parseDeliveryObservation(pedido.observacion);
   const [pedidosActivos, driversActivos] = await Promise.all([
     prisma.pedido.count({
