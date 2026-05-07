@@ -381,7 +381,8 @@ const Hero = () => (
 
           <h1 style={{ ...ou, fontSize:"clamp(2.6rem,5vw,4.4rem)", fontWeight:900, lineHeight:1.03, letterSpacing:"-.028em", color:"#0f172a", marginBottom:8 }}>
             Las apps de delivery<br/>
-            <span className="grad-red">te cobran un{" "}
+            <span className="grad-red">te cobran un </span>
+            <span style={{ color:"#ef4444", WebkitTextFillColor:"#ef4444", position:"relative" }}>
               <span className="strike-wrap">30%</span>
             </span><br/>
             por cada pedido.
