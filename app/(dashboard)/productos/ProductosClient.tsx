@@ -71,12 +71,14 @@ function SortableCatCard({
   onCambiarEstacion,
   onRename,
   onToggleVisibilidad,
+  onChangeOrden,
 }: {
   cat: Categoria;
   savingEstacion: number | null;
   onCambiarEstacion: (id: number, est: Estacion) => void;
   onRename: (id: number, nombre: string) => void;
   onToggleVisibilidad: (id: number, field: "enMenu" | "enMenuQR", value: boolean) => void;
+  onChangeOrden: (id: number, orden: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
   const est = (cat.estacion ?? "COCINA") as Estacion;
@@ -84,6 +86,8 @@ function SortableCatCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft]     = useState(cat.nombre);
   const [saving, setSaving]   = useState(false);
+  const [ordenDraft, setOrdenDraft] = useState(String(cat.orden ?? 0));
+  const [savingOrden, setSavingOrden] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function startEdit() { setDraft(cat.nombre); setEditing(true); setTimeout(() => inputRef.current?.select(), 30); }
@@ -103,6 +107,19 @@ function SortableCatCard({
     setEditing(false);
   }
 
+  async function saveOrden() {
+    const val = parseInt(ordenDraft, 10);
+    if (isNaN(val) || val === (cat.orden ?? 0)) return;
+    setSavingOrden(true);
+    await fetch(`/api/categorias/${cat.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orden: val }),
+    });
+    onChangeOrden(cat.id, val);
+    setSavingOrden(false);
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -110,6 +127,20 @@ function SortableCatCard({
       className={`flex flex-col gap-1 rounded-xl border border-surface-border p-2 bg-white ${isDragging ? "opacity-50 shadow-lg z-50" : ""}`}
     >
       <div className="flex items-center gap-1">
+        {/* Input numérico de prioridad */}
+        <div className="flex items-center gap-0.5" title="Prioridad — número menor = aparece primero">
+          <input
+            type="number"
+            value={ordenDraft}
+            onChange={e => setOrdenDraft(e.target.value)}
+            onBlur={saveOrden}
+            onKeyDown={e => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
+            disabled={savingOrden}
+            className="w-9 rounded border border-surface-border bg-surface-bg px-1 py-0.5 text-center text-[10px] font-bold text-surface-text outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-200 disabled:opacity-50"
+          />
+          {savingOrden && <Loader2 size={9} className="animate-spin text-brand-500 flex-shrink-0" />}
+        </div>
+
         <button
           {...attributes}
           {...listeners}
@@ -367,6 +398,13 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
 
   function renombrarCategoria(id: number, nombre: string) {
     setCategoriasState((prev) => prev.map((c) => c.id === id ? { ...c, nombre } : c));
+  }
+
+  function cambiarOrdenCategoria(id: number, orden: number) {
+    setCategoriasState((prev) =>
+      [...prev.map((c) => c.id === id ? { ...c, orden } : c)]
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    );
   }
 
   function guardarPlantilla(grupo: VGrupo) {
@@ -811,6 +849,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
                     onCambiarEstacion={cambiarEstacion}
                     onRename={renombrarCategoria}
                     onToggleVisibilidad={toggleVisibilidadCategoria}
+                    onChangeOrden={cambiarOrdenCategoria}
                   />
                 ))}
                 {showNuevaCat && (
