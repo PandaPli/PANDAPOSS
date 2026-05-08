@@ -9,8 +9,9 @@ import { PrecuentaModal } from "@/components/pos/PrecuentaModal";
 import { useCartStore } from "@/stores/cartStore";
 import type { ProductoCard, CartItem } from "@/types";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Zap, WifiOff } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Wallet, CheckCircle2, ShoppingCart, UtensilsCrossed, Printer, Zap, WifiOff, Pencil, Check, X, Monitor } from "lucide-react";
 import { fetchPedidoOffline } from "@/lib/offline/offlineFetch";
+import { NotificacionesCajero } from "@/components/pedidos/NotificacionesCajero";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +77,14 @@ export function NuevaVentaClient({
   const [ordenLoading, setOrdenLoading] = useState(false);
   const [ordenMsg, setOrdenMsg] = useState("");
   const [mobileTab, setMobileTab] = useState<"menu" | "carrito">("menu");
+
+  // Alias editable de mesa (ej: "Mesa 2 / Roberto")
+  const [mesaAlias, setMesaAlias] = useState("");
+  const [editingAlias, setEditingAlias] = useState(false);
+  const [aliasInput, setAliasInput] = useState("");
+
+  // Visor cliente
+  const [showVisor, setShowVisor] = useState(false);
 
   const { items, mesaId, pedidoId, setPedido, total, setInitialState, markAsSaved, getItemsByGrupo, setMesaFresh } = useCartStore();
 
@@ -283,15 +292,63 @@ export function NuevaVentaClient({
     }
   }
 
+  // Label efectivo de mesa: alias personalizado o nombre original
+  const mesaLabel = mesaAlias.trim() || mesaNombre || "";
+
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col gap-0">
+      {/* Notificaciones flotantes (pedidos listos en cocina) */}
+      <NotificacionesCajero />
+
       {/* Barra superior */}
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-surface-border bg-white px-4 py-3">
+      <div className="flex flex-shrink-0 items-center gap-2 border-b border-surface-border bg-white px-4 py-3">
         <button onClick={handleVolver} className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-95 transition-all">
           <ArrowLeft size={15} />
-          <span>Volver a Mesas</span>
+          <span className="hidden sm:inline">Volver a Mesas</span>
         </button>
-        <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
+
+        {/* Nombre / alias de mesa editable */}
+        {mesaNombre && (
+          <div className="flex items-center gap-1.5">
+            {editingAlias ? (
+              <>
+                <input
+                  autoFocus
+                  type="text"
+                  value={aliasInput}
+                  onChange={(e) => setAliasInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { setMesaAlias(aliasInput.trim()); setEditingAlias(false); }
+                    if (e.key === "Escape") setEditingAlias(false);
+                  }}
+                  placeholder={mesaNombre}
+                  className="w-36 rounded-lg border border-brand-400 bg-brand-50 px-2 py-1 text-sm font-semibold text-brand-700 outline-none focus:ring-2 focus:ring-brand-200"
+                />
+                <button onClick={() => { setMesaAlias(aliasInput.trim()); setEditingAlias(false); }} className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-500 text-white hover:bg-brand-600">
+                  <Check size={13} />
+                </button>
+                <button onClick={() => setEditingAlias(false)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-100 text-stone-500 hover:bg-stone-200">
+                  <X size={13} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setAliasInput(mesaAlias || mesaNombre); setEditingAlias(true); }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-white px-2.5 py-1.5 text-sm font-bold text-surface-text shadow-sm hover:bg-surface-bg transition-all"
+                title="Editar nombre / alias de la mesa"
+              >
+                <UtensilsCrossed size={13} className="text-brand-500" />
+                <span>{mesaLabel}</span>
+                <Pencil size={11} className="text-surface-muted" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {!mesaNombre && (
+          <h1 className="text-sm font-bold text-surface-text sm:text-base">Nueva Orden</h1>
+        )}
+
         <Link
           href="/ventas/nueva?modo=express"
           className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700 shadow-sm hover:bg-amber-100 active:scale-95 transition-all"
@@ -300,6 +357,16 @@ export function NuevaVentaClient({
           <Zap size={14} className="fill-amber-400 text-amber-500" />
           <span className="hidden sm:inline">Express</span>
         </Link>
+
+        {/* Botón Visor cliente */}
+        <button
+          onClick={() => setShowVisor(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-surface-border bg-white px-3 py-1.5 text-sm font-semibold text-surface-muted shadow-sm hover:bg-surface-bg hover:text-surface-text active:scale-95 transition-all"
+          title="Visor de cliente — pantalla del pedido"
+        >
+          <Monitor size={14} />
+          <span className="hidden sm:inline">Visor</span>
+        </button>
 
         {ordenMsg && (
           <span className="inline-flex animate-fade-in items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
@@ -416,9 +483,20 @@ export function NuevaVentaClient({
         <PrecuentaModal
           simbolo={simbolo}
           meseroNombre={meseroNombre}
-          mesaNombre={mesaNombre ?? (mesaId ? `Mesa ${mesaId}` : undefined)}
+          mesaNombre={mesaLabel || (mesaId ? `Mesa ${mesaId}` : undefined)}
           logoUrl={logoUrl}
           onClose={() => setShowPrecuenta(false)}
+        />
+      )}
+
+      {/* ══ VISOR DE CLIENTE ══ */}
+      {showVisor && (
+        <VisorCliente
+          simbolo={simbolo}
+          mesaLabel={mesaLabel}
+          items={items}
+          total={total()}
+          onClose={() => setShowVisor(false)}
         />
       )}
 
@@ -481,6 +559,88 @@ export function NuevaVentaClient({
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VISOR DE CLIENTE
+   Pantalla de cara al cliente — muestra el pedido en tiempo real
+═══════════════════════════════════════════════════════════ */
+function VisorCliente({
+  simbolo,
+  mesaLabel,
+  items,
+  total,
+  onClose,
+}: {
+  simbolo: string;
+  mesaLabel: string;
+  items: CartItem[];
+  total: number;
+  onClose: () => void;
+}) {
+  const activos = items.filter((i) => !i.cancelado && !i.pagado);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Botón cerrar */}
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-all"
+      >
+        <X size={20} />
+      </button>
+
+      {/* Header con nombre de mesa */}
+      <div className="flex items-center justify-center gap-3 border-b border-white/10 bg-white/5 px-8 py-5">
+        <Monitor size={22} className="text-brand-400" />
+        <span className="text-xl font-black tracking-wide text-white">
+          {mesaLabel || "Tu pedido"}
+        </span>
+      </div>
+
+      {/* Lista de ítems */}
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-3">
+        {activos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 opacity-40">
+            <ShoppingCart size={48} className="mb-3" />
+            <p className="text-lg font-semibold">Carrito vacío</p>
+          </div>
+        ) : (
+          activos.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-2xl bg-white/8 px-6 py-4 border border-white/10"
+            >
+              <div className="flex items-center gap-4">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-base font-black text-white flex-shrink-0">
+                  {item.cantidad}
+                </span>
+                <span className="text-lg font-semibold text-white">{item.nombre}</span>
+              </div>
+              <span className="text-lg font-black text-brand-300">
+                {formatCurrency(item.precio * item.cantidad, simbolo)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Total */}
+      {activos.length > 0 && (
+        <div className="border-t border-white/10 bg-white/5 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-white/70">TOTAL</span>
+            <span className="text-4xl font-black text-brand-300 tracking-tight">
+              {formatCurrency(total, simbolo)}
+            </span>
+          </div>
+          <p className="mt-2 text-center text-sm text-white/40">
+            ¡Gracias por su preferencia!
+          </p>
         </div>
       )}
     </div>

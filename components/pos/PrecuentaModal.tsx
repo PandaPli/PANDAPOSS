@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Printer, X } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
@@ -16,6 +16,8 @@ interface Props {
 export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUrl, onClose }: Props) {
   const { items, subtotal, totalDescuento, totalIva, total, descuento, ivaPorc } = useCartStore();
   const printRef = useRef<HTMLDivElement>(null);
+  // Toggle: imprimir con o sin sugerencia de propina
+  const [conPropina, setConPropina] = useState(true);
 
   const sub = subtotal();
   const desc = totalDescuento();
@@ -201,30 +203,33 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
               </div>
             </div>
 
-            {/* Propina sugerida 10% */}
-            <div className="suggested-box" style={{ margin: "8px 0", border: "1px dashed #000", padding: 6, textAlign: "center" }}>
-              <p className="suggested-label" style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1 }}>
-                Total sugerido con propina 10%
-              </p>
-              <p className="suggested-total" style={{ fontSize: 24, fontWeight: "bold", marginTop: 2 }}>
-                {formatCurrency(totalSugerido10, simbolo)}
-              </p>
-            </div>
+            {/* Propina sugerida — solo si conPropina=true */}
+            {conPropina && (
+              <>
+                <div className="suggested-box" style={{ margin: "8px 0", border: "1px dashed #000", padding: 6, textAlign: "center" }}>
+                  <p className="suggested-label" style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1 }}>
+                    Total sugerido con propina 10%
+                  </p>
+                  <p className="suggested-total" style={{ fontSize: 24, fontWeight: "bold", marginTop: 2 }}>
+                    {formatCurrency(totalSugerido10, simbolo)}
+                  </p>
+                </div>
 
-            <div className="divider" style={{ borderTop: "1px dashed #000", margin: "6px 0" }} />
+                <div className="divider" style={{ borderTop: "1px dashed #000", margin: "6px 0" }} />
 
-            {/* Otras propinas */}
-            <div style={{ marginBottom: 8 }}>
-              <p style={{ marginBottom: 4, textAlign: "center", fontSize: 12, fontWeight: "bold" }}>Otras propinas sugeridas</p>
-              <div className="tip-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "2px 0" }}>
-                <span>15% Maravilloso</span>
-                <span style={{ fontWeight: "bold" }}>{formatCurrency(totalSugerido15, simbolo)}</span>
-              </div>
-              <div className="tip-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "2px 0" }}>
-                <span>20% Extraordinario</span>
-                <span style={{ fontWeight: "bold" }}>{formatCurrency(totalSugerido20, simbolo)}</span>
-              </div>
-            </div>
+                <div style={{ marginBottom: 8 }}>
+                  <p style={{ marginBottom: 4, textAlign: "center", fontSize: 12, fontWeight: "bold" }}>Otras propinas sugeridas</p>
+                  <div className="tip-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "2px 0" }}>
+                    <span>15% Maravilloso</span>
+                    <span style={{ fontWeight: "bold" }}>{formatCurrency(totalSugerido15, simbolo)}</span>
+                  </div>
+                  <div className="tip-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "2px 0" }}>
+                    <span>20% Extraordinario</span>
+                    <span style={{ fontWeight: "bold" }}>{formatCurrency(totalSugerido20, simbolo)}</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Aviso */}
             <div className="warning" style={{ textAlign: "center", padding: 5, border: "1px dashed #000", marginTop: 8 }}>
@@ -232,6 +237,21 @@ export function PrecuentaModal({ simbolo = "$", mesaNombre, meseroNombre, logoUr
               <p className="warning-sub" style={{ fontSize: 11 }}>NO ES BOLETA NI FACTURA</p>
             </div>
           </div>
+        </div>
+
+        <div className="border-t border-surface-border px-5 pt-4 pb-2">
+          {/* Toggle propina */}
+          <label className="flex items-center justify-between cursor-pointer select-none">
+            <span className="text-sm font-semibold text-surface-text">Imprimir con propina</span>
+            <div
+              onClick={() => setConPropina((v) => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${conPropina ? "bg-brand-500" : "bg-stone-300"}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${conPropina ? "translate-x-6" : "translate-x-1"}`}
+              />
+            </div>
+          </label>
         </div>
 
         <div className="flex gap-3 border-t border-surface-border p-5">

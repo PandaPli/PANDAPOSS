@@ -395,19 +395,19 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
             {items.filter((i) => !i.cancelado && !i.pagado).length}
           </span>
         )}
-        {/* Toggle modo grupos — solo si hay ítems guardados */}
-        {(items.some((i) => i.guardado && !i.cancelado) || hayCuentas) && (
+        {/* Toggle dividir cuentas — siempre visible cuando hay ítems */}
+        {items.length > 0 && (
           <button
             onClick={() => setModoGrupos((v) => !v)}
-            title={modoCuentas ? "Ver todo junto" : "Dividir por grupos"}
+            title={modoCuentas ? "Ver todo junto" : "Dividir cuentas por grupo"}
             className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all ${
               modoCuentas
                 ? "bg-brand-500 text-white shadow-sm"
                 : "border border-surface-border bg-white text-surface-muted hover:border-brand-300 hover:text-brand-500"
             }`}
           >
-            <Users size={12} />
-            Grupos
+            <Scissors size={12} />
+            {modoCuentas ? "Cuentas ✓" : "Dividir"}
           </button>
         )}
       </div>
