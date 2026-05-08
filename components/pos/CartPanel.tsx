@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock, Share2 } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Receipt, Send, FileText, Loader2, Ban, Check, Users, X, Scissors, Clock, Share2, Pencil } from "lucide-react";
 import { useCartStore, getGrupoColor } from "@/stores/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CartItem, RondaPedido } from "@/types";
@@ -20,6 +20,8 @@ interface Props {
   /** Catálogo de productos para el CustomerSelector */
   productos?: ProductoCatalogo[];
   puntosConfig?: { activo: boolean; puntosPorMil: number; valorPunto: number };
+  /** Notifica al padre el grupo activo (para que ProductGrid asigne ítems al grupo correcto) */
+  onActiveGrupoChange?: (grupo: string | null) => void;
 }
 
 const GRUPOS_DISPONIBLES = ["A1", "A2", "A3", "A4", "A5"];
@@ -47,11 +49,11 @@ interface SplitState {
   cantidades: Record<string, number>;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [], productos = [], puntosConfig }: Props) {
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [], productos = [], puntosConfig, onActiveGrupoChange }: Props) {
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
-    setItemGrupo, splitItemGrupos, setItemCompartido, grupoNombres,
+    setItemGrupo, splitItemGrupos, setItemCompartido, grupoNombres, setGrupoNombre,
     getGrupos, getItemsByGrupo, getItemsCompartidos, getSubtotalGrupo,
   } = useCartStore();
 
@@ -62,6 +64,13 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
   const [splitDialog, setSplitDialog] = useState<SplitState | null>(null);
   const [compartirDialog, setCompartirDialog] = useState<{ item: CartItem; seleccion: string[] } | null>(null);
 
+  // Sub-mesa state
+  const [activeGrupo, setActiveGrupo] = useState<string | null>(null);
+  const [showNuevoGrupoInput, setShowNuevoGrupoInput] = useState(false);
+  const [nuevoGrupoNombreInput, setNuevoGrupoNombreInput] = useState("");
+  const [editandoGrupo, setEditandoGrupo] = useState<string | null>(null);
+  const [editandoGrupoInput, setEditandoGrupoInput] = useState("");
+
   const sub  = subtotal();
   const desc = totalDescuento();
   const iva  = totalIva();
@@ -71,7 +80,47 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
     item.detalleId ? `d-${item.detalleId}` : `${item.tipo}-${item.id}`;
 
   const grupos = getGrupos();
-  const todosLosGrupos = grupos; // alias para claridad en diálogos
+
+  // Todos los grupos: union de grupos con nombre (pre-creados) + grupos con ítems
+  const gruposConNombre = Object.keys(grupoNombres);
+  const allGruposSet = new Set([...gruposConNombre, ...grupos]);
+  const allGrupos = Array.from(allGruposSet).sort();
+  const todosLosGrupos = allGrupos; // alias para diálogos
+
+  // ──────────────────────────────────────────────
+  //  Sub-mesa helpers
+  // ──────────────────────────────────────────────
+
+  function getNextGrupoSlot(): string | null {
+    return GRUPOS_DISPONIBLES.find((g) => !allGrupos.includes(g)) ?? null;
+  }
+
+  function setActiveGrupoLocal(grupo: string | null) {
+    setActiveGrupo(grupo);
+    onActiveGrupoChange?.(grupo);
+  }
+
+  function handleCrearSubMesa() {
+    const nombre = nuevoGrupoNombreInput.trim();
+    if (!nombre) return;
+    const slot = getNextGrupoSlot();
+    if (!slot) return;
+    setGrupoNombre(slot, nombre);
+    setActiveGrupoLocal(slot);
+    setModoGrupos(true);
+    setShowNuevoGrupoInput(false);
+    setNuevoGrupoNombreInput("");
+  }
+
+  function handleRenombrarGrupo() {
+    if (!editandoGrupo) return;
+    const nombre = editandoGrupoInput.trim();
+    if (nombre) setGrupoNombre(editandoGrupo, nombre);
+    setEditandoGrupo(null);
+    setEditandoGrupoInput("");
+  }
+
+  // ──────────────────────────────────────────────
 
   /** Anular / reactivar ítem guardado → sincroniza con KDS; hace rollback local si falla */
   const handleCancel = useCallback(async (item: CartItem) => {
@@ -233,10 +282,10 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
             </div>
           )}
 
-          {/* Selector de grupo en modo grupos */}
-          {modoCuentas && !item.cancelado && !item.pagado && item.detalleId && (
+          {/* Selector de grupo en modo cuentas — solo muestra grupos ya creados */}
+          {modoCuentas && !item.cancelado && !item.pagado && item.detalleId && allGrupos.length > 0 && (
             <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-              {!item.compartido && GRUPOS_DISPONIBLES.map((g) => {
+              {!item.compartido && allGrupos.map((g) => {
                 const enEsteGrupo = items.filter((i) => i.grupo === g && !i.compartido && !i.cancelado && !i.pagado).length;
                 const esMio = item.grupo === g;
                 return (
@@ -262,7 +311,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
                 );
               })}
               {/* Botón compartir — solo si hay ≥2 grupos */}
-              {grupos.length >= 2 && item.guardado && (
+              {allGrupos.length >= 2 && item.guardado && (
                 <button
                   onClick={() => setCompartirDialog({ item, seleccion: item.participantes ?? (item.grupo ? [item.grupo] : []) })}
                   title="Marcar como compartido entre grupos"
@@ -398,7 +447,14 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         {/* Toggle dividir cuentas — siempre visible cuando hay ítems */}
         {items.length > 0 && (
           <button
-            onClick={() => setModoGrupos((v) => !v)}
+            onClick={() => {
+              const next = !modoGrupos;
+              setModoGrupos(next);
+              // Al activar modo grupos por primera vez sin grupos existentes → abrir input sub-mesa
+              if (next && allGrupos.length === 0) {
+                setShowNuevoGrupoInput(true);
+              }
+            }}
             title={modoCuentas ? "Ver todo junto" : "Dividir cuentas por grupo"}
             className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all ${
               modoCuentas
@@ -411,6 +467,152 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
           </button>
         )}
       </div>
+
+      {/* ── Sub-mesa tabs ── visible cuando modoCuentas o ya hay grupos creados */}
+      {(modoCuentas || allGrupos.length > 0) && items.length > 0 && (
+        <div className="border-b border-surface-border bg-stone-50 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1.5 min-h-[28px]">
+
+            {/* Grupo pills existentes */}
+            {allGrupos.map((grupo) => {
+              const color = getGrupoColor(grupo);
+              const nombre = grupoNombres[grupo];
+              const isActive = activeGrupo === grupo;
+              const itemCount = getItemsByGrupo(grupo).length;
+
+              return editandoGrupo === grupo ? (
+                /* Inline rename */
+                <div key={grupo} className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editandoGrupoInput}
+                    onChange={(e) => setEditandoGrupoInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleRenombrarGrupo();
+                      if (e.key === "Escape") { setEditandoGrupo(null); setEditandoGrupoInput(""); }
+                    }}
+                    className="w-24 rounded-lg border px-2 py-0.5 text-xs font-semibold outline-none focus:ring-1"
+                    style={{ borderColor: color, color, backgroundColor: `${color}10` }}
+                  />
+                  <button
+                    onClick={handleRenombrarGrupo}
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-white"
+                    style={{ backgroundColor: color }}
+                  >
+                    <Check size={9} />
+                  </button>
+                  <button
+                    onClick={() => { setEditandoGrupo(null); setEditandoGrupoInput(""); }}
+                    className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-200 text-stone-500"
+                  >
+                    <X size={9} />
+                  </button>
+                </div>
+              ) : (
+                /* Pill normal */
+                <div key={grupo} className="flex items-center gap-0.5 group">
+                  <button
+                    onClick={() => setActiveGrupoLocal(isActive ? null : grupo)}
+                    title={isActive ? "Deseleccionar grupo" : `Agregar ítems a ${nombre || grupo}`}
+                    className="flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-l-full text-xs font-bold border-2 transition-all"
+                    style={{
+                      borderColor: color,
+                      borderRightWidth: 0,
+                      backgroundColor: isActive ? color : `${color}18`,
+                      color: isActive ? "white" : color,
+                    }}
+                  >
+                    <span
+                      className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white flex-shrink-0"
+                      style={{ backgroundColor: isActive ? "rgba(255,255,255,0.35)" : color }}
+                    >
+                      {nombre ? nombre[0].toUpperCase() : grupo}
+                    </span>
+                    {nombre || grupo}
+                    {itemCount > 0 && (
+                      <span
+                        className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black"
+                        style={{
+                          backgroundColor: isActive ? "rgba(255,255,255,0.25)" : `${color}30`,
+                          color: isActive ? "white" : color,
+                        }}
+                      >
+                        {itemCount}
+                      </span>
+                    )}
+                  </button>
+                  {/* Rename button — visible on hover */}
+                  <button
+                    onClick={() => { setEditandoGrupo(grupo); setEditandoGrupoInput(nombre || ""); }}
+                    title="Renombrar"
+                    className="flex h-[30px] w-5 items-center justify-center rounded-r-full border-2 border-l-0 opacity-40 hover:opacity-100 transition-opacity"
+                    style={{ borderColor: color, backgroundColor: isActive ? color : `${color}18` }}
+                  >
+                    <Pencil size={8} style={{ color: isActive ? "white" : color }} />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* + Sub-mesa — solo si quedan slots disponibles */}
+            {!showNuevoGrupoInput && allGrupos.length < GRUPOS_DISPONIBLES.length && (
+              <button
+                onClick={() => { setShowNuevoGrupoInput(true); setModoGrupos(true); }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border border-dashed border-stone-300 text-stone-500 hover:border-brand-400 hover:text-brand-500 transition-all"
+              >
+                <Plus size={10} />
+                Sub-mesa
+              </button>
+            )}
+
+            {/* Inline input para nuevo grupo */}
+            {showNuevoGrupoInput && (
+              <div className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  type="text"
+                  value={nuevoGrupoNombreInput}
+                  onChange={(e) => setNuevoGrupoNombreInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCrearSubMesa();
+                    if (e.key === "Escape") { setShowNuevoGrupoInput(false); setNuevoGrupoNombreInput(""); }
+                  }}
+                  placeholder="Ej: Andrea..."
+                  className="w-28 rounded-lg border border-brand-400 bg-white px-2 py-0.5 text-xs font-semibold text-brand-700 outline-none focus:ring-1 focus:ring-brand-200"
+                />
+                <button
+                  onClick={handleCrearSubMesa}
+                  disabled={!nuevoGrupoNombreInput.trim() || !getNextGrupoSlot()}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600"
+                >
+                  <Check size={9} />
+                </button>
+                <button
+                  onClick={() => { setShowNuevoGrupoInput(false); setNuevoGrupoNombreInput(""); }}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-stone-200 text-stone-500 hover:bg-stone-300"
+                >
+                  <X size={9} />
+                </button>
+              </div>
+            )}
+
+            {/* Hint cuando no hay grupos */}
+            {allGrupos.length === 0 && !showNuevoGrupoInput && (
+              <p className="text-[10px] text-stone-400 italic">
+                Crea sub-mesas para dividir la cuenta
+              </p>
+            )}
+          </div>
+
+          {/* Indicador de grupo activo */}
+          {activeGrupo && grupoNombres[activeGrupo] && (
+            <p className="mt-1.5 text-[10px] font-semibold" style={{ color: getGrupoColor(activeGrupo) }}>
+              ✏️ Agregando a: <strong>{grupoNombres[activeGrupo]}</strong>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Customer Selector */}
       <CustomerSelector
@@ -430,22 +632,40 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         ) : modoCuentas ? (
           <>
             {/* Modo grupos: ítems agrupados por grupo */}
-            {grupos.map((grupo) => {
+            {allGrupos.map((grupo) => {
               const grupoItems = getItemsByGrupo(grupo);
               const grupoSub = getSubtotalGrupo(grupo);
               const color = getGrupoColor(grupo);
               const activeCount = grupoItems.filter((i) => !i.cancelado && !i.pagado).length;
               const nombre = grupoNombres[grupo];
+              const isActiveGrupo = activeGrupo === grupo;
               return (
-                <div key={grupo} className="rounded-xl overflow-hidden border border-surface-border mb-1">
-                  {/* Encabezado de grupo */}
-                  <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: `${color}18` }}>
+                <div
+                  key={grupo}
+                  className="rounded-xl overflow-hidden border mb-1"
+                  style={{ borderColor: isActiveGrupo ? color : undefined }}
+                >
+                  {/* Encabezado de grupo — clickeable para activar */}
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                    style={{ backgroundColor: isActiveGrupo ? `${color}28` : `${color}18` }}
+                    onClick={() => setActiveGrupoLocal(isActiveGrupo ? null : grupo)}
+                    title={isActiveGrupo ? "Deseleccionar" : `Activar ${nombre || grupo} — nuevos ítems van aquí`}
+                  >
                     <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white flex-shrink-0" style={{ backgroundColor: color }}>
                       {nombre ? nombre[0].toUpperCase() : grupo}
                     </div>
                     <span className="text-xs font-bold" style={{ color }}>{nombre || `Grupo ${grupo}`}</span>
                     {activeCount > 0 && (
                       <span className="text-[10px] text-surface-muted font-medium">{activeCount} ítem{activeCount !== 1 ? "s" : ""}</span>
+                    )}
+                    {isActiveGrupo && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: color }}>
+                        ✏️ Activo
+                      </span>
+                    )}
+                    {grupoItems.length === 0 && (
+                      <span className="text-[10px] text-stone-400 italic">Sin ítems aún</span>
                     )}
                     <span className="ml-auto text-xs font-black" style={{ color }}>
                       {formatCurrency(grupoSub, simbolo)}
@@ -665,15 +885,15 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
             </button>
           </div>
           <div className="space-y-1">
-            {GRUPOS_DISPONIBLES.map((g) => {
+            {(allGrupos.length > 0 ? allGrupos : GRUPOS_DISPONIBLES).map((g) => {
               const color = getGrupoColor(g);
               const val = splitDialog.cantidades[g] ?? 0;
               return (
                 <div key={g} className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black text-white" style={{ backgroundColor: color }}>
-                    {g}
+                    {grupoNombres[g] ? grupoNombres[g][0].toUpperCase() : g}
                   </div>
-                  <span className="text-xs text-surface-text w-14">Grupo {g}</span>
+                  <span className="text-xs text-surface-text w-20 truncate">{grupoNombres[g] || `Grupo ${g}`}</span>
                   <button onClick={() => setSplitDialog((s) => s ? { ...s, cantidades: { ...s.cantidades, [g]: Math.max(0, val - 1) } } : s)}
                     className="w-5 h-5 rounded border border-surface-border flex items-center justify-center hover:bg-white text-xs">-</button>
                   <span className="w-4 text-center text-xs font-bold">{val}</span>

@@ -97,6 +97,9 @@ export function NuevaVentaClient({
     );
   }, [productos, userRol]);
 
+  // Grupo activo para asignar nuevos ítems del ProductGrid
+  const [activeGrupo, setActiveGrupo] = useState<string | null>(null);
+
   const [checkoutGrupo, setCheckoutGrupo] = useState<string | null>(null);
   const [ticketData, setTicketData] = useState<{
     pedidoNum: number;
@@ -421,7 +424,7 @@ export function NuevaVentaClient({
 
       <div className="flex flex-1 overflow-hidden">
         <div className={cn("flex-1 overflow-hidden p-3 sm:p-4", mobileTab === "carrito" ? "hidden md:block" : "block")}>
-          <ProductGrid productos={productosFiltrados} simbolo={simbolo} />
+          <ProductGrid productos={productosFiltrados} simbolo={simbolo} activeGrupo={activeGrupo} />
         </div>
 
         <div className={cn("flex-shrink-0 overflow-hidden", "md:block md:w-72 xl:w-80", mobileTab === "carrito" ? "block w-full" : "hidden md:block")}>
@@ -441,6 +444,7 @@ export function NuevaVentaClient({
               imagen: p.imagen,
             }))}
             puntosConfig={puntosConfig}
+            onActiveGrupoChange={setActiveGrupo}
           />
         </div>
       </div>
