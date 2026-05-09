@@ -100,12 +100,13 @@ function ResultsDropdown({
 
   return (
     <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-surface-border rounded-xl shadow-lg overflow-hidden divide-y divide-surface-border/60">
-      {resultados.map((c) => (
+      {resultados.map((c, idx) => (
         <button
           key={c.id}
-          onMouseDown={(e) => e.preventDefault()} // evita perder foco del input antes del click
+          onMouseDown={(e) => e.preventDefault()} // evita blur del input antes del click (escritorio)
+          onTouchStart={(e) => e.preventDefault()}  // igual para pantallas táctiles
           onClick={() => onSelect(c)}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-50 transition-colors"
+          className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${idx === 0 ? "bg-brand-50 hover:bg-brand-100" : "hover:bg-surface-50"}`}
         >
           <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
             <User size={13} className="text-brand-600" />
@@ -121,7 +122,11 @@ function ResultsDropdown({
               {c.puntos} pts
             </span>
           )}
-          <ChevronRight size={12} className="text-surface-muted flex-shrink-0" />
+          {idx === 0 ? (
+            <span className="text-[9px] font-bold text-brand-500 bg-brand-100 px-1.5 py-0.5 rounded flex-shrink-0">↵</span>
+          ) : (
+            <ChevronRight size={12} className="text-surface-muted flex-shrink-0" />
+          )}
         </button>
       ))}
     </div>
@@ -330,6 +335,14 @@ export function CustomerSelector({ simbolo = "$", puntosConfig, productos }: Pro
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* ── Sincronizar local state cuando el store resetea clienteId (ej: tras clear()) ── */
+  useEffect(() => {
+    if (!clienteId && selectedCliente) {
+      setSelectedCliente(null);
+      setResumen(null);
+    }
+  }, [clienteId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Búsqueda con debounce 200ms ───────────────────────────────────────── */
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -445,7 +458,16 @@ export function CustomerSelector({ simbolo = "$", puntosConfig, productos }: Pro
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => { if (resultados.length > 0) setOpen(true); }}
-              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              onBlur={() => setTimeout(() => setOpen(false), 300)}
+              onKeyDown={(e) => {
+                // Enter → seleccionar el primer resultado (flujo rápido con teclado/pantalla)
+                if (e.key === "Enter" && resultados.length > 0) {
+                  e.preventDefault();
+                  handleSelect(resultados[0]);
+                }
+                // Escape → limpiar búsqueda
+                if (e.key === "Escape") { setQuery(""); setOpen(false); }
+              }}
               className="flex-1 bg-transparent text-xs text-surface-text placeholder:text-surface-muted outline-none min-w-0"
             />
             {query && (
