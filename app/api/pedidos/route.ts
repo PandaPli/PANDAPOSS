@@ -16,8 +16,9 @@ export async function GET(req: NextRequest) {
   const pedidos = await PedidoRepo.list({
     sucursalId,
     isAdmin: rol === "ADMIN_GENERAL",
-    tipo:   searchParams.get("tipo"),
-    estado: searchParams.get("estado"),
+    tipo:        searchParams.get("tipo"),
+    estado:      searchParams.get("estado"),
+    completados: searchParams.get("completados") === "1",
   });
 
   return NextResponse.json(pedidos);

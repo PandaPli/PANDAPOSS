@@ -158,6 +158,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const { filter, setFilter, nightMode, toggleNightMode } = useKdsUI();
 
   const [pedidos, setPedidos] = useState<PedidoConDetalles[]>(initial);
+  const [completados, setCompletados] = useState<PedidoConDetalles[]>([]);
   // Default: delivery ve solo DELIVERY; los demas ven TODOS (cocinero/barman ven
   // tambien pedidos de kiosko que son tipo MOSTRADOR)
   const [tipoFiltro, setTipoFiltro] = useState<TipoPedido | "TODOS">(
@@ -172,17 +173,20 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const fetchPedidos = useCallback(async () => {
     const seq = ++fetchSeq.current;
     try {
-      const [r1, r2, r3] = await Promise.all([
+      const [r1, r2, r3, r4] = await Promise.all([
         fetch("/api/pedidos?estado=PENDIENTE"),
         fetch("/api/pedidos?estado=EN_PROCESO"),
         fetch("/api/pedidos?estado=LISTO"),
+        fetch("/api/pedidos?completados=1"),   // historial LISTO + ENTREGADO 24h
       ]);
       const p1 = r1.ok ? await r1.json() : [];
       const p2 = r2.ok ? await r2.json() : [];
       const p3 = r3.ok ? await r3.json() : [];
+      const p4 = r4.ok ? await r4.json() : [];
       // Si llegó una respuesta más nueva mientras esperábamos, descartar ésta
       if (seq !== fetchSeq.current) return;
       setPedidos([...p1, ...p2, ...p3]);
+      setCompletados(p4);
     } catch (e) {
       console.error(e);
     }
@@ -211,6 +215,7 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const pendienteCount = pendientes.length;
   const enProcesoCount = enProceso.length;
   const enCursoCount   = pendienteCount + enProcesoCount;
+  // Badge muestra solo LISTO (pedidos listos esperando entrega)
   const listosCount    = listosAll.length;
 
   // Filtrar por tipo y ordenar (PENDIENTE primero, luego EN_PROCESO, más antiguo primero)
@@ -222,9 +227,15 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
       return new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime();
     });
 
-  const listos = listosAll.filter(p => tipoFiltro === "TODOS" || p.tipo === tipoFiltro);
+  // Historial completo: LISTO + ENTREGADO de las últimas 24h (ya viene filtrado
+  // por estacion desde el rol via pedidosVisibles para los activos, pero
+  // completados viene del servidor sin filtro de estacion — aplicar aqui)
+  const completadosFiltrados = completados
+    .map(p => filtrarPorEstacion(p, estacionesRol))
+    .filter((p): p is PedidoConDetalles => p !== null)
+    .filter(p => tipoFiltro === "TODOS" || p.tipo === tipoFiltro);
 
-  const displayed = filter === "EN_CURSO" ? enCurso : listos;
+  const displayed = filter === "EN_CURSO" ? enCurso : completadosFiltrados;
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -371,9 +382,11 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
           Estacion
         </span>
         {tipoTabs.map(tab => {
+          // Para la pestaña Completados usamos el total sin filtro de tipo
+          const base = filter === "LISTOS" ? completadosFiltrados : displayed;
           const count = tab.key === "TODOS"
-            ? displayed.length
-            : displayed.filter(p => p.tipo === tab.key).length;
+            ? base.length
+            : base.filter(p => p.tipo === tab.key).length;
           const isActive = tipoFiltro === tab.key;
           const showCount = tab.key !== "TODOS" && count > 0;
           return (
