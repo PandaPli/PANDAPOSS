@@ -6,7 +6,7 @@ import {
   ArrowLeft, Phone, Mail, MapPin, Cake, User,
   ShoppingBag, TrendingUp, CreditCard, Banknote,
   ArrowLeftRight, CheckCircle2, XCircle, Loader2, Hash,
-  Gift, Send, Copy,
+  Gift, Send, Copy, SlidersHorizontal,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,9 @@ function generoLabel(g: string | null) {
   return null;
 }
 
+type FiltroEstado = "todas" | "PAGADA" | "ANULADA";
+type OrdenVentas = "reciente" | "antiguo" | "mayor" | "menor";
+
 export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
   const router = useRouter();
   const [cliente, setCliente] = useState<ClienteDetalle | null>(null);
@@ -85,6 +88,11 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
   const [enviandoCupon, setEnviandoCupon] = useState(false);
   const [cuponMsg, setCuponMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
+
+  // Filtros del historial de compras
+  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todas");
+  const [filtroOrden, setFiltroOrden] = useState<OrdenVentas>("reciente");
+  const [filtroMetodo, setFiltroMetodo] = useState<string>("todos");
 
   useEffect(() => {
     fetch(`/api/clientes/${clienteId}`)
@@ -183,18 +191,90 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
 
         {/* ── LEFT: Historial de compras ── */}
         <div className="space-y-3">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-stone-400">
-            Historial de compras
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-stone-400">
+              Historial de compras
+            </h2>
+            <span className="text-xs text-stone-400 font-medium">{cliente.ventas.length} registros</span>
+          </div>
 
-          {cliente.ventas.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-stone-200 bg-white py-12 text-center">
-              <ShoppingBag size={28} className="text-stone-300" />
-              <p className="text-sm text-stone-400">Sin compras registradas</p>
+          {/* Filtros */}
+          {cliente.ventas.length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center p-3 rounded-2xl border border-stone-200 bg-stone-50">
+              <SlidersHorizontal size={13} className="text-stone-400 shrink-0" />
+
+              {/* Estado */}
+              <select
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
+                className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-700 focus:outline-none focus:ring-1 focus:ring-brand-300"
+              >
+                <option value="todas">Todas</option>
+                <option value="PAGADA">Solo pagadas</option>
+                <option value="ANULADA">Solo anuladas</option>
+              </select>
+
+              {/* Método de pago */}
+              <select
+                value={filtroMetodo}
+                onChange={(e) => setFiltroMetodo(e.target.value)}
+                className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-700 focus:outline-none focus:ring-1 focus:ring-brand-300"
+              >
+                <option value="todos">Todo método</option>
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+              </select>
+
+              {/* Orden */}
+              <select
+                value={filtroOrden}
+                onChange={(e) => setFiltroOrden(e.target.value as OrdenVentas)}
+                className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-700 focus:outline-none focus:ring-1 focus:ring-brand-300"
+              >
+                <option value="reciente">Más reciente</option>
+                <option value="antiguo">Más antiguo</option>
+                <option value="mayor">Mayor monto</option>
+                <option value="menor">Menor monto</option>
+              </select>
+
+              {/* Reset */}
+              {(filtroEstado !== "todas" || filtroMetodo !== "todos" || filtroOrden !== "reciente") && (
+                <button
+                  onClick={() => { setFiltroEstado("todas"); setFiltroMetodo("todos"); setFiltroOrden("reciente"); }}
+                  className="ml-auto text-xs text-stone-400 hover:text-stone-600 font-semibold underline"
+                >
+                  Limpiar
+                </button>
+              )}
             </div>
-          ) : (
+          )}
+
+          {(() => {
+            // Aplicar filtros
+            let ventasFiltradas = [...cliente.ventas];
+            if (filtroEstado !== "todas") ventasFiltradas = ventasFiltradas.filter(v => v.estado === filtroEstado);
+            if (filtroMetodo !== "todos") ventasFiltradas = ventasFiltradas.filter(v => v.metodoPago === filtroMetodo);
+            ventasFiltradas.sort((a, b) => {
+              if (filtroOrden === "reciente") return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+              if (filtroOrden === "antiguo") return new Date(a.creadoEn).getTime() - new Date(b.creadoEn).getTime();
+              if (filtroOrden === "mayor") return b.total - a.total;
+              if (filtroOrden === "menor") return a.total - b.total;
+              return 0;
+            });
+
+            if (ventasFiltradas.length === 0) return (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-stone-200 bg-white py-12 text-center">
+                <ShoppingBag size={28} className="text-stone-300" />
+                <p className="text-sm text-stone-400">
+                  {cliente.ventas.length === 0 ? "Sin compras registradas" : "Sin resultados con estos filtros"}
+                </p>
+              </div>
+            );
+
+            return (
             <div className="space-y-2">
-              {cliente.ventas.map((v) => {
+              {ventasFiltradas.map((v) => {
                 const expanded = expandedVenta === v.id;
                 return (
                   <div key={v.id} className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
@@ -268,7 +348,8 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* ── RIGHT: Info + Direcciones ── */}

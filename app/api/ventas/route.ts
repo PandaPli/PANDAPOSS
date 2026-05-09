@@ -51,8 +51,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "El carrito esta vacio" }, { status: 400 });
   }
 
-  const usuarioId = (session.user as { id: number }).id;
-  const rol = (session.user as { rol: Rol }).rol;
+  const usuarioId  = (session.user as { id: number }).id;
+  const rol        = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   if (!checkRateLimit(usuarioId)) {
     return NextResponse.json({ error: "Demasiadas ventas en poco tiempo. Espera un momento." }, { status: 429 });
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
       cajaId: body.cajaId ? Number(body.cajaId) : null,
       clienteId: body.clienteId ? Number(body.clienteId) : null,
       usuarioId,
+      sucursalId: sucursalId ?? null,          // ← necesario para calcular/acumular puntos
       pedidoId: body.pedidoId ? Number(body.pedidoId) : null,
       mesaId: body.mesaId ? Number(body.mesaId) : null,
       items: body.items,
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
       modoGrupo: body.modoGrupo ?? false,
       cuponId: body.cuponId ? Number(body.cuponId) : null,
       cuponCodigo: body.cuponCodigo ?? null,
+      puntosCanjeados: body.puntosCanjeados ? Number(body.puntosCanjeados) : null, // ← canje
     });
     return NextResponse.json(venta, { status: 201 });
   } catch (error) {

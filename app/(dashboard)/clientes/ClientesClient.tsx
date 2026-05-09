@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -96,6 +96,16 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
   const [sucFiltro, setSucFiltro] = useState<number | null>(null);
   const [filtroGenero, setFiltroGenero] = useState<FiltroGenero>("todos");
   const [orden, setOrden] = useState<OrdenKey>("nombre");
+
+  // Leer ?orden=... de la URL al montar (ej: desde "Ver todos" del panel)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ordenParam = params.get("orden");
+    const validos: OrdenKey[] = ["nombre", "edad_asc", "edad_desc", "cumple", "puntos"];
+    if (ordenParam && (validos as string[]).includes(ordenParam)) {
+      setOrden(ordenParam as OrdenKey);
+    }
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Cliente | null>(null);
   const [form, setForm] = useState(emptyForm);

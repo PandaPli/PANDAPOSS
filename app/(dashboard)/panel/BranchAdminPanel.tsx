@@ -195,10 +195,14 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
       orderBy: { nombre: "asc" },
     }).then(ings => ings.filter(i => Number(i.stock) <= Number(i.stockMinimo))),
     // 15. Top compradores del mes
+    // OR: ventas con caja de la sucursal ó ventas del usuario de la sucursal (sin caja abierta)
     prisma.venta.groupBy({
       by: ["clienteId"],
       where: {
-        caja: { sucursalId },
+        OR: [
+          { caja: { sucursalId } },
+          { usuario: { sucursalId } },
+        ],
         estado: "PAGADA",
         clienteId: { not: null },
         creadoEn: { gte: mesInicio, lte: hoyFin },
@@ -670,7 +674,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
                 <Star size={13} className="text-violet-600" />
                 <span className="text-[11px] font-bold uppercase tracking-widest text-violet-700">Top Compradores</span>
               </div>
-              <Link href="/clientes" className="text-[10px] text-brand-600 hover:underline font-semibold">Ver todos →</Link>
+              <Link href="/clientes?orden=puntos" className="text-[10px] text-brand-600 hover:underline font-semibold">Ver todos →</Link>
             </div>
             {topCompradores.length === 0 ? (
               <p className="text-[11px] text-surface-muted py-3 text-center">Sin datos este mes</p>
