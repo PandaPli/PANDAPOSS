@@ -195,7 +195,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   }, [productos, searchProd]);
 
   const cartCodes = cart.filter(i => i.codigo).map(i => i.codigo!);
-  const subtotal = cart.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+  const subtotal = collapseCart().reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const descuentoPorcentajeMonto = Math.round((subtotal * Math.min(100, Math.max(0, descPorcentaje))) / 100);
   const descuentoCuponMonto = cuponAplicado?.descuentoAplicado ?? 0;
   const descMontoFijoAplicado = Math.min(descMontoFijo, subtotal); // no puede superar el subtotal
@@ -355,10 +355,20 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     const rolls = cart.filter(i => i.codigo);
     const others = cart.filter(i => !i.codigo);
     if (rolls.length === 0) return cart;
-    const rollsTotal = rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+
+    // Precio: busca el producto-tabla en BD (ej: "Tabla 80 Pz" → $33.000)
+    let tablaPrice = 0;
+    if (selectedTabla) {
+      const key = selectedTabla.n.toLowerCase(); // "tabla 80"
+      const found = productos.find(p => p.nombre.toLowerCase().includes(key));
+      tablaPrice = found ? Number(found.precio) : rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    } else {
+      tablaPrice = rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    }
+
     return [
       ...others,
-      { tempId: "tabla-combo", nombre: selectedTabla ? selectedTabla.n : "Rolls", precio: rollsTotal, cantidad: 1 },
+      { tempId: "tabla-combo", nombre: selectedTabla ? selectedTabla.n : "Rolls", precio: tablaPrice, cantidad: 1 },
     ];
   }
 
