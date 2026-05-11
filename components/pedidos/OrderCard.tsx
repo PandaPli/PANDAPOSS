@@ -525,8 +525,13 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className={cn("text-sm font-semibold leading-tight", d.cancelado ? "line-through text-gray-400" : nightMode ? "text-gray-100" : "text-surface-text")}>
-                        {d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "") : "--")}
+                        {d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "").split(" | ")[0] : "--")}
                       </p>
+                      {!d.cancelado && d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ") && (
+                        <p className={cn("font-mono text-xs font-black tracking-wider mt-0.5", nightMode ? "text-amber-300" : "text-amber-700")}>
+                          {d.observacion.split(" | ")[1]}
+                        </p>
+                      )}
                       {d.cancelado && (
                         <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                       )}

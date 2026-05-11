@@ -44,6 +44,7 @@ interface CartLine {
   productoId?: number;     // solo productos de carta
   nombre: string;
   codigo?: string;         // código KDS (ej: "A5")
+  observacion?: string;    // para tabla: códigos "A5 C4 Q2 H4"
   precio: number;
   cantidad: number;
   esLibre?: boolean;
@@ -366,9 +367,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       tablaPrice = rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
     }
 
+    const codes = rolls.map(i => i.codigo!).join("  ");
     return [
       ...others,
-      { tempId: "tabla-combo", nombre: selectedTabla ? selectedTabla.n : "Rolls", precio: tablaPrice, cantidad: 1 },
+      { tempId: "tabla-combo", nombre: selectedTabla ? selectedTabla.n : "Rolls", precio: tablaPrice, cantidad: 1, observacion: codes },
     ];
   }
 
@@ -385,7 +387,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           sucursalId,
           items: collapseCart().map((i) =>
             (i.esLibre || !i.productoId)
-              ? { productoId: null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad }
+              ? { productoId: null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad, observacion: i.observacion }
               : { productoId: i.productoId, cantidad: i.cantidad }
           ),
           cliente: {

@@ -176,7 +176,7 @@ export const DeliveryService = {
                   })()
                 : Number(item.precio ?? 0),
               observacion: !item.productoId && item.nombre
-                ? `[LIBRE] ${item.nombre.trim()}`
+                ? `[LIBRE] ${item.nombre.trim()}${item.observacion?.trim() ? ` | ${item.observacion.trim()}` : ""}`
                 : item.observacion?.trim() || undefined,
             }))
           }
@@ -442,7 +442,7 @@ export const DeliveryService = {
           id: detalle.id,
           cantidad: detalle.cantidad,
           nombre: detalle.producto?.nombre ?? detalle.combo?.nombre
-            ?? (detalle.observacion?.startsWith("[LIBRE]") ? detalle.observacion.replace("[LIBRE] ", "") : null)
+            ?? (detalle.observacion?.startsWith("[LIBRE]") ? detalle.observacion.replace("[LIBRE] ", "").split(" | ")[0] : null)
             ?? "Item",
           precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0),
         })),
