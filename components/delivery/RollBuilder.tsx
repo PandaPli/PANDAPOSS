@@ -25,7 +25,7 @@ const CAT_PREFIX: Record<string, string> = {
   hotrolls:         "H",
   "hot rolls":      "H",
   "hot":            "H",
-  hosomaki:         "HO",
+  hosomaki:         "O",
   temaki:           "T",
   sake:             "S",
 };

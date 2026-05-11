@@ -58,8 +58,8 @@ const TABLAS: { n: string; piezas: number; queue: string[] }[] = [
   { n: "Tabla 60",  piezas: 60,  queue: ["Avocado","California","Cheese Cream","HotRolls","HotRolls","HotRolls"] },
   { n: "Tabla 70",  piezas: 70,  queue: ["Avocado","California","Cheese Cream","HotRolls","HotRolls","HotRolls","HotRolls"] },
   { n: "Tabla 80",  piezas: 80,  queue: ["Avocado","California","Cheese Cream","Futomaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
-  { n: "Tabla 90",  piezas: 90,  queue: ["Avocado","California","Cheese Cream","Futomaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
-  { n: "Tabla 101", piezas: 101, queue: ["Avocado","California","Cheese Cream","Sake","Futomaki","Hosomaki","Temaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
+  { n: "Tabla 90",  piezas: 90,  queue: ["Avocado","California","Cheese Cream","Futomaki","HotRolls","HotRolls","HotRolls","HotRolls","HotRolls"] },
+  { n: "Tabla 100", piezas: 100, queue: ["Avocado","California","Cheese Cream","Sake","Futomaki","Hosomaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
 ];
 
 interface ClienteEncontrado {
