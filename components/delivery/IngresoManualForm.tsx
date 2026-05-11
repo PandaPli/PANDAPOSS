@@ -36,7 +36,7 @@ interface Producto {
   precio: number;
   imagen?: string | null;
   codigo?: string | null;
-  categoria?: { nombre: string };
+  categoria?: { nombre: string } | null;
 }
 
 interface CartLine {
