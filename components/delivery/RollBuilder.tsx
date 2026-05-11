@@ -4,6 +4,37 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
+// ── Rellenos estándar — los mismos para TODOS los tipos de roll ────────────
+const FILLINGS = [
+  { num: 1, label: "Kanikama" },
+  { num: 2, label: "Palmito" },
+  { num: 3, label: "Champiñón" },
+  { num: 4, label: "Pollo" },
+  { num: 5, label: "Camarón" },
+  { num: 6, label: "Salmón" },
+  { num: 7, label: "Atún" },
+];
+
+// ── Tipo de roll → prefijo de código KDS ──────────────────────────────────
+const CAT_PREFIX: Record<string, string> = {
+  avocado:          "A",
+  california:       "C",
+  "cheese cream":   "Q",
+  "chesse creame":  "Q",
+  futomaki:         "F",
+  hotrolls:         "H",
+  "hot rolls":      "H",
+  "hot":            "H",
+  hosomaki:         "HO",
+  temaki:           "T",
+  sake:             "S",
+};
+
+function getPrefix(cat: string): string {
+  return CAT_PREFIX[cat.toLowerCase()] ?? cat.substring(0, 1).toUpperCase();
+}
+
+// ── Tipos ──────────────────────────────────────────────────────────────────
 interface Producto {
   id: number;
   nombre: string;
@@ -13,97 +44,71 @@ interface Producto {
   categoria?: { nombre: string } | null;
 }
 
-// Tabla category name → product code prefix
-const CAT_PREFIX: Record<string, string> = {
-  avocado:      "A",
-  california:   "C",
-  "cheese cream": "Q",
-  "chesse creame": "Q",
-  futomaki:     "F",
-  hotrolls:     "H",
-  "hot rolls":  "H",
-  hosomaki:     "HO",
-  temaki:       "T",
-  sake:         "S",
-};
+export interface RollPayload {
+  code: string;       // e.g. "A5"
+  nombre: string;     // e.g. "Avocado Camarón"
+  precio: number;     // del producto en BD o 0
+  productoId?: number;
+}
 
 interface Props {
   productos: Producto[];
-  cartCounts: Record<number, number>; // productoId → qty in cart
-  onAdd: (p: Producto) => void;
-  /** Wizard mode: lock to a single category */
+  /** Códigos ya en el carrito (para mostrar contador por código) */
+  cartCodes: string[];
+  onAddRoll: (roll: RollPayload) => void;
+  /** Wizard mode: forza una categoría específica */
   forcedCategory?: string | null;
 }
 
-export function RollBuilder({ productos, cartCounts, onAdd, forcedCategory }: Props) {
+export function RollBuilder({ productos, cartCodes, onAddRoll, forcedCategory }: Props) {
   const [activeCat, setActiveCat] = useState<string | null>(null);
-  const [flash, setFlash] = useState<number | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
 
-  // Group products by categoria.nombre
-  const byCategory = useMemo(() => {
-    const map = new Map<string, Producto[]>();
+  // Categorías disponibles en la BD (para el picker libre)
+  const cats = useMemo(() => {
+    const seen = new Set<string>();
     for (const p of productos) {
-      const cat = p.categoria?.nombre ?? "Otros";
-      if (!map.has(cat)) map.set(cat, []);
-      map.get(cat)!.push(p);
+      const cat = p.categoria?.nombre;
+      if (cat) seen.add(cat);
     }
-    return map;
+    return Array.from(seen).sort();
   }, [productos]);
 
-  const cats = Array.from(byCategory.keys());
+  // Categoría activa: wizard fuerza una, libre usa la seleccionada o primera
+  const currentCat = forcedCategory
+    ? (cats.find(c => c.toLowerCase() === forcedCategory.toLowerCase()) ?? forcedCategory)
+    : (activeCat ?? cats[0] ?? null);
 
-  // Resolve forced category: exact → case-insensitive → code prefix → null
-  const resolvedForcedCat = useMemo(() => {
-    if (!forcedCategory) return null;
-    // 1. Exact match
-    if (byCategory.has(forcedCategory)) return forcedCategory;
-    // 2. Case-insensitive match
-    const ci = cats.find(c => c.toLowerCase() === forcedCategory.toLowerCase());
-    if (ci) return ci;
-    // 3. Code-prefix fallback: filter products directly (returns null = use prefix filtering)
-    return "__prefix__";
-  }, [forcedCategory, byCategory, cats]);
+  // Busca el producto en BD para obtener el precio del roll
+  function findRollProduct(cat: string): Producto | undefined {
+    const lower = cat.toLowerCase();
+    return (
+      productos.find(p => p.categoria?.nombre.toLowerCase() === lower) ??
+      productos.find(p => p.nombre.toLowerCase().includes(lower))
+    );
+  }
 
-  const currentCat = forcedCategory ? resolvedForcedCat : (activeCat ?? cats[0] ?? null);
-
-  // Products to show in the variant grid
-  const variants = useMemo(() => {
-    if (!currentCat) return [];
-    if (currentCat === "__prefix__" && forcedCategory) {
-      // Match by code prefix from CAT_PREFIX map
-      const prefix = CAT_PREFIX[forcedCategory.toLowerCase()];
-      if (prefix) {
-        const filtered = productos.filter(p =>
-          p.codigo?.toUpperCase().startsWith(prefix.toUpperCase())
-        );
-        // If HotRolls (H), exclude HO codes (Hosomaki)
-        if (prefix === "H") return filtered.filter(p => !p.codigo?.toUpperCase().startsWith("HO"));
-        return filtered;
-      }
-      // Last resort: show all products
-      return productos;
-    }
-    return byCategory.get(currentCat) ?? [];
-  }, [currentCat, byCategory, forcedCategory, productos]);
-
-  function handleAdd(p: Producto) {
-    onAdd(p);
-    setFlash(p.id);
+  function handleSelect(filling: { num: number; label: string }) {
+    if (!currentCat) return;
+    const prefix = getPrefix(currentCat);
+    const code = `${prefix}${filling.num}`;
+    const rollProduct = findRollProduct(currentCat);
+    onAddRoll({
+      code,
+      nombre: `${currentCat} ${filling.label}`,
+      precio: rollProduct ? Number(rollProduct.precio) : 0,
+      productoId: rollProduct?.id,
+    });
+    setFlash(code);
     setTimeout(() => setFlash(null), 650);
   }
 
-  // Strip the category prefix from product nombre to get the variant label
-  // e.g. "Avocado Camarón" with cat "Avocado" → "Camarón"
-  function variantLabel(p: Producto) {
-    const cat = p.categoria?.nombre ?? "";
-    if (!cat) return p.nombre;
-    const stripped = p.nombre.replace(new RegExp(`^${cat}\\s+`, "i"), "").trim();
-    return stripped || p.nombre;
-  }
+  const codeCount = (code: string) => cartCodes.filter(c => c === code).length;
 
   return (
     <div className="space-y-3">
-      {/* Category pills — hidden in wizard (forced) mode */}
+
+      {/* Categorías (solo en modo libre) */}
       {!forcedCategory && cats.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {cats.map((cat) => (
@@ -123,16 +128,18 @@ export function RollBuilder({ productos, cartCounts, onAdd, forcedCategory }: Pr
         </div>
       )}
 
-      {/* Variants grid */}
-      {currentCat && variants.length > 0 && (
+      {/* Grid de rellenos */}
+      {currentCat ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {variants.map((p) => {
-            const count = cartCounts[p.id] ?? 0;
-            const isFlash = flash === p.id;
+          {FILLINGS.map((f) => {
+            const prefix = getPrefix(currentCat);
+            const code = `${prefix}${f.num}`;
+            const count = codeCount(code);
+            const isFlash = flash === code;
             return (
               <button
-                key={p.id}
-                onClick={() => handleAdd(p)}
+                key={f.num}
+                onClick={() => handleSelect(f)}
                 className={cn(
                   "relative flex flex-col items-start gap-1 rounded-2xl border-2 px-4 py-3 text-left transition-all duration-150 active:scale-[0.96] select-none",
                   isFlash
@@ -142,25 +149,18 @@ export function RollBuilder({ productos, cartCounts, onAdd, forcedCategory }: Pr
                     : "border-stone-100 bg-white hover:border-brand-200 hover:bg-brand-50/30 hover:shadow-sm"
                 )}
               >
-                {/* Code badge */}
                 <span className={cn(
                   "font-mono text-[11px] font-black rounded-md px-1.5 py-0.5",
-                  isFlash
-                    ? "bg-emerald-500 text-white"
-                    : "bg-stone-100 text-stone-500"
+                  isFlash ? "bg-emerald-500 text-white" : "bg-stone-100 text-stone-500"
                 )}>
-                  {p.codigo ?? "—"}
+                  {code}
                 </span>
-
-                {/* Variant name */}
                 <span className={cn(
                   "text-sm font-bold leading-tight",
                   isFlash ? "text-emerald-800" : "text-stone-800"
                 )}>
-                  {variantLabel(p)}
+                  {f.label}
                 </span>
-
-                {/* Badges (check or count) */}
                 {isFlash ? (
                   <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
                     <Check size={11} strokeWidth={3} />
@@ -174,11 +174,9 @@ export function RollBuilder({ productos, cartCounts, onAdd, forcedCategory }: Pr
             );
           })}
         </div>
-      )}
-
-      {currentCat && variants.length === 0 && (
+      ) : (
         <p className="py-4 text-center text-sm text-stone-400">
-          No hay productos en esta categoría
+          Selecciona un tipo de roll
         </p>
       )}
     </div>

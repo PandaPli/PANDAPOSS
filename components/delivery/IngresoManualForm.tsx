@@ -24,7 +24,7 @@ import {
   UtensilsCrossed,
   ChevronRight,
 } from "lucide-react";
-import { RollBuilder } from "./RollBuilder";
+import { RollBuilder, RollPayload } from "./RollBuilder";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { printFrame } from "@/lib/printFrame";
@@ -198,6 +198,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     );
   }, [productos, searchProd]);
 
+  const cartCodes = cart.filter(i => i.codigo).map(i => i.codigo!);
   const subtotal = cart.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const descuentoPorcentajeMonto = Math.round((subtotal * Math.min(100, Math.max(0, descPorcentaje))) / 100);
   const descuentoCuponMonto = cuponAplicado?.descuentoAplicado ?? 0;
@@ -323,6 +324,17 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       if (ex) return prev.map((i) => (i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i));
       return [...prev, { tempId: `prod-${p.id}`, productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }];
     });
+  }
+
+  function addRoll(roll: RollPayload) {
+    setCart(prev => [...prev, {
+      tempId: `roll-${roll.code}-${Date.now()}`,
+      productoId: roll.productoId,
+      nombre: roll.nombre,
+      codigo: roll.code,
+      precio: roll.precio,
+      cantidad: 1,
+    }]);
   }
 
   function addLibre() {
@@ -941,16 +953,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   {/* Builder forzado a la categoría actual */}
                   <RollBuilder
                     productos={productos}
-                    cartCounts={Object.fromEntries(
-                      cart.filter(i => i.productoId != null).map(i => [i.productoId!, i.cantidad])
-                    )}
-                    onAdd={(p) => {
-                      addProduct(p);
-                      setTablaWizard(prev => {
-                        if (!prev) return null;
-                        const next = prev.step + 1;
-                        return next >= prev.queue.length ? { ...prev, step: next } : { ...prev, step: next };
-                      });
+                    cartCodes={cartCodes}
+                    onAddRoll={(roll) => {
+                      addRoll(roll);
+                      setTablaWizard(prev => prev ? { ...prev, step: prev.step + 1 } : null);
                     }}
                     forcedCategory={tablaWizard.queue[tablaWizard.step]}
                   />
@@ -982,10 +988,8 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   </p>
                   <RollBuilder
                     productos={productos}
-                    cartCounts={Object.fromEntries(
-                      cart.filter(i => i.productoId != null).map(i => [i.productoId!, i.cantidad])
-                    )}
-                    onAdd={addProduct}
+                    cartCodes={cartCodes}
+                    onAddRoll={addRoll}
                   />
                 </div>
               )}
