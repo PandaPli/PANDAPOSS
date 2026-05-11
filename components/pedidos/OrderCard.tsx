@@ -324,7 +324,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
 
     const itemsHtml = pedido.detalles.map(d => {
       if (d.id < 0) return ""; // separador de agrupación — no imprimir
-      const nombre = d.producto?.nombre ?? d.combo?.nombre ?? "--";
+      const nombre = d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "") : "--");
       if (d.cancelado) {
         return `<div class="item" style="opacity:0.5;"><div class="item-row" style="text-decoration:line-through;"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span><span style="font-size:11px;margin-left:6px;">[ANULADO]</span></div></div>`;
       }
@@ -525,7 +525,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className={cn("text-sm font-semibold leading-tight", d.cancelado ? "line-through text-gray-400" : nightMode ? "text-gray-100" : "text-surface-text")}>
-                        {d.producto?.nombre ?? d.combo?.nombre ?? "--"}
+                        {d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "") : "--")}
                       </p>
                       {d.cancelado && (
                         <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
@@ -547,7 +547,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     <textarea
                       rows={1}
                       placeholder="Nota cocina..."
-                      value={tablaNotas[d.id] ?? (d.observacion ?? "")}
+                      value={tablaNotas[d.id] ?? (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))}
                       onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
                       onBlur={() => void guardarNota(d.id)}
                       onKeyDown={e => {
