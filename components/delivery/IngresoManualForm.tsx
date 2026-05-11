@@ -21,7 +21,10 @@ import {
   Gift,
   Package2,
   Phone,
+  UtensilsCrossed,
+  ChevronRight,
 } from "lucide-react";
+import { RollBuilder } from "./RollBuilder";
 import { formatCurrency, normalize } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { printFrame } from "@/lib/printFrame";
@@ -40,10 +43,30 @@ interface CartLine {
   tempId: string;          // clave única (para libres y regulares)
   productoId?: number;     // solo productos de carta
   nombre: string;
+  codigo?: string;         // código KDS (ej: "A5")
   precio: number;
   cantidad: number;
   esLibre?: boolean;
 }
+
+interface TablaWizard {
+  name: string;
+  queue: string[];   // categorías a seleccionar en orden
+  step: number;
+}
+
+// Tablas predefinidas — los nombres de categoría deben coincidir con la BD
+const TABLAS: { n: string; piezas: number; queue: string[] }[] = [
+  { n: "Tabla 20",  piezas: 20,  queue: ["Avocado","California"] },
+  { n: "Tabla 30",  piezas: 30,  queue: ["Avocado","California","HotRolls"] },
+  { n: "Tabla 40",  piezas: 40,  queue: ["Avocado","California","Cheese Cream","HotRolls"] },
+  { n: "Tabla 50",  piezas: 50,  queue: ["Avocado","California","Cheese Cream","HotRolls","HotRolls"] },
+  { n: "Tabla 60",  piezas: 60,  queue: ["Avocado","California","Cheese Cream","HotRolls","HotRolls","HotRolls"] },
+  { n: "Tabla 70",  piezas: 70,  queue: ["Avocado","California","Cheese Cream","HotRolls","HotRolls","HotRolls","HotRolls"] },
+  { n: "Tabla 80",  piezas: 80,  queue: ["Avocado","California","Cheese Cream","Futomaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
+  { n: "Tabla 90",  piezas: 90,  queue: ["Avocado","California","Cheese Cream","Futomaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
+  { n: "Tabla 101", piezas: 101, queue: ["Avocado","California","Cheese Cream","Sake","Futomaki","Hosomaki","Temaki","HotRolls","HotRolls","HotRolls","HotRolls"] },
+];
 
 interface ClienteEncontrado {
   id: number;
@@ -133,6 +156,8 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   /* ── Product cart ── */
   const [searchProd, setSearchProd] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [productTab, setProductTab] = useState<"rolls" | "todos">("rolls");
+  const [tablaWizard, setTablaWizard] = useState<TablaWizard | null>(null);
 
   /* ── Producto libre ── */
   const [libreNombre, setLibreNombre] = useState("");
@@ -281,6 +306,19 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   /* ── Cart ── */
   function addProduct(p: Producto) {
     setCart((prev) => {
+      // Rolls with codes are NOT merged — each tap = one independent line
+      // (same variant can appear multiple times in a tabla order)
+      if (p.codigo) {
+        return [...prev, {
+          tempId: `prod-${p.id}-${Date.now()}`,
+          productoId: p.id,
+          nombre: p.nombre,
+          codigo: p.codigo,
+          precio: p.precio,
+          cantidad: 1,
+        }];
+      }
+      // Non-coded products: merge into existing line
       const ex = prev.find((i) => i.productoId === p.id);
       if (ex) return prev.map((i) => (i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i));
       return [...prev, { tempId: `prod-${p.id}`, productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }];
@@ -812,71 +850,200 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           )}
         </div>
 
-        {/* ── Widget: Selección de productos ── */}
+        {/* ── Widget: Selección de rolls ── */}
         <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 shadow shadow-amber-200">
-              <Package2 size={13} className="text-white" />
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-500 shadow shadow-brand-200">
+                <UtensilsCrossed size={13} className="text-white" />
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest text-stone-600">Rolls</p>
             </div>
-            <p className="text-xs font-black uppercase tracking-widest text-stone-600">Selección de productos</p>
+            {/* Rolls / Todos tab switcher */}
+            <div className="flex gap-0.5 rounded-xl bg-stone-100 p-0.5">
+              <button
+                onClick={() => { setProductTab("rolls"); setTablaWizard(null); }}
+                className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  productTab === "rolls" ? "bg-white shadow-sm text-stone-800" : "text-stone-400 hover:text-stone-600"
+                )}
+              >
+                Rolls
+              </button>
+              <button
+                onClick={() => { setProductTab("todos"); setTablaWizard(null); }}
+                className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  productTab === "todos" ? "bg-white shadow-sm text-stone-800" : "text-stone-400 hover:text-stone-600"
+                )}
+              >
+                Todos
+              </button>
+            </div>
           </div>
 
-          <div className="relative mb-2.5">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input
-              type="text"
-              value={searchProd}
-              onChange={(e) => setSearchProd(e.target.value)}
-              placeholder="Buscar en carta..."
-              className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
+          {productTab === "rolls" ? (
+            <div className="space-y-4">
 
-          <div className="max-h-56 space-y-1 overflow-y-auto">
-            {productosFiltrados.slice(0, 40).map((p) => {
-              const inCart = cart.find((i) => i.productoId === p.id);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => addProduct(p)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.98]",
-                    inCart
-                      ? "border-brand-200 bg-brand-50"
-                      : "border-stone-100 bg-stone-50 hover:border-stone-200 hover:bg-white"
-                  )}
-                >
-                  {p.imagen ? (
-                    <img src={p.imagen} alt={p.nombre} className="h-8 w-8 flex-shrink-0 rounded-lg object-cover" />
-                  ) : (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-stone-200 text-sm">
-                      🍽️
+              {/* ── Tablas rápidas ── */}
+              <div>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-stone-400">Tablas rápidas</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+                  {TABLAS.map((t) => (
+                    <button
+                      key={t.n}
+                      onClick={() => setTablaWizard({ name: t.n, queue: [...t.queue], step: 0 })}
+                      className={cn(
+                        "flex-shrink-0 rounded-2xl border-2 px-3 py-2 text-center transition-all active:scale-95",
+                        tablaWizard?.name === t.n && tablaWizard.step < tablaWizard.queue.length
+                          ? "border-brand-500 bg-brand-500 text-white shadow-sm"
+                          : "border-stone-200 bg-stone-50 text-stone-700 hover:border-brand-300 hover:bg-brand-50"
+                      )}
+                    >
+                      <span className="block text-xs font-black leading-none">{t.n}</span>
+                      <span className="block text-[10px] font-semibold opacity-60 mt-0.5">{t.piezas}pz</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Wizard activo ── */}
+              {tablaWizard && tablaWizard.step < tablaWizard.queue.length && (
+                <div className="rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50 to-blue-50/40 p-4 space-y-3">
+                  {/* Header del wizard */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-500">
+                        {tablaWizard.name}
+                      </p>
+                      <p className="text-base font-black text-stone-800 mt-0.5">
+                        Roll {tablaWizard.step + 1} de {tablaWizard.queue.length}:&nbsp;
+                        <span className="text-brand-600 uppercase">
+                          {tablaWizard.queue[tablaWizard.step]}
+                        </span>
+                      </p>
                     </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-stone-800">{p.nombre}</p>
-                    {p.categoria && <p className="text-[10px] text-stone-400">{p.categoria.nombre}</p>}
+                    <button
+                      onClick={() => setTablaWizard(null)}
+                      className="rounded-xl p-1.5 hover:bg-brand-100 transition text-stone-400 mt-0.5"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
-                  <div className="flex flex-shrink-0 items-center gap-2">
-                    <span className="text-sm font-black text-brand-600">{formatCurrency(p.precio, simbolo)}</span>
-                    {inCart ? (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">
-                        {inCart.cantidad}
-                      </span>
-                    ) : (
-                      <Plus size={13} className="text-stone-400" />
+                  {/* Barra de progreso */}
+                  <div className="flex gap-1">
+                    {tablaWizard.queue.map((_, i) => (
+                      <div key={i} className={cn(
+                        "h-1.5 flex-1 rounded-full transition-all duration-300",
+                        i < tablaWizard.step ? "bg-emerald-400" :
+                        i === tablaWizard.step ? "bg-brand-500" : "bg-stone-200"
+                      )} />
+                    ))}
+                  </div>
+                  {/* Builder forzado a la categoría actual */}
+                  <RollBuilder
+                    productos={productos}
+                    cartCounts={Object.fromEntries(
+                      cart.filter(i => i.productoId != null).map(i => [i.productoId!, i.cantidad])
                     )}
-                  </div>
-                </button>
-              );
-            })}
-            {productosFiltrados.length === 0 && (
-              <p className="py-5 text-center text-sm text-stone-400">Sin resultados</p>
-            )}
-          </div>
+                    onAdd={(p) => {
+                      addProduct(p);
+                      setTablaWizard(prev => {
+                        if (!prev) return null;
+                        const next = prev.step + 1;
+                        return next >= prev.queue.length ? { ...prev, step: next } : { ...prev, step: next };
+                      });
+                    }}
+                    forcedCategory={tablaWizard.queue[tablaWizard.step]}
+                  />
+                </div>
+              )}
 
-          {/* ── Producto Libre ── */}
-          <div className="mt-3 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-3">
+              {/* ── Wizard completado ── */}
+              {tablaWizard && tablaWizard.step >= tablaWizard.queue.length && (
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-emerald-800">{tablaWizard.name} completa</p>
+                    <p className="text-xs text-emerald-600">{tablaWizard.queue.length} rolls agregados</p>
+                  </div>
+                  <button
+                    onClick={() => setTablaWizard(null)}
+                    className="text-emerald-400 hover:text-emerald-600 transition"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* ── Selector libre (sin wizard) ── */}
+              {!tablaWizard && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">
+                    O elige roll a roll
+                  </p>
+                  <RollBuilder
+                    productos={productos}
+                    cartCounts={Object.fromEntries(
+                      cart.filter(i => i.productoId != null).map(i => [i.productoId!, i.cantidad])
+                    )}
+                    onAdd={addProduct}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── Pestaña "Todos": búsqueda original ── */
+            <div className="space-y-2">
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="text"
+                  value={searchProd}
+                  onChange={(e) => setSearchProd(e.target.value)}
+                  placeholder="Buscar en carta..."
+                  className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+              </div>
+              <div className="max-h-56 space-y-1 overflow-y-auto">
+                {productosFiltrados.slice(0, 40).map((p) => {
+                  const inCart = cart.find((i) => i.productoId === p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => addProduct(p)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition active:scale-[0.98]",
+                        inCart ? "border-brand-200 bg-brand-50" : "border-stone-100 bg-stone-50 hover:border-stone-200 hover:bg-white"
+                      )}
+                    >
+                      {p.imagen ? (
+                        <img src={p.imagen} alt={p.nombre} className="h-8 w-8 flex-shrink-0 rounded-lg object-cover" />
+                      ) : (
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-stone-200 text-sm">🍽️</div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-stone-800">{p.nombre}</p>
+                        {p.categoria && <p className="text-[10px] text-stone-400">{p.categoria.nombre}</p>}
+                      </div>
+                      <div className="flex flex-shrink-0 items-center gap-2">
+                        <span className="text-sm font-black text-brand-600">{formatCurrency(p.precio, simbolo)}</span>
+                        {inCart ? (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold text-white">{inCart.cantidad}</span>
+                        ) : (
+                          <Plus size={13} className="text-stone-400" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+                {productosFiltrados.length === 0 && (
+                  <p className="py-5 text-center text-sm text-stone-400">Sin resultados</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Producto Libre (siempre visible) ── */}
+          <div className="mt-4 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-3">
             <p className="mb-2 text-xs font-bold uppercase tracking-widest text-amber-700">✏️ Producto libre</p>
             <div className="flex gap-2">
               <input
@@ -929,7 +1096,12 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {item.codigo && (
+                        <span className="shrink-0 font-mono text-[10px] font-black bg-stone-900 text-white rounded-md px-1.5 py-0.5">
+                          {item.codigo}
+                        </span>
+                      )}
                       <p className="truncate text-sm font-semibold text-stone-800">{item.nombre}</p>
                       {item.esLibre && (
                         <span className="shrink-0 rounded-full bg-amber-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700">Libre</span>
@@ -1023,6 +1195,26 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   <span className="text-sm font-semibold text-stone-300">TOTAL</span>
                   <span className="text-lg font-black text-white">{formatCurrency(totalConEnvio, simbolo)}</span>
                 </div>
+
+                {/* ── Vista KDS ── */}
+                {cart.some(i => i.codigo) && (
+                  <div className="rounded-2xl bg-stone-950 px-4 py-3.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-2.5 flex items-center gap-1.5">
+                      <ChevronRight size={10} className="text-stone-600" />
+                      Vista KDS
+                    </p>
+                    {nombre && (
+                      <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide mb-1.5">{nombre}</p>
+                    )}
+                    <div className="space-y-0.5">
+                      {cart.map((item) => (
+                        <p key={item.tempId} className="font-mono text-sm font-bold text-white leading-relaxed">
+                          {item.codigo ?? item.nombre}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
