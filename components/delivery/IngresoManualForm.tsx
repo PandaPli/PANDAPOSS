@@ -361,9 +361,10 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sucursalId,
-          items: cart.map((i) => i.esLibre
-            ? { productoId: null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad }
-            : { productoId: i.productoId, cantidad: i.cantidad }
+          items: cart.map((i) =>
+            (i.esLibre || !i.productoId)
+              ? { productoId: null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad }
+              : { productoId: i.productoId, cantidad: i.cantidad }
           ),
           cliente: {
             nombre: nombre.trim(),
