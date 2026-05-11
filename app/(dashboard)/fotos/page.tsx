@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { FotosClient } from "./FotosClient";
 
 export const metadata: Metadata = { title: "PP — Fotos" };
@@ -10,6 +11,9 @@ export default async function FotosPage() {
   const session = await getServerSession(authOptions);
   const rol = (session?.user as { rol?: string })?.rol ?? "";
   const sucursalId = (session?.user as { sucursalId?: number })?.sucursalId ?? null;
+
+  // Solo ADMIN_GENERAL puede acceder a la galería de fotos
+  if (rol !== "ADMIN_GENERAL") redirect("/panel");
 
   const filtro = rol === "ADMIN_GENERAL" ? {} : sucursalId ? { sucursalId } : { id: -1 };
 
