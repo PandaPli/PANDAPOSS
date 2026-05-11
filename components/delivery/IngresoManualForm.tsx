@@ -49,12 +49,6 @@ interface CartLine {
   esLibre?: boolean;
 }
 
-interface TablaWizard {
-  name: string;
-  queue: string[];   // categorías a seleccionar en orden
-  step: number;
-}
-
 // Tablas predefinidas — los nombres de categoría deben coincidir con la BD
 const TABLAS: { n: string; piezas: number; queue: string[] }[] = [
   { n: "Tabla 20",  piezas: 20,  queue: ["Avocado","California"] },
@@ -157,7 +151,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const [searchProd, setSearchProd] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [productTab, setProductTab] = useState<"rolls" | "todos">("rolls");
-  const [tablaWizard, setTablaWizard] = useState<TablaWizard | null>(null);
+  const [selectedTabla, setSelectedTabla] = useState<{ n: string; queue: string[] } | null>(null);
+  const [rollPickStep, setRollPickStep] = useState<"idle" | "picking-cat" | "picking-variant">("idle");
+  const [rollPickCat, setRollPickCat] = useState<string | null>(null);
 
   /* ── Producto libre ── */
   const [libreNombre, setLibreNombre] = useState("");
@@ -411,6 +407,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       setCodigoCupon("");
       setCuponAplicado(null);
       setCuponError("");
+      setSelectedTabla(null);
+      setRollPickStep("idle");
+      setRollPickCat(null);
     } catch (e) {
       setErrorMsg((e as Error).message);
     } finally {
@@ -874,7 +873,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
             {/* Rolls / Todos tab switcher */}
             <div className="flex gap-0.5 rounded-xl bg-stone-100 p-0.5">
               <button
-                onClick={() => { setProductTab("rolls"); setTablaWizard(null); }}
+                onClick={() => { setProductTab("rolls"); setSelectedTabla(null); setRollPickStep("idle"); setRollPickCat(null); }}
                 className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                   productTab === "rolls" ? "bg-white shadow-sm text-stone-800" : "text-stone-400 hover:text-stone-600"
                 )}
@@ -882,7 +881,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 Rolls
               </button>
               <button
-                onClick={() => { setProductTab("todos"); setTablaWizard(null); }}
+                onClick={() => { setProductTab("todos"); setSelectedTabla(null); setRollPickStep("idle"); setRollPickCat(null); }}
                 className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
                   productTab === "todos" ? "bg-white shadow-sm text-stone-800" : "text-stone-400 hover:text-stone-600"
                 )}
@@ -902,10 +901,14 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   {TABLAS.map((t) => (
                     <button
                       key={t.n}
-                      onClick={() => setTablaWizard({ name: t.n, queue: [...t.queue], step: 0 })}
+                      onClick={() => {
+                        setSelectedTabla({ n: t.n, queue: t.queue });
+                        setRollPickStep("idle");
+                        setRollPickCat(null);
+                      }}
                       className={cn(
                         "flex-shrink-0 rounded-2xl border-2 px-3 py-2 text-center transition-all active:scale-95",
-                        tablaWizard?.name === t.n && tablaWizard.step < tablaWizard.queue.length
+                        selectedTabla?.n === t.n
                           ? "border-brand-500 bg-brand-500 text-white shadow-sm"
                           : "border-stone-200 bg-stone-50 text-stone-700 hover:border-brand-300 hover:bg-brand-50"
                       )}
@@ -917,71 +920,87 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 </div>
               </div>
 
-              {/* ── Wizard activo ── */}
-              {tablaWizard && tablaWizard.step < tablaWizard.queue.length && (
+              {selectedTabla ? (
+                /* ── Tabla seleccionada ── */
                 <div className="rounded-2xl border-2 border-brand-200 bg-gradient-to-br from-brand-50 to-blue-50/40 p-4 space-y-3">
-                  {/* Header del wizard */}
-                  <div className="flex items-start justify-between gap-2">
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-500">
-                        {tablaWizard.name}
-                      </p>
-                      <p className="text-base font-black text-stone-800 mt-0.5">
-                        Roll {tablaWizard.step + 1} de {tablaWizard.queue.length}:&nbsp;
-                        <span className="text-brand-600 uppercase">
-                          {tablaWizard.queue[tablaWizard.step]}
-                        </span>
-                      </p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-400">Tabla seleccionada</p>
+                      <p className="text-lg font-black uppercase tracking-wide text-stone-800 mt-0.5">{selectedTabla.n}</p>
                     </div>
                     <button
-                      onClick={() => setTablaWizard(null)}
-                      className="rounded-xl p-1.5 hover:bg-brand-100 transition text-stone-400 mt-0.5"
+                      onClick={() => { setSelectedTabla(null); setRollPickStep("idle"); setRollPickCat(null); }}
+                      className="rounded-xl p-1.5 hover:bg-brand-100 transition text-stone-400"
                     >
                       <X size={14} />
                     </button>
                   </div>
-                  {/* Barra de progreso */}
-                  <div className="flex gap-1">
-                    {tablaWizard.queue.map((_, i) => (
-                      <div key={i} className={cn(
-                        "h-1.5 flex-1 rounded-full transition-all duration-300",
-                        i < tablaWizard.step ? "bg-emerald-400" :
-                        i === tablaWizard.step ? "bg-brand-500" : "bg-stone-200"
-                      )} />
-                    ))}
-                  </div>
-                  {/* Builder forzado a la categoría actual */}
-                  <RollBuilder
-                    productos={productos}
-                    cartCodes={cartCodes}
-                    onAddRoll={(roll) => {
-                      addRoll(roll);
-                      setTablaWizard(prev => prev ? { ...prev, step: prev.step + 1 } : null);
-                    }}
-                    forcedCategory={tablaWizard.queue[tablaWizard.step]}
-                  />
-                </div>
-              )}
 
-              {/* ── Wizard completado ── */}
-              {tablaWizard && tablaWizard.step >= tablaWizard.queue.length && (
-                <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-emerald-800">{tablaWizard.name} completa</p>
-                    <p className="text-xs text-emerald-600">{tablaWizard.queue.length} rolls agregados</p>
-                  </div>
-                  <button
-                    onClick={() => setTablaWizard(null)}
-                    className="text-emerald-400 hover:text-emerald-600 transition"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
+                  {/* Idle: botón + Agregar Roll */}
+                  {rollPickStep === "idle" && (
+                    <button
+                      onClick={() => setRollPickStep("picking-cat")}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-300 bg-white py-3 text-sm font-bold text-brand-600 hover:border-brand-400 hover:bg-brand-50 transition-all active:scale-[0.98]"
+                    >
+                      <Plus size={15} />
+                      Agregar Roll
+                    </button>
+                  )}
 
-              {/* ── Selector libre (sin wizard) ── */}
-              {!tablaWizard && (
+                  {/* Picking-cat: pills de categorías */}
+                  {rollPickStep === "picking-cat" && (
+                    <div className="space-y-2.5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-stone-500">Elige el tipo de roll</p>
+                      <div className="flex flex-wrap gap-2">
+                        {/* Deduplica para UI pero mantiene todas en queue */}
+                        {Array.from(new Set(selectedTabla.queue)).map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => { setRollPickCat(cat); setRollPickStep("picking-variant"); }}
+                            className="rounded-xl border-2 border-stone-200 bg-white px-4 py-2.5 text-sm font-black uppercase tracking-wide text-stone-700 shadow-sm transition-all hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 active:scale-95"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setRollPickStep("idle")}
+                        className="flex items-center gap-1 text-xs font-semibold text-stone-400 transition hover:text-stone-600"
+                      >
+                        <X size={11} /> Cancelar
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Picking-variant: grid de rellenos */}
+                  {rollPickStep === "picking-variant" && rollPickCat && (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-black uppercase tracking-wide text-brand-700">{rollPickCat}</p>
+                        <button
+                          onClick={() => { setRollPickStep("picking-cat"); setRollPickCat(null); }}
+                          className="flex items-center gap-1 text-xs font-semibold text-stone-400 transition hover:text-stone-600"
+                        >
+                          <X size={11} /> Volver
+                        </button>
+                      </div>
+                      <RollBuilder
+                        productos={productos}
+                        cartCodes={cartCodes}
+                        onAddRoll={(roll) => {
+                          addRoll(roll);
+                          setRollPickStep("idle");
+                          setRollPickCat(null);
+                        }}
+                        forcedCategory={rollPickCat}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── Selector libre (sin tabla) ── */
                 <div className="space-y-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">
                     O elige roll a roll
@@ -1207,6 +1226,9 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                       <ChevronRight size={10} className="text-stone-600" />
                       Vista KDS
                     </p>
+                    {selectedTabla && (
+                      <p className="font-mono text-sm font-black uppercase tracking-widest text-stone-300 mb-2">{selectedTabla.n}</p>
+                    )}
                     {nombre && (
                       <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide mb-1.5">{nombre}</p>
                     )}
