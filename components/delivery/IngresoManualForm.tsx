@@ -1219,28 +1219,6 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                   <span className="text-lg font-black text-white">{formatCurrency(totalConEnvio, simbolo)}</span>
                 </div>
 
-                {/* ── Vista KDS ── */}
-                {cart.some(i => i.codigo) && (
-                  <div className="rounded-2xl bg-stone-950 px-4 py-3.5">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-2.5 flex items-center gap-1.5">
-                      <ChevronRight size={10} className="text-stone-600" />
-                      Vista KDS
-                    </p>
-                    {selectedTabla && (
-                      <p className="font-mono text-sm font-black uppercase tracking-widest text-stone-300 mb-2">{selectedTabla.n}</p>
-                    )}
-                    {nombre && (
-                      <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide mb-1.5">{nombre}</p>
-                    )}
-                    <div className="space-y-0.5">
-                      {cart.map((item) => (
-                        <p key={item.tempId} className="font-mono text-sm font-bold text-white leading-relaxed">
-                          {item.codigo ?? item.nombre}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -1275,6 +1253,44 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           )}
         </button>
       </div>
+
+      {/* ════════════════════════════════════════════
+          KDS FLOATING PREVIEW
+      ════════════════════════════════════════════ */}
+      {(selectedTabla || cart.some(i => i.codigo)) && (
+        <div className="fixed bottom-6 right-6 z-40 w-48 overflow-hidden rounded-2xl bg-stone-950 shadow-2xl ring-1 ring-white/5">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-stone-800 px-3.5 py-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">
+              Vista KDS
+            </span>
+            {selectedTabla && (
+              <span className="font-mono text-[10px] font-black uppercase text-brand-400">
+                {selectedTabla.n}
+              </span>
+            )}
+          </div>
+          {/* Códigos */}
+          <div className="px-3.5 py-3">
+            {nombre && (
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-stone-500 truncate">
+                {nombre}
+              </p>
+            )}
+            {cart.filter(i => i.codigo).length === 0 ? (
+              <p className="text-xs italic text-stone-600">Sin rolls aún…</p>
+            ) : (
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {cart.filter(i => i.codigo).map((item) => (
+                  <p key={item.tempId} className="font-mono text-base font-black leading-snug text-white">
+                    {item.codigo}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════
           TICKET SUCCESS MODAL
