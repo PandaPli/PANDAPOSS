@@ -350,6 +350,18 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     );
   }
 
+  /* ── Colapsa rolls en una sola línea "Tabla X" para ticket y API ── */
+  function collapseCart(): CartLine[] {
+    const rolls = cart.filter(i => i.codigo);
+    const others = cart.filter(i => !i.codigo);
+    if (rolls.length === 0) return cart;
+    const rollsTotal = rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    return [
+      ...others,
+      { tempId: "tabla-combo", nombre: selectedTabla ? selectedTabla.n : "Rolls", precio: rollsTotal, cantidad: 1 },
+    ];
+  }
+
   /* ── Submit ── */
   async function handleSubmit() {
     if (!nombre.trim() || !direccion.trim() || !cart.length) return;
@@ -361,7 +373,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sucursalId,
-          items: cart.map((i) =>
+          items: collapseCart().map((i) =>
             (i.esLibre || !i.productoId)
               ? { productoId: null, nombre: i.nombre, precio: i.precio, cantidad: i.cantidad }
               : { productoId: i.productoId, cantidad: i.cantidad }
@@ -424,7 +436,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     const timeStr = now.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
     const dateStr = now.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-    const itemsHtml = cart
+    const itemsHtml = collapseCart()
       .map(
         (item) => `
       <div class="item">
