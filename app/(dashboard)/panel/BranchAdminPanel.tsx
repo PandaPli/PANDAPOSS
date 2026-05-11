@@ -767,7 +767,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
             { href: "/ventas/caja",    icon: ShoppingCart,    label: "Caja",      bg: "bg-brand-600"   },
             { href: "/pedidos",        icon: Monitor,         label: "KDS",       bg: "bg-amber-500"   },
             { href: "/productos",      icon: Package,         label: "Productos", bg: "bg-blue-500"    },
-            { href: "/configuracion",  icon: Star,            label: "Prod. del Mes", bg: "bg-violet-500" },
+            { href: "/producto-del-mes", icon: Star,           label: "Prod. del Mes", bg: "bg-violet-500" },
             { href: `/registro/${slug}`, icon: Cake,          label: "Cumpleaños",bg: "bg-pink-500"    },
           ].map(({ href, icon: Icon, label, bg }) => (
             <Link

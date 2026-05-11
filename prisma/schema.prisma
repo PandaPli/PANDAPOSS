@@ -62,8 +62,11 @@ model Sucursal {
   valorPunto      Decimal        @default(1.00)  @db.Decimal(8, 2)
   notifAviso      Boolean        @default(false)
   productoMesActivo   Boolean    @default(false)
+  productoMesId       Int?
+  productoMesTitulo   String?    @db.VarChar(200)
   productoDiaActivo   Boolean    @default(false)
   ofertaFugazActivo   Boolean    @default(false)
+  productoMes         Producto?  @relation("ProductoDelMes", fields: [productoMesId], references: [id])
   asistencias     Asistencia[]
   cajas         Caja[]
   clientes      Cliente[]
@@ -190,8 +193,9 @@ model Producto {
   detallesVenta  DetalleVenta[]
   kardex         Kardex[]
   variantes      VarianteGrupo[]
-  categoria      Categoria?      @relation(fields: [categoriaId], references: [id])
-  sucursal       Sucursal?       @relation(fields: [sucursalId], references: [id])
+  categoria             Categoria?      @relation(fields: [categoriaId], references: [id])
+  sucursal              Sucursal?       @relation(fields: [sucursalId], references: [id])
+  sucursalesProductoMes Sucursal[]      @relation("ProductoDelMes")
   Tenant         Tenant?         @relation(fields: [tenantId], references: [id])
 
   @@index([categoriaId], map: "productos_categoriaId_fkey")
