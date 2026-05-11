@@ -13,6 +13,20 @@ interface Producto {
   categoria?: { nombre: string } | null;
 }
 
+// Tabla category name → product code prefix
+const CAT_PREFIX: Record<string, string> = {
+  avocado:      "A",
+  california:   "C",
+  "cheese cream": "Q",
+  "chesse creame": "Q",
+  futomaki:     "F",
+  hotrolls:     "H",
+  "hot rolls":  "H",
+  hosomaki:     "HO",
+  temaki:       "T",
+  sake:         "S",
+};
+
 interface Props {
   productos: Producto[];
   cartCounts: Record<number, number>; // productoId → qty in cart
@@ -37,8 +51,40 @@ export function RollBuilder({ productos, cartCounts, onAdd, forcedCategory }: Pr
   }, [productos]);
 
   const cats = Array.from(byCategory.keys());
-  const currentCat = forcedCategory ?? activeCat ?? cats[0] ?? null;
-  const variants = currentCat ? (byCategory.get(currentCat) ?? []) : [];
+
+  // Resolve forced category: exact → case-insensitive → code prefix → null
+  const resolvedForcedCat = useMemo(() => {
+    if (!forcedCategory) return null;
+    // 1. Exact match
+    if (byCategory.has(forcedCategory)) return forcedCategory;
+    // 2. Case-insensitive match
+    const ci = cats.find(c => c.toLowerCase() === forcedCategory.toLowerCase());
+    if (ci) return ci;
+    // 3. Code-prefix fallback: filter products directly (returns null = use prefix filtering)
+    return "__prefix__";
+  }, [forcedCategory, byCategory, cats]);
+
+  const currentCat = forcedCategory ? resolvedForcedCat : (activeCat ?? cats[0] ?? null);
+
+  // Products to show in the variant grid
+  const variants = useMemo(() => {
+    if (!currentCat) return [];
+    if (currentCat === "__prefix__" && forcedCategory) {
+      // Match by code prefix from CAT_PREFIX map
+      const prefix = CAT_PREFIX[forcedCategory.toLowerCase()];
+      if (prefix) {
+        const filtered = productos.filter(p =>
+          p.codigo?.toUpperCase().startsWith(prefix.toUpperCase())
+        );
+        // If HotRolls (H), exclude HO codes (Hosomaki)
+        if (prefix === "H") return filtered.filter(p => !p.codigo?.toUpperCase().startsWith("HO"));
+        return filtered;
+      }
+      // Last resort: show all products
+      return productos;
+    }
+    return byCategory.get(currentCat) ?? [];
+  }, [currentCat, byCategory, forcedCategory, productos]);
 
   function handleAdd(p: Producto) {
     onAdd(p);
