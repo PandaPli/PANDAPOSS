@@ -41,17 +41,17 @@ const stepsRetiro = [
   { key: "ENTREGADO",  title: "Retirado",          icon: Star         },
 ] as const;
 
-/* ─── Hero subtítulos ─────────────────────────────────────────────── */
-const HERO_SUB: Record<string, string> = {
-  CONFIRMADO: "Tu pedido fue recibido con éxito",
-  PREPARANDO: "La cocina ya está en acción",
-  EN_CAMINO:  "¡Ya viene en camino hacia ti!",
-  ENTREGADO:  "¡Que lo disfrutes mucho!",
+/* ─── Frases hero (van después del nombre del cliente) ────────────── */
+const HERO_PHRASE: Record<string, string> = {
+  CONFIRMADO: "recibimos tu pedido con éxito 🎉",
+  PREPARANDO: "ya estamos preparando tu pedido 🍳",
+  EN_CAMINO:  "tu pedido ya viene en camino 🛵",
+  ENTREGADO:  "que disfrutes mucho tu pedido ⭐",
 };
-const HERO_SUB_RETIRO: Record<string, string> = {
-  ...HERO_SUB,
-  EN_CAMINO: "Ya puedes pasar a buscarlo",
-  ENTREGADO: "¡Gracias por elegirnos!",
+const HERO_PHRASE_RETIRO: Record<string, string> = {
+  ...HERO_PHRASE,
+  EN_CAMINO: "tu pedido está listo para retirar 🎁",
+  ENTREGADO: "gracias por elegirnos, ¡vuelve pronto! 💜",
 };
 
 /* ─── CSS ─────────────────────────────────────────────────────────── */
@@ -188,7 +188,14 @@ export function TrackOrderClient({ initialData }: Props) {
   const currentStep = steps[activeIndex];
   const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.direccionEntrega ?? "")}`;
   const digits      = "codigoEntrega" in data && data.codigoEntrega ? data.codigoEntrega.split("") : null;
-  const heroSub     = esRetiro ? HERO_SUB_RETIRO[data.trackingStage] : HERO_SUB[data.trackingStage];
+  const heroPhrase  = esRetiro ? HERO_PHRASE_RETIRO[data.trackingStage] : HERO_PHRASE[data.trackingStage];
+
+  /* Primer nombre, capitalizado */
+  const firstName = data.clienteNombre
+    ? data.clienteNombre.trim().split(/\s+/)[0]
+        .charAt(0).toUpperCase() +
+      data.clienteNombre.trim().split(/\s+/)[0].slice(1).toLowerCase()
+    : "";
 
   /* ── Cálculos del stepper track (línea absoluta) ─────────────────── */
   const N          = steps.length;
@@ -297,17 +304,26 @@ export function TrackOrderClient({ initialData }: Props) {
                 </div>
               </div>
 
-              {/* Título */}
-              <h2 style={{
-                fontSize: "clamp(26px,6vw,36px)", fontWeight: 900,
-                letterSpacing: "-0.03em", lineHeight: 1.05,
-                color: C.darkest, margin: "0 0 10px", transition: "all .5s ease",
-              }}>
-                {currentStep?.title ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
-              </h2>
+              {/* Nombre del cliente */}
+              {firstName && (
+                <p style={{
+                  fontSize: "clamp(28px,7vw,42px)", fontWeight: 900,
+                  letterSpacing: "-0.03em", lineHeight: 1,
+                  color: C.dark, margin: "0 0 6px",
+                  transition: "all .5s ease",
+                }}>
+                  {firstName}
+                </p>
+              )}
 
-              {/* Subtítulo */}
-              <p style={{ fontSize: 14, color: C.mid, margin: "0 0 18px", lineHeight: 1.55 }}>{heroSub}</p>
+              {/* Frase de estado */}
+              <p style={{
+                fontSize: "clamp(14px,3.5vw,17px)", fontWeight: 600,
+                color: C.mid, margin: "0 0 18px", lineHeight: 1.5,
+                transition: "all .5s ease",
+              }}>
+                {heroPhrase ?? getDeliveryStageLabel(data.trackingStage, esRetiro)}
+              </p>
 
               {/* ETA pill */}
               {!isDone ? (
