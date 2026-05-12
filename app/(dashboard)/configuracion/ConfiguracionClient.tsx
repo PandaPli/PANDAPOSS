@@ -6,7 +6,7 @@ import {
   Save, Loader2, Building2, Receipt, ImageIcon, Upload, X,
   Link2, Copy, ExternalLink, CheckCircle2, Printer, MapPin,
   Plus, Trash2, Star, Bot, Bike, QrCode, CreditCard, Globe,
-  Trophy, Sun, Zap, Sparkles,
+  Trophy, Sun, Zap, Sparkles, Search,
 } from "lucide-react";
 import type { Rol } from "@/types";
 import ZonaMapEditor from "@/components/configuracion/ZonaMapEditor";
@@ -63,8 +63,18 @@ interface Props {
   sucursalPuntosPorMil?: number;
   sucursalValorPunto?: number;
   sucursalProductoMesActivo?: boolean;
+  sucursalProductoMesId?: number | null;
+  sucursalProductoMesTitulo?: string | null;
+  sucursalProductoMesPrecio?: number | null;
   sucursalProductoDiaActivo?: boolean;
+  sucursalProductoDiaId?: number | null;
+  sucursalProductoDiaTitulo?: string | null;
+  sucursalProductoDiaPrecio?: number | null;
   sucursalOfertaFugazActivo?: boolean;
+  sucursalOfertaFugazId?: number | null;
+  sucursalOfertaFugazPrecio?: number | null;
+  sucursalOfertaFugazHasta?: string | null;
+  productosVitrina?: { id: number; nombre: string; precio: number; imagen: string | null; codigo: string | null }[];
 }
 
 // ─── Widget primitives ────────────────────────────────────────────────────────
@@ -140,6 +150,143 @@ function Msg({ msg }: { msg: { type: "ok" | "error"; text: string } | null }) {
   );
 }
 
+/* ─── VitrinaPicker ─────────────────────────────────────────────────────────
+   Panel expandible que aparece cuando un toggle de vitrina está activo.
+   Permite buscar/seleccionar producto, establecer precio especial, título y
+   (solo Oferta Fugaz) la fecha/hora de expiración con countdown en vivo.
+──────────────────────────────────────────────────────────────────────────── */
+function VitrinaPicker({
+  productos, productoId, setProductoId,
+  q, setQ, precio, setPrecio,
+  titulo, setTitulo, tituloPlaceholder,
+  accentColor, loading, onGuardar,
+  timer,
+}: {
+  productos: { id: number; nombre: string; precio: number; imagen: string | null; codigo: string | null }[];
+  productoId: number | null; setProductoId: (id: number | null) => void;
+  q: string; setQ: (v: string) => void;
+  precio: string; setPrecio: (v: string) => void;
+  titulo?: string; setTitulo?: (v: string) => void; tituloPlaceholder?: string;
+  accentColor: "amber" | "orange" | "red";
+  loading: boolean;
+  onGuardar: () => void;
+  timer?: { value: string; onChange: (v: string) => void };
+}) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!timer) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [timer]);
+
+  const accent: Record<string, string> = {
+    amber:  "border-amber-300 bg-amber-50 text-amber-700",
+    orange: "border-orange-300 bg-orange-50 text-orange-700",
+    red:    "border-red-300 bg-red-50 text-red-700",
+  };
+  const btn: Record<string, string> = {
+    amber:  "bg-amber-500 hover:bg-amber-600",
+    orange: "bg-orange-500 hover:bg-orange-600",
+    red:    "bg-red-500 hover:bg-red-600",
+  };
+
+  const seleccionado = productos.find(p => p.id === productoId) ?? null;
+  const filtrados = productos.filter(p =>
+    !q.trim() || p.nombre.toLowerCase().includes(q.toLowerCase()) || (p.codigo ?? "").toLowerCase().includes(q.toLowerCase())
+  ).slice(0, 20);
+
+  // Countdown para oferta fugaz
+  let countdown: string | null = null;
+  let expirada = false;
+  if (timer?.value) {
+    const ms = new Date(timer.value).getTime() - now;
+    if (ms <= 0) { expirada = true; countdown = "Expirada"; }
+    else {
+      const h = Math.floor(ms / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      countdown = h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+    }
+  }
+
+  return (
+    <div className="border-t border-surface-border bg-white p-4 space-y-3">
+      {/* Selector de producto */}
+      {seleccionado ? (
+        <div className={cn("flex items-center gap-3 rounded-xl border px-3 py-2.5", accent[accentColor])}>
+          {seleccionado.imagen
+            ? <img src={seleccionado.imagen} alt="" className="h-8 w-8 rounded-lg object-cover flex-shrink-0" />
+            : <div className="h-8 w-8 rounded-lg bg-white/60 flex-shrink-0" />
+          }
+          <p className="flex-1 text-sm font-bold truncate">{seleccionado.nombre}</p>
+          <button onClick={() => { setProductoId(null); }} className="text-xs underline opacity-60 hover:opacity-100 flex-shrink-0">cambiar</button>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-surface-muted">Seleccionar producto</label>
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar..." className="w-full rounded-xl border border-surface-border bg-surface-bg py-2 pl-7 pr-3 text-sm outline-none focus:border-brand-400" />
+          </div>
+          <div className="max-h-40 overflow-y-auto space-y-0.5 rounded-xl border border-surface-border">
+            {filtrados.map(p => (
+              <button key={p.id} onClick={() => { setProductoId(p.id); setQ(""); setPrecio(String(p.precio)); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-surface-bg transition">
+                {p.imagen
+                  ? <img src={p.imagen} alt="" className="h-7 w-7 rounded-lg object-cover flex-shrink-0" />
+                  : <div className="h-7 w-7 rounded-lg bg-surface-bg flex-shrink-0" />
+                }
+                <span className="flex-1 truncate text-sm font-medium">{p.nombre}</span>
+                <span className="text-xs text-surface-muted">${p.precio.toLocaleString()}</span>
+              </button>
+            ))}
+            {filtrados.length === 0 && <p className="py-3 text-center text-xs text-surface-muted">Sin resultados</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Precio especial */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-surface-muted">Precio especial</label>
+          <input type="number" min={0} value={precio} onChange={e => setPrecio(e.target.value)}
+            placeholder="Precio destacado"
+            className="w-full rounded-xl border border-surface-border bg-surface-bg px-3 py-2 text-sm font-bold outline-none focus:border-brand-400" />
+        </div>
+        {/* Título (Mes y Día) */}
+        {setTitulo !== undefined && (
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-surface-muted">Encabezado en menú</label>
+            <input type="text" value={titulo ?? ""} onChange={e => setTitulo(e.target.value)}
+              placeholder={tituloPlaceholder ?? "Encabezado..."}
+              maxLength={100}
+              className="w-full rounded-xl border border-surface-border bg-surface-bg px-3 py-2 text-sm outline-none focus:border-brand-400" />
+          </div>
+        )}
+        {/* Timer (Oferta Fugaz) */}
+        {timer && (
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-surface-muted">Válida hasta</label>
+            <input type="datetime-local" value={timer.value} onChange={e => timer.onChange(e.target.value)}
+              className="w-full rounded-xl border border-surface-border bg-surface-bg px-3 py-2 text-sm outline-none focus:border-brand-400" />
+            {countdown && (
+              <p className={cn("mt-1 text-xs font-black", expirada ? "text-red-500" : "text-emerald-600")}>
+                {expirada ? "⏰ Expirada" : `⏱ ${countdown}`}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <button onClick={onGuardar} disabled={loading || !productoId}
+        className={cn("flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition disabled:opacity-40", btn[accentColor])}>
+        {loading ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+        Guardar
+      </button>
+    </div>
+  );
+}
+
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
@@ -198,7 +345,10 @@ export function ConfiguracionClient({
   sucursalSocialWhatsapp, sucursalSocialYoutube, sucursalSocialTiktok,
   sucursalSocialTwitter, sucursalFlayerUrl, sucursalFlayerActivo,
   sucursalMpAccessToken, sucursalPuntosActivo, sucursalPuntosPorMil, sucursalValorPunto,
-  sucursalProductoMesActivo, sucursalProductoDiaActivo, sucursalOfertaFugazActivo,
+  sucursalProductoMesActivo, sucursalProductoMesId, sucursalProductoMesTitulo, sucursalProductoMesPrecio,
+  sucursalProductoDiaActivo, sucursalProductoDiaId, sucursalProductoDiaTitulo, sucursalProductoDiaPrecio,
+  sucursalOfertaFugazActivo, sucursalOfertaFugazId, sucursalOfertaFugazPrecio, sucursalOfertaFugazHasta,
+  productosVitrina,
 }: Props) {
   const router = useRouter();
   const esAdminSucursal = rol === "RESTAURANTE";
@@ -289,12 +439,28 @@ export function ConfiguracionClient({
   const [puntosLoading, setPuntosLoading] = useState(false);
   const [puntosMsg, setPuntosMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
-  // Estado Vitrina Especial
+  // Estado Vitrina Especial — toggles
   const [productoMesActivo, setProductoMesActivo] = useState<boolean>(sucursalProductoMesActivo ?? false);
   const [productoDiaActivo, setProductoDiaActivo] = useState<boolean>(sucursalProductoDiaActivo ?? false);
   const [ofertaFugazActivo, setOfertaFugazActivo] = useState<boolean>(sucursalOfertaFugazActivo ?? false);
   const [vitrinaLoading, setVitrinaLoading] = useState(false);
   const [vitrinaMsg, setVitrinaMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  // Producto del Mes
+  const [mesProductoId,  setMesProductoId]  = useState<number | null>(sucursalProductoMesId  ?? null);
+  const [mesTitulo,      setMesTitulo]      = useState(sucursalProductoMesTitulo ?? "");
+  const [mesPrecio,      setMesPrecio]      = useState(sucursalProductoMesPrecio != null ? String(sucursalProductoMesPrecio) : "");
+  const [mesQ,           setMesQ]           = useState("");
+  // Producto del Día
+  const [diaProductoId,  setDiaProductoId]  = useState<number | null>(sucursalProductoDiaId  ?? null);
+  const [diaTitulo,      setDiaTitulo]      = useState(sucursalProductoDiaTitulo ?? "");
+  const [diaPrecio,      setDiaPrecio]      = useState(sucursalProductoDiaPrecio != null ? String(sucursalProductoDiaPrecio) : "");
+  const [diaQ,           setDiaQ]           = useState("");
+  // Oferta Fugaz
+  const [fugazProductoId, setFugazProductoId] = useState<number | null>(sucursalOfertaFugazId  ?? null);
+  const [fugazPrecio,     setFugazPrecio]     = useState(sucursalOfertaFugazPrecio != null ? String(sucursalOfertaFugazPrecio) : "");
+  const [fugazHasta,      setFugazHasta]      = useState(sucursalOfertaFugazHasta ? sucursalOfertaFugazHasta.slice(0, 16) : "");
+  const [fugazQ,          setFugazQ]          = useState("");
+  const productos = productosVitrina ?? [];
 
   // Estado PANDI
   const [pandiActivo, setPandiActivo] = useState(true);
@@ -597,6 +763,21 @@ export function ConfiguracionClient({
       if (!res.ok) throw new Error("Error al guardar");
       setVitrinaMsg({ type: "ok", text: "Guardado" });
       setTimeout(() => setVitrinaMsg(null), 2000);
+    } catch (err) { setVitrinaMsg({ type: "error", text: (err as Error).message }); }
+    finally { setVitrinaLoading(false); }
+  }
+
+  async function guardarVitrinaDetalle(payload: Record<string, unknown>) {
+    if (!sucursalId) return;
+    setVitrinaLoading(true); setVitrinaMsg(null);
+    try {
+      const res = await fetch(`/api/sucursales/${sucursalId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      setVitrinaMsg({ type: "ok", text: "Guardado ✓" });
+      setTimeout(() => setVitrinaMsg(null), 2500);
     } catch (err) { setVitrinaMsg({ type: "error", text: (err as Error).message }); }
     finally { setVitrinaLoading(false); }
   }
@@ -1065,55 +1246,105 @@ export function ConfiguracionClient({
             >
               <Msg msg={vitrinaMsg} />
 
-              {/* Producto del Mes */}
-              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
-                <div className="min-w-0 pr-4">
-                  <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
-                    <Trophy size={13} className="text-amber-500 shrink-0" />
-                    Producto del Mes
-                  </p>
-                  <p className="text-xs text-surface-muted mt-0.5">Destaca un producto especial cada mes en tu carta</p>
+              {/* ── Producto del Mes ── */}
+              <div className="rounded-xl border border-surface-border overflow-hidden">
+                <div className="flex items-center justify-between bg-surface-bg px-4 py-3">
+                  <div className="min-w-0 pr-4">
+                    <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
+                      <Trophy size={13} className="text-amber-500 shrink-0" />
+                      Producto del Mes
+                    </p>
+                    <p className="text-xs text-surface-muted mt-0.5">Destaca un producto especial cada mes en tu carta</p>
+                  </div>
+                  <Toggle checked={productoMesActivo} disabled={vitrinaLoading}
+                    onChange={(v) => { setProductoMesActivo(v); handleVitrinaToggle("productoMesActivo", v); }}
+                    activeColor="bg-amber-500" />
                 </div>
-                <Toggle
-                  checked={productoMesActivo}
-                  disabled={vitrinaLoading}
-                  onChange={(v) => { setProductoMesActivo(v); handleVitrinaToggle("productoMesActivo", v); }}
-                  activeColor="bg-amber-500"
-                />
+                {productoMesActivo && (
+                  <VitrinaPicker
+                    productos={productos}
+                    productoId={mesProductoId}
+                    setProductoId={setMesProductoId}
+                    q={mesQ} setQ={setMesQ}
+                    precio={mesPrecio} setPrecio={setMesPrecio}
+                    titulo={mesTitulo} setTitulo={setMesTitulo}
+                    tituloPlaceholder='Ej: "El favorito del mes"'
+                    accentColor="amber"
+                    loading={vitrinaLoading}
+                    onGuardar={() => guardarVitrinaDetalle({
+                      productoMesId:     mesProductoId,
+                      productoMesPrecio: mesPrecio ? Number(mesPrecio) : null,
+                      productoMesTitulo: mesTitulo || null,
+                    })}
+                  />
+                )}
               </div>
 
-              {/* Producto del Día */}
-              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
-                <div className="min-w-0 pr-4">
-                  <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
-                    <Sun size={13} className="text-orange-500 shrink-0" />
-                    Producto del Día
-                  </p>
-                  <p className="text-xs text-surface-muted mt-0.5">Rotativo diario visible en carta QR y kiosko</p>
+              {/* ── Producto del Día ── */}
+              <div className="rounded-xl border border-surface-border overflow-hidden">
+                <div className="flex items-center justify-between bg-surface-bg px-4 py-3">
+                  <div className="min-w-0 pr-4">
+                    <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
+                      <Sun size={13} className="text-orange-500 shrink-0" />
+                      Producto del Día
+                    </p>
+                    <p className="text-xs text-surface-muted mt-0.5">Rotativo diario visible en carta QR y kiosko</p>
+                  </div>
+                  <Toggle checked={productoDiaActivo} disabled={vitrinaLoading}
+                    onChange={(v) => { setProductoDiaActivo(v); handleVitrinaToggle("productoDiaActivo", v); }}
+                    activeColor="bg-orange-500" />
                 </div>
-                <Toggle
-                  checked={productoDiaActivo}
-                  disabled={vitrinaLoading}
-                  onChange={(v) => { setProductoDiaActivo(v); handleVitrinaToggle("productoDiaActivo", v); }}
-                  activeColor="bg-orange-500"
-                />
+                {productoDiaActivo && (
+                  <VitrinaPicker
+                    productos={productos}
+                    productoId={diaProductoId}
+                    setProductoId={setDiaProductoId}
+                    q={diaQ} setQ={setDiaQ}
+                    precio={diaPrecio} setPrecio={setDiaPrecio}
+                    titulo={diaTitulo} setTitulo={setDiaTitulo}
+                    tituloPlaceholder='Ej: "Especial del día"'
+                    accentColor="orange"
+                    loading={vitrinaLoading}
+                    onGuardar={() => guardarVitrinaDetalle({
+                      productoDiaId:    diaProductoId,
+                      productoDiaPrecio: diaPrecio ? Number(diaPrecio) : null,
+                      productoDiaTitulo: diaTitulo || null,
+                    })}
+                  />
+                )}
               </div>
 
-              {/* Oferta Fugaz */}
-              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-surface-bg px-4 py-3">
-                <div className="min-w-0 pr-4">
-                  <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
-                    <Zap size={13} className="text-red-500 shrink-0" />
-                    Oferta Fugaz
-                  </p>
-                  <p className="text-xs text-surface-muted mt-0.5">Promociones de tiempo limitado con contador visible</p>
+              {/* ── Oferta Fugaz ── */}
+              <div className="rounded-xl border border-surface-border overflow-hidden">
+                <div className="flex items-center justify-between bg-surface-bg px-4 py-3">
+                  <div className="min-w-0 pr-4">
+                    <p className="text-sm font-medium text-surface-text flex items-center gap-1.5">
+                      <Zap size={13} className="text-red-500 shrink-0" />
+                      Oferta Fugaz
+                    </p>
+                    <p className="text-xs text-surface-muted mt-0.5">Promociones de tiempo limitado con contador visible</p>
+                  </div>
+                  <Toggle checked={ofertaFugazActivo} disabled={vitrinaLoading}
+                    onChange={(v) => { setOfertaFugazActivo(v); handleVitrinaToggle("ofertaFugazActivo", v); }}
+                    activeColor="bg-red-500" />
                 </div>
-                <Toggle
-                  checked={ofertaFugazActivo}
-                  disabled={vitrinaLoading}
-                  onChange={(v) => { setOfertaFugazActivo(v); handleVitrinaToggle("ofertaFugazActivo", v); }}
-                  activeColor="bg-red-500"
-                />
+                {ofertaFugazActivo && (
+                  <VitrinaPicker
+                    productos={productos}
+                    productoId={fugazProductoId}
+                    setProductoId={setFugazProductoId}
+                    q={fugazQ} setQ={setFugazQ}
+                    precio={fugazPrecio} setPrecio={setFugazPrecio}
+                    accentColor="red"
+                    loading={vitrinaLoading}
+                    timer={{ value: fugazHasta, onChange: setFugazHasta }}
+                    onGuardar={() => guardarVitrinaDetalle({
+                      ofertaFugazId:    fugazProductoId,
+                      ofertaFugazPrecio: fugazPrecio ? Number(fugazPrecio) : null,
+                      ofertaFugazHasta:  fugazHasta  ? fugazHasta : null,
+                    })}
+                  />
+                )}
               </div>
 
               {vitrinaLoading && (

@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso, productoMesActivo, productoDiaActivo, ofertaFugazActivo } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso, productoMesActivo, productoMesId, productoMesTitulo, productoMesPrecio, productoDiaActivo, productoDiaId, productoDiaTitulo, productoDiaPrecio, ofertaFugazActivo, ofertaFugazId, ofertaFugazPrecio, ofertaFugazHasta } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -61,9 +61,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (flayerUrl    !== undefined) data.flayerUrl    = (flayerUrl    as string)?.trim() || null;
     if (flayerActivo !== undefined) data.flayerActivo = Boolean(flayerActivo);
     if (mpAccessToken !== undefined) data.mpAccessToken = (mpAccessToken as string)?.trim() || null;
-    if (productoMesActivo !== undefined) data.productoMesActivo = Boolean(productoMesActivo);
-    if (productoDiaActivo !== undefined) data.productoDiaActivo = Boolean(productoDiaActivo);
-    if (ofertaFugazActivo !== undefined) data.ofertaFugazActivo = Boolean(ofertaFugazActivo);
+    if (productoMesActivo  !== undefined) data.productoMesActivo  = Boolean(productoMesActivo);
+    if (productoMesId      !== undefined) data.productoMesId      = productoMesId      ? Number(productoMesId)      : null;
+    if (productoMesTitulo  !== undefined) data.productoMesTitulo  = (productoMesTitulo  as string)?.trim() || null;
+    if (productoMesPrecio  !== undefined) data.productoMesPrecio  = productoMesPrecio  != null ? Number(productoMesPrecio)  : null;
+    if (productoDiaActivo  !== undefined) data.productoDiaActivo  = Boolean(productoDiaActivo);
+    if (productoDiaId      !== undefined) data.productoDiaId      = productoDiaId      ? Number(productoDiaId)      : null;
+    if (productoDiaTitulo  !== undefined) data.productoDiaTitulo  = (productoDiaTitulo  as string)?.trim() || null;
+    if (productoDiaPrecio  !== undefined) data.productoDiaPrecio  = productoDiaPrecio  != null ? Number(productoDiaPrecio)  : null;
+    if (ofertaFugazActivo  !== undefined) data.ofertaFugazActivo  = Boolean(ofertaFugazActivo);
+    if (ofertaFugazId      !== undefined) data.ofertaFugazId      = ofertaFugazId      ? Number(ofertaFugazId)      : null;
+    if (ofertaFugazPrecio  !== undefined) data.ofertaFugazPrecio  = ofertaFugazPrecio  != null ? Number(ofertaFugazPrecio)  : null;
+    if (ofertaFugazHasta   !== undefined) data.ofertaFugazHasta   = ofertaFugazHasta   ? new Date(ofertaFugazHasta as string) : null;
   } else {
     // ADMIN_GENERAL puede actualizar todo
     if (nombre !== undefined) data.nombre = (nombre as string).trim();

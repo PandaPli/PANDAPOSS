@@ -64,9 +64,18 @@ model Sucursal {
   productoMesActivo   Boolean    @default(false)
   productoMesId       Int?
   productoMesTitulo   String?    @db.VarChar(200)
+  productoMesPrecio   Decimal?   @db.Decimal(10, 2)
   productoDiaActivo   Boolean    @default(false)
+  productoDiaId       Int?
+  productoDiaTitulo   String?    @db.VarChar(200)
+  productoDiaPrecio   Decimal?   @db.Decimal(10, 2)
   ofertaFugazActivo   Boolean    @default(false)
+  ofertaFugazId       Int?
+  ofertaFugazPrecio   Decimal?   @db.Decimal(10, 2)
+  ofertaFugazHasta    DateTime?
   productoMes         Producto?  @relation("ProductoDelMes", fields: [productoMesId], references: [id])
+  productoDia         Producto?  @relation("ProductoDelDia", fields: [productoDiaId], references: [id])
+  ofertaFugazProd     Producto?  @relation("OfertaFugaz",   fields: [ofertaFugazId],  references: [id])
   asistencias     Asistencia[]
   cajas         Caja[]
   clientes      Cliente[]
@@ -196,6 +205,8 @@ model Producto {
   categoria             Categoria?      @relation(fields: [categoriaId], references: [id])
   sucursal              Sucursal?       @relation(fields: [sucursalId], references: [id])
   sucursalesProductoMes Sucursal[]      @relation("ProductoDelMes")
+  sucursalesProductoDia Sucursal[]      @relation("ProductoDelDia")
+  sucursalesOfertaFugaz Sucursal[]      @relation("OfertaFugaz")
   Tenant         Tenant?         @relation(fields: [tenantId], references: [id])
 
   @@index([categoriaId], map: "productos_categoriaId_fkey")

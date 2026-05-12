@@ -50,23 +50,45 @@ export default async function ConfiguracionPage() {
   let sucursalPuntosPorMil:      number  = 10;
   let sucursalValorPunto:        number  = 1;
   let sucursalProductoMesActivo: boolean = false;
+  let sucursalProductoMesId:     number | null = null;
+  let sucursalProductoMesTitulo: string | null = null;
+  let sucursalProductoMesPrecio: number | null = null;
   let sucursalProductoDiaActivo: boolean = false;
+  let sucursalProductoDiaId:     number | null = null;
+  let sucursalProductoDiaTitulo: string | null = null;
+  let sucursalProductoDiaPrecio: number | null = null;
   let sucursalOfertaFugazActivo: boolean = false;
+  let sucursalOfertaFugazId:     number | null = null;
+  let sucursalOfertaFugazPrecio: number | null = null;
+  let sucursalOfertaFugazHasta:  string | null = null;
+
+  // Productos de la sucursal para el picker de vitrina
+  type ProductoVitrina = { id: number; nombre: string; precio: number; imagen: string | null; codigo: string | null };
+  let productosVitrina: ProductoVitrina[] = [];
 
   if (rol === "RESTAURANTE" && sucursalId) {
-    const suc = await prisma.sucursal.findUnique({
-      where: { id: sucursalId },
-      select: {
-        nombre: true, logoUrl: true, cartaBg: true, cartaTagline: true, cartaSaludo: true,
-        printerPath: true, printerIp: true, rut: true, giroComercial: true,
-        telefono: true, direccion: true, zonasDelivery: true,
-        socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
-        socialYoutube: true, socialTiktok: true, socialTwitter: true,
-        flayerUrl: true, flayerActivo: true, mpAccessToken: true,
-        puntosActivo: true, puntosPorMil: true, valorPunto: true,
-        productoMesActivo: true, productoDiaActivo: true, ofertaFugazActivo: true,
-      },
-    });
+    const [suc, prods] = await Promise.all([
+      prisma.sucursal.findUnique({
+        where: { id: sucursalId },
+        select: {
+          nombre: true, logoUrl: true, cartaBg: true, cartaTagline: true, cartaSaludo: true,
+          printerPath: true, printerIp: true, rut: true, giroComercial: true,
+          telefono: true, direccion: true, zonasDelivery: true,
+          socialFacebook: true, socialInstagram: true, socialWhatsapp: true,
+          socialYoutube: true, socialTiktok: true, socialTwitter: true,
+          flayerUrl: true, flayerActivo: true, mpAccessToken: true,
+          puntosActivo: true, puntosPorMil: true, valorPunto: true,
+          productoMesActivo: true, productoMesId: true, productoMesTitulo: true, productoMesPrecio: true,
+          productoDiaActivo: true, productoDiaId: true, productoDiaTitulo: true, productoDiaPrecio: true,
+          ofertaFugazActivo: true, ofertaFugazId: true, ofertaFugazPrecio: true, ofertaFugazHasta: true,
+        },
+      }),
+      prisma.producto.findMany({
+        where: { activo: true, sucursalId },
+        select: { id: true, nombre: true, precio: true, imagen: true, codigo: true },
+        orderBy: { nombre: "asc" },
+      }),
+    ]);
     if (suc) {
       sucursalLogoUrl = suc.logoUrl;
       sucursalCartaBg = suc.cartaBg;
@@ -92,11 +114,21 @@ export default async function ConfiguracionPage() {
       sucursalPuntosPorMil      = Number(suc.puntosPorMil);
       sucursalValorPunto        = Number(suc.valorPunto);
       sucursalProductoMesActivo = suc.productoMesActivo;
+      sucursalProductoMesId     = suc.productoMesId;
+      sucursalProductoMesTitulo = suc.productoMesTitulo;
+      sucursalProductoMesPrecio = suc.productoMesPrecio != null ? Number(suc.productoMesPrecio) : null;
       sucursalProductoDiaActivo = suc.productoDiaActivo;
+      sucursalProductoDiaId     = suc.productoDiaId;
+      sucursalProductoDiaTitulo = suc.productoDiaTitulo;
+      sucursalProductoDiaPrecio = suc.productoDiaPrecio != null ? Number(suc.productoDiaPrecio) : null;
       sucursalOfertaFugazActivo = suc.ofertaFugazActivo;
+      sucursalOfertaFugazId     = suc.ofertaFugazId;
+      sucursalOfertaFugazPrecio = suc.ofertaFugazPrecio != null ? Number(suc.ofertaFugazPrecio) : null;
+      sucursalOfertaFugazHasta  = suc.ofertaFugazHasta ? suc.ofertaFugazHasta.toISOString() : null;
       const { createSlug } = await import("@/lib/slug");
       sucursalSlug = createSlug(suc.nombre);
     }
+    productosVitrina = prods.map(p => ({ id: p.id, nombre: p.nombre, precio: Number(p.precio), imagen: p.imagen, codigo: p.codigo }));
   }
 
   const plain = {
@@ -143,8 +175,18 @@ export default async function ConfiguracionPage() {
         sucursalPuntosPorMil={sucursalPuntosPorMil}
         sucursalValorPunto={sucursalValorPunto}
         sucursalProductoMesActivo={sucursalProductoMesActivo}
+        sucursalProductoMesId={sucursalProductoMesId}
+        sucursalProductoMesTitulo={sucursalProductoMesTitulo}
+        sucursalProductoMesPrecio={sucursalProductoMesPrecio}
         sucursalProductoDiaActivo={sucursalProductoDiaActivo}
+        sucursalProductoDiaId={sucursalProductoDiaId}
+        sucursalProductoDiaTitulo={sucursalProductoDiaTitulo}
+        sucursalProductoDiaPrecio={sucursalProductoDiaPrecio}
         sucursalOfertaFugazActivo={sucursalOfertaFugazActivo}
+        sucursalOfertaFugazId={sucursalOfertaFugazId}
+        sucursalOfertaFugazPrecio={sucursalOfertaFugazPrecio}
+        sucursalOfertaFugazHasta={sucursalOfertaFugazHasta}
+        productosVitrina={productosVitrina}
       />
     </div>
   );
