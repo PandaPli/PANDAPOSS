@@ -51,6 +51,7 @@ interface Producto {
   sucursalId: number | null;
   categoria?: { id: number; nombre: string } | undefined;
   sucursal?: { id: number; nombre: string } | undefined;
+  tieneVariantes?: boolean;
 }
 
 interface VOpcion { _key: string; nombre: string; precio: string; }
@@ -239,6 +240,7 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
   const [catFiltro, setCatFiltro] = useState<number | null>(null);
   const [sucFiltro, setSucFiltro] = useState<number | null>(null);
   const [soloInventariados, setSoloInventariados] = useState(false);
+  const [soloConVariantes, setSoloConVariantes] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -392,9 +394,10 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
       const matchCat = !catFiltro || p.categoriaId === catFiltro;
       const matchSuc = !sucFiltro || p.sucursalId === sucFiltro;
       const matchInv = !soloInventariados || p.inventariable === true;
-      return matchSearch && matchCat && matchSuc && matchInv;
+      const matchVar = !soloConVariantes || p.tieneVariantes === true;
+      return matchSearch && matchCat && matchSuc && matchInv && matchVar;
     });
-  }, [productos, search, catFiltro, sucFiltro]);
+  }, [productos, search, catFiltro, sucFiltro, soloInventariados, soloConVariantes]);
 
   function renombrarCategoria(id: number, nombre: string) {
     setCategoriasState((prev) => prev.map((c) => c.id === id ? { ...c, nombre } : c));
@@ -808,6 +811,18 @@ export function ProductosClient({ productos: initial, categorias, sucursales, si
         >
           <span className={`w-2 h-2 rounded-full ${soloInventariados ? "bg-white" : "bg-teal-400"}`} />
           Inventariados
+        </button>
+        <button
+          type="button"
+          onClick={() => setSoloConVariantes((v) => !v)}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+            soloConVariantes
+              ? "bg-violet-500 text-white border-violet-500 shadow-sm"
+              : "bg-white text-surface-muted border-surface-border hover:border-violet-300 hover:text-violet-600"
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${soloConVariantes ? "bg-white" : "bg-violet-400"}`} />
+          Con variación
         </button>
         {rol === "ADMIN_GENERAL" && (
           <select value={sucFiltro ?? ""} onChange={(e) => setSucFiltro(e.target.value ? Number(e.target.value) : null)} className="input w-auto">

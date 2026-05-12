@@ -20,6 +20,7 @@ async function getData(rol: string, sucursalId: number | null) {
       include: {
         categoria: { select: { id: true, nombre: true } },
         sucursal: { select: { id: true, nombre: true } },
+        _count: { select: { variantes: true } },
       },
       orderBy: { nombre: "asc" },
     }),
@@ -67,6 +68,7 @@ export default async function ProductosPage() {
     sucursalId: p.sucursalId,
     categoria: p.categoria ?? undefined,
     sucursal: p.sucursal ?? undefined,
+    tieneVariantes: (p._count?.variantes ?? 0) > 0,
   }));
 
   return (
