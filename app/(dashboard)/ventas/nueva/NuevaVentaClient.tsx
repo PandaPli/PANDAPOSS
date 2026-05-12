@@ -49,6 +49,8 @@ interface Props {
   sucursalDireccion?: string | null;
   sucursalGiroComercial?: string | null;
   puntosConfig?: { activo: boolean; puntosPorMil: number; valorPunto: number };
+  /** Si true, el cajero debe seleccionar un cliente antes de confirmar (delivery/retiro/orden) */
+  requireCliente?: boolean;
 }
 
 export function NuevaVentaClient({
@@ -70,6 +72,7 @@ export function NuevaVentaClient({
   sucursalDireccion,
   sucursalGiroComercial,
   puntosConfig,
+  requireCliente = false,
 }: Props) {
   const router = useRouter();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -444,6 +447,7 @@ export function NuevaVentaClient({
               imagen: p.imagen,
             }))}
             puntosConfig={puntosConfig}
+            requireCliente={requireCliente}
             onActiveGrupoChange={setActiveGrupo}
           />
         </div>
@@ -480,6 +484,7 @@ export function NuevaVentaClient({
           onSuccess={handleSuccess}
           grupoNombre={checkoutGrupo ?? undefined}
           grupoItems={checkoutGrupo ? getItemsByGrupo(checkoutGrupo) : undefined}
+          requireCliente={requireCliente}
         />
       )}
 

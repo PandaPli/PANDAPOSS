@@ -20,6 +20,7 @@ interface Props {
   /** Catálogo de productos para el CustomerSelector */
   productos?: ProductoCatalogo[];
   puntosConfig?: { activo: boolean; puntosPorMil: number; valorPunto: number };
+  requireCliente?: boolean;
   /** Notifica al padre el grupo activo (para que ProductGrid asigne ítems al grupo correcto) */
   onActiveGrupoChange?: (grupo: string | null) => void;
 }
@@ -49,7 +50,7 @@ interface SplitState {
   cantidades: Record<string, number>;
 }
 
-export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [], productos = [], puntosConfig, onActiveGrupoChange }: Props) {
+export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden, onPrecuenta, ordenLoading, canCancelItems = false, rondas = [], productos = [], puntosConfig, requireCliente = false, onActiveGrupoChange }: Props) {
   const {
     items, removeItem, updateCantidad, updateObservacion, cancelItem,
     subtotal, totalDescuento, totalIva, total, descuento, ivaPorc, pedidoId,
@@ -619,6 +620,7 @@ export function CartPanel({ simbolo = "$", onCheckout, onCheckoutGrupo, onOrden,
         simbolo={simbolo}
         puntosConfig={puntosConfig}
         productos={productos}
+        requireCliente={requireCliente}
       />
 
       {/* Items */}

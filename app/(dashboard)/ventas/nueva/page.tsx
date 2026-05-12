@@ -66,9 +66,28 @@ async function getPedido(pedidoId?: number, mesaId?: number) {
       include: { detalles: detalleInclude },
     });
     if (p) {
-      // Igual que por mesaId: cargamos TODOS los pedidos activos de esa mesa
+      // Si tiene mesa: cargar todos los pedidos activos de esa mesa
       const mesaIdTarget = p.mesaId ?? undefined;
       if (mesaIdTarget) return getAllPedidosMesa(mesaIdTarget);
+
+      // Sin mesa (DELIVERY, MOSTRADOR, RETIRO): cargar ítems del pedido directo
+      const items: CartItem[] = p.detalles.map((d) => {
+        const item = d.producto || d.combo;
+        return {
+          id: item!.id,
+          tipo: (d.productoId ? "producto" : "combo") as "producto" | "combo",
+          codigo: item!.codigo,
+          nombre: item!.nombre,
+          precio: Number(item!.precio),
+          cantidad: d.cantidad,
+          observacion: d.observacion ?? undefined,
+          imagen: item!.imagen ?? undefined,
+          guardado: true,
+          cancelado: d.cancelado ?? false,
+          detalleId: d.id,
+        };
+      });
+      return { id: p.id, mesaId: null, items, rondas: [], pedidoTipo: p.tipo as string };
     }
   }
 
@@ -250,6 +269,11 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
     })),
   }));
 
+  // Cliente obligatorio en DELIVERY / MOSTRADOR (ordenes directas sin mesa)
+  const requireCliente =
+    (pedidoInfo as { pedidoTipo?: string } | null)?.pedidoTipo === "DELIVERY" ||
+    (pedidoInfo as { pedidoTipo?: string } | null)?.pedidoTipo === "MOSTRADOR";
+
   return (
     <NuevaVentaClient
       productos={productosData}
@@ -269,6 +293,7 @@ export default async function NuevaVentaPage({ searchParams }: Props) {
       sucursalTelefono={sucursalBranding?.telefono ?? null}
       sucursalDireccion={sucursalBranding?.direccion ?? null}
       sucursalGiroComercial={sucursalBranding?.giroComercial ?? null}
+      requireCliente={requireCliente}
       puntosConfig={
         sucursalBranding?.puntosActivo
           ? {

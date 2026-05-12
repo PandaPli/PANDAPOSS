@@ -50,6 +50,8 @@ interface Props {
   puntosConfig?: { activo: boolean; puntosPorMil: number; valorPunto: number };
   /** Catálogo completo para poder buscar y agregar productos frecuentes */
   productos: ProductoCatalogo[];
+  /** Si true, resalta el campo cuando no hay cliente seleccionado */
+  requireCliente?: boolean;
 }
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
@@ -320,7 +322,7 @@ function ClientCardWidget({
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 
-export function CustomerSelector({ simbolo = "$", puntosConfig, productos }: Props) {
+export function CustomerSelector({ simbolo = "$", puntosConfig, productos, requireCliente = false }: Props) {
   const { clienteId, setCliente, puntosCanjeados, setPuntosCanjeados, addItem } = useCartStore();
 
   const [query, setQuery] = useState("");
@@ -448,8 +450,13 @@ export function CustomerSelector({ simbolo = "$", puntosConfig, productos }: Pro
   if (!clienteId || !selectedCliente) {
     return (
       <div className="px-3 pt-2.5 pb-1">
+        {requireCliente && (
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-bold text-red-500">
+            <span>★</span> Cliente obligatorio para esta orden
+          </p>
+        )}
         <div className="relative">
-          <div className="flex items-center gap-2 px-3 py-2 border border-surface-border rounded-xl bg-surface-50 focus-within:border-brand-400 focus-within:bg-white transition-all">
+          <div className={`flex items-center gap-2 px-3 py-2 border rounded-xl bg-surface-50 focus-within:bg-white transition-all ${requireCliente ? "border-red-400 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-200" : "border-surface-border focus-within:border-brand-400"}`}>
             <Search size={13} className="text-surface-muted flex-shrink-0" />
             <input
               ref={inputRef}

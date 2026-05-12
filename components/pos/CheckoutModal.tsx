@@ -42,6 +42,8 @@ interface Props {
   grupoNombre?: string;
   /** Ítems del grupo a cobrar */
   grupoItems?: CartItem[];
+  /** Si true, bloquea el cobro hasta que se seleccione un cliente */
+  requireCliente?: boolean;
 }
 
 const metodos: { key: MetodoPago; label: string; icon: React.ReactNode }[] = [
@@ -62,6 +64,7 @@ export function CheckoutModal({
   onSuccess,
   grupoNombre,
   grupoItems,
+  requireCliente = false,
 }: Props) {
   const {
     items: cartItems,
@@ -543,9 +546,16 @@ export function CheckoutModal({
 
           {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
+          {requireCliente && !clienteId && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-700 flex items-center gap-2">
+              <span className="text-base leading-none">★</span>
+              <span className="font-semibold">Selecciona un cliente antes de cobrar</span>
+            </div>
+          )}
+
           <button
             onClick={handleConfirmar}
-            disabled={loading || items.length === 0 || pagos.length === 0 || sumaPagos < totalValue}
+            disabled={loading || items.length === 0 || pagos.length === 0 || sumaPagos < totalValue || (requireCliente && !clienteId)}
             className="btn-primary w-full py-3 text-base"
             style={grupoColor ? { backgroundColor: grupoColor, borderColor: grupoColor } : undefined}
           >

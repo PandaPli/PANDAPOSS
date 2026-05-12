@@ -195,9 +195,10 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
     return list;
   }, [clientes, search, sucFiltro, filtroGenero, orden]);
 
-  // Agrupados por género para vista inteligente
+  // Agrupados por género — solo cuando el orden es A→Z y sin filtro de género activo
+  // Para cualquier otro orden (puntos, edad, cumple) se muestra lista plana
   const grupos = useMemo(() => {
-    if (filtroGenero !== "todos") return null; // ya filtrado, no agrupar
+    if (filtroGenero !== "todos" || orden !== "nombre") return null;
     const map = new Map<string, { label: string; icon: string; color: string; clientes: typeof filtrados }>();
     const orden_grupos = ["F", "M", "O", ""];
     for (const clave of orden_grupos) {
@@ -208,7 +209,7 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
       }
     }
     return Array.from(map.values());
-  }, [filtrados, filtroGenero]);
+  }, [filtrados, filtroGenero, orden]);
 
   function abrirFormNuevo() {
     setEditando(null);
@@ -515,24 +516,50 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
           ))
         )
       ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-surface-border">
-                {filtrados.length === 0 ? (
-                  <tr>
-                    <td colSpan={colSpan} className="px-4 py-12 text-center">
-                      <Users size={32} className="mx-auto text-surface-muted mb-2" />
-                      <p className="text-surface-muted">Sin clientes</p>
-                    </td>
+        <>
+          {/* Banner informativo cuando se ordena por puntos y nadie tiene puntos */}
+          {orden === "puntos" && filtrados.every(c => (c.puntos ?? 0) === 0) && filtrados.length > 0 && (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <Star size={18} className="mt-0.5 shrink-0 fill-amber-400 text-amber-500" />
+              <div>
+                <p className="font-semibold">Ningún cliente tiene puntos acumulados aún</p>
+                <p className="mt-0.5 text-xs text-amber-700">
+                  Los puntos se acumulan automáticamente al registrar ventas con cliente seleccionado en el POS.
+                  A partir de ahora, al cobrar en <strong>Delivery / Mostrador / Mesa</strong>, selecciona el cliente antes de confirmar.
+                </p>
+              </div>
+            </div>
+          )}
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-border bg-surface-bg text-left text-xs font-semibold uppercase tracking-wide text-surface-muted">
+                    <th className="px-4 py-2.5">Cliente</th>
+                    <th className="px-4 py-2.5">Email</th>
+                    <th className="px-4 py-2.5">Teléfono</th>
+                    <th className="px-4 py-2.5">Dirección</th>
+                    <th className="px-4 py-2.5">Puntos</th>
+                    {isPandaAdmin && <th className="px-4 py-2.5">Sucursal</th>}
+                    <th className="px-4 py-2.5">Acciones</th>
                   </tr>
-                ) : (
-                  filtrados.map((c) => <FilaCliente key={c.id} c={c} />)
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-surface-border">
+                  {filtrados.length === 0 ? (
+                    <tr>
+                      <td colSpan={colSpan + 1} className="px-4 py-12 text-center">
+                        <Users size={32} className="mx-auto text-surface-muted mb-2" />
+                        <p className="text-surface-muted">Sin clientes</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filtrados.map((c) => <FilaCliente key={c.id} c={c} />)
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Modal confirmar eliminación */}
