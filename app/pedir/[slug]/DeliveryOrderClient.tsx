@@ -7,6 +7,7 @@ import ProductoViewer from "./ProductoViewer";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { formatCurrency } from "@/lib/utils";
 import type { MetodoPago } from "@/types";
+import { VitrinaBanner } from "@/components/vitrina/VitrinaBanner";
 
 interface VOpcion { id: number; nombre: string; precio: number; }
 interface VGrupo  { id: number; nombre: string; requerido: boolean; tipo: string; opciones: VOpcion[]; }
@@ -76,6 +77,7 @@ interface Props {
   flayerActivo?: boolean;
   mpEnabled?: boolean;
   tiendaAbierta?: boolean;
+  vitrinaItems?: import("@/components/vitrina/VitrinaBanner").VitrinaItem[];
 }
 
 const BASE_PAYMENT_OPTIONS: { id: string; label: string; method: MetodoPago; detail: string }[] = [
@@ -272,7 +274,7 @@ function ProductoOpcionesModal({
   );
 }
 
-export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo, mpEnabled, tiendaAbierta = true }: Props) {
+export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerUrl, flayerActivo, mpEnabled, tiendaAbierta = true, vitrinaItems = [] }: Props) {
   const paymentOptions = BASE_PAYMENT_OPTIONS.filter((o) => o.id !== "mercadopago" || mpEnabled);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -848,6 +850,27 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                 </div>
               </div>
             </div>
+
+            {/* ── Vitrina Especial ── */}
+            {vitrinaItems.length > 0 && (
+              <VitrinaBanner
+                items={vitrinaItems}
+                simbolo={sucursal.simbolo}
+                onAdd={(productoId, precio) => {
+                  // Buscar en categorias o usar datos del item de vitrina directamente
+                  const prodCarta = categorias.flatMap(c => c.productos).find(p => p.id === productoId);
+                  const vitItem = vitrinaItems.find(v => v.producto.id === productoId);
+                  const prod = prodCarta ?? (vitItem ? {
+                    id: vitItem.producto.id,
+                    nombre: vitItem.producto.nombre,
+                    descripcion: vitItem.producto.descripcion,
+                    imagen: vitItem.producto.imagen,
+                    variantes: [],
+                  } : null);
+                  if (prod) addItem({ ...prod, precio }, []);
+                }}
+              />
+            )}
 
             {/* ── Categorías — sticky bajo el scroll ── */}
             <div className="sticky top-0 z-20 rounded-2xl border border-black/5 bg-white/95 backdrop-blur-sm p-2 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.14)] sm:rounded-[2rem] sm:p-3">

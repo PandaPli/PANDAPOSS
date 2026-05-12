@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { createSlug } from "@/lib/slug";
 import { KioskoClient } from "./KioskoClient";
+import type { VitrinaItem } from "@/components/vitrina/VitrinaBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,16 @@ export default async function KioskoPage({ params }: Props) {
 
   const sucursales = await prisma.sucursal.findMany({
     where: { activa: true },
-    select: { id: true, nombre: true, logoUrl: true, simbolo: true, cartaBg: true },
+    select: {
+      id: true, nombre: true, logoUrl: true, simbolo: true, cartaBg: true,
+      mpAccessToken: true,
+      productoMesActivo: true, productoMesTitulo: true, productoMesPrecio: true,
+      productoMes: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
+      productoDiaActivo: true, productoDiaTitulo: true, productoDiaPrecio: true,
+      productoDia: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
+      ofertaFugazActivo: true, ofertaFugazPrecio: true, ofertaFugazHasta: true,
+      ofertaFugazProd: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
+    },
   });
 
   const branch = sucursales.find((s) => createSlug(s.nombre) === slug);
@@ -22,11 +32,7 @@ export default async function KioskoPage({ params }: Props) {
 
   const sucursalId = branch.id;
 
-  const sucMP = await prisma.sucursal.findUnique({
-    where: { id: sucursalId },
-    select: { mpAccessToken: true },
-  });
-  const mpEnabled = Boolean(sucMP?.mpAccessToken);
+  const mpEnabled = Boolean(branch.mpAccessToken);
 
   const categorias = await prisma.categoria.findMany({
     where: { activa: true },
@@ -88,6 +94,42 @@ export default async function KioskoPage({ params }: Props) {
       })),
     }));
 
+  // Armar items de vitrina
+  const vitrinaItems: VitrinaItem[] = [];
+  if (branch.productoMesActivo && branch.productoMes) {
+    vitrinaItems.push({
+      tipo: "mes", titulo: branch.productoMesTitulo ?? null,
+      producto: { id: branch.productoMes.id, nombre: branch.productoMes.nombre,
+        precio: Number(branch.productoMes.precio),
+        precioEspecial: branch.productoMesPrecio ? Number(branch.productoMesPrecio) : null,
+        imagen: branch.productoMes.imagen, descripcion: branch.productoMes.descripcion },
+      hasta: null,
+    });
+  }
+  if (branch.productoDiaActivo && branch.productoDia) {
+    vitrinaItems.push({
+      tipo: "dia", titulo: branch.productoDiaTitulo ?? null,
+      producto: { id: branch.productoDia.id, nombre: branch.productoDia.nombre,
+        precio: Number(branch.productoDia.precio),
+        precioEspecial: branch.productoDiaPrecio ? Number(branch.productoDiaPrecio) : null,
+        imagen: branch.productoDia.imagen, descripcion: branch.productoDia.descripcion },
+      hasta: null,
+    });
+  }
+  if (branch.ofertaFugazActivo && branch.ofertaFugazProd) {
+    const hasta = branch.ofertaFugazHasta?.toISOString() ?? null;
+    if (!hasta || new Date(hasta) > new Date()) {
+      vitrinaItems.push({
+        tipo: "fugaz", titulo: null,
+        producto: { id: branch.ofertaFugazProd.id, nombre: branch.ofertaFugazProd.nombre,
+          precio: Number(branch.ofertaFugazProd.precio),
+          precioEspecial: branch.ofertaFugazPrecio ? Number(branch.ofertaFugazPrecio) : null,
+          imagen: branch.ofertaFugazProd.imagen, descripcion: branch.ofertaFugazProd.descripcion },
+        hasta,
+      });
+    }
+  }
+
   return (
     <KioskoClient
       sucursal={{
@@ -99,6 +141,7 @@ export default async function KioskoPage({ params }: Props) {
       }}
       categorias={safeCategorias}
       mpEnabled={mpEnabled}
+      vitrinaItems={vitrinaItems}
     />
   );
 }

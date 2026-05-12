@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Check, ChevronRight, Minus, Plus, ShoppingBag, Trash2, X, ArrowLeft } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { VitrinaBanner } from "@/components/vitrina/VitrinaBanner";
+import type { VitrinaItem } from "@/components/vitrina/VitrinaBanner";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface VOpcion { id: number; nombre: string; precio: number; }
@@ -25,6 +27,7 @@ interface Props {
   sucursal: { id: number; nombre: string; logoUrl: string | null; simbolo: string; cartaBg: string | null; };
   categorias: Categoria[];
   mpEnabled?: boolean;
+  vitrinaItems?: VitrinaItem[];
 }
 
 const IDLE_TIMEOUT = 90_000; // 90s sin interacción → volver a idle
@@ -119,7 +122,7 @@ function VariantesModal({
 }
 
 // ── Main Kiosko Client ─────────────────────────────────────────────────────
-export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
+export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [] }: Props) {
   const [pantalla, setPantalla] = useState<Pantalla>("idle");
   const [catActiva, setCatActiva] = useState(categorias[0]?.id ?? 0);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -680,6 +683,25 @@ export function KioskoClient({ sucursal, categorias, mpEnabled }: Props) {
           </button>
         ))}
       </div>
+
+      {/* Vitrina promocional */}
+      {vitrinaItems.length > 0 && (
+        <div className="shrink-0 border-b border-white/5 px-4 py-3">
+          <VitrinaBanner
+            items={vitrinaItems}
+            simbolo={sucursal.simbolo}
+            onAdd={(productoId, precio) => {
+              const prodCarta = categorias.flatMap(c => c.productos).find(p => p.id === productoId);
+              const vitItem = vitrinaItems.find(v => v.producto.id === productoId);
+              const prod = prodCarta ?? (vitItem
+                ? { id: vitItem.producto.id, nombre: vitItem.producto.nombre,
+                    descripcion: vitItem.producto.descripcion, imagen: vitItem.producto.imagen, variantes: [] }
+                : null);
+              if (prod) addToCart({ ...prod, precio }, []);
+            }}
+          />
+        </div>
+      )}
 
       {/* Productos grid */}
       <div className="flex-1 overflow-y-auto p-4">

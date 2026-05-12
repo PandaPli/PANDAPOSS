@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { DeliveryOrderClient } from "./DeliveryOrderClient";
 import { createSlug } from "@/lib/slug";
 import { featureFilter } from "@/lib/plan";
+import type { VitrinaItem } from "@/components/vitrina/VitrinaBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,12 @@ export default async function PedirDeliveryPage({ params }: Props) {
       zonasDelivery: true,
       flayerUrl: true,
       flayerActivo: true,
+      productoMesActivo: true, productoMesTitulo: true, productoMesPrecio: true,
+      productoMes: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
+      productoDiaActivo: true, productoDiaTitulo: true, productoDiaPrecio: true,
+      productoDia: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
+      ofertaFugazActivo: true, ofertaFugazPrecio: true, ofertaFugazHasta: true,
+      ofertaFugazProd: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
     },
   });
 
@@ -120,6 +127,30 @@ export default async function PedirDeliveryPage({ params }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const zonas = (zonasRaw as any[]).map((z) => ({ id: z.id, nombre: String(z.nombre), precio: Number(z.precio) }));
 
+  // Armar items de vitrina
+  const vitrinaItems: VitrinaItem[] = [];
+  if (branch.productoMesActivo && branch.productoMes) {
+    vitrinaItems.push({ tipo: "mes", titulo: branch.productoMesTitulo ?? null,
+      producto: { id: branch.productoMes.id, nombre: branch.productoMes.nombre,
+        precio: Number(branch.productoMes.precio), precioEspecial: branch.productoMesPrecio ? Number(branch.productoMesPrecio) : null,
+        imagen: branch.productoMes.imagen, descripcion: branch.productoMes.descripcion }, hasta: null });
+  }
+  if (branch.productoDiaActivo && branch.productoDia) {
+    vitrinaItems.push({ tipo: "dia", titulo: branch.productoDiaTitulo ?? null,
+      producto: { id: branch.productoDia.id, nombre: branch.productoDia.nombre,
+        precio: Number(branch.productoDia.precio), precioEspecial: branch.productoDiaPrecio ? Number(branch.productoDiaPrecio) : null,
+        imagen: branch.productoDia.imagen, descripcion: branch.productoDia.descripcion }, hasta: null });
+  }
+  if (branch.ofertaFugazActivo && branch.ofertaFugazProd) {
+    const hasta = branch.ofertaFugazHasta?.toISOString() ?? null;
+    if (!hasta || new Date(hasta) > new Date()) {
+      vitrinaItems.push({ tipo: "fugaz", titulo: null,
+        producto: { id: branch.ofertaFugazProd.id, nombre: branch.ofertaFugazProd.nombre,
+          precio: Number(branch.ofertaFugazProd.precio), precioEspecial: branch.ofertaFugazPrecio ? Number(branch.ofertaFugazPrecio) : null,
+          imagen: branch.ofertaFugazProd.imagen, descripcion: branch.ofertaFugazProd.descripcion }, hasta });
+    }
+  }
+
   return (
     <DeliveryOrderClient
       sucursal={branch}
@@ -130,6 +161,7 @@ export default async function PedirDeliveryPage({ params }: Props) {
       flayerActivo={branch.flayerActivo ?? false}
       mpEnabled={mpEnabled}
       tiendaAbierta={tiendaAbierta}
+      vitrinaItems={vitrinaItems}
     />
   );
 }
