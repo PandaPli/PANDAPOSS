@@ -654,14 +654,14 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
         {sucursal.logoUrl && (
           <img src={sucursal.logoUrl} alt={sucursal.nombre} className="w-20 h-20 rounded-2xl object-cover mb-6 shadow-xl" />
         )}
-        <div className="rounded-[2rem] border border-white/10 bg-white/8 backdrop-blur-xl px-8 py-10 max-w-sm w-full shadow-2xl">
+        <div className="rounded-[2rem] border border-stone-200 bg-white px-8 py-10 max-w-sm w-full shadow-2xl">
           <div className="text-5xl mb-4">🌙</div>
-          <h1 className="text-2xl font-black text-white mb-2">{sucursal.nombre}</h1>
-          <p className="text-white/60 text-sm mb-1">Por el momento no estamos recibiendo pedidos.</p>
-          <p className="text-white/40 text-xs mb-6">Vuelve cuando estemos abiertos.</p>
+          <h1 className="text-2xl font-black text-stone-900 mb-2">{sucursal.nombre}</h1>
+          <p className="text-stone-500 text-sm mb-1">Por el momento no estamos recibiendo pedidos.</p>
+          <p className="text-stone-400 text-xs mb-6">Vuelve cuando estemos abiertos.</p>
           <Link
             href={`/vercarta/${slug}`}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3 text-sm font-bold text-white transition w-full justify-center"
+            className="inline-flex items-center gap-2 rounded-2xl bg-stone-100 hover:bg-stone-200 border border-stone-200 px-5 py-3 text-sm font-bold text-stone-700 transition w-full justify-center"
           >
             🍽️ Ver nuestra carta
           </Link>
@@ -672,7 +672,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
               rel="noopener noreferrer"
               className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-3 text-sm font-bold text-white transition w-full justify-center"
             >
-              Escribenos por WhatsApp
+              Escríbenos por WhatsApp
             </a>
           )}
         </div>
