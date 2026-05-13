@@ -149,6 +149,18 @@ function esTabla(nombre: string) {
   return /^tabla\b/i.test(nombre.trim());
 }
 
+// Funciona también con ítems [LIBRE] extrayendo el nombre antes del "|"
+function esTablaDetalle(d: { producto?: { nombre: string } | null; combo?: { nombre: string } | null; nombre?: string | null; observacion?: string | null }) {
+  const nombre =
+    d.producto?.nombre ??
+    d.combo?.nombre ??
+    (d.observacion?.startsWith("[LIBRE]")
+      ? d.observacion.replace("[LIBRE] ", "").split(" | ")[0]
+      : d.nombre) ??
+    "";
+  return esTabla(nombre);
+}
+
 // ── Permisos por rol ────────────────────────────────────────────────────────
 function canConfirmOrders(rol?: Rol): boolean {
   return ["CASHIER", "RESTAURANTE", "ADMIN_GENERAL"].includes(rol ?? "");
@@ -551,7 +563,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                           </>
                         );
                       })()}
-                      {!d.cancelado && d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ") && (
+                      {!d.cancelado && d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ") && !esTablaDetalle(d) && (
                         <p className={cn("font-mono text-xs font-black tracking-wider mt-0.5", nightMode ? "text-amber-300" : "text-amber-700")}>
                           {d.observacion.split(" | ")[1]}
                         </p>
@@ -560,7 +572,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                         <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                       )}
                     </div>
-                    {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && (
+                    {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && !esTablaDetalle(d) && (
                       <div className="mt-0.5 flex flex-wrap gap-1">
                         {(d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]).map((o, i) => (
                           <span key={i} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", nightMode ? "bg-violet-900/60 text-violet-300" : "bg-violet-100 text-violet-700")}>
@@ -571,12 +583,16 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     )}
                   </div>
                 </div>
-                {!d.cancelado && (
+                {!d.cancelado && esTablaDetalle(d) && (
                   <div className="mt-0.5 px-1">
                     <textarea
-                      rows={1}
-                      placeholder="Nota cocina..."
-                      value={tablaNotas[d.id] ?? (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))}
+                      rows={2}
+                      placeholder="Nota cocina: relleno, salsas..."
+                      value={tablaNotas[d.id] ?? (
+                        d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ")
+                          ? d.observacion.split(" | ")[1]   // opciones del [LIBRE] como valor inicial
+                          : (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))
+                      )}
                       onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
                       onBlur={() => void guardarNota(d.id)}
                       onKeyDown={e => {
