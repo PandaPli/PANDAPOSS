@@ -124,14 +124,14 @@ export const authOptions: NextAuthOptions = {
 // Mapa de roles y sus rutas permitidas
 export const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/delivery", "/carta-qr", "/rrhh", "/planes", "/configuracion"],
+  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/compras", "/reportes", "/ordenes", "/carta-qr", "/rrhh", "/planes", "/configuracion"],
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/rrhh", "/cotizaciones"],
   CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/cajas"],
   WAITER: ["/panel", "/mesas", "/pedidos", "/ventas"],
   // Roles de cocina/barra: solo pantalla de preparación, sin dashboard
   CHEF: ["/pedidos"],
   BAR: ["/pedidos"],
-  DELIVERY: ["/panel", "/pedidos", "/delivery"],
+  DELIVERY: ["/panel", "/pedidos", "/ordenes"],
 };
 
 export function canAccess(rol: Rol, path: string): boolean {

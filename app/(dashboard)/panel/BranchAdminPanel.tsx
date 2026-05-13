@@ -39,7 +39,7 @@ const SHORTCUTS = [
   { href: "/mesas",      icon: UtensilsCrossed, label: "Mesas",     cls: "text-red-600    bg-red-50    border-red-200    hover:bg-red-100"    },
   { href: "/ventas/caja",icon: ShoppingCart,    label: "Caja",      cls: "text-brand-600  bg-brand-50  border-brand-200  hover:bg-brand-100"  },
   { href: "/pedidos",    icon: Monitor,         label: "KDS",       cls: "text-amber-600  bg-amber-50  border-amber-200  hover:bg-amber-100"  },
-  { href: "/delivery",   icon: Bike,            label: "Delivery",  cls: "text-blue-600   bg-blue-50   border-blue-200   hover:bg-blue-100"   },
+  { href: "/ordenes/delivery",   icon: Bike,            label: "Delivery",  cls: "text-blue-600   bg-blue-50   border-blue-200   hover:bg-blue-100"   },
   { href: "/productos",  icon: Package,         label: "Productos", cls: "text-violet-600 bg-violet-50 border-violet-200 hover:bg-violet-100" },
   { href: "/ventas",     icon: BarChart2,       label: "Ventas",    cls: "text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100" },
   { href: "/clientes",   icon: Users,           label: "Clientes",  cls: "text-pink-600   bg-pink-50   border-pink-200   hover:bg-pink-100"   },
@@ -585,7 +585,7 @@ export async function BranchAdminPanel({ sucursalId, simbolo, nombre }: Props) {
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                 )}
               </div>
-              <Link href="/delivery" className="text-[10px] text-brand-600 hover:underline font-semibold">Ver →</Link>
+              <Link href="/ordenes/delivery" className="text-[10px] text-brand-600 hover:underline font-semibold">Ver →</Link>
             </div>
             {pedidosDelivery.length === 0 ? (
               <div className="flex items-center gap-2 py-3 justify-center">

@@ -4,13 +4,13 @@ import type { Rol } from "@/types";
 
 const ROLE_ROUTES: Record<Rol, string[]> = {
   ADMIN_GENERAL: ["*"],
-  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/rrhh", "/compras", "/reportes", "/configuracion", "/perfil", "/delivery", "/carta-qr", "/kiosko-admin", "/cupones", "/planes", "/fotos", "/agente", "/apps-delivery"],
+  RESTAURANTE: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/cajas", "/usuarios", "/rrhh", "/compras", "/reportes", "/configuracion", "/perfil", "/ordenes", "/carta-qr", "/kiosko-admin", "/cupones", "/planes", "/fotos", "/agente", "/apps-delivery"],
   SECRETARY: ["/panel", "/mesas", "/pedidos", "/ventas", "/productos", "/clientes", "/rrhh", "/cupones", "/cotizaciones", "/perfil"],
-  CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas", "/perfil", "/apps-delivery"],
+  CASHIER: ["/panel", "/mesas", "/pedidos", "/ventas", "/clientes", "/cajas", "/perfil", "/apps-delivery", "/ordenes"],
   WAITER: ["/panel", "/mesas", "/pedidos", "/ventas", "/perfil"],
   CHEF: ["/pedidos", "/perfil"],
   BAR: ["/pedidos", "/perfil"],
-  DELIVERY: ["/panel", "/pedidos", "/perfil", "/delivery", "/driver"],
+  DELIVERY: ["/panel", "/pedidos", "/perfil", "/ordenes", "/driver"],
 };
 
 const ROLE_HOME: Partial<Record<Rol, string>> = {

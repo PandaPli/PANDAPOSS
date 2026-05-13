@@ -99,7 +99,7 @@ export function ZonasDeliveryAdmin({ sucursalId, sucursalNombre, zonasIniciales 
     <div className="min-h-screen bg-stone-50 px-4 py-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/delivery" className="p-2 rounded-xl hover:bg-stone-200">
+        <Link href="/ordenes/delivery" className="p-2 rounded-xl hover:bg-stone-200">
           <ArrowLeft size={20} />
         </Link>
         <div>

@@ -46,7 +46,7 @@ export default async function PanelPage() {
     case "BAR":
       redirect("/pedidos");
     case "DELIVERY":
-      redirect("/delivery");
+      redirect("/ordenes/delivery");
       
     // Cajero (Vista por defecto similar al admin sucursal antiguo pero limitada)
     case "CASHIER":

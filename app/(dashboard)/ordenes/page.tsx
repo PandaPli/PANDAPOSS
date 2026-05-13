@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "PP — Ordenes" };
 /* ─── Módulos del hub ────────────────────────────────────────────────────── */
 const HUBS = [
   {
-    href:        "/delivery",
+    href:        "/ordenes/delivery",
     icon:        Bike,
     label:       "Delivery",
     description: "Gestionar pedidos de entrega a domicilio",
@@ -17,7 +17,7 @@ const HUBS = [
     badgeColor:  "bg-amber-100 text-amber-700",
   },
   {
-    href:        "/llevar",
+    href:        "/ordenes/llevar",
     icon:        ShoppingBag,
     label:       "Llevar",
     description: "Pedidos para llevar — nombre, pedido y horario de retiro",
