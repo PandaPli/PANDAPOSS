@@ -180,19 +180,21 @@ export function RepartidorView({ pedidos: initialPedidos, simbolo, riderNombre }
             </a>
           )}
 
-          {/* Pago + Total */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
-              <Wallet size={13} className="shrink-0 text-brand-400" />
-              <span className="text-sm font-semibold text-surface-text truncate">
-                {pedido.metodoPago}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl bg-surface-bg px-3 py-2.5">
-              <span className="text-xs text-surface-muted">Total</span>
-              <span className="text-sm font-black text-surface-text">{formatCurrency(pedido.total)}</span>
-            </div>
+          {/* Método de pago — sin mostrar total del pedido */}
+          <div className="flex items-center gap-2 rounded-xl bg-surface-bg px-3 py-2.5">
+            <Wallet size={13} className="shrink-0 text-brand-400" />
+            <span className="text-sm font-semibold text-surface-text truncate">
+              {pedido.metodoPago === "EFECTIVO" ? "💵 Efectivo" : pedido.metodoPago}
+            </span>
           </div>
+
+          {/* Cobrar al cliente (en camino + efectivo) */}
+          {isCamino && pedido.metodoPago === "EFECTIVO" && pedido.pagoRider > 0 && (
+            <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <span className="text-sm font-bold text-amber-800">💵 Cobrar al cliente</span>
+              <span className="text-lg font-black text-amber-700">{formatCurrency(pedido.pagoRider, simbolo)}</span>
+            </div>
+          )}
 
           {/* Acción */}
           {isRecoger && (
@@ -216,10 +218,13 @@ export function RepartidorView({ pedidos: initialPedidos, simbolo, riderNombre }
             </button>
           )}
 
-          {isEntregado && pedido.pagoRider > 0 && (
+          {isEntregado && pedido.metodoPago === "EFECTIVO" && pedido.pagoRider > 0 && (
             <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <span className="text-sm font-bold text-emerald-700">Tu ganancia</span>
-              <span className="text-base font-black text-emerald-700">{formatCurrency(pedido.pagoRider)}</span>
+              <div>
+                <span className="text-sm font-bold text-emerald-700">✅ Tu pago</span>
+                <p className="text-[11px] text-emerald-600 mt-0.5">Descontado de caja</p>
+              </div>
+              <span className="text-xl font-black text-emerald-700">{formatCurrency(pedido.pagoRider, simbolo)}</span>
             </div>
           )}
         </div>

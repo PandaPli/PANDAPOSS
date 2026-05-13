@@ -129,7 +129,7 @@ export default async function DeliveryPage() {
         repartidor: { select: { nombre: true } },
         // zonaDelivery="Retiro en tienda" distingue retiro de delivery real;
         // el ticket impreso lo necesita para mostrar el badge correcto.
-        delivery: { select: { zonaDelivery: true } },
+        delivery: { select: { zonaDelivery: true, pagoRider: true } },
         detalles: {
           include: {
             producto: { select: { nombre: true, precio: true } },
@@ -190,6 +190,7 @@ export default async function DeliveryPage() {
       subtotal,
       total: subtotal + meta.cargoEnvio,
       repartidorId: pedido.repartidorId,
+      pagoRider: Number(pedido.delivery?.pagoRider ?? 0),
       creadoEn: pedido.creadoEn.toISOString(),
       repartidor: pedido.repartidor,
       meseroLlamado: pedido.meseroLlamado ?? false,

@@ -33,6 +33,7 @@ interface PedidoDelivery {
   subtotal: number;
   total: number;
   repartidorId: number | null;
+  pagoRider: number;
   creadoEn: string;
   repartidor: { nombre: string } | null;
   detalles: PedidoDetalle[];
@@ -213,12 +214,19 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     return () => clearInterval(id);
   }, [poll]);
 
-  async function assignDriver(pedidoId: number, repartidorId: string) {
+  // Estado del panel de asignación inline
+  const [assignPanel, setAssignPanel] = useState<{ pedidoId: number; repartidorId: string; pagoRider: string } | null>(null);
+
+  async function assignDriver(pedidoId: number, repartidorId: string, pagoRider: number | null) {
     setLoadingPedidoId(pedidoId);
     try {
       const res = await fetch("/api/delivery/assign", {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidoId, repartidorId: repartidorId ? Number(repartidorId) : null }),
+        body: JSON.stringify({
+          pedidoId,
+          repartidorId: repartidorId ? Number(repartidorId) : null,
+          pagoRider: pagoRider != null ? pagoRider : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -226,8 +234,10 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         ...p,
         repartidorId: data.repartidorId,
         repartidor: data.repartidor,
+        pagoRider: pagoRider ?? p.pagoRider,
         trackingStage: data.repartidorId && p.estado === "LISTO" ? "EN_CAMINO" : p.trackingStage,
       } : p));
+      setAssignPanel(null);
     } finally { setLoadingPedidoId(null); }
   }
 
@@ -545,22 +555,89 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           {(isAdmin || rol === "DELIVERY") && pedido.estado !== "ENTREGADO" && (
             <div className="flex flex-col gap-3">
 
-              {/* Selector de repartidor — solo para pedidos DELIVERY (no retiro) */}
-              {isAdmin && !esRetiro && (
-                <select
-                  value={pedido.repartidorId ?? ""}
-                  onChange={(e) => void assignDriver(pedido.id, e.target.value)}
-                  disabled={loading}
-                  className="w-full rounded-2xl border border-surface-border bg-surface-bg px-4 text-sm font-semibold text-surface-text h-12 appearance-none cursor-pointer disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-brand-300"
-                >
-                  <option value="">Sin repartidor asignado</option>
-                  {repartidores.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nombre} · {r.estado === "EN_REPARTO" ? "En reparto" : "Disponible"}
-                    </option>
-                  ))}
-                </select>
-              )}
+              {/* Selector de repartidor + pago — solo para pedidos DELIVERY (no retiro) */}
+              {isAdmin && !esRetiro && (() => {
+                const isAssigning = assignPanel?.pedidoId === pedido.id;
+                // Pago de zona auto-calculado
+                const zonaActual = zonasDelivery.find(z => z.nombre === pedido.zonaDelivery);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const pagoZona = (zonaActual as any)?.pagoRider ?? 0;
+
+                if (!isAssigning) {
+                  return (
+                    <button
+                      onClick={() => setAssignPanel({
+                        pedidoId: pedido.id,
+                        repartidorId: String(pedido.repartidorId ?? ""),
+                        pagoRider: String(pedido.pagoRider > 0 ? pedido.pagoRider : pagoZona || ""),
+                      })}
+                      disabled={loading}
+                      className="flex w-full items-center justify-between gap-2 rounded-2xl border border-surface-border bg-surface-bg px-4 h-12 text-sm font-semibold text-surface-text hover:bg-surface-border/30 transition disabled:opacity-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Bike size={15} className="text-violet-500 shrink-0" />
+                        <span className={pedido.repartidor ? "text-surface-text" : "italic text-surface-muted/60"}>
+                          {pedido.repartidor?.nombre ?? "Asignar repartidor…"}
+                        </span>
+                      </div>
+                      {pedido.pagoRider > 0 && (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-700">
+                          {formatCurrency(pedido.pagoRider, simbolo)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                }
+
+                return (
+                  <div className="rounded-2xl border-2 border-violet-200 bg-violet-50 p-3 space-y-2.5">
+                    <p className="text-xs font-black uppercase tracking-widest text-violet-600">Asignar repartidor</p>
+                    <select
+                      value={assignPanel.repartidorId}
+                      onChange={e => setAssignPanel(a => a ? { ...a, repartidorId: e.target.value } : a)}
+                      className="w-full rounded-xl border border-violet-200 bg-white px-3 text-sm font-semibold text-surface-text h-10 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    >
+                      <option value="">Sin repartidor</option>
+                      {repartidores.map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.nombre} · {r.estado === "EN_REPARTO" ? "En reparto" : "Disponible"}
+                        </option>
+                      ))}
+                    </select>
+                    <div>
+                      <label className="text-[11px] font-bold text-violet-700 mb-1 block">
+                        💵 Pago al repartidor (efectivo)
+                      </label>
+                      <input
+                        type="number" min={0}
+                        value={assignPanel.pagoRider}
+                        onChange={e => setAssignPanel(a => a ? { ...a, pagoRider: e.target.value } : a)}
+                        placeholder={`Auto-zona: ${formatCurrency(pagoZona, simbolo)}`}
+                        className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm font-bold text-surface-text focus:outline-none focus:ring-2 focus:ring-violet-300"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setAssignPanel(null)}
+                        className="flex-1 rounded-xl border border-violet-200 bg-white py-2 text-sm font-bold text-violet-600 hover:bg-violet-100 transition"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => void assignDriver(
+                          pedido.id,
+                          assignPanel.repartidorId,
+                          assignPanel.pagoRider ? Number(assignPanel.pagoRider) : null,
+                        )}
+                        disabled={loading}
+                        className="flex-1 rounded-xl bg-violet-600 py-2 text-sm font-bold text-white hover:bg-violet-700 transition disabled:opacity-50"
+                      >
+                        {loading ? <RefreshCw size={14} className="animate-spin mx-auto" /> : "Confirmar"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {pedido.estado === "PENDIENTE" && (
                 <div className="flex flex-col gap-2">
@@ -734,7 +811,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                 id: pedido.id, estado: "PENDIENTE", trackingStage: "CONFIRMADO",
                 clienteNombre: pedido.clienteNombre, telefonoCliente: pedido.telefono,
                 direccionEntrega: pedido.direccion, referencia: pedido.referencia || null, departamento: null,
-                metodoPago: "EFECTIVO", cargoEnvio: 0, subtotal: 0, total: 0,
+                metodoPago: "EFECTIVO", cargoEnvio: 0, subtotal: 0, total: 0, pagoRider: 0,
                 repartidorId: null, creadoEn: new Date().toISOString(), repartidor: null, detalles: [],
                 meseroLlamado: false, llamadoTipo: null,
                 zonaDelivery: null,

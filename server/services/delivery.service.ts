@@ -373,7 +373,7 @@ export const DeliveryService = {
           // zonaDelivery distingue delivery real de retiro en tienda
           // (el cliente lo setea en "Retiro en tienda" cuando elige modoRetiro
           // en /pedir). Sin este include, el ticket no puede saber el modo.
-          delivery: { select: { zonaDelivery: true } },
+          delivery: { select: { zonaDelivery: true, pagoRider: true } },
           detalles: {
             select: {
               id: true,
@@ -438,6 +438,7 @@ export const DeliveryService = {
         creadoEn: pedido.creadoEn,
         estimadoMinutos,
         zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
+        pagoRider: Number(pedido.delivery?.pagoRider ?? 0),
         detalles: pedido.detalles.map((detalle) => ({
           id: detalle.id,
           cantidad: detalle.cantidad,
@@ -450,7 +451,7 @@ export const DeliveryService = {
     });
   },
 
-  async assignDriver(input: { pedidoId: number; repartidorId: number | null; rol: Rol; sucursalId: number | null }) {
+  async assignDriver(input: { pedidoId: number; repartidorId: number | null; rol: Rol; sucursalId: number | null; pagoRiderOverride?: number | null }) {
     const pedido = await prisma.pedido.findUnique({
       where: { id: input.pedidoId },
       include: { usuario: { select: { sucursalId: true } } },
@@ -513,11 +514,17 @@ export const DeliveryService = {
           }
         }
 
+        // pagoRider: usar override del admin si se proveyó, sino el de la zona
+        const pagoRiderFinal =
+          input.pagoRiderOverride != null
+            ? input.pagoRiderOverride
+            : pagoRider;
+
         await prisma.pedidoDelivery.update({
           where: { id: delivery.id },
           data: {
             codigoEntrega,
-            ...(pagoRider !== undefined ? { pagoRider } : {}),
+            ...(pagoRiderFinal !== undefined ? { pagoRider: pagoRiderFinal } : {}),
             repartidorId: await prisma.repartidor.findUnique({ where: { usuarioId: repartidorId } }).then((r) => r?.id ?? undefined),
           },
         });
@@ -555,6 +562,34 @@ export const DeliveryService = {
     const updated = await PedidoService.update(input.pedidoId, { estado: input.estado });
     const meta = parseDeliveryObservation(updated.observacion);
     const esWhatsApp = pedido.delivery?.zonaDelivery === "WhatsApp";
+
+    // Al confirmar entrega con pago EFECTIVO: descontar pagoRider de la caja del día
+    if (input.estado === "ENTREGADO" && meta.metodoPago === "EFECTIVO") {
+      try {
+        const deliveryData = await prisma.pedidoDelivery.findUnique({
+          where: { pedidoId: input.pedidoId },
+          select: { pagoRider: true },
+        });
+        const montoRider = Number(deliveryData?.pagoRider ?? 0);
+        if (montoRider > 0 && pedido.usuario.sucursalId) {
+          const cajaAbierta = await prisma.caja.findFirst({
+            where: { sucursalId: pedido.usuario.sucursalId, estado: "ABIERTA" },
+            select: { id: true },
+          });
+          if (cajaAbierta) {
+            await prisma.movimientoCaja.create({
+              data: {
+                tipo: "RETIRO",
+                monto: montoRider,
+                motivo: `Pago rider - Pedido #${input.pedidoId}`,
+                cajaId: cajaAbierta.id,
+                usuarioId: input.userId,
+              },
+            });
+          }
+        }
+      } catch { /* no bloquear el flujo si falla el movimiento */ }
+    }
 
     await NotificationService.notifyDeliveryStatusChange({
       pedidoId: updated.id,

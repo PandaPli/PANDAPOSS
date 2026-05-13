@@ -22,6 +22,7 @@ export async function PATCH(req: NextRequest) {
       repartidorId: body.repartidorId ? Number(body.repartidorId) : null,
       rol,
       sucursalId,
+      pagoRiderOverride: body.pagoRider != null ? Number(body.pagoRider) : null,
     });
 
     return NextResponse.json(result);
