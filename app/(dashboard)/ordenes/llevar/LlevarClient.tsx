@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import Link from "next/link";
 import {
   ShoppingBag, Plus, Minus, Trash2, Clock, User, Search,
   CheckCircle2, ArrowRight, RefreshCw, ChevronDown, ChevronUp,
-  Star, X, Phone,
+  Star, X, Phone, ArrowLeft,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -220,6 +221,12 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <Link
+            href="/ordenes"
+            className="w-9 h-9 rounded-xl bg-surface-bg border border-surface-border flex items-center justify-center hover:bg-surface-hover transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={16} className="text-surface-muted" />
+          </Link>
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
             <ShoppingBag size={20} className="text-white" />
           </div>

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { TableMap } from "@/components/pos/TableMap";
 import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
-import { X, Maximize, Minimize, LogIn, Trash2, AlertTriangle, History, Printer, Receipt } from "lucide-react";
+import Link from "next/link";
+import { X, Maximize, Minimize, LogIn, Trash2, AlertTriangle, History, Printer, Receipt, ArrowLeft } from "lucide-react";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { THERMAL_CSS } from "@/lib/print";
 
@@ -186,9 +187,17 @@ export function MesasClient({ mesas }: Props) {
     <InactivityScreen>
       {/* Encabezado con botón fullscreen */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-surface-text">Atención</h1>
-          <p className="text-surface-muted text-sm mt-1">Puntos de atención y estado de mesas</p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/ordenes"
+            className="w-9 h-9 rounded-xl bg-surface-bg border border-surface-border flex items-center justify-center hover:bg-surface-hover transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={16} className="text-surface-muted" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-surface-text">Atención</h1>
+            <p className="text-surface-muted text-sm mt-1">Puntos de atención y estado de mesas</p>
+          </div>
         </div>
         <button
           onClick={toggleFullscreen}

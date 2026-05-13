@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import {
   Bike, CheckCircle2, ChevronDown, ChevronUp, MapPin,
   Phone, Plus, RefreshCw, Route, ShoppingBag, UserRound, Wallet, Bell, X,
-  Flame, ChefHat, Truck, LayoutList, ArrowRight,
+  Flame, ChefHat, Truck, LayoutList, ArrowRight, ArrowLeft,
   Package2, Printer, XCircle, Copy, Check,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -652,9 +653,15 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
         </div>
       )}
 
-      {/* ── Toolbar: filtros + stats compactas + ingreso manual ── */}
+      {/* ── Back + Toolbar: filtros + stats compactas + ingreso manual ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/ordenes"
+            className="w-9 h-9 rounded-xl bg-surface-bg border border-surface-border flex items-center justify-center hover:bg-surface-hover transition-colors cursor-pointer mr-1"
+          >
+            <ArrowLeft size={16} className="text-surface-muted" />
+          </Link>
           {([
             { key: "todos",      label: "Todos",     icon: LayoutList, activeClass: "bg-slate-800 text-white shadow-md",       inactiveClass: "bg-white border border-surface-border text-surface-muted hover:bg-surface-bg" },
             { key: "pendiente",  label: "Por Aceptar", icon: Flame,    activeClass: "bg-amber-500 text-white shadow-md",       inactiveClass: "bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100"  },
