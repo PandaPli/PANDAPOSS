@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  Bike, ShoppingBag, ArrowRight, Star, Clock, User,
+  Bike, ShoppingBag, Star, Clock, User,
   Package, MapPin, UtensilsCrossed, CheckCircle2,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -86,31 +86,24 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo }: Props) {
       </div>
 
       {/* ── Hub icons ── */}
-      <div className="grid grid-cols-1 gap-2">
-        {HUBS.map(({ href, icon: Icon, label, desc, gradient, glow, ring }) => (
+      <div className="grid grid-cols-3 gap-2">
+        {HUBS.map(({ href, icon: Icon, label, gradient, glow, ring }) => (
           <Link
             key={href}
             href={href}
             className={cn(
-              "group card p-3 flex items-center gap-3 cursor-pointer",
+              "group card p-3 flex flex-col items-center gap-2 cursor-pointer text-center",
               "hover:shadow-md hover:-translate-y-0.5 transition-all duration-200",
               "hover:ring-2", ring,
             )}
           >
             <div
-              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}
+              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}
               style={{ boxShadow: glow }}
             >
               <Icon size={18} className="text-white" strokeWidth={1.8} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-surface-text leading-tight">{label}</p>
-              <p className="text-[11px] text-surface-muted">{desc}</p>
-            </div>
-            <ArrowRight
-              size={14}
-              className="text-surface-muted/30 group-hover:text-surface-muted group-hover:translate-x-0.5 transition-all shrink-0"
-            />
+            <p className="text-xs font-bold text-surface-text">{label}</p>
           </Link>
         ))}
       </div>
