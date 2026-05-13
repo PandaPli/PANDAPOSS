@@ -251,11 +251,20 @@ export function PandaNavbar() {
     return [...ordered, ...rest];
   }, [visibleBase, orderedHrefs]);
 
+  const visibleByCategory = useMemo(() => {
+    const map: Record<ModuleCategory, AppModule[]> = { operacion: [], gestion: [], configuracion: [] };
+    for (const mod of visible) map[mod.category].push(mod);
+    return map;
+  }, [visible]);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const draggedMod = visible.find(m => m.href === active.id);
+    const overMod = visible.find(m => m.href === over.id);
+    if (!draggedMod || !overMod || draggedMod.category !== overMod.category) return;
     setOrderedHrefs((prev) => {
       const hrefs = prev.length > 0 ? prev : visible.map((m) => m.href);
       const oldIdx = hrefs.indexOf(active.id as string);
@@ -468,16 +477,30 @@ export function PandaNavbar() {
           <div className="relative z-10 flex-1 overflow-y-auto">
             <div className="mx-auto max-w-5xl px-8 py-10 space-y-10">
 
-              {/* ── Modo reordenamiento: grid plano libre (sin barreras por sección) ── */}
+              {/* ── Modo reordenamiento: por categoría ── */}
               {reordering && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={visible.map(m => m.href)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
-                      {visible.map((mod) => (
-                        <SortableAppCard key={mod.href} mod={mod} />
-                      ))}
-                    </div>
-                  </SortableContext>
+                  {(Object.keys(categoryMeta) as ModuleCategory[]).map((cat) => {
+                    const items = visibleByCategory[cat];
+                    if (items.length === 0) return null;
+                    return (
+                      <section key={cat} className="mb-8">
+                        <div className="mb-4 flex items-center gap-3">
+                          <span className="text-[11px] font-extrabold uppercase tracking-[0.25em] text-slate-500">
+                            {categoryMeta[cat].title}
+                          </span>
+                          <div className="h-px flex-1 bg-violet-200/50" />
+                        </div>
+                        <SortableContext items={items.map(m => m.href)} strategy={rectSortingStrategy}>
+                          <div className="grid grid-cols-4 gap-6 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
+                            {items.map((mod) => (
+                              <SortableAppCard key={mod.href} mod={mod} />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </section>
+                    );
+                  })}
                 </DndContext>
               )}
 
