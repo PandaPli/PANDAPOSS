@@ -48,6 +48,7 @@ interface CartLine {
   precio: number;
   cantidad: number;
   esLibre?: boolean;
+  tablaGroup?: string;     // nombre de la Tabla a la que pertenece este roll (ej: "Tabla 30")
 }
 
 // Tablas predefinidas — los nombres de categoría deben coincidir con la BD
@@ -324,14 +325,32 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   }
 
   function addRoll(roll: RollPayload) {
-    setCart(prev => [...prev, {
-      tempId: `roll-${roll.code}-${Date.now()}`,
-      productoId: roll.productoId,
-      nombre: roll.nombre,
-      codigo: roll.code,
-      precio: roll.precio,
-      cantidad: 1,
-    }]);
+    const tablaGroup = selectedTabla?.n;
+    setCart(prev => {
+      const next: CartLine[] = [...prev, {
+        tempId: `roll-${roll.code}-${Date.now()}`,
+        productoId: roll.productoId,
+        nombre: roll.nombre,
+        codigo: roll.code,
+        precio: roll.precio,
+        cantidad: 1,
+        tablaGroup,
+      }];
+
+      // Auto-cierre: si esta tabla ya tiene todos los rolls que necesita, ciérrala
+      if (selectedTabla && tablaGroup) {
+        const rollsEnTabla = next.filter(i => i.tablaGroup === tablaGroup && i.codigo).length;
+        if (rollsEnTabla >= selectedTabla.queue.length) {
+          // Diferir el cierre para no chocar con setState del addRoll
+          setTimeout(() => {
+            setSelectedTabla(null);
+            setRollPickStep("idle");
+            setRollPickCat(null);
+          }, 0);
+        }
+      }
+      return next;
+    });
   }
 
   function addLibre() {
@@ -351,27 +370,44 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     );
   }
 
-  /* ── Colapsa rolls en una sola línea "Tabla X" para ticket y API ── */
+  /* ── Colapsa rolls por tablaGroup en líneas "Tabla X" para ticket y API ── */
   function collapseCart(): CartLine[] {
     const rolls = cart.filter(i => i.codigo);
     const others = cart.filter(i => !i.codigo);
     if (rolls.length === 0) return cart;
 
-    // Precio: busca el producto-tabla en BD (ej: "Tabla 80 Pz" → $33.000)
-    let tablaPrice = 0;
-    if (selectedTabla) {
-      const key = selectedTabla.n.toLowerCase(); // "tabla 80"
-      const found = productos.find(p => p.nombre.toLowerCase().includes(key));
-      tablaPrice = found ? Number(found.precio) : rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-    } else {
-      tablaPrice = rolls.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+    // Agrupa rolls por tablaGroup. Los rolls sin tablaGroup van a "Rolls"
+    const groups = new Map<string, CartLine[]>();
+    for (const r of rolls) {
+      const key = r.tablaGroup ?? "__sueltos__";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
     }
 
-    const codes = rolls.map(i => i.codigo!).join("  ");
-    return [
-      ...others,
-      { tempId: "tabla-combo", nombre: selectedTabla ? selectedTabla.n : "Rolls", precio: tablaPrice, cantidad: 1, observacion: codes },
-    ];
+    const tablaLines: CartLine[] = [];
+    for (const [key, items] of groups) {
+      const isTabla = key !== "__sueltos__";
+      const nombre = isTabla ? key : "Rolls";
+      // Precio: busca el producto-tabla en BD (ej: "Tabla 30 Pz")
+      let precio = 0;
+      if (isTabla) {
+        const found = productos.find(p => p.nombre.toLowerCase().includes(key.toLowerCase()));
+        precio = found ? Number(found.precio) : items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+      } else {
+        precio = items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+      }
+      const codes = items.map(i => i.codigo!).join("  ");
+      tablaLines.push({
+        tempId: `tabla-${key}`,
+        nombre,
+        precio,
+        cantidad: 1,
+        observacion: codes,
+        tablaGroup: isTabla ? key : undefined,
+      });
+    }
+
+    return [...others, ...tablaLines];
   }
 
   /* ── Submit ── */
@@ -1135,53 +1171,123 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
             <p className="py-8 text-center text-sm text-stone-300">Agrega productos del panel izquierdo</p>
           ) : (
             <div className="space-y-2">
-              {cart.map((item) => (
-                <div
-                  key={item.tempId}
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl border px-3 py-2.5",
-                    item.esLibre ? "border-amber-200 bg-amber-50" : "border-stone-100 bg-stone-50"
-                  )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {item.codigo && (
-                        <span className="shrink-0 font-mono text-[10px] font-black bg-stone-900 text-white rounded-md px-1.5 py-0.5">
-                          {item.codigo}
+              {(() => {
+                /* Agrupar rolls por tablaGroup; el resto se muestra suelto */
+                const tablaGroups = new Map<string, CartLine[]>();
+                const sueltos: CartLine[] = [];
+                for (const item of cart) {
+                  if (item.tablaGroup) {
+                    if (!tablaGroups.has(item.tablaGroup)) tablaGroups.set(item.tablaGroup, []);
+                    tablaGroups.get(item.tablaGroup)!.push(item);
+                  } else {
+                    sueltos.push(item);
+                  }
+                }
+                const nodes: React.ReactNode[] = [];
+
+                // Renderiza cada Tabla como tarjeta agrupada
+                for (const [tablaNombre, rolls] of tablaGroups) {
+                  // Precio de la tabla: producto en BD o suma de rolls
+                  const found = productos.find(p => p.nombre.toLowerCase().includes(tablaNombre.toLowerCase()));
+                  const tablaPrecio = found ? Number(found.precio) : rolls.reduce((acc, r) => acc + r.precio * r.cantidad, 0);
+                  // Si la tabla está aún activa, queda incompleta
+                  const tablaCfg = TABLAS.find(t => t.n === tablaNombre);
+                  const totalRolls = tablaCfg?.queue.length ?? rolls.length;
+                  const incompleta = rolls.length < totalRolls;
+
+                  nodes.push(
+                    <div key={`tg-${tablaNombre}`} className="rounded-2xl border-2 border-brand-200 bg-brand-50/40 p-2.5 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="shrink-0 rounded-lg bg-brand-500 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                            {tablaNombre}
+                          </span>
+                          <span className="text-[10px] font-semibold text-stone-500">
+                            {rolls.length}/{totalRolls} rolls
+                          </span>
+                          {incompleta && (
+                            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700">
+                              Incompleta
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm font-black text-brand-700">
+                          {formatCurrency(tablaPrecio, simbolo)}
                         </span>
-                      )}
-                      <p className="truncate text-sm font-semibold text-stone-800">{item.nombre}</p>
-                      {item.esLibre && (
-                        <span className="shrink-0 rounded-full bg-amber-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700">Libre</span>
-                      )}
+                      </div>
+                      <div className="space-y-1">
+                        {rolls.map((item) => (
+                          <div key={item.tempId} className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 border border-stone-100">
+                            <span className="shrink-0 font-mono text-[10px] font-black bg-stone-900 text-white rounded-md px-1.5 py-0.5">
+                              {item.codigo}
+                            </span>
+                            <p className="truncate text-xs font-semibold text-stone-700 flex-1">{item.nombre}</p>
+                            <button
+                              onClick={() => setCart((prev) => prev.filter((i) => i.tempId !== item.tempId))}
+                              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-stone-300 hover:bg-red-50 hover:text-red-500 transition"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-xs font-bold text-brand-600">
-                      {formatCurrency(item.precio * item.cantidad, simbolo)}
-                    </p>
-                  </div>
-                  <div className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-white px-1 py-1 border border-stone-200">
-                    <button
-                      onClick={() => updateCantidad(item.tempId, -1)}
-                      className="flex h-6 w-6 items-center justify-center rounded-lg text-base font-bold text-stone-500 hover:bg-stone-100 transition"
+                  );
+                }
+
+                // Renderiza items sueltos (productos de carta, libres, rolls sin tabla)
+                for (const item of sueltos) {
+                  nodes.push(
+                    <div
+                      key={item.tempId}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border px-3 py-2.5",
+                        item.esLibre ? "border-amber-200 bg-amber-50" : "border-stone-100 bg-stone-50"
+                      )}
                     >
-                      −
-                    </button>
-                    <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
-                    <button
-                      onClick={() => updateCantidad(item.tempId, +1)}
-                      className="flex h-6 w-6 items-center justify-center rounded-lg text-base font-bold text-stone-500 hover:bg-stone-100 transition"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setCart((prev) => prev.filter((i) => i.tempId !== item.tempId))}
-                    className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl text-stone-300 hover:bg-red-50 hover:text-red-500 transition"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {item.codigo && (
+                            <span className="shrink-0 font-mono text-[10px] font-black bg-stone-900 text-white rounded-md px-1.5 py-0.5">
+                              {item.codigo}
+                            </span>
+                          )}
+                          <p className="truncate text-sm font-semibold text-stone-800">{item.nombre}</p>
+                          {item.esLibre && (
+                            <span className="shrink-0 rounded-full bg-amber-200 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700">Libre</span>
+                          )}
+                        </div>
+                        <p className="text-xs font-bold text-brand-600">
+                          {formatCurrency(item.precio * item.cantidad, simbolo)}
+                        </p>
+                      </div>
+                      <div className="flex flex-shrink-0 items-center gap-1 rounded-xl bg-white px-1 py-1 border border-stone-200">
+                        <button
+                          onClick={() => updateCantidad(item.tempId, -1)}
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-base font-bold text-stone-500 hover:bg-stone-100 transition"
+                        >
+                          −
+                        </button>
+                        <span className="w-5 text-center text-sm font-bold">{item.cantidad}</span>
+                        <button
+                          onClick={() => updateCantidad(item.tempId, +1)}
+                          className="flex h-6 w-6 items-center justify-center rounded-lg text-base font-bold text-stone-500 hover:bg-stone-100 transition"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setCart((prev) => prev.filter((i) => i.tempId !== item.tempId))}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl text-stone-300 hover:bg-red-50 hover:text-red-500 transition"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                }
+
+                return nodes;
+              })()}
 
               <div className="mt-3 space-y-1.5">
                 {/* Subtotal */}
@@ -1283,35 +1389,46 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
           KDS FLOATING PREVIEW
       ════════════════════════════════════════════ */}
       {(selectedTabla || cart.some(i => i.codigo)) && (
-        <div className="fixed bottom-6 right-6 z-40 w-48 overflow-hidden rounded-2xl bg-stone-950 shadow-2xl ring-1 ring-white/5">
+        <div className="fixed bottom-6 right-6 z-40 w-56 overflow-hidden rounded-2xl bg-stone-950 shadow-2xl ring-1 ring-white/5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-stone-800 px-3.5 py-2">
             <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">
               Vista KDS
             </span>
-            {selectedTabla && (
-              <span className="font-mono text-[10px] font-black uppercase text-brand-400">
-                {selectedTabla.n}
-              </span>
-            )}
           </div>
           {/* Códigos */}
-          <div className="px-3.5 py-3">
+          <div className="px-3.5 py-3 space-y-2.5">
             {nombre && (
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-stone-500 truncate">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500 truncate">
                 {nombre}
               </p>
             )}
             {cart.filter(i => i.codigo).length === 0 ? (
               <p className="text-xs italic text-stone-600">Sin rolls aún…</p>
             ) : (
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                {cart.filter(i => i.codigo).map((item) => (
-                  <p key={item.tempId} className="font-mono text-base font-black leading-snug text-white">
-                    {item.codigo}
-                  </p>
-                ))}
-              </div>
+              (() => {
+                // Agrupa rolls por tablaGroup
+                const groups = new Map<string, CartLine[]>();
+                for (const r of cart.filter(i => i.codigo)) {
+                  const key = r.tablaGroup ?? "__sueltos__";
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key)!.push(r);
+                }
+                return Array.from(groups.entries()).map(([key, rolls]) => (
+                  <div key={key} className="space-y-1">
+                    <span className="block font-mono text-[10px] font-black uppercase tracking-widest text-brand-400">
+                      {key === "__sueltos__" ? "ROLLS" : key}
+                    </span>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {rolls.map((item) => (
+                        <p key={item.tempId} className="font-mono text-base font-black leading-snug text-white">
+                          {item.codigo}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()
             )}
           </div>
         </div>
