@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import {
   ShoppingBag, Plus, Minus, Trash2, Clock, User, Search,
   CheckCircle2, ArrowRight, RefreshCw, ChevronDown, ChevronUp,
+  Star, X, Phone,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -30,6 +31,15 @@ interface CartItem {
   nombre: string;
   precio: number;
   cantidad: number;
+}
+
+interface ClienteResult {
+  id: number;
+  nombre: string;
+  telefono: string | null;
+  email: string | null;
+  puntos: number;
+  rut: string | null;
 }
 
 interface Props {
@@ -61,6 +71,61 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<{ id: number; numero: number } | null>(null);
   const [expandedPedido, setExpandedPedido] = useState<number | null>(null);
+
+  // ── Cliente search state ──
+  const [clienteQuery, setClienteQuery] = useState("");
+  const [clienteResults, setClienteResults] = useState<ClienteResult[]>([]);
+  const [clienteSelected, setClienteSelected] = useState<ClienteResult | null>(null);
+  const [searchingCliente, setSearchingCliente] = useState(false);
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const clienteDropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchClientes = useCallback(async (q: string) => {
+    if (q.length < 2) { setClienteResults([]); return; }
+    setSearchingCliente(true);
+    try {
+      const res = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setClienteResults(data.slice(0, 6));
+        setShowClienteDropdown(true);
+      }
+    } catch { /* ignore */ } finally {
+      setSearchingCliente(false);
+    }
+  }, []);
+
+  function handleClienteQueryChange(val: string) {
+    setClienteQuery(val);
+    if (clienteSelected) { setClienteSelected(null); }
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => searchClientes(val), 300);
+  }
+
+  function selectCliente(c: ClienteResult) {
+    setClienteSelected(c);
+    setNombreCliente(c.nombre);
+    setClienteQuery(c.nombre);
+    setShowClienteDropdown(false);
+  }
+
+  function clearCliente() {
+    setClienteSelected(null);
+    setClienteQuery("");
+    setNombreCliente("");
+    setClienteResults([]);
+  }
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (clienteDropdownRef.current && !clienteDropdownRef.current.contains(e.target as Node)) {
+        setShowClienteDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const categorias = useMemo(() => {
     const map = new Map<string, Producto[]>();
@@ -109,6 +174,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
           items: cart.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })),
           nombreCliente: nombreCliente.trim(),
           horaRetiro: horaRetiro.trim() || undefined,
+          clienteId: clienteSelected?.id ?? undefined,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Error al crear pedido");
@@ -142,6 +208,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
     setNombreCliente("");
     setHoraRetiro("");
     setBusqueda("");
+    clearCliente();
   }
 
   // ── Pedidos activos vs completados ──
@@ -212,19 +279,85 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                 {/* Datos del cliente */}
                 <div className="card p-4 space-y-3">
                   <p className="text-sm font-bold text-surface-text flex items-center gap-2">
-                    <User size={15} className="text-emerald-500" /> Datos del Cliente
+                    <User size={15} className="text-emerald-500" /> Cliente
                   </p>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-surface-muted mb-1 block">Nombre *</label>
+
+                  {/* Cliente seleccionado */}
+                  {clienteSelected ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                      <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                        <User size={16} className="text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-surface-text truncate">{clienteSelected.nombre}</p>
+                        <div className="flex items-center gap-3 text-[11px] text-surface-muted">
+                          {clienteSelected.telefono && (
+                            <span className="flex items-center gap-1"><Phone size={9} />{clienteSelected.telefono}</span>
+                          )}
+                          <span className="flex items-center gap-1 text-amber-600 font-bold">
+                            <Star size={9} className="fill-amber-400 text-amber-400" />{clienteSelected.puntos} pts
+                          </span>
+                        </div>
+                      </div>
+                      <button onClick={clearCliente} className="p-1 rounded-lg hover:bg-emerald-100 transition-colors">
+                        <X size={14} className="text-emerald-600" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative" ref={clienteDropdownRef}>
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
                       <input
                         type="text"
-                        value={nombreCliente}
-                        onChange={(e) => setNombreCliente(e.target.value)}
-                        placeholder="Nombre del cliente"
-                        className="input w-full"
+                        value={clienteQuery}
+                        onChange={(e) => handleClienteQueryChange(e.target.value)}
+                        onFocus={() => clienteResults.length > 0 && setShowClienteDropdown(true)}
+                        placeholder="Buscar cliente por nombre, teléfono o email..."
+                        className="input w-full pl-9 pr-8"
                       />
+                      {searchingCliente && (
+                        <RefreshCw size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-muted animate-spin" />
+                      )}
+
+                      {showClienteDropdown && clienteResults.length > 0 && (
+                        <div className="absolute z-20 top-full mt-1 w-full bg-white rounded-xl border border-surface-border shadow-xl max-h-52 overflow-y-auto">
+                          {clienteResults.map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={() => selectCliente(c)}
+                              className="w-full flex items-center gap-3 p-2.5 hover:bg-emerald-50 transition-colors text-left border-b border-surface-border/50 last:border-0"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-surface-bg flex items-center justify-center shrink-0">
+                                <User size={14} className="text-surface-muted" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-surface-text truncate">{c.nombre}</p>
+                                <p className="text-[11px] text-surface-muted truncate">
+                                  {c.telefono ?? c.email ?? "Sin contacto"}
+                                </p>
+                              </div>
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 shrink-0">
+                                <Star size={9} className="fill-amber-400 text-amber-400" />{c.puntos}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {!clienteSelected && (
+                      <div>
+                        <label className="text-xs font-semibold text-surface-muted mb-1 block">Nombre *</label>
+                        <input
+                          type="text"
+                          value={nombreCliente}
+                          onChange={(e) => setNombreCliente(e.target.value)}
+                          placeholder="O escribe el nombre manualmente"
+                          className="input w-full"
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="text-xs font-semibold text-surface-muted mb-1 block flex items-center gap-1">
                         <Clock size={12} /> Horario de retiro

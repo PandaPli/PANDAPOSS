@@ -16,10 +16,11 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Sin usuario" }, { status: 401 });
 
   const body = await req.json();
-  const { items, nombreCliente, horaRetiro } = body as {
+  const { items, nombreCliente, horaRetiro, clienteId } = body as {
     items: LlevarItem[];
     nombreCliente: string;
     horaRetiro?: string;
+    clienteId?: number;
   };
 
   if (!items?.length) {
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
     "🥡 PARA LLEVAR",
     `👤 ${nombreCliente.trim()}`,
     horaRetiro ? `🕐 ${horaRetiro}` : null,
+    clienteId ? `🆔 ${clienteId}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
       observacion: obs,
     });
 
-    return NextResponse.json({ id: pedido.id, numero: pedido.numero }, { status: 201 });
+    return NextResponse.json({ id: pedido.id, numero: pedido.numero, clienteId: clienteId ?? null }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
