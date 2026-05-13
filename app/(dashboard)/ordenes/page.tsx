@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bike, Package2, UtensilsCrossed, ArrowRight, Star } from "lucide-react";
+import { Bike, ShoppingBag, ArrowRight, Star } from "lucide-react";
 
 export const metadata: Metadata = { title: "PP — Ordenes" };
 
@@ -17,22 +17,12 @@ const HUBS = [
     badgeColor:  "bg-amber-100 text-amber-700",
   },
   {
-    href:        "/pedidos",
-    icon:        UtensilsCrossed,
-    label:       "KDS",
-    description: "Cocina y barra — flujo de comandas",
-    gradient:    "from-yellow-400 to-amber-500",
-    glow:        "rgba(234,179,8,.22)",
-    badge:       null,
-    badgeColor:  "",
-  },
-  {
-    href:        "/track",
-    icon:        Package2,
-    label:       "ODS",
-    description: "Rastreo público de pedidos para clientes",
-    gradient:    "from-cyan-500 to-sky-600",
-    glow:        "rgba(6,182,212,.22)",
+    href:        "/llevar",
+    icon:        ShoppingBag,
+    label:       "Llevar",
+    description: "Pedidos para llevar — nombre, pedido y horario de retiro",
+    gradient:    "from-emerald-400 to-teal-500",
+    glow:        "rgba(16,185,129,.25)",
     badge:       null,
     badgeColor:  "",
   },
