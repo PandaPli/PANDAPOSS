@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Bike, ShoppingBag, ArrowRight, Star, Clock, User,
-  Package, MapPin, ChefHat, CheckCircle2,
+  Package, MapPin, UtensilsCrossed, CheckCircle2,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -59,6 +59,15 @@ const HUBS = [
     glow:     "0 8px 24px rgba(16,185,129,.25)",
     ring:     "ring-emerald-200",
   },
+  {
+    href:     "/mesas",
+    icon:     UtensilsCrossed,
+    label:    "Servir",
+    desc:     "Mesas y servicio en sala",
+    gradient: "from-rose-400 to-pink-500",
+    glow:     "0 8px 24px rgba(244,63,94,.25)",
+    ring:     "ring-rose-200",
+  },
 ] as const;
 
 export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo }: Props) {
@@ -77,7 +86,7 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo }: Props) {
       </div>
 
       {/* ── Hub icons row ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {HUBS.map(({ href, icon: Icon, label, desc, gradient, glow, ring }) => (
           <Link
             key={href}
