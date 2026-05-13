@@ -422,6 +422,7 @@ model DetallePedido {
   productoId    Int?
   comboId       Int?
   cantidad      Int       @default(1)
+  nombre        String?   @db.VarChar(200)
   observacion   String?   @db.VarChar(200)
   cancelado     Boolean   @default(false)
   grupo         String?   @db.VarChar(5)

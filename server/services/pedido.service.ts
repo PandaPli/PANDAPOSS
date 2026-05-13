@@ -76,8 +76,10 @@ export const PedidoService = {
     ]);
 
     // A4: Validar que todos los productos/combos existen y tienen precio
-    const precioProducto = new Map(productos.map((p) => [p.id, p.precio]));
-    const precioCombo    = new Map(combos.map((c) => [c.id, c.precio]));
+    const precioProducto  = new Map(productos.map((p) => [p.id, p.precio]));
+    const nombreProducto  = new Map(productos.map((p) => [p.id, p.nombre]));
+    const precioCombo     = new Map(combos.map((c) => [c.id, c.precio]));
+    const nombreCombo     = new Map(combos.map((c) => [c.id, c.nombre]));
 
     for (const item of items) {
       if (item.productoId) {
@@ -118,9 +120,15 @@ export const PedidoService = {
             const precioFinal = item.opciones && item.opciones.length > 0 && item.precio != null
               ? item.precio
               : precioBase;
+            const nombre = item.productoId
+              ? (nombreProducto.get(item.productoId) ?? null)
+              : item.comboId
+              ? (nombreCombo.get(item.comboId) ?? null)
+              : null;
             return {
               productoId:  item.productoId ?? null,
               comboId:     item.comboId ?? null,
+              nombre,
               cantidad:    item.cantidad,
               observacion: item.observacion ?? null,
               grupo:       item.grupo ?? null,
@@ -198,11 +206,28 @@ export const PedidoService = {
     if (estado === "LISTO")      data.listoEn    = now;
 
     if (input.nuevosItems && input.nuevosItems.length > 0) {
+      // Resolver nombres para guardarlos en el detalle
+      const nProdIds = input.nuevosItems.filter(i => i.productoId).map(i => i.productoId as number);
+      const nComboIds = input.nuevosItems.filter(i => i.comboId).map(i => i.comboId as number);
+      const [nProds, nCombos] = await Promise.all([
+        nProdIds.length > 0
+          ? prisma.producto.findMany({ where: { id: { in: nProdIds } }, select: { id: true, nombre: true } })
+          : [],
+        nComboIds.length > 0
+          ? prisma.combo.findMany({ where: { id: { in: nComboIds } }, select: { id: true, nombre: true } })
+          : [],
+      ]);
+      const nNombreProd  = new Map(nProds.map(p => [p.id, p.nombre]));
+      const nNombreCombo = new Map(nCombos.map(c => [c.id, c.nombre]));
+
       data.detalles = {
         create: input.nuevosItems.map((item) => ({
-          productoId: item.productoId ?? null,
-          comboId: item.comboId ?? null,
-          cantidad: item.cantidad,
+          productoId:  item.productoId ?? null,
+          comboId:     item.comboId ?? null,
+          nombre:      item.productoId ? (nNombreProd.get(item.productoId) ?? null)
+                     : item.comboId   ? (nNombreCombo.get(item.comboId) ?? null)
+                     : null,
+          cantidad:    item.cantidad,
           observacion: item.observacion ?? null,
         })),
       };

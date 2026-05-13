@@ -324,7 +324,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
 
     const itemsHtml = pedido.detalles.map(d => {
       if (d.id < 0) return ""; // separador de agrupación — no imprimir
-      const nombre = d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "") : "--");
+      const nombre = d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "") : (d.nombre ?? "--"));
       if (d.cancelado) {
         return `<div class="item" style="opacity:0.5;"><div class="item-row" style="text-decoration:line-through;"><span class="qty">${d.cantidad}x</span><span class="item-name">${nombre}</span><span style="font-size:11px;margin-left:6px;">[ANULADO]</span></div></div>`;
       }
@@ -524,9 +524,33 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className={cn("text-sm font-semibold leading-tight", d.cancelado ? "line-through text-gray-400" : nightMode ? "text-gray-100" : "text-surface-text")}>
-                        {d.producto?.nombre ?? d.combo?.nombre ?? (d.observacion?.startsWith("[LIBRE]") ? d.observacion.replace("[LIBRE] ", "").split(" | ")[0] : "--")}
-                      </p>
+                      {(() => {
+                        const nombreVivo = d.producto?.nombre ?? d.combo?.nombre;
+                        const nombreGuardado = !nombreVivo && d.nombre ? d.nombre : null;
+                        const nombreLibre = !nombreVivo && !nombreGuardado && d.observacion?.startsWith("[LIBRE]")
+                          ? d.observacion.replace("[LIBRE] ", "").split(" | ")[0]
+                          : null;
+                        return (
+                          <>
+                            <p className={cn(
+                              "text-sm font-semibold leading-tight",
+                              d.cancelado ? "line-through text-gray-400"
+                                : nombreGuardado ? "line-through text-gray-400"
+                                : nightMode ? "text-gray-100" : "text-surface-text"
+                            )}>
+                              {nombreVivo ?? nombreGuardado ?? nombreLibre ?? "--"}
+                            </p>
+                            {nombreGuardado && (
+                              <span className={cn(
+                                "text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full",
+                                nightMode ? "bg-red-900/40 text-red-400" : "bg-red-100 text-red-500"
+                              )}>
+                                eliminado
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                       {!d.cancelado && d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ") && (
                         <p className={cn("font-mono text-xs font-black tracking-wider mt-0.5", nightMode ? "text-amber-300" : "text-amber-700")}>
                           {d.observacion.split(" | ")[1]}

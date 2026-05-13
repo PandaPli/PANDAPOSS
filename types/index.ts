@@ -150,6 +150,7 @@ export interface PedidoConDetalles {
   detalles: {
     id: number;
     cantidad: number;
+    nombre?: string | null;
     observacion: string | null;
     cancelado?: boolean;
     opciones?: OpcionSeleccionada[] | null;
