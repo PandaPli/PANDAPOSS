@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import {
   LayoutDashboard, UtensilsCrossed, ShoppingCart, ClipboardList,
   Package, Users, BarChart3, Settings, ChefHat, Wine,
-  Bike, ChevronLeft, ChevronRight, Wallet, UserCog, Music2, QrCode, Images, CreditCard,
+  Bike, ChevronLeft, ChevronRight, Wallet, UserCog, Music2, QrCode, Images, CreditCard, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Rol, SectorTipo } from "@/types";
@@ -101,6 +101,13 @@ const NAV_ITEMS: NavItem[] = [
     href: "/apps-delivery",
     icon: <QrCode size={20} />,
     roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"],
+  },
+  {
+    id: "evaluaciones",
+    label: "Evaluaciones",
+    href: "/evaluacion",
+    icon: <Sparkles size={20} />,
+    roles: ["ADMIN_GENERAL", "RESTAURANTE"],
   },
   {
     id: "pagos",

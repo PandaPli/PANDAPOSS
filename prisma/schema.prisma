@@ -92,6 +92,7 @@ model Sucursal {
   usuarios      Usuario[]
   vacaciones    Vacacion[]
   agente        AgenteWsp?
+  evaluaciones  Evaluacion[]
 
   // ─── BILLING ──────────────────────────────────────────────────────
   estadoPago      EstadoPago @default(PENDIENTE)
@@ -406,6 +407,7 @@ model Pedido {
   Tenant           Tenant?         @relation(fields: [tenantId], references: [id])
   usuario          Usuario         @relation(fields: [usuarioId], references: [id])
   delivery         PedidoDelivery?
+  evaluacion       Evaluacion?
   venta            Venta?
 
   @@index([cajaId], map: "pedidos_cajaId_fkey")
@@ -1078,4 +1080,20 @@ model MovimientoPuntos {
   @@index([clienteId])
   @@index([ventaId])
   @@map("movimientos_puntos")
+}
+
+model Evaluacion {
+  id          Int      @id @default(autoincrement())
+  pedidoId    Int      @unique
+  sucursalId  Int
+  nick        String   @db.VarChar(60)
+  estrellas   Int
+  comentario  String?  @db.VarChar(500)
+  creadoEn    DateTime @default(now())
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id])
+  sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
+
+  @@index([sucursalId])
+  @@index([pedidoId])
+  @@map("evaluaciones")
 }

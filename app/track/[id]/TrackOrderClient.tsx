@@ -646,6 +646,25 @@ export function TrackOrderClient({ initialData }: Props) {
               </div>
             )}
 
+            {/* ════ EVALÚANOS ════ */}
+            {isDone && data.trackingStage === "ENTREGADO" && data.sucursalNombre && (
+              <Link
+                href={`/evaluacion/${createSlug(data.sucursalNombre)}?pedido=${data.id}`}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  borderRadius: 20, border: `2px solid rgba(250,204,21,.5)`,
+                  background: "linear-gradient(135deg, rgba(250,204,21,.12), rgba(234,179,8,.08))",
+                  padding: "17px 20px",
+                  fontSize: 15, fontWeight: 900, color: "#92400E",
+                  textDecoration: "none", transition: "all .22s",
+                  animation: "t-fade-up .5s ease both", animationDelay: ".08s",
+                }}
+              >
+                <Star size={20} style={{ color: "#EAB308", fill: "#FACC15" }} />
+                ¡Evalúanos!
+              </Link>
+            )}
+
             {/* ════ RESUMEN DEL PEDIDO ════ */}
             <div className="t-card" style={{ padding: 22, animationDelay: ".28s" }}>
 
