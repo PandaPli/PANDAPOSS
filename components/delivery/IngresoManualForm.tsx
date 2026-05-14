@@ -370,44 +370,40 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     );
   }
 
-  /* ── Colapsa rolls por tablaGroup en líneas "Tabla X" para ticket y API ── */
+  /* ── Colapsa rolls por tablaGroup en líneas "Tabla X" para ticket y API ──
+     Solo se colapsan items que pertenecen a una tabla. Los items à la carte
+     (aunque tengan codigo) viajan al KDS con su nombre normal porque cocina
+     únicamente conoce los códigos de los rolls de tabla. */
   function collapseCart(): CartLine[] {
-    const rolls = cart.filter(i => i.codigo);
-    const others = cart.filter(i => !i.codigo);
-    if (rolls.length === 0) return cart;
+    const rollsTabla = cart.filter(i => i.tablaGroup);
+    const aLaCarte = cart.filter(i => !i.tablaGroup);
+    if (rollsTabla.length === 0) return cart;
 
-    // Agrupa rolls por tablaGroup. Los rolls sin tablaGroup van a "Rolls"
+    // Agrupa rolls por tablaGroup
     const groups = new Map<string, CartLine[]>();
-    for (const r of rolls) {
-      const key = r.tablaGroup ?? "__sueltos__";
+    for (const r of rollsTabla) {
+      const key = r.tablaGroup!;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(r);
     }
 
     const tablaLines: CartLine[] = [];
     for (const [key, items] of groups) {
-      const isTabla = key !== "__sueltos__";
-      const nombre = isTabla ? key : "Rolls";
       // Precio: busca el producto-tabla en BD (ej: "Tabla 30 Pz")
-      let precio = 0;
-      if (isTabla) {
-        const found = productos.find(p => p.nombre.toLowerCase().includes(key.toLowerCase()));
-        precio = found ? Number(found.precio) : items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-      } else {
-        precio = items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-      }
+      const found = productos.find(p => p.nombre.toLowerCase().includes(key.toLowerCase()));
+      const precio = found ? Number(found.precio) : items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
       const codes = items.map(i => i.codigo!).join("  ");
       tablaLines.push({
         tempId: `tabla-${key}`,
-        nombre,
+        nombre: key,
         precio,
         cantidad: 1,
         observacion: codes,
-        tablaGroup: isTabla ? key : undefined,
+        tablaGroup: key,
       });
     }
 
-    return [...others, ...tablaLines];
+    return [...aLaCarte, ...tablaLines];
   }
 
   /* ── Submit ── */
@@ -1388,7 +1384,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
       {/* ════════════════════════════════════════════
           KDS FLOATING PREVIEW
       ════════════════════════════════════════════ */}
-      {(selectedTabla || cart.some(i => i.codigo)) && (
+      {(selectedTabla || cart.some(i => i.tablaGroup)) && (
         <div className="fixed bottom-6 right-6 z-40 w-56 overflow-hidden rounded-2xl bg-stone-950 shadow-2xl ring-1 ring-white/5">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-stone-800 px-3.5 py-2">
@@ -1403,21 +1399,21 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                 {nombre}
               </p>
             )}
-            {cart.filter(i => i.codigo).length === 0 ? (
+            {cart.filter(i => i.tablaGroup).length === 0 ? (
               <p className="text-xs italic text-stone-600">Sin rolls aún…</p>
             ) : (
               (() => {
-                // Agrupa rolls por tablaGroup
+                // Agrupa solo rolls que pertenecen a alguna tabla
                 const groups = new Map<string, CartLine[]>();
-                for (const r of cart.filter(i => i.codigo)) {
-                  const key = r.tablaGroup ?? "__sueltos__";
+                for (const r of cart.filter(i => i.tablaGroup)) {
+                  const key = r.tablaGroup!;
                   if (!groups.has(key)) groups.set(key, []);
                   groups.get(key)!.push(r);
                 }
                 return Array.from(groups.entries()).map(([key, rolls]) => (
                   <div key={key} className="space-y-1">
                     <span className="block font-mono text-[10px] font-black uppercase tracking-widest text-brand-400">
-                      {key === "__sueltos__" ? "ROLLS" : key}
+                      {key}
                     </span>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                       {rolls.map((item) => (
