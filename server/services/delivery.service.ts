@@ -93,7 +93,7 @@ export const DeliveryService = {
       if (!item.precio || Number(item.precio) <= 0) throw new Error("El producto libre debe tener un precio válido.");
     }
 
-    const productIds = itemsRegulares.map((item) => Number(item.productoId));
+    const productIds = [...new Set(itemsRegulares.map((item) => Number(item.productoId)))];
     const productos = productIds.length > 0 ? await prisma.producto.findMany({
       where: {
         id: { in: productIds },
