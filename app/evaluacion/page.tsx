@@ -10,9 +10,10 @@ export const metadata = { title: "Evaluaciones" };
 export default async function EvaluacionLanding() {
   const session = await getServerSession(authOptions);
 
-  if (session?.user?.sucursalId) {
+  const user = session?.user as { sucursalId?: number } | undefined;
+  if (user?.sucursalId) {
     const sucursal = await prisma.sucursal.findUnique({
-      where: { id: session.user.sucursalId },
+      where: { id: user.sucursalId },
       select: { nombre: true },
     });
     if (sucursal) {
