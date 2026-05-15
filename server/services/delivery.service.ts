@@ -35,6 +35,9 @@ interface DeliveryScope {
   includeHistory?: boolean;
 }
 
+const CUMPLE_PORCENTAJE = 30;
+const CUMPLE_TOPE = 15000;
+
 const allowedPayments: MetodoPago[] = ["EFECTIVO", "TARJETA", "TRANSFERENCIA"];
 const activeDeliveryStatuses: PrismaEstadoPedido[] = ["PENDIENTE", "EN_PROCESO", "LISTO"];
 
@@ -46,11 +49,9 @@ export const DeliveryService = {
     metodoPago: MetodoPago;
     cargoEnvio?: number;
     zonaDelivery?: string;
-    descuento?: number;
-    cuponId?: number | null;
     cuponCodigo?: string | null;
   }) {
-    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0, zonaDelivery, descuento = 0, cuponId = null, cuponCodigo = null } = input;
+    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0, zonaDelivery, cuponCodigo = null } = input;
 
     if (!allowedPayments.includes(metodoPago)) {
       throw new Error("Selecciona un metodo de pago valido.");
@@ -139,6 +140,49 @@ export const DeliveryService = {
         : Number(item.precio ?? 0);
       return acc + precio * Number(item.cantidad);
     }, 0);
+
+    // ── Validación de cupón server-side ──
+    let descuento = 0;
+    let cuponId: number | null = null;
+
+    if (cuponCodigo) {
+      const codigoNorm = cuponCodigo.toUpperCase().trim();
+
+      const cupon = await prisma.cupon.findUnique({
+        where: { sucursalId_codigo: { sucursalId, codigo: codigoNorm } },
+      });
+
+      if (cupon) {
+        if (!cupon.activo) throw new Error("Este cupón está desactivado.");
+        if (cupon.venceEn && new Date() > cupon.venceEn) throw new Error("Este cupón ha expirado.");
+        if (cupon.usoMax !== null && cupon.usoActual >= cupon.usoMax) throw new Error("Este cupón ya alcanzó el límite de usos.");
+
+        descuento = cupon.tipo === "PORCENTAJE"
+          ? Math.round((subtotal * Number(cupon.valor)) / 100)
+          : Math.min(Number(cupon.valor), subtotal);
+        cuponId = cupon.id;
+      } else {
+        const clienteCumple = await prisma.cliente.findFirst({
+          where: { codigoCumple: codigoNorm, sucursalId },
+          select: { id: true, nombre: true, fechaNacimiento: true, activo: true },
+        });
+
+        if (!clienteCumple) throw new Error("Cupón no encontrado.");
+        if (!clienteCumple.activo) throw new Error("Este cliente está bloqueado.");
+
+        if (!clienteCumple.fechaNacimiento) {
+          throw new Error("Este cliente no tiene fecha de cumpleaños registrada.");
+        }
+        const hoy = new Date();
+        const cumple = new Date(clienteCumple.fechaNacimiento);
+        if (hoy.getDate() !== cumple.getDate() || hoy.getMonth() !== cumple.getMonth()) {
+          throw new Error("Cupón válido solo el día del cumpleaños.");
+        }
+
+        const descuentoBruto = Math.round((subtotal * CUMPLE_PORCENTAJE) / 100);
+        descuento = Math.min(descuentoBruto, CUMPLE_TOPE);
+      }
+    }
 
     const [driversActivos, pedidosActivos] = await Promise.all([
       prisma.usuario.count({ where: { sucursalId, rol: "DELIVERY", status: "ACTIVO" } }),
@@ -274,6 +318,14 @@ export const DeliveryService = {
             })
           )
         );
+      }
+
+      // 6. Incrementar uso del cupón
+      if (cuponId) {
+        await tx.cupon.update({
+          where: { id: cuponId },
+          data: { usoActual: { increment: 1 } },
+        });
       }
 
       // Asignar numero = id (mismo patron que PedidoService.create)
