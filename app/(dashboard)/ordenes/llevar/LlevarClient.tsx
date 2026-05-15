@@ -5,11 +5,16 @@ import Link from "next/link";
 import {
   ShoppingBag, Plus, Minus, Trash2, Clock, User, Search,
   CheckCircle2, ArrowRight, RefreshCw, ChevronDown, ChevronUp,
-  Star, X, Phone, ArrowLeft,
+  Star, X, Phone, ArrowLeft, Check,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
-interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: number }
+interface VOpcion { id: number; nombre: string; precio: number }
+interface VGrupo { id: number; nombre: string; requerido: boolean; tipo: string; opciones: VOpcion[] }
+interface CartOpcion { grupoId: number; grupoNombre: string; opcionId: number; opcionNombre: string; precio: number }
+
+interface OpcionDetalle { grupoNombre: string; opcionNombre: string; precio: number }
+interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: number; opciones?: OpcionDetalle[] }
 interface PedidoLlevar {
   id: number;
   numero: number;
@@ -26,12 +31,15 @@ interface Producto {
   precio: number;
   imagen?: string | null;
   categoria?: { nombre: string };
+  variantes: VGrupo[];
 }
 interface CartItem {
+  cartKey: string;
   productoId: number;
   nombre: string;
   precio: number;
   cantidad: number;
+  opciones: CartOpcion[];
 }
 
 interface ClienteResult {
@@ -69,6 +77,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   const [horaRetiro, setHoraRetiro] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [busqueda, setBusqueda] = useState("");
+  const [variantesModal, setVariantesModal] = useState<Producto | null>(null);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<{ id: number; numero: number } | null>(null);
   const [expandedPedido, setExpandedPedido] = useState<number | null>(null);
@@ -148,18 +157,30 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
 
   const total = cart.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
 
-  function addToCart(p: Producto) {
+  function handleProductClick(p: Producto) {
+    if (p.variantes.length > 0) {
+      setVariantesModal(p);
+    } else {
+      addToCart(p, []);
+    }
+  }
+
+  function addToCart(p: Producto, opciones: CartOpcion[]) {
+    const opKey = opciones.map(o => o.opcionId).sort().join("-");
+    const cartKey = `${p.id}-${opKey}`;
+    const precioOpciones = opciones.reduce((s, o) => s + o.precio, 0);
+    const precio = p.precio + precioOpciones;
     setCart((prev) => {
-      const existing = prev.find((i) => i.productoId === p.id);
-      if (existing) return prev.map((i) => i.productoId === p.id ? { ...i, cantidad: i.cantidad + 1 } : i);
-      return [...prev, { productoId: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }];
+      const existing = prev.find((i) => i.cartKey === cartKey);
+      if (existing) return prev.map((i) => i.cartKey === cartKey ? { ...i, cantidad: i.cantidad + 1 } : i);
+      return [...prev, { cartKey, productoId: p.id, nombre: p.nombre, precio, cantidad: 1, opciones }];
     });
   }
 
-  function updateQty(productoId: number, delta: number) {
+  function updateQty(cartKey: string, delta: number) {
     setCart((prev) =>
       prev
-        .map((i) => i.productoId === productoId ? { ...i, cantidad: i.cantidad + delta } : i)
+        .map((i) => i.cartKey === cartKey ? { ...i, cantidad: i.cantidad + delta } : i)
         .filter((i) => i.cantidad > 0),
     );
   }
@@ -172,7 +193,12 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })),
+          items: cart.map((i) => ({
+            productoId: i.productoId,
+            cantidad: i.cantidad,
+            precio: i.opciones.length > 0 ? i.precio : undefined,
+            opciones: i.opciones.length > 0 ? i.opciones : undefined,
+          })),
           nombreCliente: nombreCliente.trim(),
           horaRetiro: horaRetiro.trim() || undefined,
           clienteId: clienteSelected?.id ?? undefined,
@@ -193,7 +219,10 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
         horaRetiro: horaRetiro.trim() || null,
         total,
         creadoEn: new Date().toISOString(),
-        detalles: cart.map((i, idx) => ({ id: idx, cantidad: i.cantidad, nombre: i.nombre, precio: i.precio })),
+        detalles: cart.map((i, idx) => ({
+          id: idx, cantidad: i.cantidad, nombre: i.nombre, precio: i.precio,
+          opciones: i.opciones.length > 0 ? i.opciones.map(o => ({ grupoNombre: o.grupoNombre, opcionNombre: o.opcionNombre, precio: o.precio })) : undefined,
+        })),
       };
       setPedidos((prev) => [newPedido, ...prev]);
     } catch {
@@ -398,24 +427,27 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                       <p className="text-[11px] font-bold text-surface-muted uppercase tracking-wider mb-2">{cat}</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {prods.map((p) => {
-                          const inCart = cart.find((i) => i.productoId === p.id);
+                          const cartQty = cart.filter((i) => i.productoId === p.id).reduce((s, i) => s + i.cantidad, 0);
                           return (
                             <button
                               key={p.id}
-                              onClick={() => addToCart(p)}
+                              onClick={() => handleProductClick(p)}
                               className={cn(
                                 "text-left p-3 rounded-xl border transition-all hover:shadow-sm",
-                                inCart
+                                cartQty > 0
                                   ? "border-emerald-300 bg-emerald-50"
                                   : "border-surface-border bg-white hover:border-emerald-200",
                               )}
                             >
                               <p className="text-sm font-semibold text-surface-text truncate">{p.nombre}</p>
                               <div className="flex items-center justify-between mt-1.5">
-                                <p className="text-xs font-bold text-emerald-600">{formatCurrency(p.precio, simbolo)}</p>
-                                {inCart && (
+                                <div>
+                                  <p className="text-xs font-bold text-emerald-600">{formatCurrency(p.precio, simbolo)}</p>
+                                  {p.variantes.length > 0 && <p className="text-[10px] text-surface-muted">+opciones</p>}
+                                </div>
+                                {cartQty > 0 && (
                                   <span className="text-[10px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">
-                                    x{inCart.cantidad}
+                                    x{cartQty}
                                   </span>
                                 )}
                               </div>
@@ -448,23 +480,32 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                       <div className="space-y-2 max-h-[40vh] overflow-y-auto">
                         {cart.map((item) => (
                           <div
-                            key={item.productoId}
+                            key={item.cartKey}
                             className="flex items-center gap-3 p-2.5 rounded-xl bg-surface-bg"
                           >
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-surface-text truncate">{item.nombre}</p>
+                              {item.opciones.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                  {item.opciones.map((o, i) => (
+                                    <span key={i} className="rounded-full bg-violet-100 text-violet-700 px-1.5 py-0.5 text-[9px] font-bold">
+                                      {o.opcionNombre}{o.precio > 0 ? ` +${formatCurrency(o.precio, simbolo)}` : ""}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                               <p className="text-xs text-surface-muted">{formatCurrency(item.precio * item.cantidad, simbolo)}</p>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button
-                                onClick={() => updateQty(item.productoId, -1)}
+                                onClick={() => updateQty(item.cartKey, -1)}
                                 className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors"
                               >
                                 {item.cantidad === 1 ? <Trash2 size={12} className="text-red-500" /> : <Minus size={12} />}
                               </button>
                               <span className="text-sm font-bold w-6 text-center">{item.cantidad}</span>
                               <button
-                                onClick={() => updateQty(item.productoId, 1)}
+                                onClick={() => updateQty(item.cartKey, 1)}
                                 className="w-7 h-7 rounded-lg bg-white border border-surface-border flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-200 transition-colors"
                               >
                                 <Plus size={12} />
@@ -569,6 +610,105 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
           )}
         </div>
       )}
+
+      {/* ── Modal de variantes ── */}
+      {variantesModal && (
+        <VariantesModal
+          producto={variantesModal}
+          simbolo={simbolo}
+          onConfirm={(opciones) => { addToCart(variantesModal, opciones); setVariantesModal(null); }}
+          onClose={() => setVariantesModal(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Modal de variantes ── */
+function VariantesModal({
+  producto, simbolo, onConfirm, onClose,
+}: { producto: Producto; simbolo: string; onConfirm: (opciones: CartOpcion[]) => void; onClose: () => void }) {
+  const [sel, setSel] = useState<Record<number, number[]>>(() => {
+    const init: Record<number, number[]> = {};
+    for (const g of producto.variantes) {
+      if (g.requerido && g.tipo === "radio" && g.opciones.length > 0) init[g.id] = [g.opciones[0].id];
+      else init[g.id] = [];
+    }
+    return init;
+  });
+
+  function toggle(g: VGrupo, opId: number) {
+    setSel(prev => ({
+      ...prev,
+      [g.id]: g.tipo === "radio"
+        ? [opId]
+        : prev[g.id]?.includes(opId) ? prev[g.id].filter(i => i !== opId) : [...(prev[g.id] ?? []), opId],
+    }));
+  }
+
+  const missingRequired = producto.variantes.some(g => g.requerido && !(sel[g.id]?.length));
+  const selectedOpciones: CartOpcion[] = producto.variantes.flatMap(g =>
+    (sel[g.id] ?? []).map(opId => {
+      const op = g.opciones.find(o => o.id === opId)!;
+      return { grupoId: g.id, grupoNombre: g.nombre, opcionId: op.id, opcionNombre: op.nombre, precio: op.precio };
+    })
+  );
+  const unitPrice = producto.precio + selectedOpciones.reduce((s, o) => s + o.precio, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h3 className="text-lg font-black text-surface-text">{producto.nombre}</h3>
+            <p className="text-emerald-600 font-bold text-base mt-0.5">{formatCurrency(unitPrice, simbolo)}</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-surface-bg p-2 text-surface-muted hover:bg-surface-hover">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-4 max-h-[50vh] overflow-y-auto">
+          {producto.variantes.map(g => (
+            <div key={g.id}>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-sm font-bold text-surface-text">{g.nombre}</p>
+                {g.requerido && <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-bold">REQUERIDO</span>}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {g.opciones.map(op => {
+                  const active = sel[g.id]?.includes(op.id);
+                  return (
+                    <button key={op.id} onClick={() => toggle(g, op.id)}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl border-2 px-3 py-2.5 text-left transition-all text-sm",
+                        active ? "border-emerald-400 bg-emerald-50" : "border-surface-border bg-white hover:border-emerald-200",
+                      )}
+                    >
+                      <span className="font-semibold text-surface-text">{op.nombre}</span>
+                      <div className="flex items-center gap-1">
+                        {op.precio > 0 && <span className="text-xs text-emerald-600">+{formatCurrency(op.precio, simbolo)}</span>}
+                        {active && <Check size={14} className="text-emerald-500 shrink-0" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          disabled={missingRequired}
+          onClick={() => onConfirm(selectedOpciones)}
+          className={cn(
+            "w-full mt-5 py-3 rounded-xl font-bold text-sm transition-all",
+            missingRequired
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25",
+          )}
+        >
+          Agregar · {formatCurrency(unitPrice, simbolo)}
+        </button>
+      </div>
     </div>
   );
 }
@@ -604,11 +744,22 @@ function PedidoCard({
       {expanded && (
         <div className="px-4 pb-4 border-t border-surface-border pt-3 space-y-1.5">
           {pedido.detalles.map((d) => (
-            <div key={d.id} className="flex items-center justify-between text-sm">
-              <span className="text-surface-muted">
-                <span className="font-semibold text-surface-text">{d.cantidad}x</span> {d.nombre}
-              </span>
-              <span className="font-semibold text-surface-text">{formatCurrency(d.precio * d.cantidad, simbolo)}</span>
+            <div key={d.id}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-surface-muted">
+                  <span className="font-semibold text-surface-text">{d.cantidad}x</span> {d.nombre}
+                </span>
+                <span className="font-semibold text-surface-text">{formatCurrency(d.precio * d.cantidad, simbolo)}</span>
+              </div>
+              {d.opciones && d.opciones.length > 0 && (
+                <div className="ml-6 mt-0.5 flex flex-wrap gap-1">
+                  {d.opciones.map((o, i) => (
+                    <span key={i} className="rounded-full bg-violet-100 text-violet-700 px-1.5 py-0.5 text-[9px] font-bold">
+                      {o.opcionNombre}{o.precio > 0 ? ` +${formatCurrency(o.precio, simbolo)}` : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -6,6 +6,8 @@ import { PedidoService } from "@/server/services/pedido.service";
 interface LlevarItem {
   productoId: number;
   cantidad: number;
+  precio?: number;
+  opciones?: { grupoId: number; grupoNombre: string; opcionId: number; opcionNombre: string; precio: number }[];
 }
 
 export async function POST(req: NextRequest) {
@@ -46,6 +48,8 @@ export async function POST(req: NextRequest) {
       items: items.map((i) => ({
         productoId: i.productoId,
         cantidad: i.cantidad,
+        precio: i.precio ?? undefined,
+        opciones: i.opciones ?? undefined,
       })),
       observacion: obs,
     });

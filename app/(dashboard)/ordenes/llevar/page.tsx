@@ -32,7 +32,16 @@ export default async function LlevarPage() {
   const [productos, pedidosLlevar] = await Promise.all([
     prisma.producto.findMany({
       where: { activo: true, enMenu: true, ...(sucursalId ? { sucursalId } : {}) },
-      include: { categoria: { select: { nombre: true } } },
+      include: {
+        categoria: { select: { nombre: true } },
+        variantes: {
+          select: {
+            id: true, nombre: true, requerido: true, tipo: true,
+            opciones: { select: { id: true, nombre: true, precio: true }, orderBy: { orden: "asc" } },
+          },
+          orderBy: { orden: "asc" },
+        },
+      },
       orderBy: [{ categoria: { nombre: "asc" } }, { nombre: "asc" }],
     }),
     prisma.pedido.findMany({
@@ -61,6 +70,10 @@ export default async function LlevarPage() {
     precio: Number(p.precio),
     imagen: p.imagen,
     categoria: p.categoria ? { nombre: p.categoria.nombre } : undefined,
+    variantes: p.variantes.map((g) => ({
+      id: g.id, nombre: g.nombre, requerido: g.requerido, tipo: g.tipo,
+      opciones: g.opciones.map((o) => ({ id: o.id, nombre: o.nombre, precio: Number(o.precio) })),
+    })),
   }));
 
   const pedidosData = pedidosLlevar.map((p) => {
@@ -83,7 +96,10 @@ export default async function LlevarPage() {
         id: d.id,
         cantidad: d.cantidad,
         nombre: d.nombre ?? d.producto?.nombre ?? d.combo?.nombre ?? "Item",
-        precio: Number(d.producto?.precio ?? d.combo?.precio ?? 0),
+        precio: Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0),
+        opciones: Array.isArray(d.opciones) && (d.opciones as unknown[]).length > 0
+          ? d.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]
+          : undefined,
       })),
     };
   });
