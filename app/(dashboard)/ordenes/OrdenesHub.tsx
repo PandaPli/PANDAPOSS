@@ -5,6 +5,7 @@ import {
   Bike, ShoppingBag, Star, Clock, User,
   Package, UtensilsCrossed, CheckCircle2,
   Eye, Printer, X, MapPin, CreditCard, Truck, ShoppingCart,
+  PackageCheck, RefreshCw,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -78,7 +79,30 @@ const HUBS = [
    Hub principal
 ════════════════════════════════════════ */
 export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNombre, pedidoUrl }: Props) {
-  const [selected, setSelected] = useState<AnyPedido | null>(null);
+  const [selected,     setSelected]     = useState<AnyPedido | null>(null);
+  const [deliveryList, setDeliveryList] = useState(deliveryPedidos);
+  const [llevarList,   setLlevarList]   = useState(llevarPedidos);
+  const [loadingId,    setLoadingId]    = useState<number | null>(null);
+
+  async function completarPedido(pedido: AnyPedido) {
+    setLoadingId(pedido.id);
+    try {
+      const res = await fetch(`/api/pedidos/${pedido.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "ENTREGADO" }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar");
+      if (pedido.tipo === "DELIVERY") {
+        setDeliveryList((prev) => prev.filter((p) => p.id !== pedido.id));
+      } else {
+        setLlevarList((prev) => prev.filter((p) => p.id !== pedido.id));
+      }
+      setSelected(null);
+    } catch { /* ignore */ } finally {
+      setLoadingId(null);
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-3">
@@ -124,15 +148,15 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
             <Link href="/ordenes/delivery" className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline">Ver todos →</Link>
           </div>
 
-          {deliveryPedidos.length === 0 ? (
+          {deliveryList.length === 0 ? (
             <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/50 p-5 text-center">
               <Bike size={22} className="mx-auto text-amber-300 mb-1" />
               <p className="text-[11px] text-amber-400 font-semibold">Sin pedidos delivery activos</p>
             </div>
           ) : (
             <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
-              {deliveryPedidos.map((p) => (
-                <OrderCard key={p.id} pedido={p} simbolo={simbolo} accentColor="amber" onDetail={() => setSelected(p)} pedidoUrl={pedidoUrl} sucursalNombre={sucursalNombre} />
+              {deliveryList.map((p) => (
+                <OrderCard key={p.id} pedido={p} simbolo={simbolo} accentColor="amber" onDetail={() => setSelected(p)} onCompletar={() => void completarPedido(p)} loadingId={loadingId} pedidoUrl={pedidoUrl} sucursalNombre={sucursalNombre} />
               ))}
             </div>
           )}
@@ -149,15 +173,15 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
             <Link href="/ordenes/llevar" className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline">Ver todos →</Link>
           </div>
 
-          {llevarPedidos.length === 0 ? (
+          {llevarList.length === 0 ? (
             <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 p-5 text-center">
               <ShoppingBag size={22} className="mx-auto text-emerald-300 mb-1" />
               <p className="text-[11px] text-emerald-400 font-semibold">Sin pedidos para llevar activos</p>
             </div>
           ) : (
             <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
-              {llevarPedidos.map((p) => (
-                <OrderCard key={p.id} pedido={p} simbolo={simbolo} accentColor="emerald" onDetail={() => setSelected(p)} pedidoUrl={pedidoUrl} sucursalNombre={sucursalNombre} />
+              {llevarList.map((p) => (
+                <OrderCard key={p.id} pedido={p} simbolo={simbolo} accentColor="emerald" onDetail={() => setSelected(p)} onCompletar={() => void completarPedido(p)} loadingId={loadingId} pedidoUrl={pedidoUrl} sucursalNombre={sucursalNombre} />
               ))}
             </div>
           )}
@@ -172,6 +196,8 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
           sucursalNombre={sucursalNombre}
           pedidoUrl={pedidoUrl}
           onClose={() => setSelected(null)}
+          onCompletar={() => void completarPedido(selected)}
+          loadingId={loadingId}
         />
       )}
     </div>
@@ -182,24 +208,32 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
    Tarjeta de pedido con botones ojo + print
 ════════════════════════════════════════ */
 function OrderCard({
-  pedido, simbolo, accentColor, onDetail, pedidoUrl, sucursalNombre,
+  pedido, simbolo, accentColor, onDetail, onCompletar, loadingId, pedidoUrl, sucursalNombre,
 }: {
   pedido:          AnyPedido;
   simbolo:         string;
   accentColor:     "amber" | "emerald";
   onDetail:        () => void;
+  onCompletar:     () => void;
+  loadingId:       number | null;
   pedidoUrl:       string;
   sucursalNombre:  string;
 }) {
   const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
   const cfg  = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, dot: "bg-gray-400" };
-  const isAmber = accentColor === "amber";
+  const isAmber   = accentColor === "amber";
+  const isListo   = pedido.estado === "LISTO";
+  const isLoading = loadingId === pedido.id;
 
-  const borderColor = isAmber ? "border-amber-100 hover:border-amber-200"   : "border-emerald-100 hover:border-emerald-200";
-  const bgColor     = isAmber ? "from-white to-amber-50/40"                 : "from-white to-emerald-50/40";
-  const numColor    = isAmber ? "text-amber-700"                            : "text-emerald-700";
-  const badgeBg     = isAmber ? "bg-amber-100/80 text-amber-600"            : "bg-emerald-100/80 text-emerald-600";
-  const iconColor   = isAmber ? "text-amber-400"                            : "text-emerald-400";
+  const borderColor = isListo
+    ? "border-emerald-300 hover:border-emerald-400"
+    : isAmber ? "border-amber-100 hover:border-amber-200" : "border-emerald-100 hover:border-emerald-200";
+  const bgColor     = isListo
+    ? "from-emerald-50 to-teal-50/60"
+    : isAmber ? "from-white to-amber-50/40" : "from-white to-emerald-50/40";
+  const numColor    = isAmber ? "text-amber-700" : "text-emerald-700";
+  const badgeBg     = isAmber ? "bg-amber-100/80 text-amber-600" : "bg-emerald-100/80 text-emerald-600";
+  const iconColor   = isAmber ? "text-amber-400" : "text-emerald-400";
 
   return (
     <div className={`group rounded-xl border ${borderColor} bg-gradient-to-br ${bgColor} p-2.5 hover:shadow-sm transition-all duration-200`}>
@@ -231,10 +265,22 @@ function OrderCard({
           >
             <Printer size={12} />
           </button>
+          {/* Botón completar — solo cuando LISTO */}
+          {isListo && (
+            <button
+              type="button"
+              onClick={onCompletar}
+              disabled={isLoading}
+              title="Marcar como entregado"
+              className="flex h-6 w-6 items-center justify-center rounded-lg border border-emerald-400 bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? <RefreshCw size={10} className="animate-spin" /> : <CheckCircle2 size={12} />}
+            </button>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-3 text-[11px] text-surface-muted">
-        <span className={`flex items-center gap-1 truncate font-medium`}>
+        <span className="flex items-center gap-1 truncate font-medium">
           <User size={10} className={`${iconColor} shrink-0`} />{pedido.clienteNombre}
         </span>
         <span className="flex items-center gap-1 shrink-0">
@@ -252,14 +298,17 @@ function OrderCard({
    Modal de detalle
 ════════════════════════════════════════ */
 function PedidoDetailModal({
-  pedido, simbolo, sucursalNombre, pedidoUrl, onClose,
+  pedido, simbolo, sucursalNombre, pedidoUrl, onClose, onCompletar, loadingId,
 }: {
   pedido:          AnyPedido;
   simbolo:         string;
   sucursalNombre:  string;
   pedidoUrl:       string;
   onClose:         () => void;
+  onCompletar:     () => void;
+  loadingId:       number | null;
 }) {
+  const isLoading = loadingId === pedido.id;
   const hora  = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
   const fecha = new Date(pedido.creadoEn).toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
   const cfg   = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, dot: "bg-gray-400" };
@@ -370,16 +419,37 @@ function PedidoDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-surface-border px-5 py-3 bg-surface-bg flex justify-between items-center">
-          <p className="text-xs text-surface-muted">{sucursalNombre}</p>
-          <button
-            type="button"
-            onClick={() => printEtiqueta(pedido, simbolo, sucursalNombre, pedidoUrl)}
-            className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition-colors"
-          >
-            <Printer size={14} />
-            Imprimir etiqueta
-          </button>
+        <div className="border-t border-surface-border px-5 py-3 bg-surface-bg space-y-2">
+          {/* Botón principal: Completar — solo cuando LISTO */}
+          {pedido.estado === "LISTO" && (
+            <button
+              type="button"
+              onClick={onCompletar}
+              disabled={isLoading}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50",
+                pedido.tipo === "DELIVERY"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-500/20"
+                  : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-500/20"
+              )}
+            >
+              {isLoading
+                ? <><RefreshCw size={15} className="animate-spin" /> Procesando...</>
+                : <><PackageCheck size={15} /> {pedido.tipo === "DELIVERY" ? "Confirmar entrega ✓" : "Confirmar retiro ✓"}</>
+              }
+            </button>
+          )}
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-surface-muted">{sucursalNombre}</p>
+            <button
+              type="button"
+              onClick={() => printEtiqueta(pedido, simbolo, sucursalNombre, pedidoUrl)}
+              className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 transition-colors"
+            >
+              <Printer size={14} />
+              Imprimir etiqueta
+            </button>
+          </div>
         </div>
       </div>
     </div>
