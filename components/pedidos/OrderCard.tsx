@@ -221,6 +221,15 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
   const [loadingReturn, setLoadingReturn] = useState(false);
   const [tablaNotas, setTablaNotas] = useState<Record<number, string>>({});
   const [savedNotas, setSavedNotas] = useState<Record<number, boolean>>({});
+  const [openNotas, setOpenNotas] = useState<Record<number, boolean>>(() => {
+    const init: Record<number, boolean> = {};
+    for (const d of pedido.detalles) {
+      if (d.id >= 0 && !d.cancelado && !esTablaDetalle(d) && d.observacion && !d.observacion.startsWith("[LIBRE]")) {
+        init[d.id] = true;
+      }
+    }
+    return init;
+  });
 
   // ── Edición rápida (método de pago / modalidad) ─────────────────────────
   const [editMode, setEditMode] = useState(false);
@@ -410,10 +419,17 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
     } catch { /* ignore */ }
   } else if (cleanObservation) {
     cleanObservation = cleanObservation.replace(/\[WSP\]\s*\|?\s*/g, "").trim();
-    const match = cleanObservation.match(/Cliente:\s*([^,\n|]+)/i);
-    if (match) {
-      customerName = match[1].replace(/\(.*?\)/, "").trim();
-      cleanObservation = cleanObservation.replace(match[0], "").trim().replace(/^[-|,\s]+|[-|,\s]+$/g, "");
+    // Extraer nombre de pedidos LLEVAR: "👤 Nombre"
+    const llevarMatch = cleanObservation.match(/👤\s*([^·\n]+)/);
+    if (llevarMatch) {
+      customerName = llevarMatch[1].trim();
+    }
+    if (!customerName) {
+      const match = cleanObservation.match(/Cliente:\s*([^,\n|]+)/i);
+      if (match) {
+        customerName = match[1].replace(/\(.*?\)/, "").trim();
+        cleanObservation = cleanObservation.replace(match[0], "").trim().replace(/^[-|,\s]+|[-|,\s]+$/g, "");
+      }
     }
   }
 
@@ -421,11 +437,10 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
   if (pedido.mesa?.nombre) {
     cardTitle = pedido.mesa.nombre;
     if (customerName) cardTitle += ` / ${customerName.charAt(0).toUpperCase() + customerName.slice(1)}`;
-  } else if (pedido.tipo === "DELIVERY" && customerName) {
-    cardTitle = `Ped ${customerName.charAt(0).toUpperCase() + customerName.slice(1).toLowerCase()} #${pedido.numero || pedido.id}`;
+  } else if (customerName) {
+    cardTitle = `${customerName.toUpperCase()} #${pedido.numero || pedido.id}`;
   } else {
     cardTitle = `Pedido #${pedido.numero || pedido.id}`;
-    if (customerName) cardTitle += ` / ${customerName.charAt(0).toUpperCase() + customerName.slice(1)}`;
   }
 
   return (
@@ -571,6 +586,22 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                       {d.cancelado && (
                         <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                       )}
+                      {/* Ícono lápiz para agregar nota — solo si no es tabla (tabla siempre muestra textarea) */}
+                      {!d.cancelado && !esTablaDetalle(d) && (
+                        <button
+                          type="button"
+                          onClick={() => setOpenNotas(prev => ({ ...prev, [d.id]: !prev[d.id] }))}
+                          className={cn(
+                            "p-0.5 rounded transition-colors shrink-0",
+                            openNotas[d.id] || (tablaNotas[d.id]?.trim())
+                              ? nightMode ? "text-amber-400" : "text-amber-600"
+                              : nightMode ? "text-gray-600 hover:text-gray-400" : "text-gray-300 hover:text-gray-500"
+                          )}
+                          title="Agregar nota cocina"
+                        >
+                          <Pencil size={11} />
+                        </button>
+                      )}
                     </div>
                     {Array.isArray(d.opciones) && d.opciones.length > 0 && !d.cancelado && !esTablaDetalle(d) && (
                       <div className="mt-0.5 flex flex-wrap gap-1">
@@ -583,14 +614,15 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     )}
                   </div>
                 </div>
-                {!d.cancelado && esTablaDetalle(d) && (
+                {/* Nota cocina: siempre visible para tablas, toggle con lápiz para el resto */}
+                {!d.cancelado && (esTablaDetalle(d) || openNotas[d.id]) && (
                   <div className="mt-0.5 px-1">
                     <textarea
-                      rows={2}
-                      placeholder="Nota cocina: relleno, salsas..."
+                      rows={1}
+                      placeholder={esTablaDetalle(d) ? "Nota cocina: relleno, salsas..." : "Nota: sin cebollín, poco queso..."}
                       value={tablaNotas[d.id] ?? (
                         d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ")
-                          ? d.observacion.split(" | ")[1]   // opciones del [LIBRE] como valor inicial
+                          ? d.observacion.split(" | ")[1]
                           : (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))
                       )}
                       onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
@@ -602,6 +634,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                           (e.target as HTMLTextAreaElement).blur();
                         }
                       }}
+                      autoFocus={!esTablaDetalle(d)}
                       className={cn(
                         "w-full rounded border px-2 py-0.5 text-[11px] resize-none focus:outline-none transition-colors",
                         nightMode
