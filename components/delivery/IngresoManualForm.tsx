@@ -1449,20 +1449,29 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
               <p className="mt-2 text-sm font-semibold text-stone-300">{ticketData.clienteNombre}</p>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => printTicket(ticketData.id, ticketData.clienteNombre)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-900 py-3.5 font-bold text-white transition hover:bg-stone-700"
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => printTicket(ticketData.id, ticketData.clienteNombre)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-900 py-3.5 font-bold text-white transition hover:bg-stone-700"
+                >
+                  <Printer size={16} />
+                  Imprimir ticket
+                </button>
+                <button
+                  onClick={() => setTicketData(null)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-stone-50 py-3.5 font-semibold text-stone-600 transition hover:bg-stone-100"
+                >
+                  Continuar
+                </button>
+              </div>
+              <a
+                href="/pedidos"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-amber-500 py-3.5 font-bold text-black transition hover:bg-amber-400"
               >
-                <Printer size={16} />
-                Imprimir ticket
-              </button>
-              <button
-                onClick={() => setTicketData(null)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-stone-50 py-3.5 font-semibold text-stone-600 transition hover:bg-stone-100"
-              >
-                Continuar
-              </button>
+                <ChevronRight size={16} />
+                Ir a KDS
+              </a>
             </div>
           </div>
         </div>

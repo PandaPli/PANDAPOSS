@@ -399,9 +399,17 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                 <p className="text-lg font-black text-surface-text">Pedido #{success.numero} creado</p>
                 <p className="text-sm text-surface-muted mt-1">El pedido para llevar fue registrado exitosamente</p>
               </div>
-              <button onClick={resetForm} className="btn-primary mx-auto flex items-center gap-2">
-                <Plus size={16} /> Nuevo pedido
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Link
+                  href="/pedidos"
+                  className="btn-primary flex items-center justify-center gap-2"
+                >
+                  <ArrowRight size={16} /> Ir a KDS
+                </Link>
+                <button onClick={resetForm} className="btn-secondary flex items-center justify-center gap-2">
+                  <Plus size={16} /> Nuevo pedido
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid lg:grid-cols-5 gap-4">

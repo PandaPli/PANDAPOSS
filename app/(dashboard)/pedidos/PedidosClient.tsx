@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
-import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Moon, Sun, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Moon, Sun, Flame, CheckCircle2, AlertTriangle, ClipboardList } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useKdsUI } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
@@ -357,6 +358,18 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
 
         {/* Acciones derecha */}
         <div className="ml-auto flex items-center gap-1.5">
+          <Link
+            href="/ordenes"
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all",
+              nightMode
+                ? "bg-amber-500/20 border-amber-500/30 text-amber-400 hover:bg-amber-500/30"
+                : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+            )}
+          >
+            <ClipboardList size={13} />
+            Órdenes
+          </Link>
           <button
             onClick={toggleNightMode}
             className={cn(
