@@ -570,8 +570,9 @@ model Configuracion {
   direccion     String? @db.VarChar(200)
   telefono      String? @db.VarChar(20)
   email         String? @db.VarChar(100)
-  logoUrl       String? @db.VarChar(255)
-  moneda        String  @default("CLP") @db.VarChar(10)
+  logoUrl          String? @db.VarChar(255)
+  homePreviewUrl   String? @db.VarChar(500)
+  moneda           String  @default("CLP") @db.VarChar(10)
   simbolo       String  @default("$") @db.VarChar(5)
   ivaPorc       Decimal @default(19.00) @db.Decimal(5, 2)
 

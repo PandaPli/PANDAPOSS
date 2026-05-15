@@ -9,6 +9,7 @@ import {
   ShoppingBag, Store,
 } from "lucide-react";
 import { SucursalRow } from "./SucursalRow";
+import { HomeEditorModule } from "./HomeEditorModule";
 
 type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
 
@@ -118,12 +119,17 @@ const PAGO_DISPLAY: Record<EstadoPago, { label: string; color: string; bg: strin
 
 // ── Componente ─────────────────────────────────────────────────────────────
 export async function AdminGeneralView() {
+  const [adminData, configData] = await Promise.all([
+    getAdminData(),
+    prisma.configuracion.findUnique({ where: { id: 1 }, select: { homePreviewUrl: true } }),
+  ]);
+
   const {
     sucursales, ventasHoyGlobal, ventasMesGlobal, totalPedidosActivos,
     totalSucursalesConCaja, totalClientes, totalTxHoy, pagoCount,
     ventasHoyMap, ventasMesMap, pedidosActivosMap, cajasAbiertasMap,
     chartData, series, ahora,
-  } = await getAdminData();
+  } = adminData;
 
   const mesLabel = new Intl.DateTimeFormat("es-CL", { month: "long" }).format(ahora);
 
@@ -271,6 +277,9 @@ export async function AdminGeneralView() {
           </div>
         )}
       </div>
+
+      {/* ── EDITOR HOME ──────────────────────────────────────────────── */}
+      <HomeEditorModule currentUrl={configData?.homePreviewUrl} />
 
       {/* ── GRÁFICO 7 DÍAS ────────────────────────────────────────────── */}
       <div className="card p-4">

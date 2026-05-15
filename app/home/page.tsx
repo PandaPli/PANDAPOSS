@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MessageCircle, ArrowRight, Zap, Monitor, Bot,
   ShoppingCart, Bike, CreditCard, BarChart3, Bell,
@@ -744,7 +744,7 @@ const SectionTestimonials = () => (
 /* ─────────────────────────────────────────────────────────────
    SECCIÓN PREVIEW DEL SISTEMA
 ───────────────────────────────────────────────────────────── */
-const SectionPreview = () => (
+const SectionPreview = ({ previewUrl }: { previewUrl?: string | null }) => (
   <section style={{ padding:"80px 0 96px", background:"#ffffff", position:"relative", overflow:"hidden" }}>
     <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ backgroundImage:"radial-gradient(circle,rgba(99,102,241,.06) 1px,transparent 1px)", backgroundSize:"30px 30px", zIndex:0 }}/>
     <div className="relative max-w-6xl mx-auto px-5 sm:px-8" style={{ zIndex:1 }}>
@@ -776,13 +776,15 @@ const SectionPreview = () => (
           </div>
           {/* Imagen */}
           <div style={{ position:"relative", width:"100%", aspectRatio:"16/9", minHeight:320, background:"linear-gradient(135deg,#0f172a 0%,#1a1035 50%,#0c1a0f 100%)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <img src="/preview.png" alt="PandaPOS Dashboard — Panel de ventas en tiempo real" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}
-              onError={e => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                (e.currentTarget.nextElementSibling as HTMLElement).style.display = "flex";
-              }}
-            />
-            <div style={{ display:"none", position:"absolute", inset:0, flexDirection:"column", alignItems:"center", justifyContent:"center", gap:18 }}>
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                alt="PandaPOS Dashboard — Panel de ventas en tiempo real"
+                style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+            <div style={{ display: previewUrl ? "none" : "flex", position:"absolute", inset:0, flexDirection:"column", alignItems:"center", justifyContent:"center", gap:18 }}>
               <div style={{ width:80, height:80, borderRadius:20, background:"rgba(99,102,241,.15)", border:"2px dashed rgba(99,102,241,.4)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <Monitor size={34} aria-hidden="true" style={{ color:"#818cf8", opacity:.7 }}/>
               </div>
@@ -1034,6 +1036,15 @@ const Footer = () => (
    PAGE
 ───────────────────────────────────────────────────────────── */
 export default function HomePage() {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/public/home-config")
+      .then(r => r.json())
+      .then(d => { if (d.homePreviewUrl) setPreviewUrl(d.homePreviewUrl); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div style={{ minHeight:"100vh", background:"#ffffff", ...ou }}>
       <Styles/>
@@ -1050,7 +1061,7 @@ export default function HomePage() {
         <SectionComparison/>
         <SectionCycle/>
         <SectionTestimonials/>
-        <SectionPreview/>
+        <SectionPreview previewUrl={previewUrl}/>
         <SectionSystem/>
         <SectionBenefits/>
         <SectionPricing/>

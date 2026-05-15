@@ -22,20 +22,21 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { nombreEmpresa, rut, direccion, telefono, email, moneda, simbolo, ivaPorc, logoUrl } = body;
+  const { nombreEmpresa, rut, direccion, telefono, email, moneda, simbolo, ivaPorc, logoUrl, homePreviewUrl } = body;
 
   const config = await prisma.configuracion.upsert({
     where: { id: 1 },
     update: {
-      ...(nombreEmpresa !== undefined ? { nombreEmpresa } : {}),
-      ...(rut !== undefined ? { rut } : {}),
-      ...(direccion !== undefined ? { direccion } : {}),
-      ...(telefono !== undefined ? { telefono } : {}),
-      ...(email !== undefined ? { email } : {}),
-      ...(moneda !== undefined ? { moneda } : {}),
-      ...(simbolo !== undefined ? { simbolo } : {}),
-      ...(ivaPorc !== undefined ? { ivaPorc: Number(ivaPorc) } : {}),
-      ...(logoUrl !== undefined ? { logoUrl } : {}),
+      ...(nombreEmpresa    !== undefined ? { nombreEmpresa }              : {}),
+      ...(rut              !== undefined ? { rut }                        : {}),
+      ...(direccion        !== undefined ? { direccion }                  : {}),
+      ...(telefono         !== undefined ? { telefono }                   : {}),
+      ...(email            !== undefined ? { email }                      : {}),
+      ...(moneda           !== undefined ? { moneda }                     : {}),
+      ...(simbolo          !== undefined ? { simbolo }                    : {}),
+      ...(ivaPorc          !== undefined ? { ivaPorc: Number(ivaPorc) }   : {}),
+      ...(logoUrl          !== undefined ? { logoUrl }                    : {}),
+      ...(homePreviewUrl   !== undefined ? { homePreviewUrl }             : {}),
     },
     create: {
       id: 1,
