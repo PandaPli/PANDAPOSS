@@ -182,11 +182,13 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
     return Array.from(map.entries());
   }, [productos]);
 
+  const norm = (s: string) => s.normalize("NFD").split("").filter(c => { const code = c.charCodeAt(0); return code < 0x0300 || code > 0x036f; }).join("").toLowerCase();
+
   const productosFiltrados = useMemo(() => {
     if (!busqueda.trim()) return categorias;
-    const q = busqueda.toLowerCase();
+    const q = norm(busqueda);
     return categorias
-      .map(([cat, prods]) => [cat, prods.filter((p) => p.nombre.toLowerCase().includes(q))] as const)
+      .map(([cat, prods]) => [cat, prods.filter((p) => norm(p.nombre).includes(q))] as const)
       .filter(([, prods]) => prods.length > 0);
   }, [categorias, busqueda]);
 
