@@ -6,6 +6,7 @@ import {
   ShoppingBag, Plus, Minus, Trash2, Clock, User, Search,
   CheckCircle2, ArrowRight, RefreshCw, ChevronDown, ChevronUp,
   Star, X, Phone, ArrowLeft, Check, PackageCheck,
+  Banknote, CreditCard, ArrowLeftRight, Tag, Gift, Percent, Wallet, Ticket,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -51,6 +52,27 @@ interface ClienteResult {
   rut: string | null;
 }
 
+type MetodoPago = "EFECTIVO" | "TARJETA" | "TRANSFERENCIA" | "DEBITO" | "CREDITO" | "MERCADO_PAGO";
+
+interface CuponAplicado {
+  id: number;
+  codigo: string;
+  tipo: "PORCENTAJE" | "MONTO";
+  valor: number;
+  descripcion: string | null;
+  descuentoAplicado: number;
+  esCumple?: boolean;
+}
+
+const METODOS_PAGO: { key: MetodoPago; label: string }[] = [
+  { key: "EFECTIVO",      label: "Efectivo"      },
+  { key: "TARJETA",       label: "Tarjeta"        },
+  { key: "TRANSFERENCIA", label: "Transferencia"  },
+  { key: "DEBITO",        label: "Débito"         },
+  { key: "CREDITO",       label: "Crédito"        },
+  { key: "MERCADO_PAGO",  label: "Mercado Pago"   },
+];
+
 interface Props {
   productos: Producto[];
   pedidos: PedidoLlevar[];
@@ -82,6 +104,18 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   const [success, setSuccess] = useState<{ id: number; numero: number } | null>(null);
   const [expandedPedido, setExpandedPedido] = useState<number | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
+
+  // ── Pago ──
+  const [metodoPago, setMetodoPago]     = useState<MetodoPago>("EFECTIVO");
+  const [montoPagado, setMontoPagado]   = useState("");
+  // ── Descuentos ──
+  const [showDescuentos, setShowDescuentos] = useState(false);
+  const [descPorcentaje, setDescPorcentaje] = useState(0);
+  const [descMontoFijo, setDescMontoFijo]   = useState(0);
+  const [codigoCupon, setCodigoCupon]       = useState("");
+  const [cuponAplicado, setCuponAplicado]   = useState<CuponAplicado | null>(null);
+  const [cuponLoading, setCuponLoading]     = useState(false);
+  const [cuponError, setCuponError]         = useState("");
 
   // ── Cliente search state ──
   const [clienteQuery, setClienteQuery] = useState("");
@@ -158,6 +192,15 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
 
   const total = cart.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
 
+  const descuentoPorcentajeMonto = descPorcentaje > 0 ? Math.round((total * Math.min(100, Math.max(0, descPorcentaje))) / 100) : 0;
+  const descuentoCuponMonto      = cuponAplicado?.descuentoAplicado ?? 0;
+  const descMontoFijoAplicado    = descMontoFijo > 0 ? Math.min(descMontoFijo, total) : 0;
+  const descuentoTotal           = descuentoPorcentajeMonto + descuentoCuponMonto + descMontoFijoAplicado;
+  const totalFinal               = Math.max(0, total - descuentoTotal);
+  const cambio                   = metodoPago === "EFECTIVO" && Number(montoPagado) > totalFinal
+    ? Number(montoPagado) - totalFinal
+    : 0;
+
   function handleProductClick(p: Producto) {
     if (p.variantes.length > 0) {
       setVariantesModal(p);
@@ -203,6 +246,10 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
           nombreCliente: nombreCliente.trim(),
           horaRetiro: horaRetiro.trim() || undefined,
           clienteId: clienteSelected?.id ?? undefined,
+          metodoPago,
+          descuento: descuentoTotal > 0 ? descuentoTotal : undefined,
+          cuponId: cuponAplicado?.id && cuponAplicado.id > 0 ? cuponAplicado.id : undefined,
+          cuponCodigo: cuponAplicado?.codigo ?? undefined,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Error al crear pedido");
@@ -218,7 +265,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
         estado: "PENDIENTE",
         clienteNombre: nombreCliente.trim(),
         horaRetiro: horaRetiro.trim() || null,
-        total,
+        total: totalFinal,
         creadoEn: new Date().toISOString(),
         detalles: cart.map((i, idx) => ({
           id: idx, cantidad: i.cantidad, nombre: i.nombre, precio: i.precio,
@@ -248,6 +295,28 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
     }
   }
 
+  async function aplicarCupon() {
+    const codigo = codigoCupon.trim().toUpperCase();
+    if (!codigo || !sucursalId) return;
+    setCuponLoading(true);
+    setCuponError("");
+    try {
+      const res = await fetch("/api/cupones/validar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo, sucursalId, subtotal: total }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Cupón no válido");
+      setCuponAplicado(data as CuponAplicado);
+      setCodigoCupon("");
+    } catch (e) {
+      setCuponError((e as Error).message);
+    } finally {
+      setCuponLoading(false);
+    }
+  }
+
   function resetForm() {
     setSuccess(null);
     setCart([]);
@@ -255,6 +324,14 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
     setHoraRetiro("");
     setBusqueda("");
     clearCliente();
+    setMetodoPago("EFECTIVO");
+    setMontoPagado("");
+    setShowDescuentos(false);
+    setDescPorcentaje(0);
+    setDescMontoFijo(0);
+    setCodigoCupon("");
+    setCuponAplicado(null);
+    setCuponError("");
   }
 
   // ── Pedidos activos vs completados ──
@@ -547,13 +624,176 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                         </div>
                       )}
 
-                      {/* Total */}
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-surface-text text-white">
-                        <span className="text-sm font-bold">Total</span>
-                        <span className="text-lg font-black">{formatCurrency(total, simbolo)}</span>
+                      {/* ── Descuentos ── */}
+                      <div className="rounded-xl border border-surface-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setShowDescuentos(!showDescuentos)}
+                          className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold text-surface-text hover:bg-surface-bg transition-colors"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Tag size={13} className="text-violet-500" />
+                            Descuentos
+                            {descuentoTotal > 0 && (
+                              <span className="ml-1 rounded-full bg-violet-100 text-violet-700 px-2 py-0.5 text-[9px] font-black">
+                                -{formatCurrency(descuentoTotal, simbolo)}
+                              </span>
+                            )}
+                          </span>
+                          {showDescuentos ? <ChevronUp size={13} className="text-surface-muted" /> : <ChevronDown size={13} className="text-surface-muted" />}
+                        </button>
+
+                        {showDescuentos && (
+                          <div className="border-t border-surface-border p-3 space-y-3 bg-violet-50/40">
+                            {/* Porcentaje */}
+                            <div>
+                              <label className="text-[10px] font-bold text-surface-muted mb-1 block flex items-center gap-1">
+                                <Percent size={10} /> % Descuento
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number" min={0} max={100}
+                                  value={descPorcentaje || ""}
+                                  onChange={(e) => setDescPorcentaje(Number(e.target.value))}
+                                  placeholder="0"
+                                  className="input flex-1 text-sm"
+                                />
+                                <span className="text-xs text-surface-muted font-semibold shrink-0">
+                                  = {formatCurrency(descuentoPorcentajeMonto, simbolo)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Monto fijo */}
+                            <div>
+                              <label className="text-[10px] font-bold text-surface-muted mb-1 block flex items-center gap-1">
+                                <Tag size={10} /> Monto fijo
+                              </label>
+                              <input
+                                type="number" min={0}
+                                value={descMontoFijo || ""}
+                                onChange={(e) => setDescMontoFijo(Number(e.target.value))}
+                                placeholder="0"
+                                className="input w-full text-sm"
+                              />
+                            </div>
+
+                            {/* Código cupón */}
+                            <div>
+                              <label className="text-[10px] font-bold text-surface-muted mb-1 block flex items-center gap-1">
+                                <Gift size={10} /> Código cupón / cumpleaños
+                              </label>
+                              {cuponAplicado ? (
+                                <div className="flex items-center gap-2 p-2 rounded-lg bg-violet-100 border border-violet-300">
+                                  <span className="flex-1 text-xs font-bold text-violet-800 truncate">
+                                    {cuponAplicado.esCumple ? "🎂" : "🎟️"} {cuponAplicado.descripcion ?? cuponAplicado.codigo}
+                                  </span>
+                                  <span className="text-[10px] font-black text-violet-700 shrink-0">
+                                    -{formatCurrency(cuponAplicado.descuentoAplicado, simbolo)}
+                                  </span>
+                                  <button
+                                    onClick={() => { setCuponAplicado(null); setCuponError(""); }}
+                                    className="text-violet-600 hover:text-violet-800 transition-colors"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      value={codigoCupon}
+                                      onChange={(e) => setCodigoCupon(e.target.value.toUpperCase())}
+                                      onKeyDown={(e) => e.key === "Enter" && void aplicarCupon()}
+                                      placeholder="CODIGO123"
+                                      className="input flex-1 text-sm uppercase"
+                                      disabled={cuponLoading}
+                                    />
+                                    <button
+                                      onClick={() => void aplicarCupon()}
+                                      disabled={cuponLoading || !codigoCupon.trim()}
+                                      className="px-3 py-1.5 rounded-xl bg-violet-600 text-white text-xs font-bold disabled:opacity-50 hover:bg-violet-700 transition-colors shrink-0"
+                                    >
+                                      {cuponLoading ? <RefreshCw size={12} className="animate-spin" /> : "Aplicar"}
+                                    </button>
+                                  </div>
+                                  {cuponError && <p className="text-[10px] text-red-500 font-semibold mt-1">{cuponError}</p>}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Botón enviar */}
+                      {/* ── Totales ── */}
+                      <div className="rounded-xl border border-surface-border bg-surface-bg px-3 py-2 space-y-1">
+                        <div className="flex items-center justify-between text-sm text-surface-muted">
+                          <span>Subtotal</span>
+                          <span>{formatCurrency(total, simbolo)}</span>
+                        </div>
+                        {descuentoTotal > 0 && (
+                          <div className="flex items-center justify-between text-sm text-violet-600 font-semibold">
+                            <span>Descuento</span>
+                            <span>-{formatCurrency(descuentoTotal, simbolo)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between pt-1 border-t border-surface-border">
+                          <span className="text-sm font-bold text-surface-text">Total</span>
+                          <span className="text-lg font-black text-surface-text">{formatCurrency(totalFinal, simbolo)}</span>
+                        </div>
+                      </div>
+
+                      {/* ── Método de pago ── */}
+                      <div>
+                        <p className="text-[10px] font-bold text-surface-muted mb-1.5 flex items-center gap-1">
+                          <Wallet size={10} /> Método de pago
+                        </p>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {METODOS_PAGO.map((m) => (
+                            <button
+                              key={m.key}
+                              type="button"
+                              onClick={() => { setMetodoPago(m.key); setMontoPagado(""); }}
+                              className={cn(
+                                "py-1.5 px-2 rounded-xl border text-[10px] font-bold transition-all",
+                                metodoPago === m.key
+                                  ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
+                                  : "border-surface-border bg-white text-surface-muted hover:border-emerald-300 hover:text-emerald-700"
+                              )}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ── Monto y cambio (solo EFECTIVO) ── */}
+                      {metodoPago === "EFECTIVO" && (
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-surface-muted mb-1 block flex items-center gap-1">
+                              <Banknote size={10} /> Monto recibido
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={montoPagado}
+                              onChange={(e) => setMontoPagado(e.target.value)}
+                              placeholder={formatCurrency(totalFinal, simbolo)}
+                              className="input w-full text-sm"
+                            />
+                          </div>
+                          {cambio > 0 && (
+                            <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+                              <span className="text-xs font-bold text-emerald-700">Cambio a devolver</span>
+                              <span className="text-base font-black text-emerald-700">{formatCurrency(cambio, simbolo)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ── Botón enviar ── */}
                       <button
                         onClick={handleSubmit}
                         disabled={sending || !nombreCliente.trim() || cart.length === 0}

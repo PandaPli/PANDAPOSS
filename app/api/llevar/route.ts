@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PedidoService } from "@/server/services/pedido.service";
+import { prisma } from "@/lib/db";
 
 interface LlevarItem {
   productoId: number;
@@ -18,11 +19,24 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Sin usuario" }, { status: 401 });
 
   const body = await req.json();
-  const { items, nombreCliente, horaRetiro, clienteId } = body as {
+  const {
+    items,
+    nombreCliente,
+    horaRetiro,
+    clienteId,
+    metodoPago,
+    descuento,
+    cuponId,
+    cuponCodigo,
+  } = body as {
     items: LlevarItem[];
     nombreCliente: string;
     horaRetiro?: string;
     clienteId?: number;
+    metodoPago?: string;
+    descuento?: number;
+    cuponId?: number;
+    cuponCodigo?: string;
   };
 
   if (!items?.length) {
@@ -36,6 +50,9 @@ export async function POST(req: NextRequest) {
     "🥡 PARA LLEVAR",
     `👤 ${nombreCliente.trim()}`,
     horaRetiro ? `🕐 ${horaRetiro}` : null,
+    metodoPago ? `💳 ${metodoPago}` : null,
+    descuento && descuento > 0 ? `🏷️ DESC:${descuento}` : null,
+    cuponCodigo ? `🎟️ ${cuponCodigo}` : null,
     clienteId ? `🆔 ${clienteId}` : null,
   ]
     .filter(Boolean)
@@ -53,6 +70,14 @@ export async function POST(req: NextRequest) {
       })),
       observacion: obs,
     });
+
+    // Incrementar uso del cupón si aplica
+    if (cuponId && cuponId > 0) {
+      await prisma.cupon.update({
+        where: { id: cuponId },
+        data: { usoActual: { increment: 1 } },
+      }).catch(() => { /* no bloquear si falla */ });
+    }
 
     return NextResponse.json({ id: pedido.id, numero: pedido.numero, clienteId: clienteId ?? null }, { status: 201 });
   } catch (e) {
