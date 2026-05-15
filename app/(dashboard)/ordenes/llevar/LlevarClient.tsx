@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShoppingBag, Plus, Minus, Trash2, Clock, User, Search,
   CheckCircle2, ArrowRight, RefreshCw, ChevronDown, ChevronUp,
-  Star, X, Phone, ArrowLeft, Check,
+  Star, X, Phone, ArrowLeft, Check, PackageCheck,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -81,6 +81,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<{ id: number; numero: number } | null>(null);
   const [expandedPedido, setExpandedPedido] = useState<number | null>(null);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
 
   // ── Cliente search state ──
   const [clienteQuery, setClienteQuery] = useState("");
@@ -229,6 +230,21 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
       // silently handle
     } finally {
       setSending(false);
+    }
+  }
+
+  async function updateEstado(pedidoId: number, estado: string) {
+    setLoadingId(pedidoId);
+    try {
+      const res = await fetch(`/api/pedidos/${pedidoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar");
+      setPedidos((prev) => prev.map((p) => p.id === pedidoId ? { ...p, estado } : p));
+    } catch { /* ignore */ } finally {
+      setLoadingId(null);
     }
   }
 
@@ -579,6 +595,8 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                   simbolo={simbolo}
                   expanded={expandedPedido === p.id}
                   onToggle={() => setExpandedPedido(expandedPedido === p.id ? null : p.id)}
+                  onMarcarRetirado={(id) => void updateEstado(id, "ENTREGADO")}
+                  loadingId={loadingId}
                 />
               ))}
             </div>
@@ -597,6 +615,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                   simbolo={simbolo}
                   expanded={expandedPedido === p.id}
                   onToggle={() => setExpandedPedido(expandedPedido === p.id ? null : p.id)}
+                  loadingId={loadingId}
                 />
               ))}
             </div>
@@ -715,9 +734,17 @@ function VariantesModal({
 
 /* ── Tarjeta de pedido ── */
 function PedidoCard({
-  pedido, simbolo, expanded, onToggle,
-}: { pedido: PedidoLlevar; simbolo: string; expanded: boolean; onToggle: () => void }) {
+  pedido, simbolo, expanded, onToggle, onMarcarRetirado, loadingId,
+}: {
+  pedido: PedidoLlevar;
+  simbolo: string;
+  expanded: boolean;
+  onToggle: () => void;
+  onMarcarRetirado?: (id: number) => void;
+  loadingId?: number | null;
+}) {
   const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  const isLoading = loadingId === pedido.id;
 
   return (
     <div className="card overflow-hidden">
@@ -762,6 +789,25 @@ function PedidoCard({
               )}
             </div>
           ))}
+
+          {/* ── Botón marcar retirado (solo cuando está LISTO) ── */}
+          {pedido.estado === "LISTO" && onMarcarRetirado && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMarcarRetirado(pedido.id); }}
+              disabled={isLoading}
+              className={cn(
+                "mt-3 w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
+                isLoading
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 active:scale-95",
+              )}
+            >
+              {isLoading
+                ? <><RefreshCw size={15} className="animate-spin" /> Procesando...</>
+                : <><PackageCheck size={15} /> Marcar como Retirado</>
+              }
+            </button>
+          )}
         </div>
       )}
     </div>
