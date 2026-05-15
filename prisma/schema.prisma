@@ -23,76 +23,76 @@ model Tenant {
 }
 
 model Sucursal {
-  id            Int            @id @default(autoincrement())
-  nombre        String         @db.VarChar(100)
-  direccion     String?        @db.VarChar(200)
-  telefono      String?        @db.VarChar(20)
-  email         String?        @db.VarChar(100)
-  simbolo       String         @default("$") @db.VarChar(5)
-  activa        Boolean        @default(true)
-  plan          PlanTipo       @default(BASICO)
-  sector        SectorTipo     @default(RESTAURANTE_BAR)
-  delivery      Boolean        @default(false)
-  menuQR        Boolean        @default(false)
-  correoActivo  Boolean        @default(false)
-  kioskActivo   Boolean        @default(false)
-  creadoEn      DateTime       @default(now())
-  logoUrl       String?        @db.VarChar(255)
-  cartaBg       String?        @db.VarChar(255)
-  cartaTagline  String?        @db.VarChar(150)
-  cartaSaludo   String?        @db.VarChar(300)
-  flayerUrl     String?        @db.VarChar(500)
-  flayerActivo  Boolean        @default(false)
-  orden         Int            @default(0)
-  tenantId      String?
-  printerPath     String?        @default("/dev/usb/lp0") @db.VarChar(50)
-  printerIp       String?        @db.VarChar(50)
-  rut             String?        @db.VarChar(30)
-  giroComercial   String?        @db.VarChar(200)
-  socialFacebook  String?        @db.VarChar(255)
-  socialInstagram String?        @db.VarChar(255)
-  socialWhatsapp  String?        @db.VarChar(30)
-  socialYoutube   String?        @db.VarChar(255)
-  socialTiktok    String?        @db.VarChar(255)
-  socialTwitter   String?        @db.VarChar(255)
-  zonasDelivery   Json?
-  mpAccessToken   String?        @db.VarChar(255)
-  puntosActivo    Boolean        @default(false)
-  puntosPorMil    Decimal        @default(10.00) @db.Decimal(8, 2)
-  valorPunto      Decimal        @default(1.00)  @db.Decimal(8, 2)
-  notifAviso      Boolean        @default(false)
-  productoMesActivo   Boolean    @default(false)
-  productoMesId       Int?
-  productoMesTitulo   String?    @db.VarChar(200)
-  productoMesPrecio   Decimal?   @db.Decimal(10, 2)
-  productoDiaActivo   Boolean    @default(false)
-  productoDiaId       Int?
-  productoDiaTitulo   String?    @db.VarChar(200)
-  productoDiaPrecio   Decimal?   @db.Decimal(10, 2)
-  ofertaFugazActivo   Boolean    @default(false)
-  ofertaFugazId       Int?
-  ofertaFugazPrecio   Decimal?   @db.Decimal(10, 2)
-  ofertaFugazHasta    DateTime?
-  productoMes         Producto?  @relation("ProductoDelMes", fields: [productoMesId], references: [id])
-  productoDia         Producto?  @relation("ProductoDelDia", fields: [productoDiaId], references: [id])
-  ofertaFugazProd     Producto?  @relation("OfertaFugaz",   fields: [ofertaFugazId],  references: [id])
-  asistencias     Asistencia[]
-  cajas         Caja[]
-  clientes      Cliente[]
-  cupones       Cupon[]
-  departamentos Departamento[]
-  empleados     Empleado[]
-  eventos       Evento[]
-  ingredientes  Ingrediente[]
-  permisosRrhh  PermisoRrhh[]
-  productos     Producto[]
-  salas         Sala[]
-  tenant        Tenant?        @relation(fields: [tenantId], references: [id])
-  turnos        Turno[]
-  usuarios      Usuario[]
-  vacaciones    Vacacion[]
-  agente        AgenteWsp?
-  evaluaciones  Evaluacion[]
+  id                Int            @id @default(autoincrement())
+  nombre            String         @db.VarChar(100)
+  direccion         String?        @db.VarChar(200)
+  telefono          String?        @db.VarChar(20)
+  email             String?        @db.VarChar(100)
+  simbolo           String         @default("$") @db.VarChar(5)
+  activa            Boolean        @default(true)
+  plan              PlanTipo       @default(BASICO)
+  sector            SectorTipo     @default(RESTAURANTE_BAR)
+  delivery          Boolean        @default(false)
+  menuQR            Boolean        @default(false)
+  correoActivo      Boolean        @default(false)
+  kioskActivo       Boolean        @default(false)
+  creadoEn          DateTime       @default(now())
+  logoUrl           String?        @db.VarChar(255)
+  cartaBg           String?        @db.VarChar(255)
+  cartaTagline      String?        @db.VarChar(150)
+  cartaSaludo       String?        @db.VarChar(300)
+  flayerUrl         String?        @db.VarChar(500)
+  flayerActivo      Boolean        @default(false)
+  orden             Int            @default(0)
+  tenantId          String?
+  printerPath       String?        @default("/dev/usb/lp0") @db.VarChar(50)
+  printerIp         String?        @db.VarChar(50)
+  rut               String?        @db.VarChar(30)
+  giroComercial     String?        @db.VarChar(200)
+  socialFacebook    String?        @db.VarChar(255)
+  socialInstagram   String?        @db.VarChar(255)
+  socialWhatsapp    String?        @db.VarChar(30)
+  socialYoutube     String?        @db.VarChar(255)
+  socialTiktok      String?        @db.VarChar(255)
+  socialTwitter     String?        @db.VarChar(255)
+  zonasDelivery     Json?
+  mpAccessToken     String?        @db.VarChar(255)
+  puntosActivo      Boolean        @default(false)
+  puntosPorMil      Decimal        @default(10.00) @db.Decimal(8, 2)
+  valorPunto        Decimal        @default(1.00) @db.Decimal(8, 2)
+  notifAviso        Boolean        @default(false)
+  productoMesActivo Boolean        @default(false)
+  productoMesId     Int?
+  productoMesTitulo String?        @db.VarChar(200)
+  productoMesPrecio Decimal?       @db.Decimal(10, 2)
+  productoDiaActivo Boolean        @default(false)
+  productoDiaId     Int?
+  productoDiaTitulo String?        @db.VarChar(200)
+  productoDiaPrecio Decimal?       @db.Decimal(10, 2)
+  ofertaFugazActivo Boolean        @default(false)
+  ofertaFugazId     Int?
+  ofertaFugazPrecio Decimal?       @db.Decimal(10, 2)
+  ofertaFugazHasta  DateTime?
+  productoMes       Producto?      @relation("ProductoDelMes", fields: [productoMesId], references: [id])
+  productoDia       Producto?      @relation("ProductoDelDia", fields: [productoDiaId], references: [id])
+  ofertaFugazProd   Producto?      @relation("OfertaFugaz", fields: [ofertaFugazId], references: [id])
+  asistencias       Asistencia[]
+  cajas             Caja[]
+  clientes          Cliente[]
+  cupones           Cupon[]
+  departamentos     Departamento[]
+  empleados         Empleado[]
+  eventos           Evento[]
+  ingredientes      Ingrediente[]
+  permisosRrhh      PermisoRrhh[]
+  productos         Producto[]
+  salas             Sala[]
+  tenant            Tenant?        @relation(fields: [tenantId], references: [id])
+  turnos            Turno[]
+  usuarios          Usuario[]
+  vacaciones        Vacacion[]
+  agente            AgenteWsp?
+  evaluaciones      Evaluacion[]
 
   // ─── BILLING ──────────────────────────────────────────────────────
   estadoPago      EstadoPago @default(PENDIENTE)
@@ -178,37 +178,37 @@ model Categoria {
 }
 
 model Producto {
-  id             Int             @id @default(autoincrement())
-  codigo         String          @unique @db.VarChar(30)
-  nombre         String          @db.VarChar(120)
-  descripcion    String?         @db.Text
-  precio         Decimal         @db.Decimal(10, 2)
-  costo          Decimal?        @db.Decimal(10, 2)
-  stock          Decimal         @default(0.00) @db.Decimal(10, 2)
-  stockMinimo    Decimal         @default(0.00) @db.Decimal(10, 2)
-  inventariable  Boolean         @default(false)
-  imagen         String?         @db.VarChar(255)
-  ivaActivo      Boolean         @default(false)
-  ivaPorc        Decimal         @default(0.00) @db.Decimal(5, 2)
-  activo         Boolean         @default(true)
-  enMenu         Boolean         @default(true)
-  categoriaId    Int?
-  sucursalId     Int?
-  creadoEn       DateTime        @default(now())
-  actualizadoEn  DateTime        @updatedAt
-  tenantId       String?
-  enMenuQR       Boolean         @default(true)
-  enKiosko       Boolean         @default(true)
-  detallesPedido DetallePedido[]
-  detallesVenta  DetalleVenta[]
-  kardex         Kardex[]
-  variantes      VarianteGrupo[]
+  id                    Int             @id @default(autoincrement())
+  codigo                String          @unique @db.VarChar(30)
+  nombre                String          @db.VarChar(120)
+  descripcion           String?         @db.Text
+  precio                Decimal         @db.Decimal(10, 2)
+  costo                 Decimal?        @db.Decimal(10, 2)
+  stock                 Decimal         @default(0.00) @db.Decimal(10, 2)
+  stockMinimo           Decimal         @default(0.00) @db.Decimal(10, 2)
+  inventariable         Boolean         @default(false)
+  imagen                String?         @db.VarChar(255)
+  ivaActivo             Boolean         @default(false)
+  ivaPorc               Decimal         @default(0.00) @db.Decimal(5, 2)
+  activo                Boolean         @default(true)
+  enMenu                Boolean         @default(true)
+  categoriaId           Int?
+  sucursalId            Int?
+  creadoEn              DateTime        @default(now())
+  actualizadoEn         DateTime        @updatedAt
+  tenantId              String?
+  enMenuQR              Boolean         @default(true)
+  enKiosko              Boolean         @default(true)
+  detallesPedido        DetallePedido[]
+  detallesVenta         DetalleVenta[]
+  kardex                Kardex[]
+  variantes             VarianteGrupo[]
   categoria             Categoria?      @relation(fields: [categoriaId], references: [id])
   sucursal              Sucursal?       @relation(fields: [sucursalId], references: [id])
   sucursalesProductoMes Sucursal[]      @relation("ProductoDelMes")
   sucursalesProductoDia Sucursal[]      @relation("ProductoDelDia")
   sucursalesOfertaFugaz Sucursal[]      @relation("OfertaFugaz")
-  Tenant         Tenant?         @relation(fields: [tenantId], references: [id])
+  Tenant                Tenant?         @relation(fields: [tenantId], references: [id])
 
   @@index([categoriaId], map: "productos_categoriaId_fkey")
   @@index([sucursalId], map: "productos_sucursalId_fkey")
@@ -278,22 +278,22 @@ model Combo {
 }
 
 model Cliente {
-  id                Int                  @id @default(autoincrement())
-  rut               String?              @unique @db.VarChar(20)
-  nombre            String               @db.VarChar(120)
-  email             String?              @db.VarChar(100)
-  telefono          String?              @db.VarChar(20)
-  direccion         String?              @db.VarChar(200)
-  genero            String?              @db.VarChar(20)
+  id                Int                @id @default(autoincrement())
+  rut               String?            @unique @db.VarChar(20)
+  nombre            String             @db.VarChar(120)
+  email             String?            @db.VarChar(100)
+  telefono          String?            @db.VarChar(20)
+  direccion         String?            @db.VarChar(200)
+  genero            String?            @db.VarChar(20)
   fechaNacimiento   DateTime?
-  codigoCumple      String?              @unique @db.VarChar(20)
-  activo            Boolean              @default(true)
+  codigoCumple      String?            @unique @db.VarChar(20)
+  activo            Boolean            @default(true)
   sucursalId        Int?
-  creadoEn          DateTime             @default(now())
+  creadoEn          DateTime           @default(now())
   tenantId          String?
-  puntos            Int                  @default(0)
-  sucursal          Sucursal?            @relation(fields: [sucursalId], references: [id])
-  Tenant            Tenant?              @relation(fields: [tenantId], references: [id])
+  puntos            Int                @default(0)
+  sucursal          Sucursal?          @relation(fields: [sucursalId], references: [id])
+  Tenant            Tenant?            @relation(fields: [tenantId], references: [id])
   direcciones       DireccionCliente[]
   movimientosPuntos MovimientoPuntos[]
   pedidosDelivery   PedidoDelivery[]
@@ -319,23 +319,23 @@ model Proveedor {
 }
 
 model Caja {
-  id           Int              @id @default(autoincrement())
-  nombre       String           @db.VarChar(80)
-  estado       EstadoCaja       @default(CERRADA)
-  saldoInicio  Decimal          @default(0.00) @db.Decimal(10, 2)
-  sucursalId   Int
-  usuarioId    Int?
-  abiertaEn    DateTime?
-  cerradaEn    DateTime?
-  creadoEn     DateTime         @default(now())
+  id          Int              @id @default(autoincrement())
+  nombre      String           @db.VarChar(80)
+  estado      EstadoCaja       @default(CERRADA)
+  saldoInicio Decimal          @default(0.00) @db.Decimal(10, 2)
+  sucursalId  Int
+  usuarioId   Int?
+  abiertaEn   DateTime?
+  cerradaEn   DateTime?
+  creadoEn    DateTime         @default(now())
   /// Estado del visor de cliente — JSON serializado, actualizado en tiempo real
-  visorEstado  String?          @db.Text
-  arqueos      Arqueo[]
-  sucursal     Sucursal         @relation(fields: [sucursalId], references: [id])
-  usuario      Usuario?         @relation(fields: [usuarioId], references: [id])
-  movimientos  MovimientoCaja[]
-  pedidos      Pedido[]
-  ventas       Venta[]
+  visorEstado String?          @db.Text
+  arqueos     Arqueo[]
+  sucursal    Sucursal         @relation(fields: [sucursalId], references: [id])
+  usuario     Usuario?         @relation(fields: [usuarioId], references: [id])
+  movimientos MovimientoCaja[]
+  pedidos     Pedido[]
+  ventas      Venta[]
 
   @@index([sucursalId], map: "cajas_sucursalId_fkey")
   @@index([usuarioId], map: "cajas_usuarioId_fkey")
@@ -415,6 +415,9 @@ model Pedido {
   @@index([repartidorId], map: "pedidos_repartidorId_fkey")
   @@index([tenantId], map: "pedidos_tenantId_fkey")
   @@index([usuarioId], map: "pedidos_usuarioId_fkey")
+  @@index([estado, creadoEn], map: "pedidos_estado_creadoEn_idx")
+  @@index([tipo, estado], map: "pedidos_tipo_estado_idx")
+  @@index([creadoEn], map: "pedidos_creadoEn_idx")
   @@map("pedidos")
 }
 
@@ -433,9 +436,9 @@ model DetallePedido {
   compartido    Boolean   @default(false)
   participantes Json?
   opciones      Json?
-  combo       Combo?    @relation(fields: [comboId], references: [id])
-  pedido      Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  producto    Producto? @relation(fields: [productoId], references: [id])
+  combo         Combo?    @relation(fields: [comboId], references: [id])
+  pedido        Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  producto      Producto? @relation(fields: [productoId], references: [id])
 
   @@index([comboId], map: "detalles_pedidos_comboId_fkey")
   @@index([pedidoId], map: "detalles_pedidos_pedidoId_fkey")
@@ -444,39 +447,40 @@ model DetallePedido {
 }
 
 model Venta {
-  id                Int                  @id @default(autoincrement())
-  numero            String               @unique @db.VarChar(20)
+  id                Int                @id @default(autoincrement())
+  numero            String             @unique @db.VarChar(20)
   cajaId            Int?
   clienteId         Int?
   usuarioId         Int
-  pedidoId          Int?                 @unique
-  subtotal          Decimal              @db.Decimal(10, 2)
-  descuento         Decimal              @default(0.00) @db.Decimal(10, 2)
-  impuesto          Decimal              @default(0.00) @db.Decimal(10, 2)
-  total             Decimal              @db.Decimal(10, 2)
-  metodoPago        MetodoPago           @default(EFECTIVO)
-  estado            EstadoVenta          @default(PAGADA)
-  boletaEmitida     Boolean              @default(false)
-  observacion       String?              @db.Text
+  pedidoId          Int?               @unique
+  subtotal          Decimal            @db.Decimal(10, 2)
+  descuento         Decimal            @default(0.00) @db.Decimal(10, 2)
+  impuesto          Decimal            @default(0.00) @db.Decimal(10, 2)
+  total             Decimal            @db.Decimal(10, 2)
+  metodoPago        MetodoPago         @default(EFECTIVO)
+  estado            EstadoVenta        @default(PAGADA)
+  boletaEmitida     Boolean            @default(false)
+  observacion       String?            @db.Text
   cuponId           Int?
-  cuponCodigo       String?              @db.VarChar(50)
-  puntosGanados     Int                  @default(0)
-  puntosCanjeados   Int                  @default(0)
-  creadoEn          DateTime             @default(now())
+  cuponCodigo       String?            @db.VarChar(50)
+  puntosGanados     Int                @default(0)
+  puntosCanjeados   Int                @default(0)
+  creadoEn          DateTime           @default(now())
   detalles          DetalleVenta[]
   kardex            Kardex[]
   movimientosPuntos MovimientoPuntos[]
   pagos             PagoVenta[]
-  caja              Caja?                @relation(fields: [cajaId], references: [id])
-  cliente           Cliente?             @relation(fields: [clienteId], references: [id])
-  cupon             Cupon?               @relation(fields: [cuponId], references: [id])
-  pedido            Pedido?              @relation(fields: [pedidoId], references: [id])
-  usuario           Usuario              @relation(fields: [usuarioId], references: [id])
+  caja              Caja?              @relation(fields: [cajaId], references: [id])
+  cliente           Cliente?           @relation(fields: [clienteId], references: [id])
+  cupon             Cupon?             @relation(fields: [cuponId], references: [id])
+  pedido            Pedido?            @relation(fields: [pedidoId], references: [id])
+  usuario           Usuario            @relation(fields: [usuarioId], references: [id])
 
   @@index([cajaId], map: "ventas_cajaId_fkey")
   @@index([clienteId], map: "ventas_clienteId_fkey")
   @@index([cuponId], map: "ventas_cuponId_fkey")
   @@index([usuarioId], map: "ventas_usuarioId_fkey")
+  @@index([estado, creadoEn], map: "ventas_estado_creadoEn_idx")
   @@map("ventas")
 }
 
@@ -542,6 +546,7 @@ model EventoPedido {
 
   @@index([pedidoId])
   @@index([usuarioId])
+  @@index([pedidoId, creadoEn], map: "eventos_pedido_pedidoId_creadoEn_idx")
   @@map("eventos_pedido")
 }
 
@@ -554,6 +559,7 @@ model Log {
   usuario   Usuario? @relation(fields: [usuarioId], references: [id])
 
   @@index([usuarioId], map: "logs_usuarioId_fkey")
+  @@index([creadoEn], map: "logs_creadoEn_idx")
   @@map("logs")
 }
 
@@ -934,23 +940,23 @@ model Evento {
 }
 
 model TicketEvento {
-  id               Int          @id @default(autoincrement())
-  token            String       @unique @db.VarChar(600)
-  eventoId         Int
-  clienteId        Int?
-  clienteNombre    String       @db.VarChar(150)
-  clienteEmail     String       @db.VarChar(150)
-  clienteTelefono  String?      @db.VarChar(20)
-  metodoPago       MetodoPago   @default(EFECTIVO)
-  estado           EstadoTicket @default(PENDIENTE_PAGO)
-  usosMax          Int          @default(1)
-  usosRealizados   Int          @default(0)
-  monto            Decimal      @db.Decimal(10, 2)
-  referenciaPago   String?      @db.VarChar(200)
-  creadoEn         DateTime     @default(now())
-  validadoEn       DateTime?
-  evento           Evento       @relation(fields: [eventoId], references: [id])
-  cliente          Cliente?     @relation(fields: [clienteId], references: [id])
+  id              Int          @id @default(autoincrement())
+  token           String       @unique @db.VarChar(600)
+  eventoId        Int
+  clienteId       Int?
+  clienteNombre   String       @db.VarChar(150)
+  clienteEmail    String       @db.VarChar(150)
+  clienteTelefono String?      @db.VarChar(20)
+  metodoPago      MetodoPago   @default(EFECTIVO)
+  estado          EstadoTicket @default(PENDIENTE_PAGO)
+  usosMax         Int          @default(1)
+  usosRealizados  Int          @default(0)
+  monto           Decimal      @db.Decimal(10, 2)
+  referenciaPago  String?      @db.VarChar(200)
+  creadoEn        DateTime     @default(now())
+  validadoEn      DateTime?
+  evento          Evento       @relation(fields: [eventoId], references: [id])
+  cliente         Cliente?     @relation(fields: [clienteId], references: [id])
 
   @@map("tickets_evento")
 }
@@ -982,23 +988,23 @@ model AgenteWsp {
   ultimaConex DateTime?
   creadoEn    DateTime     @default(now())
 
-  sucursal     Sucursal          @relation(fields: [sucursalId], references: [id])
-  clientes     AgenteCliente[]
-  eventos      AgenteEvento[]
+  sucursal Sucursal        @relation(fields: [sucursalId], references: [id])
+  clientes AgenteCliente[]
+  eventos  AgenteEvento[]
 
   @@map("agentes_wsp")
 }
 
 model AgenteCliente {
-  id         Int      @id @default(autoincrement())
-  agenteId   Int
-  telefono   String   @db.VarChar(30)
-  nombre     String?  @db.VarChar(100)
-  totalPedidos Int    @default(0)
+  id           Int       @id @default(autoincrement())
+  agenteId     Int
+  telefono     String    @db.VarChar(30)
+  nombre       String?   @db.VarChar(100)
+  totalPedidos Int       @default(0)
   ultimoPedido DateTime?
-  creadoEn   DateTime @default(now())
+  creadoEn     DateTime  @default(now())
 
-  agente       AgenteWsp            @relation(fields: [agenteId], references: [id])
+  agente       AgenteWsp           @relation(fields: [agenteId], references: [id])
   direcciones  AgenteDireccion[]
   preferencias AgentePreferencia[]
   sesiones     AgenteSesion[]
@@ -1008,11 +1014,11 @@ model AgenteCliente {
 }
 
 model AgenteDireccion {
-  id        Int    @id @default(autoincrement())
-  clienteId Int
-  direccion String @db.VarChar(300)
+  id         Int     @id @default(autoincrement())
+  clienteId  Int
+  direccion  String  @db.VarChar(300)
   referencia String? @db.VarChar(200)
-  usosCount Int    @default(1)
+  usosCount  Int     @default(1)
 
   cliente AgenteCliente @relation(fields: [clienteId], references: [id])
 
@@ -1020,9 +1026,9 @@ model AgenteDireccion {
 }
 
 model AgentePreferencia {
-  id        Int    @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   clienteId Int
-  texto     String @db.VarChar(300)
+  texto     String   @db.VarChar(300)
   creadoEn  DateTime @default(now())
 
   cliente AgenteCliente @relation(fields: [clienteId], references: [id])
@@ -1067,15 +1073,15 @@ enum TipoMovimientoPuntos {
 }
 
 model MovimientoPuntos {
-  id          Int                    @id @default(autoincrement())
+  id          Int                  @id @default(autoincrement())
   clienteId   Int
   tipo        TipoMovimientoPuntos
   puntos      Int
-  descripcion String                 @db.VarChar(200)
+  descripcion String               @db.VarChar(200)
   ventaId     Int?
-  creadoEn    DateTime               @default(now())
-  cliente     Cliente                @relation(fields: [clienteId], references: [id])
-  venta       Venta?                 @relation(fields: [ventaId], references: [id])
+  creadoEn    DateTime             @default(now())
+  cliente     Cliente              @relation(fields: [clienteId], references: [id])
+  venta       Venta?               @relation(fields: [ventaId], references: [id])
 
   @@index([clienteId])
   @@index([ventaId])
@@ -1083,15 +1089,15 @@ model MovimientoPuntos {
 }
 
 model Evaluacion {
-  id          Int      @id @default(autoincrement())
-  pedidoId    Int      @unique
-  sucursalId  Int
-  nick        String   @db.VarChar(60)
-  estrellas   Int
-  comentario  String?  @db.VarChar(500)
-  creadoEn    DateTime @default(now())
-  pedido      Pedido   @relation(fields: [pedidoId], references: [id])
-  sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
+  id         Int      @id @default(autoincrement())
+  pedidoId   Int      @unique
+  sucursalId Int
+  nick       String   @db.VarChar(60)
+  estrellas  Int
+  comentario String?  @db.VarChar(500)
+  creadoEn   DateTime @default(now())
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
 
   @@index([sucursalId])
   @@index([pedidoId])
