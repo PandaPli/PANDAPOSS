@@ -201,6 +201,9 @@ export default async function DeliveryPage() {
         cantidad: detalle.cantidad,
         nombre: detalle.producto?.nombre ?? detalle.combo?.nombre ?? "Item",
         precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0),
+        opciones: Array.isArray(detalle.opciones) && (detalle.opciones as unknown[]).length > 0
+          ? detalle.opciones as { grupoNombre: string; opcionNombre: string; precio: number }[]
+          : undefined,
       })),
     };
   });

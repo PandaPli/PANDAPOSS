@@ -526,6 +526,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
             productoId: item.id,
             cantidad: item.cantidad,
             precio: item.precio,
+            opciones: item.opciones && item.opciones.length > 0 ? item.opciones : undefined,
             observacion: [
               item.opciones?.map(o => o.opcionNombre).join(", "),
               item.nota?.trim(),

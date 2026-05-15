@@ -15,7 +15,8 @@ import QRCode from "qrcode";
 import type { EstadoPedido } from "@/types";
 import { IngresoManualForm } from "@/components/delivery/IngresoManualForm";
 
-interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: number; }
+interface OpcionDetalle { grupoNombre: string; opcionNombre: string; precio: number; }
+interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: number; opciones?: OpcionDetalle[]; }
 
 interface PedidoDelivery {
   id: number;
@@ -274,6 +275,9 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
     const badgeLabel = esRetiro ? "RETIRO EN TIENDA" : "DELIVERY";
     const itemsHtml = pedido.detalles.map((d) => {
       const precio = Number(d.precio) || 0;
+      const opcionesHtml = d.opciones && d.opciones.length > 0
+        ? d.opciones.map(o => `<div style="color:#7c3aed;font-size:11px;margin-left:24px;">* ${o.opcionNombre}${o.precio > 0 ? ` +${o.precio}` : ""}</div>`).join("")
+        : "";
       return `
       <div class="item">
         <div class="item-row">
@@ -281,6 +285,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           <span class="item-name">${d.nombre}</span>
           <span class="item-price">${fmt(precio * d.cantidad)}</span>
         </div>
+        ${opcionesHtml}
       </div>`;
     }).join("");
 
@@ -529,9 +534,20 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
           {pedido.detalles.length > 0 && (
             <div className="rounded-xl border border-surface-border/60 divide-y divide-surface-border/40">
               {pedido.detalles.map((d) => (
-                <div key={d.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <span className="w-7 shrink-0 text-center text-sm font-black text-surface-text tabular-nums">{d.cantidad}×</span>
-                  <span className="text-sm text-surface-muted flex-1">{d.nombre}</span>
+                <div key={d.id} className="px-4 py-2.5">
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 shrink-0 text-center text-sm font-black text-surface-text tabular-nums">{d.cantidad}×</span>
+                    <span className="text-sm text-surface-muted flex-1">{d.nombre}</span>
+                  </div>
+                  {d.opciones && d.opciones.length > 0 && (
+                    <div className="ml-10 mt-0.5 flex flex-wrap gap-1">
+                      {d.opciones.map((o, i) => (
+                        <span key={i} className="rounded-full bg-violet-100 text-violet-700 px-2 py-0.5 text-[10px] font-bold">
+                          {o.opcionNombre}{o.precio > 0 ? ` +${o.precio}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

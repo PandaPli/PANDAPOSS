@@ -1,4 +1,4 @@
-import { EstadoPedido as PrismaEstadoPedido } from "@prisma/client";
+import { EstadoPedido as PrismaEstadoPedido, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { buildDeliveryObservation, estimateDeliveryMinutes, getDeliveryStageLabel, getDeliveryTrackingStage, parseDeliveryObservation } from "@/lib/delivery";
 import { PedidoService } from "@/server/services/pedido.service";
@@ -24,6 +24,7 @@ interface DeliveryItemInput {
   nombre?: string;       // solo para productos libres
   precio?: number;       // solo para productos libres
   cantidad: number;
+  opciones?: { grupoId: number; grupoNombre: string; opcionId: number; opcionNombre: string; precio: number }[];
   observacion?: string;  // opciones / nota del ítem
 }
 
@@ -175,6 +176,7 @@ export const DeliveryService = {
                     return item.precio != null && Number(item.precio) >= base ? Number(item.precio) : base;
                   })()
                 : Number(item.precio ?? 0),
+              opciones: item.opciones && item.opciones.length > 0 ? item.opciones : Prisma.JsonNull,
               observacion: !item.productoId && item.nombre
                 ? `[LIBRE] ${item.nombre.trim()}${item.observacion?.trim() ? ` | ${item.observacion.trim()}` : ""}`
                 : item.observacion?.trim() || undefined,
