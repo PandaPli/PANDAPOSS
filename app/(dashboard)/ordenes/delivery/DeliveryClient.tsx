@@ -14,6 +14,7 @@ import { createSlug } from "@/lib/slug";
 import QRCode from "qrcode";
 import type { EstadoPedido } from "@/types";
 import { IngresoManualForm } from "@/components/delivery/IngresoManualForm";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 interface OpcionDetalle { grupoNombre: string; opcionNombre: string; precio: number; }
 interface PedidoDetalle { id: number; cantidad: number; nombre: string; precio: number; opciones?: OpcionDetalle[]; }
@@ -154,6 +155,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
   const [loadingPedidoId, setLoadingPedidoId]   = useState<number | null>(null);
   const [newOrderAlert, setNewOrderAlert]       = useState<PedidoDelivery | null>(null);
   const knownIdsRef = useRef(new Set(initialPedidos.map((p) => p.id)));
+  const playSound = useNotificationSound();
 
   const isAdmin = ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"].includes(rol);
 
@@ -205,6 +207,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
       if (incoming.length > 0) {
         setNewOrderAlert(incoming[0]);
         incoming.forEach((p) => knownIdsRef.current.add(p.id));
+        playSound();
       }
       setPedidos(fresh);
     } catch { /* ignore */ }

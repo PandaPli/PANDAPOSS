@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useKdsUI } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
 import { useKdsSocket } from "@/hooks/useKdsSocket";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNode }[] = [
   { key: "TODOS", label: "Todos", icon: <UtensilsCrossed size={16} /> },
@@ -166,6 +167,8 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   );
 
   const estacionesRol = getRolEstaciones(rol);
+  const playSound = useNotificationSound();
+  const knownPendienteIds = useRef<Set<number>>(new Set(initial.filter(p => p.estado === "PENDIENTE").map(p => p.id)));
 
   // ── Fetch todos los estados activos en paralelo ────────────────────────
   // fetchSeq evita que una respuesta lenta y stale sobreescriba datos más frescos.
@@ -179,18 +182,25 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
         fetch("/api/pedidos?estado=LISTO"),
         fetch("/api/pedidos?completados=1"),   // historial LISTO + ENTREGADO 24h
       ]);
-      const p1 = r1.ok ? await r1.json() : [];
+      const p1: PedidoConDetalles[] = r1.ok ? await r1.json() : [];
       const p2 = r2.ok ? await r2.json() : [];
       const p3 = r3.ok ? await r3.json() : [];
       const p4 = r4.ok ? await r4.json() : [];
       // Si llegó una respuesta más nueva mientras esperábamos, descartar ésta
       if (seq !== fetchSeq.current) return;
+
+      // Detectar pedidos PENDIENTE nuevos y reproducir sonido
+      const newPendienteIds = new Set(p1.map((p: PedidoConDetalles) => p.id));
+      const hayNuevos = p1.some((p: PedidoConDetalles) => !knownPendienteIds.current.has(p.id));
+      knownPendienteIds.current = newPendienteIds;
+      if (hayNuevos) playSound();
+
       setPedidos([...p1, ...p2, ...p3]);
       setCompletados(p4);
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [playSound]);
 
   // Tiempo real via Socket.IO
   useKdsSocket(sucursalId ?? null, fetchPedidos);
