@@ -234,6 +234,8 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
           items: cart.map(i => ({
             productoId: i.productoId,
             cantidad: i.cantidad,
+            precio: i.precio,
+            opciones: i.opciones.length > 0 ? i.opciones : undefined,
             observacion: i.opciones.map(o => o.opcionNombre).join(", ") || undefined,
           })),
         }),

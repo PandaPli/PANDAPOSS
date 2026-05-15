@@ -5,6 +5,8 @@ import { PedidoService } from "@/server/services/pedido.service";
 interface KioskoItem {
   productoId: number;
   cantidad: number;
+  precio?: number;
+  opciones?: { grupoId: number; grupoNombre: string; opcionId: number; opcionNombre: string; precio: number }[];
   observacion?: string;
 }
 
@@ -72,6 +74,8 @@ export async function POST(req: NextRequest) {
       items: (items as KioskoItem[]).map((i) => ({
         productoId: i.productoId,
         cantidad: i.cantidad,
+        precio: i.precio ?? undefined,
+        opciones: i.opciones ?? undefined,
         observacion: i.observacion ?? null,
       })),
       observacion: obs,
