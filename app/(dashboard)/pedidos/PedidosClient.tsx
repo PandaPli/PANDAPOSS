@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { OrderCard } from "@/components/pedidos/OrderCard";
 import type { PedidoConDetalles, TipoPedido, EstadoPedido } from "@/types";
-import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Moon, Sun, Flame, CheckCircle2, AlertTriangle, ClipboardList } from "lucide-react";
+import { ChefHat, Wine, Bike, UtensilsCrossed, RefreshCw, Moon, Sun, Flame, CheckCircle2, AlertTriangle, ClipboardList, ShoppingBag, Store } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useKdsUI } from "@/stores/kdsStore";
@@ -358,6 +358,42 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
 
         {/* Acciones derecha */}
         <div className="ml-auto flex items-center gap-1.5">
+          <Link
+            href="/ordenes/delivery"
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all",
+              nightMode
+                ? "bg-cyan-500/20 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/30"
+                : "bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100"
+            )}
+          >
+            <Bike size={13} />
+            Delivery
+          </Link>
+          <Link
+            href="/ordenes/llevar"
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all",
+              nightMode
+                ? "bg-orange-500/20 border-orange-500/30 text-orange-400 hover:bg-orange-500/30"
+                : "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+            )}
+          >
+            <ShoppingBag size={13} />
+            Retiro
+          </Link>
+          <Link
+            href="/ventas/nueva"
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border transition-all",
+              nightMode
+                ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30"
+                : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+            )}
+          >
+            <Store size={13} />
+            Servir
+          </Link>
           <Link
             href="/ordenes"
             className={cn(
