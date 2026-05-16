@@ -798,6 +798,14 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             </div>
           </div>
 
+          <Link
+            href="/pedidos"
+            className="inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white bg-surface-text hover:bg-surface-text/90 transition-all active:scale-95 shadow"
+          >
+            <LayoutList size={18} />
+            KDS
+          </Link>
+
           <button
             onClick={() => setShowIngreso((v) => !v)}
             className={cn(
