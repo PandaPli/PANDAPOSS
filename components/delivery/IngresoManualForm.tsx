@@ -25,7 +25,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { RollBuilder, RollPayload } from "./RollBuilder";
-import { formatCurrency, normalize } from "@/lib/utils";
+import { formatCurrency, normalize, formatPhone } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { printFrame } from "@/lib/printFrame";
 
@@ -203,7 +203,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
   const descMontoFijoAplicado = Math.min(descMontoFijo, subtotal); // no puede superar el subtotal
   const descuentoTotal = descuentoPorcentajeMonto + descuentoCuponMonto + descMontoFijoAplicado;
   const totalConEnvio = Math.max(0, subtotal + cargoEnvio - descuentoTotal);
-  const phone = `+569${phoneDigits.replace(/\s/g, "")}`;
+  const phone = `+56${phoneDigits.replace(/\s/g, "")}`;
 
   /* ── Phone search ── */
   async function buscarCliente() {
@@ -269,7 +269,14 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
     setClienteEncontrado(c);
     setNombre(c.nombre);
     setDireccion(c.direccion ?? "");
-    if (c.telefono) setPhoneDigits(c.telefono.replace(/\D/g, "").slice(-8));
+    if (c.telefono) {
+      const d = c.telefono.replace(/\D/g, "");
+      // Extraer dígitos locales (sin código de país 56)
+      const local = d.startsWith("56") && d.length >= 10 ? d.slice(2)
+                  : d.length === 8 ? "9" + d
+                  : d.slice(-9);
+      setPhoneDigits(local);
+    }
     setNameResults([]);
     setNameQuery("");
   }
@@ -570,15 +577,20 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
               </div>
               <div className="flex gap-2">
                 <div className="flex flex-1 items-center gap-1.5 rounded-xl border-2 border-indigo-200 bg-white px-2.5 py-1.5">
-                  <span className="flex-shrink-0 text-xs font-bold text-indigo-400">+569</span>
+                  <span className="flex-shrink-0 text-xs font-bold text-indigo-400">+56</span>
                   <input
                     type="tel"
                     inputMode="numeric"
-                    maxLength={8}
+                    maxLength={9}
                     value={phoneDigits}
-                    onChange={(e) => setPhoneDigits(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/\D/g, "");
+                      // Si pegan número completo con código de país, extraer parte local
+                      if (v.startsWith("56") && v.length >= 10) v = v.slice(2);
+                      setPhoneDigits(v.slice(0, 9));
+                    }}
                     onKeyDown={(e) => e.key === "Enter" && buscarCliente()}
-                    placeholder="12345678"
+                    placeholder="912345678"
                     className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-indigo-200"
                   />
                 </div>
@@ -638,7 +650,7 @@ export function IngresoManualForm({ productos, sucursalId, simbolo, zonasDeliver
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-stone-800">{c.nombre}</p>
-                        {c.telefono && <p className="text-xs text-stone-400">{c.telefono}</p>}
+                        {c.telefono && <p className="text-xs text-stone-400">{formatPhone(c.telefono)}</p>}
                       </div>
                     </button>
                   ))}

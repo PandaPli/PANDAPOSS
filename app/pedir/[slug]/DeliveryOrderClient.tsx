@@ -438,16 +438,16 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
       setClientFoundLabel("");
     }
 
-    // Buscamos autofill si el numero tiene exactamente 8 digitos (ej: 9XXXXXXX despues del +56 9)
-    if (telefono.length === 8) {
+    // Buscamos autofill cuando el numero tiene 8-9 dígitos (el prefijo +56 ya está fijo)
+    if (telefono.length === 9 || telefono.length === 8) {
       const controller = new AbortController();
 
       const searchClient = async () => {
         setIsSearchingClient(true);
         setClientFoundLabel("");
         try {
-          // El prefix ya sabemos que es +56 9, mandamos la query completa o solo los digitos
-          const phoneQuery = `569${telefono}`;
+          // Prefijo +56 ya mostrado en la UI; construimos número completo para búsqueda
+          const phoneQuery = `56${telefono}`;
           const res = await fetch(`/api/public/clientes/buscar?telefono=${phoneQuery}&sucursalId=${sucursal.id}`, {
             signal: controller.signal
           });
@@ -1093,23 +1093,19 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                   <div className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
                     <div className="relative">
                       <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">
-                        +56 9
+                        +56
                       </div>
                       <input
                         value={telefono}
                         onChange={(e) => {
                           let val = e.target.value.replace(/\D/g, "");
-                          if (val.length > 8) {
-                            // Limpieza heuristica chilenos si pegan: +569 8765 4321
-                            if (val.startsWith("569") && val.length === 11) val = val.slice(-8);
-                            else if (val.startsWith("9") && val.length === 9) val = val.slice(-8);
-                            else val = val.slice(0, 8); // fallback: cortar primeros 8
-                          }
-                          setTelefono(val);
+                          // Si pegan número completo con código de país, extraer parte local
+                          if (val.startsWith("56") && val.length >= 10) val = val.slice(2);
+                          setTelefono(val.slice(0, 9));
                         }}
                         type="tel"
-                        placeholder="1234 5678"
-                        maxLength={11}
+                        placeholder="912345678"
+                        maxLength={12}
                         className="w-full rounded-2xl border border-stone-200 bg-white py-3 pl-[4.5rem] pr-10 text-sm outline-none transition focus:border-amber-400 font-mono tracking-wider"
                       />
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
@@ -1376,19 +1372,15 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
 
                 {/* Teléfono */}
                 <div className="relative">
-                  <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">+56 9</div>
+                  <div className="absolute left-0 top-0 flex items-center justify-center p-3 pl-4 text-stone-500 font-medium">+56</div>
                   <input
                     value={telefono}
                     onChange={(e) => {
                       let val = e.target.value.replace(/\D/g, "");
-                      if (val.length > 8) {
-                        if (val.startsWith("569") && val.length === 11) val = val.slice(-8);
-                        else if (val.startsWith("9") && val.length === 9) val = val.slice(-8);
-                        else val = val.slice(0, 8);
-                      }
-                      setTelefono(val);
+                      if (val.startsWith("56") && val.length >= 10) val = val.slice(2);
+                      setTelefono(val.slice(0, 9));
                     }}
-                    type="tel" placeholder="1234 5678" maxLength={11}
+                    type="tel" placeholder="912345678" maxLength={12}
                     className="w-full rounded-2xl border border-stone-200 bg-stone-50 py-3 pl-[4.5rem] pr-10 text-sm outline-none transition focus:border-amber-400 font-mono tracking-wider"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">

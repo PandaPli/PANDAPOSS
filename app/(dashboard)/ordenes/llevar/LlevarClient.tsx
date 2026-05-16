@@ -8,7 +8,7 @@ import {
   Star, X, Phone, ArrowLeft, Check, PackageCheck,
   Banknote, CreditCard, ArrowLeftRight, Tag, Gift, Percent, Wallet, Ticket,
 } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatPhone } from "@/lib/utils";
 
 interface VOpcion { id: number; nombre: string; precio: number }
 interface VGrupo { id: number; nombre: string; requerido: boolean; tipo: string; opciones: VOpcion[] }
@@ -431,7 +431,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                         <p className="text-sm font-bold text-surface-text truncate">{clienteSelected.nombre}</p>
                         <div className="flex items-center gap-3 text-[11px] text-surface-muted">
                           {clienteSelected.telefono && (
-                            <span className="flex items-center gap-1"><Phone size={9} />{clienteSelected.telefono}</span>
+                            <span className="flex items-center gap-1"><Phone size={9} />{formatPhone(clienteSelected.telefono)}</span>
                           )}
                           <span className="flex items-center gap-1 text-amber-600 font-bold">
                             <Star size={9} className="fill-amber-400 text-amber-400" />{clienteSelected.puntos} pts
@@ -471,7 +471,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-surface-text truncate">{c.nombre}</p>
                                 <p className="text-[11px] text-surface-muted truncate">
-                                  {c.telefono ?? c.email ?? "Sin contacto"}
+                                  {c.telefono ? formatPhone(c.telefono) : (c.email ?? "Sin contacto")}
                                 </p>
                               </div>
                               <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 shrink-0">

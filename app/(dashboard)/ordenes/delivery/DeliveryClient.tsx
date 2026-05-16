@@ -8,7 +8,7 @@ import {
   Flame, ChefHat, Truck, LayoutList, ArrowRight, ArrowLeft,
   Package2, Printer, XCircle, Copy, Check,
 } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatPhone } from "@/lib/utils";
 import { getDeliveryStageLabel } from "@/lib/delivery";
 import { createSlug } from "@/lib/slug";
 import QRCode from "qrcode";
@@ -488,7 +488,7 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
                 className="inline-flex items-center gap-1.5 mt-1.5 text-sm font-semibold text-brand-600 hover:underline"
               >
                 <Phone size={13} />
-                {pedido.telefonoCliente}
+                {formatPhone(pedido.telefonoCliente)}
               </a>
             )}
           </div>

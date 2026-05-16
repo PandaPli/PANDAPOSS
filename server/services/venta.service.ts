@@ -2,6 +2,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { MetodoPago } from "@/types";
 import { PuntosService, calcularPuntosGanados, calcularDescuentoPuntos } from "./puntos.service";
+import { parseDeliveryObservation } from "@/lib/delivery";
+
+const METODOS_VALIDOS: MetodoPago[] = ["EFECTIVO", "TARJETA", "TRANSFERENCIA", "CREDITO", "MIXTO"];
+function toMetodoPagoVenta(m?: string | null): MetodoPago {
+  return METODOS_VALIDOS.includes(m as MetodoPago) ? (m as MetodoPago) : "EFECTIVO";
+}
 
 const globalForSocket = global as unknown as { io?: import("socket.io").Server };
 
@@ -96,7 +102,7 @@ async function ensurePedidoDisponible(tx: Prisma.TransactionClient, pedidoId: nu
     throw new Error("La orden ya fue cobrada. Recarga la mesa para continuar.");
   }
 
-  if (!["PENDIENTE", "EN_PROCESO", "LISTO"].includes(pedido.estado)) {
+  if (!["PENDIENTE", "EN_PROCESO", "LISTO", "ENTREGADO"].includes(pedido.estado)) {
     throw new Error("La orden ya no está disponible para cobro.");
   }
 }
@@ -502,5 +508,59 @@ export const VentaService = {
     });
 
     return { id: ventaId, estado: "ANULADA" };
+  },
+
+  /**
+   * Crea una Venta para acumular puntos cuando un pedido DELIVERY/RETIRO se entrega.
+   * - Idempotente: si el pedido ya tiene Venta, no hace nada.
+   * - Silencioso: no lanza excepciones.
+   * Llamar desde todos los endpoints que marcan un pedido como ENTREGADO.
+   */
+  async registrarVentaOrdenEntregada(pedidoId: number, usuarioId: number): Promise<void> {
+    try {
+      const pedido = await prisma.pedido.findUnique({
+        where: { id: pedidoId },
+        include: {
+          usuario:  { select: { sucursalId: true } },
+          delivery: { select: { clienteId: true } },
+          detalles: { select: { productoId: true, comboId: true, cantidad: true, precio: true } },
+          venta:    { select: { id: true } },
+        },
+      });
+
+      // Solo pedidos delivery con clienteId y sin venta previa
+      if (!pedido || !pedido.delivery?.clienteId || pedido.venta) return;
+
+      const clienteId  = pedido.delivery.clienteId;
+      const sucursalId = pedido.usuario.sucursalId ?? null;
+      const meta       = parseDeliveryObservation(pedido.observacion);
+      const subtotal   = pedido.detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
+      const desc       = meta.descuento ?? 0;
+      const totalVenta = Math.max(0, subtotal - desc);
+      const metodo     = toMetodoPagoVenta(meta.metodoPago);
+
+      await VentaService.create({
+        cajaId:      null,
+        clienteId,
+        usuarioId,
+        sucursalId,
+        pedidoId,
+        items: pedido.detalles.map((d) => ({
+          productoId: d.productoId ?? undefined,
+          comboId:    d.comboId    ?? undefined,
+          precio:     Number(d.precio ?? 0),
+          cantidad:   d.cantidad,
+          subtotal:   Number(d.precio ?? 0) * d.cantidad,
+        })),
+        subtotal,
+        descuento: desc,
+        impuesto:  0,
+        total:     totalVenta,
+        metodoPago: metodo,
+        pagos: [{ metodoPago: metodo, monto: totalVenta }],
+      });
+    } catch {
+      // Silencioso: nunca bloquear el flujo principal
+    }
   },
 };

@@ -2,9 +2,11 @@ import { EstadoPedido as PrismaEstadoPedido, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { buildDeliveryObservation, estimateDeliveryMinutes, getDeliveryStageLabel, getDeliveryTrackingStage, parseDeliveryObservation } from "@/lib/delivery";
 import { PedidoService } from "@/server/services/pedido.service";
+import { VentaService } from "@/server/services/venta.service";
 import { DispatchService } from "@/server/services/dispatch.service";
 import { NotificationService } from "@/server/services/notification.service";
 import type { DeliveryCustomerInput, EstadoPedido, MetodoPago, Rol } from "@/types";
+
 import { PLAN_LIMITS, type PlanTipo } from "@/core/billing/planConfig";
 import { effectiveFeature } from "@/lib/plan";
 
@@ -616,6 +618,11 @@ export const DeliveryService = {
     const updated = await PedidoService.update(input.pedidoId, { estado: input.estado });
     const meta = parseDeliveryObservation(updated.observacion);
     const esWhatsApp = pedido.delivery?.zonaDelivery === "WhatsApp";
+
+    // ── Registrar Venta para acumular puntos en DELIVERY/RETIRO ─────────────
+    if (input.estado === "ENTREGADO") {
+      await VentaService.registrarVentaOrdenEntregada(input.pedidoId, input.userId);
+    }
 
     // Al confirmar entrega con pago EFECTIVO: descontar pagoRider de la caja del día
     if (input.estado === "ENTREGADO" && meta.metodoPago === "EFECTIVO") {

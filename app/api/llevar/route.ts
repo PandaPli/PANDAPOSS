@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { PedidoService } from "@/server/services/pedido.service";
+import { VentaService } from "@/server/services/venta.service";
 import { prisma } from "@/lib/db";
+import type { MetodoPago } from "@/types";
+
+const METODOS_PAGO_VALIDOS: MetodoPago[] = ["EFECTIVO", "TARJETA", "TRANSFERENCIA", "CREDITO", "MIXTO"];
+function toMetodoPago(m?: string): MetodoPago {
+  return METODOS_PAGO_VALIDOS.includes(m as MetodoPago) ? (m as MetodoPago) : "EFECTIVO";
+}
 
 interface LlevarItem {
   productoId: number;
@@ -17,6 +24,7 @@ export async function POST(req: NextRequest) {
 
   const userId = (session.user as { id?: number })?.id;
   if (!userId) return NextResponse.json({ error: "Sin usuario" }, { status: 401 });
+  const sucursalId = (session.user as { sucursalId?: number | null })?.sucursalId ?? null;
 
   const body = await req.json();
   const {
@@ -77,6 +85,42 @@ export async function POST(req: NextRequest) {
         where: { id: cuponId },
         data: { usoActual: { increment: 1 } },
       }).catch(() => { /* no bloquear si falla */ });
+    }
+
+    // ── Registrar Venta para acumular puntos en RETIRO ──────────────────────
+    // Solo si hay cliente identificado. Awaited para que funcione en serverless.
+    if (clienteId && clienteId > 0) {
+      try {
+        const detalles = await prisma.detallePedido.findMany({
+          where: { pedidoId: pedido.id },
+          select: { productoId: true, comboId: true, cantidad: true, precio: true },
+        });
+        const subtotal = detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
+        const desc = descuento && descuento > 0 ? descuento : 0;
+        const totalVenta = Math.max(0, subtotal - desc);
+        const metodo = toMetodoPago(metodoPago);
+
+        await VentaService.create({
+          cajaId: null,
+          clienteId,
+          usuarioId: userId,
+          sucursalId,
+          pedidoId: pedido.id,
+          items: detalles.map((d) => ({
+            productoId: d.productoId ?? undefined,
+            comboId: d.comboId ?? undefined,
+            precio: Number(d.precio ?? 0),
+            cantidad: d.cantidad,
+            subtotal: Number(d.precio ?? 0) * d.cantidad,
+          })),
+          subtotal,
+          descuento: desc,
+          impuesto: 0,
+          total: totalVenta,
+          metodoPago: metodo,
+          pagos: [{ metodoPago: metodo, monto: totalVenta }],
+        });
+      } catch { /* silencioso — no bloquear respuesta si falla */ }
     }
 
     return NextResponse.json({ id: pedido.id, numero: pedido.numero, clienteId: clienteId ?? null }, { status: 201 });

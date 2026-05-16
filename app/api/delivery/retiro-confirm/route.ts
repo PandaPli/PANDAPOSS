@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { VentaService } from "@/server/services/venta.service";
 
 /**
  * POST /api/delivery/retiro-confirm
@@ -45,6 +46,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Obtener usuarioId del pedido para la venta
+    const pedidoFull = await prisma.pedido.findUnique({
+      where: { id: pedidoId },
+      select: { usuarioId: true },
+    });
+
     await prisma.$transaction([
       prisma.pedido.update({
         where: { id: pedidoId },
@@ -55,6 +62,11 @@ export async function POST(req: NextRequest) {
         data: { estado: "ENTREGADO" },
       }),
     ]);
+
+    // Registrar venta para acumular puntos (awaited para serverless)
+    if (pedidoFull?.usuarioId) {
+      await VentaService.registrarVentaOrdenEntregada(pedidoId, pedidoFull.usuarioId);
+    }
 
     return NextResponse.json({ ok: true, estado: "ENTREGADO" });
   } catch (err) {

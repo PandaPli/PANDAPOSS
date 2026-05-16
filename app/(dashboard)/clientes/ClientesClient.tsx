@@ -8,7 +8,7 @@ import {
   Phone, Mail, MapPin, Cake, Gift, UserRound,
   Ban, Trash2, ShieldCheck, AlertTriangle, Eye, Star,
 } from "lucide-react";
-import { normalize } from "@/lib/utils";
+import { normalize, formatPhone } from "@/lib/utils";
 
 interface Cliente {
   id: number;
@@ -305,7 +305,7 @@ export function ClientesClient({ clientes: initial, sucursales, rol, sucursalIdS
           {c.email ? <span className="flex items-center gap-1"><Mail size={13} />{c.email}</span> : "—"}
         </td>
         <td className="px-4 py-3 text-surface-muted text-sm">
-          {c.telefono ? <span className="flex items-center gap-1"><Phone size={13} />{c.telefono}</span> : "—"}
+          {c.telefono ? <span className="flex items-center gap-1"><Phone size={13} />{formatPhone(c.telefono)}</span> : "—"}
         </td>
         <td className="px-4 py-3 text-surface-muted text-sm max-w-36 truncate">
           {c.direccion ? <span className="flex items-center gap-1"><MapPin size={13} />{c.direccion}</span> : "—"}

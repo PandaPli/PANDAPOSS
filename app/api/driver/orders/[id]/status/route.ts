@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { VentaService } from "@/server/services/venta.service";
 import type { Rol } from "@/types";
 
 const VALID_ESTADOS = ["EN_PROCESO", "LISTO", "ENTREGADO"] as const;
@@ -57,6 +58,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     where: { pedidoId },
     data: { estado: estadoDeliveryMap[estado] as never },
   });
+
+  // Registrar venta para acumular puntos cuando el repartidor confirma entrega
+  if (estado === "ENTREGADO") {
+    await VentaService.registrarVentaOrdenEntregada(pedidoId, userId);
+  }
 
   return NextResponse.json({ id: updated.id, estado: updated.estado });
 }
