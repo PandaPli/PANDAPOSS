@@ -149,7 +149,7 @@ export default function EvaluacionPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const slug = params.slug as string;
-  const pedidoId = searchParams.get("pedido") ? Number(searchParams.get("pedido")) : null;
+  const pedidoFromUrl = searchParams.get("pedido") ? Number(searchParams.get("pedido")) : null;
 
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,6 +160,11 @@ export default function EvaluacionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  /* ── Ingreso manual de pedido ── */
+  const [manualPedido, setManualPedido] = useState("");
+  const [pedidoId, setPedidoId] = useState<number | null>(pedidoFromUrl);
+  const [showForm, setShowForm] = useState(!!pedidoFromUrl);
 
   useEffect(() => {
     async function load() {
@@ -291,12 +296,56 @@ export default function EvaluacionPage() {
             )}
           </div>
 
-          {/* ── Formulario ── */}
-          {pedidoId && !submitted && (
+          {/* ── Botón "Evalúanos" cuando no hay pedido ── */}
+          {!showForm && !submitted && (
             <div className="eva-card" style={{ padding: "24px 22px", marginBottom: 16, animationDelay: ".1s" }}>
-              <p style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.mid, margin: "0 0 16px" }}>
-                Deja tu evaluación
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.mid, margin: "0 0 16px", textAlign: "center" }}>
+                Ingresa tu número de pedido para dejarnos tu evaluación
               </p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="eva-input"
+                  placeholder="Ej: 1648"
+                  type="number"
+                  inputMode="numeric"
+                  value={manualPedido}
+                  onChange={(e) => setManualPedido(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && manualPedido.trim()) {
+                      setPedidoId(Number(manualPedido));
+                      setShowForm(true);
+                      setError("");
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="eva-btn"
+                  disabled={!manualPedido.trim()}
+                  onClick={() => {
+                    setPedidoId(Number(manualPedido));
+                    setShowForm(true);
+                    setError("");
+                  }}
+                  style={{ width: "auto", padding: "14px 24px", flexShrink: 0 }}
+                >
+                  Evaluar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Formulario ── */}
+          {showForm && !submitted && (
+            <div className="eva-card" style={{ padding: "24px 22px", marginBottom: 16, animationDelay: ".1s" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 16px" }}>
+                <p style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: C.mid, margin: 0 }}>
+                  Deja tu evaluación
+                </p>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.dark, background: C.faint, border: `1.5px solid rgba(110,52,130,.12)`, borderRadius: 10, padding: "4px 10px" }}>
+                  Pedido #{pedidoId}
+                </span>
+              </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
@@ -348,6 +397,20 @@ export default function EvaluacionPage() {
                 >
                   {submitting ? "Enviando..." : "Enviar evaluación"}
                 </button>
+
+                {/* Botón para cambiar de pedido */}
+                {!pedidoFromUrl && (
+                  <button
+                    onClick={() => { setShowForm(false); setPedidoId(null); setError(""); setEstrellas(0); setNick(""); setComentario(""); }}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      fontSize: 12, fontWeight: 700, color: C.mid, textAlign: "center",
+                      padding: 4, textDecoration: "underline",
+                    }}
+                  >
+                    Cambiar número de pedido
+                  </button>
+                )}
               </div>
             </div>
           )}
