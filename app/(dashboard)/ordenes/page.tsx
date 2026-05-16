@@ -113,12 +113,15 @@ export default async function OrdenesPage() {
 
   const llevarData = pedidosLlevar.map((p) => {
     const obs = p.observacion ?? "";
-    const nombreMatch = obs.match(/👤\s*(.+?)(?:\s*·|$)/);
-    const horaMatch   = obs.match(/🕐\s*(.+?)(?:\s*·|$)/);
-    const pagoMatch   = obs.match(/💳\s*(.+?)(?:\s*·|$)/);
-    const total = p.detalles.reduce(
+    const nombreMatch    = obs.match(/👤\s*(.+?)(?:\s*·|$)/);
+    const horaMatch      = obs.match(/🕐\s*(.+?)(?:\s*·|$)/);
+    const pagoMatch      = obs.match(/💳\s*(.+?)(?:\s*·|$)/);
+    const descuentoMatch = obs.match(/🏷️\s*DESC:(\d+)/);
+    const descuento      = descuentoMatch ? Number(descuentoMatch[1]) : 0;
+    const subtotal = p.detalles.reduce(
       (acc, d) => acc + Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0) * d.cantidad, 0,
     );
+    const total = Math.max(0, subtotal - descuento);
     return {
       id:            p.id,
       numero:        p.numero,
@@ -130,7 +133,7 @@ export default async function OrdenesPage() {
       items:         p.detalles.length,
       metodoPago:    pagoMatch?.[1]?.trim() ?? "EFECTIVO",
       cargoEnvio:    0,
-      descuento:     0,
+      descuento,
       tipo:          "RETIRO" as const,
       productos:     p.detalles.map((d) => ({
         nombre:   d.producto?.nombre ?? d.combo?.nombre ?? d.nombre ?? "Producto",
