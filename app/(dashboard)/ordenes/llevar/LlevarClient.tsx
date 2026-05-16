@@ -360,30 +360,39 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
           </div>
         </div>
 
-        <div className="flex gap-1.5 bg-surface-bg rounded-xl p-1 border border-surface-border">
-          <button
-            onClick={() => setVista("nuevo")}
-            className={cn(
-              "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all",
-              vista === "nuevo" ? "bg-white text-surface-text shadow-sm" : "text-surface-muted hover:text-surface-text",
-            )}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/pedidos"
+            className="inline-flex items-center gap-1.5 rounded-xl h-9 px-4 text-xs font-bold text-white bg-amber-500 hover:bg-amber-400 transition-all active:scale-95 shadow-sm"
           >
-            Nuevo Pedido
-          </button>
-          <button
-            onClick={() => setVista("lista")}
-            className={cn(
-              "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all relative",
-              vista === "lista" ? "bg-white text-surface-text shadow-sm" : "text-surface-muted hover:text-surface-text",
-            )}
-          >
-            Pedidos
-            {pedidosActivos.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {pedidosActivos.length}
-              </span>
-            )}
-          </button>
+            <ArrowRight size={14} />
+            KDS
+          </Link>
+          <div className="flex gap-1.5 bg-surface-bg rounded-xl p-1 border border-surface-border">
+            <button
+              onClick={() => setVista("nuevo")}
+              className={cn(
+                "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all",
+                vista === "nuevo" ? "bg-white text-surface-text shadow-sm" : "text-surface-muted hover:text-surface-text",
+              )}
+            >
+              Nuevo Pedido
+            </button>
+            <button
+              onClick={() => setVista("lista")}
+              className={cn(
+                "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all relative",
+                vista === "lista" ? "bg-white text-surface-text shadow-sm" : "text-surface-muted hover:text-surface-text",
+              )}
+            >
+              Pedidos
+              {pedidosActivos.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {pedidosActivos.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

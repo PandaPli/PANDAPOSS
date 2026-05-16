@@ -798,24 +798,25 @@ export function DeliveryClient({ pedidos: initialPedidos, repartidores, rol, pro
             </div>
           </div>
 
-          <Link
-            href="/pedidos"
-            className="inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white bg-surface-text hover:bg-surface-text/90 transition-all active:scale-95 shadow"
-          >
-            <LayoutList size={18} />
-            KDS
-          </Link>
-
-          <button
-            onClick={() => setShowIngreso((v) => !v)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white transition-all active:scale-95 shadow",
-              showIngreso ? "bg-brand-800" : "bg-brand-600 hover:bg-brand-700"
-            )}
-          >
-            <Plus size={18} />
-            Ingreso Manual
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/pedidos"
+              className="inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white bg-amber-500 hover:bg-amber-400 transition-all active:scale-95 shadow"
+            >
+              <ChefHat size={18} />
+              KDS
+            </Link>
+            <button
+              onClick={() => setShowIngreso((v) => !v)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-2xl h-11 px-5 text-sm font-bold text-white transition-all active:scale-95 shadow",
+                showIngreso ? "bg-brand-800" : "bg-brand-600 hover:bg-brand-700"
+              )}
+            >
+              <Plus size={18} />
+              Ingreso Manual
+            </button>
+          </div>
         </div>
       </div>
 
