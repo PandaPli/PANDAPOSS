@@ -6,7 +6,7 @@ import { TableMap } from "@/components/pos/TableMap";
 import { InactivityScreen } from "@/components/InactivityScreen";
 import type { MesaConEstado } from "@/types";
 import Link from "next/link";
-import { X, Maximize, Minimize, LogIn, Trash2, AlertTriangle, History, Printer, Receipt, ArrowLeft } from "lucide-react";
+import { X, Maximize, Minimize, LogIn, Trash2, AlertTriangle, History, Printer, Receipt, ArrowLeft, ChefHat } from "lucide-react";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { THERMAL_CSS } from "@/lib/print";
 
@@ -199,14 +199,23 @@ export function MesasClient({ mesas }: Props) {
             <p className="text-surface-muted text-sm mt-1">Puntos de atención y estado de mesas</p>
           </div>
         </div>
-        <button
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-          className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2 text-sm font-medium text-surface-muted shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
-        >
-          {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-          <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Pantalla completa"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/pedidos"
+            className="flex items-center gap-2 rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-amber-400 active:scale-95"
+          >
+            <ChefHat size={16} />
+            <span className="hidden sm:inline">KDS</span>
+          </Link>
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+            className="flex items-center gap-2 rounded-xl border border-surface-border bg-white px-3 py-2 text-sm font-medium text-surface-muted shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
+          >
+            {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+            <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Pantalla completa"}</span>
+          </button>
+        </div>
       </div>
 
       <TableMap mesas={mesas} onSelectMesa={setMesaSeleccionada} />
