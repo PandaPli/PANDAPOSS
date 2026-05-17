@@ -643,7 +643,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                       ? d.observacion.split(" | ")[1]
                       : (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))
                   );
-                  if (!notesEditable && !noteValue) return null;
+                  if (!notesEditable && !noteValue && !esTablaDetalle(d)) return null;
                   return (
                     <div className="mt-0.5 px-1">
                       <textarea
