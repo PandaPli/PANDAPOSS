@@ -41,7 +41,7 @@ export default async function OrdenesPage() {
     ? { usuario: { sucursalId } }
     : {};
 
-  const [pedidosDelivery, pedidosLlevar] = await Promise.all([
+  const [pedidosDelivery, pedidosLlevar, pedidosMesa] = await Promise.all([
     prisma.pedido.findMany({
       where: {
         tipo: "DELIVERY",
@@ -70,6 +70,26 @@ export default async function OrdenesPage() {
         ...sucursalFilter,
       },
       include: {
+        detalles: {
+          where: { cancelado: false },
+          include: {
+            producto: { select: { nombre: true, precio: true } },
+            combo:    { select: { nombre: true, precio: true } },
+          },
+        },
+      },
+      orderBy: { creadoEn: "desc" },
+      take: 50,
+    }),
+    prisma.pedido.findMany({
+      where: {
+        mesaId: { not: null },
+        estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+        creadoEn: { gte: turnoDesde },
+        ...sucursalFilter,
+      },
+      include: {
+        mesa: { select: { nombre: true } },
         detalles: {
           where: { cancelado: false },
           include: {
@@ -143,10 +163,36 @@ export default async function OrdenesPage() {
     };
   });
 
+  const mesaData = pedidosMesa.map((p) => {
+    const subtotal = p.detalles.reduce(
+      (acc, d) => acc + Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0) * d.cantidad, 0,
+    );
+    return {
+      id:            p.id,
+      numero:        p.numero,
+      estado:        p.estado,
+      clienteNombre: (p as unknown as { mesa: { nombre: string } | null }).mesa?.nombre ?? `Mesa`,
+      mesaNombre:    (p as unknown as { mesa: { nombre: string } | null }).mesa?.nombre ?? "Mesa",
+      total:         subtotal,
+      creadoEn:      p.creadoEn.toISOString(),
+      items:         p.detalles.length,
+      metodoPago:    "EFECTIVO",
+      cargoEnvio:    0,
+      descuento:     0,
+      tipo:          "MESA" as const,
+      productos:     p.detalles.map((d) => ({
+        nombre:   d.producto?.nombre ?? d.combo?.nombre ?? d.nombre ?? "Producto",
+        cantidad: d.cantidad,
+        precio:   Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0),
+      })),
+    };
+  });
+
   return (
     <OrdenesHub
       deliveryPedidos={deliveryData}
       llevarPedidos={llevarData}
+      mesaPedidos={mesaData}
       simbolo={simbolo}
       sucursalNombre={sucursalNombre}
       pedidoUrl={pedidoUrl}

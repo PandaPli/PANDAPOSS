@@ -5,7 +5,7 @@ import {
   Bike, ShoppingBag, Star, Clock, User,
   Package, UtensilsCrossed, CheckCircle2,
   Eye, Printer, X, MapPin, CreditCard, Truck, ShoppingCart,
-  PackageCheck, RefreshCw,
+  PackageCheck, RefreshCw, Copy, Check,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -42,11 +42,17 @@ interface LlevarPedido extends PedidoBase {
   horaRetiro: string | null;
 }
 
-type AnyPedido = DeliveryPedido | LlevarPedido;
+interface MesaPedido extends PedidoBase {
+  tipo:       "MESA";
+  mesaNombre: string;
+}
+
+type AnyPedido = DeliveryPedido | LlevarPedido | MesaPedido;
 
 interface Props {
   deliveryPedidos:  DeliveryPedido[];
   llevarPedidos:    LlevarPedido[];
+  mesaPedidos:      MesaPedido[];
   simbolo:          string;
   sucursalNombre:   string;
   pedidoUrl:        string;
@@ -78,10 +84,11 @@ const HUBS = [
 /* ════════════════════════════════════════
    Hub principal
 ════════════════════════════════════════ */
-export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNombre, pedidoUrl }: Props) {
+export function OrdenesHub({ deliveryPedidos, llevarPedidos, mesaPedidos, simbolo, sucursalNombre, pedidoUrl }: Props) {
   const [selected,     setSelected]     = useState<AnyPedido | null>(null);
   const [deliveryList, setDeliveryList] = useState(deliveryPedidos);
   const [llevarList,   setLlevarList]   = useState(llevarPedidos);
+  const [mesaList,     setMesaList]     = useState(mesaPedidos);
   const [loadingId,    setLoadingId]    = useState<number | null>(null);
 
   async function completarPedido(pedido: AnyPedido) {
@@ -95,8 +102,10 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
       if (!res.ok) throw new Error("Error al actualizar");
       if (pedido.tipo === "DELIVERY") {
         setDeliveryList((prev) => prev.filter((p) => p.id !== pedido.id));
-      } else {
+      } else if (pedido.tipo === "RETIRO") {
         setLlevarList((prev) => prev.filter((p) => p.id !== pedido.id));
+      } else {
+        setMesaList((prev) => prev.filter((p) => p.id !== pedido.id));
       }
       setSelected(null);
     } catch { /* ignore */ } finally {
@@ -114,7 +123,7 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
         </div>
         <div>
           <h1 className="text-lg font-black text-surface-text leading-none">Ordenes</h1>
-          <p className="text-[11px] text-surface-muted">Retiro y Delivery</p>
+          <p className="text-[11px] text-surface-muted">Delivery, Retiro y Servir</p>
         </div>
       </div>
 
@@ -135,7 +144,7 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
       </div>
 
       {/* Split dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* Delivery */}
         <div className="space-y-2">
@@ -143,7 +152,7 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
               <h2 className="text-xs font-bold text-surface-text">Delivery</h2>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{deliveryPedidos.length}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{deliveryList.length}</span>
             </div>
             <Link href="/ordenes/delivery" className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline">Ver todos →</Link>
           </div>
@@ -168,7 +177,7 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <h2 className="text-xs font-bold text-surface-text">Retiro</h2>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{llevarPedidos.length}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{llevarList.length}</span>
             </div>
             <Link href="/ordenes/llevar" className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline">Ver todos →</Link>
           </div>
@@ -182,6 +191,31 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, simbolo, sucursalNo
             <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
               {llevarList.map((p) => (
                 <OrderCard key={p.id} pedido={p} simbolo={simbolo} accentColor="emerald" onDetail={() => setSelected(p)} onCompletar={() => void completarPedido(p)} loadingId={loadingId} pedidoUrl={pedidoUrl} sucursalNombre={sucursalNombre} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Servir (Mesas) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+              <h2 className="text-xs font-bold text-surface-text">Servir</h2>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">{mesaList.length}</span>
+            </div>
+            <Link href="/mesas" className="text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:underline">Ver todos →</Link>
+          </div>
+
+          {mesaList.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-rose-200 bg-rose-50/50 p-5 text-center">
+              <UtensilsCrossed size={22} className="mx-auto text-rose-300 mb-1" />
+              <p className="text-[11px] text-rose-400 font-semibold">Sin pedidos de mesa activos</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+              {mesaList.map((p) => (
+                <OrderCard key={p.id} pedido={p} simbolo={simbolo} accentColor="rose" onDetail={() => setSelected(p)} onCompletar={() => void completarPedido(p)} loadingId={loadingId} pedidoUrl={pedidoUrl} sucursalNombre={sucursalNombre} />
               ))}
             </div>
           )}
@@ -212,7 +246,7 @@ function OrderCard({
 }: {
   pedido:          AnyPedido;
   simbolo:         string;
-  accentColor:     "amber" | "emerald";
+  accentColor:     "amber" | "emerald" | "rose";
   onDetail:        () => void;
   onCompletar:     () => void;
   loadingId:       number | null;
@@ -221,32 +255,37 @@ function OrderCard({
 }) {
   const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
   const cfg  = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, dot: "bg-gray-400" };
-  const isAmber   = accentColor === "amber";
   const isListo   = pedido.estado === "LISTO";
   const isLoading = loadingId === pedido.id;
 
-  const borderColor = isListo
-    ? "border-emerald-300 hover:border-emerald-400"
-    : isAmber ? "border-amber-100 hover:border-amber-200" : "border-emerald-100 hover:border-emerald-200";
-  const bgColor     = isListo
-    ? "from-emerald-50 to-teal-50/60"
-    : isAmber ? "from-white to-amber-50/40" : "from-white to-emerald-50/40";
-  const numColor    = isAmber ? "text-amber-700" : "text-emerald-700";
-  const badgeBg     = isAmber ? "bg-amber-100/80 text-amber-600" : "bg-emerald-100/80 text-emerald-600";
-  const iconColor   = isAmber ? "text-amber-400" : "text-emerald-400";
+  const colorMap = {
+    amber:   { border: "border-amber-100 hover:border-amber-200",     bg: "from-white to-amber-50/40",   num: "text-amber-700",   badge: "bg-amber-100/80 text-amber-600",     icon: "text-amber-400"   },
+    emerald: { border: "border-emerald-100 hover:border-emerald-200", bg: "from-white to-emerald-50/40", num: "text-emerald-700", badge: "bg-emerald-100/80 text-emerald-600", icon: "text-emerald-400" },
+    rose:    { border: "border-rose-100 hover:border-rose-200",       bg: "from-white to-rose-50/40",    num: "text-rose-700",    badge: "bg-rose-100/80 text-rose-600",       icon: "text-rose-400"    },
+  };
+  const colors = colorMap[accentColor];
+
+  const borderColor = isListo ? "border-emerald-300 hover:border-emerald-400" : colors.border;
+  const bgColor     = isListo ? "from-emerald-50 to-teal-50/60" : colors.bg;
+
+  const showTrackLink = pedido.tipo === "DELIVERY" || pedido.tipo === "RETIRO";
 
   return (
     <div className={`group rounded-xl border ${borderColor} bg-gradient-to-br ${bgColor} p-2.5 hover:shadow-sm transition-all duration-200`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <span className={`text-xs font-black ${numColor}`}>#{pedido.numero}</span>
-          <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-px rounded-full ${badgeBg}`}>
+          <span className={`text-xs font-black ${colors.num}`}>#{pedido.numero}</span>
+          <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-px rounded-full ${colors.badge}`}>
             <span className={cn("w-1 h-1 rounded-full", cfg.dot)} />
             {cfg.label}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-black text-surface-text">{formatCurrency(pedido.total, simbolo)}</span>
+          {/* Botón copiar track link */}
+          {showTrackLink && (
+            <CopyTrackBtn pedidoId={pedido.id} />
+          )}
           {/* Botón ojo */}
           <button
             type="button"
@@ -281,16 +320,55 @@ function OrderCard({
       </div>
       <div className="flex items-center gap-3 text-[11px] text-surface-muted">
         <span className="flex items-center gap-1 truncate font-medium">
-          <User size={10} className={`${iconColor} shrink-0`} />{pedido.clienteNombre}
+          <User size={10} className={`${colors.icon} shrink-0`} />{pedido.clienteNombre}
         </span>
         <span className="flex items-center gap-1 shrink-0">
-          <Clock size={10} className={iconColor} />{hora}
+          <Clock size={10} className={colors.icon} />{hora}
         </span>
         <span className="flex items-center gap-1 shrink-0 ml-auto">
           <Package size={9} />{pedido.items}
         </span>
       </div>
     </div>
+  );
+}
+
+/* ── Botón inline copiar track link ── */
+function CopyTrackBtn({ pedidoId }: { pedidoId: number }) {
+  const [copied, setCopied] = useState(false);
+  const trackUrl = `https://pandaposs.com/track/${pedidoId}`;
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(trackUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }).catch(() => {
+      const el = document.createElement("textarea");
+      el.value = trackUrl;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title={copied ? "¡Copiado!" : "Copiar link de seguimiento"}
+      className={cn(
+        "flex h-6 w-6 items-center justify-center rounded-lg border transition-colors",
+        copied
+          ? "border-emerald-400 bg-emerald-50 text-emerald-600"
+          : "border-surface-border bg-white text-surface-muted hover:border-violet-300 hover:text-violet-600"
+      )}
+    >
+      {copied ? <Check size={12} /> : <Copy size={12} />}
+    </button>
   );
 }
 
@@ -313,6 +391,14 @@ function PedidoDetailModal({
   const fecha = new Date(pedido.creadoEn).toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
   const cfg   = ESTADO_CONFIG[pedido.estado] ?? { label: pedido.estado, dot: "bg-gray-400" };
   const esDelivery = pedido.tipo === "DELIVERY";
+  const esMesa     = pedido.tipo === "MESA";
+
+  const headerGradient = esDelivery
+    ? "bg-gradient-to-r from-amber-500 to-orange-500"
+    : esMesa
+      ? "bg-gradient-to-r from-rose-500 to-pink-500"
+      : "bg-gradient-to-r from-emerald-500 to-teal-500";
+  const headerIcon = esDelivery ? <Truck size={18} /> : esMesa ? <UtensilsCrossed size={18} /> : <ShoppingBag size={18} />;
 
   // Cerrar con ESC
   useEffect(() => {
@@ -328,10 +414,10 @@ function PedidoDetailModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`flex items-center justify-between px-5 py-4 text-white ${esDelivery ? "bg-gradient-to-r from-amber-500 to-orange-500" : "bg-gradient-to-r from-emerald-500 to-teal-500"}`}>
+        <div className={`flex items-center justify-between px-5 py-4 text-white ${headerGradient}`}>
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
-              {esDelivery ? <Truck size={18} /> : <ShoppingBag size={18} />}
+              {headerIcon}
             </div>
             <div>
               <p className="font-black text-base leading-none">Pedido #{pedido.numero}</p>
@@ -369,14 +455,17 @@ function PedidoDetailModal({
             <InfoRow icon={<User size={14} className="text-violet-500" />} label="Cliente" value={pedido.clienteNombre} />
             <InfoRow icon={<CreditCard size={14} className="text-blue-500" />} label="Pago" value={PAGO_LABEL[pedido.metodoPago] ?? pedido.metodoPago} />
             <InfoRow
-              icon={esDelivery ? <Truck size={14} className="text-amber-500" /> : <ShoppingCart size={14} className="text-emerald-500" />}
+              icon={esDelivery ? <Truck size={14} className="text-amber-500" /> : esMesa ? <UtensilsCrossed size={14} className="text-rose-500" /> : <ShoppingCart size={14} className="text-emerald-500" />}
               label="Entrega"
-              value={esDelivery ? "Delivery" : "Retiro en local"}
+              value={esDelivery ? "Delivery" : esMesa ? "Servir en mesa" : "Retiro en local"}
             />
             {esDelivery && (pedido as DeliveryPedido).direccion && (
               <InfoRow icon={<MapPin size={14} className="text-red-500" />} label="Dirección" value={(pedido as DeliveryPedido).direccion!} />
             )}
-            {!esDelivery && (pedido as LlevarPedido).horaRetiro && (
+            {esMesa && (
+              <InfoRow icon={<UtensilsCrossed size={14} className="text-rose-500" />} label="Mesa" value={(pedido as MesaPedido).mesaNombre} />
+            )}
+            {pedido.tipo === "RETIRO" && (pedido as LlevarPedido).horaRetiro && (
               <InfoRow icon={<Clock size={14} className="text-emerald-500" />} label="Hora retiro" value={(pedido as LlevarPedido).horaRetiro!} />
             )}
           </div>
@@ -430,12 +519,14 @@ function PedidoDetailModal({
                 "w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50",
                 pedido.tipo === "DELIVERY"
                   ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-500/20"
-                  : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-500/20"
+                  : pedido.tipo === "MESA"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 shadow-md shadow-rose-500/20"
+                    : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-md shadow-emerald-500/20"
               )}
             >
               {isLoading
                 ? <><RefreshCw size={15} className="animate-spin" /> Procesando...</>
-                : <><PackageCheck size={15} /> {pedido.tipo === "DELIVERY" ? "Confirmar entrega ✓" : "Confirmar retiro ✓"}</>
+                : <><PackageCheck size={15} /> {pedido.tipo === "DELIVERY" ? "Confirmar entrega ✓" : pedido.tipo === "MESA" ? "Confirmar servido ✓" : "Confirmar retiro ✓"}</>
               }
             </button>
           )}
@@ -487,6 +578,7 @@ async function printEtiqueta(
   const hora  = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
   const fecha = new Date(pedido.creadoEn).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
   const esDelivery = pedido.tipo === "DELIVERY";
+  const esMesa     = pedido.tipo === "MESA";
 
   const productosHtml = pedido.productos
     .map((p) => `
@@ -506,9 +598,11 @@ async function printEtiqueta(
 
   const entregaInfo = esDelivery
     ? `<p style="margin:2px 0;font-size:12px;color:#555;">📍 ${(pedido as DeliveryPedido).direccion ?? "Sin dirección"}</p>`
-    : (pedido as LlevarPedido).horaRetiro
-      ? `<p style="margin:2px 0;font-size:12px;color:#555;">🕐 Retiro: ${(pedido as LlevarPedido).horaRetiro}</p>`
-      : "";
+    : esMesa
+      ? `<p style="margin:2px 0;font-size:12px;color:#555;">🍽️ ${(pedido as MesaPedido).mesaNombre}</p>`
+      : (pedido as LlevarPedido).horaRetiro
+        ? `<p style="margin:2px 0;font-size:12px;color:#555;">🕐 Retiro: ${(pedido as LlevarPedido).horaRetiro}</p>`
+        : "";
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -577,7 +671,7 @@ async function printEtiqueta(
       <div class="pedido-num">Pedido #${pedido.numero}</div>
       <div class="sucursal">${sucursalNombre}</div>
     </div>
-    <span class="badge ${esDelivery ? "badge-delivery" : "badge-retiro"}">${esDelivery ? "🛵 Delivery" : "🛍️ Retiro"}</span>
+    <span class="badge ${esDelivery ? "badge-delivery" : "badge-retiro"}">${esDelivery ? "🛵 Delivery" : esMesa ? "🍽️ Mesa" : "🛍️ Retiro"}</span>
   </div>
 
   <!-- Cliente + pago -->
