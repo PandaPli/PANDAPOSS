@@ -116,6 +116,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   const [cuponAplicado, setCuponAplicado]   = useState<CuponAplicado | null>(null);
   const [cuponLoading, setCuponLoading]     = useState(false);
   const [cuponError, setCuponError]         = useState("");
+  const [submitError, setSubmitError]       = useState("");
 
   // ── Cliente search state ──
   const [clienteQuery, setClienteQuery] = useState("");
@@ -234,6 +235,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   async function handleSubmit() {
     if (!nombreCliente.trim() || cart.length === 0) return;
     setSending(true);
+    setSubmitError("");
     try {
       const res = await fetch("/api/llevar", {
         method: "POST",
@@ -275,8 +277,8 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
         })),
       };
       setPedidos((prev) => [newPedido, ...prev]);
-    } catch {
-      // silently handle
+    } catch (err) {
+      setSubmitError((err as Error).message || "Error al crear pedido");
     } finally {
       setSending(false);
     }
@@ -809,6 +811,13 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                               <span className="text-base font-black text-emerald-700">{formatCurrency(cambio, simbolo)}</span>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {/* ── Error ── */}
+                      {submitError && (
+                        <div className="w-full px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-semibold text-center">
+                          {submitError}
                         </div>
                       )}
 

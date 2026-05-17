@@ -54,6 +54,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Se requiere el nombre del cliente" }, { status: 400 });
   }
 
+  // Obtener caja abierta de la sucursal para vincular pedido y venta a cuadratura
+  const cajaAbierta = sucursalId
+    ? await prisma.caja.findFirst({
+        where: { estado: "ABIERTA", sucursalId },
+        select: { id: true },
+        orderBy: { abiertaEn: "desc" },
+      })
+    : null;
+
   const obs = [
     "🥡 PARA LLEVAR",
     `👤 ${nombreCliente.trim()}`,
@@ -69,6 +78,7 @@ export async function POST(req: NextRequest) {
   try {
     const pedido = await PedidoService.create({
       usuarioId: userId,
+      cajaId: cajaAbierta?.id ?? undefined,
       tipo: "MOSTRADOR",
       items: items.map((i) => ({
         productoId: i.productoId,
@@ -87,41 +97,38 @@ export async function POST(req: NextRequest) {
       }).catch(() => { /* no bloquear si falla */ });
     }
 
-    // ── Registrar Venta para acumular puntos en RETIRO ──────────────────────
-    // Solo si hay cliente identificado. Awaited para que funcione en serverless.
-    if (clienteId && clienteId > 0) {
-      try {
-        const detalles = await prisma.detallePedido.findMany({
-          where: { pedidoId: pedido.id },
-          select: { productoId: true, comboId: true, cantidad: true, precio: true },
-        });
-        const subtotal = detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
-        const desc = descuento && descuento > 0 ? descuento : 0;
-        const totalVenta = Math.max(0, subtotal - desc);
-        const metodo = toMetodoPago(metodoPago);
+    // ── Registrar Venta (siempre) para cuadratura de caja y puntos ──────────
+    try {
+      const detalles = await prisma.detallePedido.findMany({
+        where: { pedidoId: pedido.id },
+        select: { productoId: true, comboId: true, cantidad: true, precio: true },
+      });
+      const subtotal = detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
+      const desc = descuento && descuento > 0 ? descuento : 0;
+      const totalVenta = Math.max(0, subtotal - desc);
+      const metodo = toMetodoPago(metodoPago);
 
-        await VentaService.create({
-          cajaId: null,
-          clienteId,
-          usuarioId: userId,
-          sucursalId,
-          pedidoId: pedido.id,
-          items: detalles.map((d) => ({
-            productoId: d.productoId ?? undefined,
-            comboId: d.comboId ?? undefined,
-            precio: Number(d.precio ?? 0),
-            cantidad: d.cantidad,
-            subtotal: Number(d.precio ?? 0) * d.cantidad,
-          })),
-          subtotal,
-          descuento: desc,
-          impuesto: 0,
-          total: totalVenta,
-          metodoPago: metodo,
-          pagos: [{ metodoPago: metodo, monto: totalVenta }],
-        });
-      } catch { /* silencioso — no bloquear respuesta si falla */ }
-    }
+      await VentaService.create({
+        cajaId: cajaAbierta?.id ?? null,
+        clienteId: clienteId && clienteId > 0 ? clienteId : undefined,
+        usuarioId: userId,
+        sucursalId,
+        pedidoId: pedido.id,
+        items: detalles.map((d) => ({
+          productoId: d.productoId ?? undefined,
+          comboId: d.comboId ?? undefined,
+          precio: Number(d.precio ?? 0),
+          cantidad: d.cantidad,
+          subtotal: Number(d.precio ?? 0) * d.cantidad,
+        })),
+        subtotal,
+        descuento: desc,
+        impuesto: 0,
+        total: totalVenta,
+        metodoPago: metodo,
+        pagos: [{ metodoPago: metodo, monto: totalVenta }],
+      });
+    } catch { /* no bloquear respuesta si falla */ }
 
     // Notificar KDS en tiempo real
     const globalForSocket = global as unknown as { io?: import("socket.io").Server };
