@@ -123,6 +123,14 @@ export async function POST(req: NextRequest) {
       } catch { /* silencioso — no bloquear respuesta si falla */ }
     }
 
+    // Notificar KDS en tiempo real
+    const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+    try {
+      if (sucursalId) {
+        globalForSocket.io?.to(`sucursal_${sucursalId}_kds`).emit("pedido:nuevo", { id: pedido.id });
+      }
+    } catch { /* no bloquear */ }
+
     return NextResponse.json({ id: pedido.id, numero: pedido.numero, clienteId: clienteId ?? null }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
