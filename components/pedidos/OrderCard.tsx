@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store, CreditCard, Banknote, ArrowLeftRight, Pencil, Check } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Bell, Printer, Bot, XCircle, ShieldCheck, RotateCcw, ShoppingBag, Utensils, MonitorSmartphone, Bike, Store, CreditCard, Banknote, ArrowLeftRight, Pencil, Check, Lock, Unlock } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import type { PedidoConDetalles, EstadoPedido } from "@/types";
 import type { Rol } from "@/types";
@@ -170,6 +170,10 @@ function canPrepareOrders(rol?: Rol): boolean {
   return ["CHEF", "BAR", "RESTAURANTE", "ADMIN_GENERAL"].includes(rol ?? "");
 }
 
+function canEditNotes(rol?: Rol): boolean {
+  return ["WAITER", "CASHIER", "RESTAURANTE", "ADMIN_GENERAL"].includes(rol ?? "");
+}
+
 // ── Estilos por estado ──────────────────────────────────────────────────────
 function getEstadoStyles(estado: EstadoPedido, nightMode: boolean) {
   switch (estado) {
@@ -282,9 +286,13 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
     await guardarEdicion({ zonaDelivery: nuevaZona });
   }
 
+  const [notesLocked, setNotesLocked] = useState(true);
+
   const isDeliveryRole = rol === "DELIVERY";
   const canConfirm = canConfirmOrders(rol);
   const canPrepare = canPrepareOrders(rol);
+  const canEdit = canEditNotes(rol);
+  const notesEditable = canEdit && !notesLocked;
   const styles = getEstadoStyles(pedido.estado, nightMode);
 
   async function guardarNota(detalleId: number) {
@@ -503,6 +511,20 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                 Editar
               </button>
             )}
+            {canEdit && (
+              <button
+                onClick={() => setNotesLocked(l => !l)}
+                title={notesLocked ? "Desbloquear edición de notas" : "Bloquear edición de notas"}
+                className={cn(
+                  "p-1 rounded-full transition-all",
+                  notesLocked
+                    ? nightMode ? "text-gray-500 hover:text-gray-300 hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                    : nightMode ? "text-amber-400 bg-amber-500/20" : "text-amber-600 bg-amber-100"
+                )}
+              >
+                {notesLocked ? <Lock size={11} /> : <Unlock size={11} />}
+              </button>
+            )}
             <div className={cn("flex items-center gap-1 text-[11px]", nightMode ? "text-gray-400" : "text-surface-muted")}>
               <Clock size={11} />
               <span className={cn(urgente && "text-red-400 font-bold")}>{tiempoStr}</span>
@@ -586,8 +608,8 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                       {d.cancelado && (
                         <span className="bg-red-900/50 text-red-400 text-[10px] px-1 rounded font-bold">ANULADO</span>
                       )}
-                      {/* Ícono lápiz para agregar nota — solo si no es tabla (tabla siempre muestra textarea) */}
-                      {!d.cancelado && !esTablaDetalle(d) && (
+                      {/* Ícono lápiz para agregar nota — solo si desbloqueado y no es tabla */}
+                      {!d.cancelado && !esTablaDetalle(d) && notesEditable && (
                         <button
                           type="button"
                           onClick={() => setOpenNotas(prev => ({ ...prev, [d.id]: !prev[d.id] }))}
@@ -614,37 +636,44 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                     )}
                   </div>
                 </div>
-                {/* Nota cocina: siempre visible para tablas, toggle con lápiz para el resto */}
-                {!d.cancelado && (esTablaDetalle(d) || openNotas[d.id]) && (
-                  <div className="mt-0.5 px-1">
-                    <textarea
-                      rows={1}
-                      placeholder={esTablaDetalle(d) ? "Nota cocina: relleno, salsas..." : "Nota: sin cebollín, poco queso..."}
-                      value={tablaNotas[d.id] ?? (
-                        d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ")
-                          ? d.observacion.split(" | ")[1]
-                          : (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))
-                      )}
-                      onChange={e => setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value }))}
-                      onBlur={() => void guardarNota(d.id)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          void guardarNota(d.id);
-                          (e.target as HTMLTextAreaElement).blur();
-                        }
-                      }}
-                      autoFocus={!esTablaDetalle(d)}
-                      className={cn(
-                        "w-full rounded border px-2 py-0.5 text-[11px] resize-none focus:outline-none transition-colors",
-                        nightMode
-                          ? "bg-amber-900/10 border-amber-500/20 text-amber-200 placeholder-amber-600 focus:border-amber-500/50"
-                          : "bg-amber-50 border-amber-200 text-amber-900 placeholder-amber-400 focus:border-amber-400"
-                      )}
-                    />
-                    {savedNotas[d.id] && <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">✓ Guardado</p>}
-                  </div>
-                )}
+                {/* Nota cocina: editable solo si desbloqueado + rol permitido */}
+                {!d.cancelado && (esTablaDetalle(d) || openNotas[d.id]) && (() => {
+                  const noteValue = tablaNotas[d.id] ?? (
+                    d.observacion?.startsWith("[LIBRE]") && d.observacion.includes(" | ")
+                      ? d.observacion.split(" | ")[1]
+                      : (d.observacion?.startsWith("[LIBRE]") ? "" : (d.observacion ?? ""))
+                  );
+                  if (!notesEditable && !noteValue) return null;
+                  return (
+                    <div className="mt-0.5 px-1">
+                      <textarea
+                        rows={1}
+                        readOnly={!notesEditable}
+                        placeholder={esTablaDetalle(d) ? "Nota cocina: relleno, salsas..." : "Nota: sin cebollín, poco queso..."}
+                        value={noteValue}
+                        onChange={e => { if (notesEditable) setTablaNotas(prev => ({ ...prev, [d.id]: e.target.value })); }}
+                        onBlur={() => { if (notesEditable) void guardarNota(d.id); }}
+                        onKeyDown={e => {
+                          if (!notesEditable) return;
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void guardarNota(d.id);
+                            (e.target as HTMLTextAreaElement).blur();
+                          }
+                        }}
+                        autoFocus={notesEditable && !esTablaDetalle(d)}
+                        className={cn(
+                          "w-full rounded border px-2 py-0.5 text-[11px] resize-none focus:outline-none transition-colors",
+                          !notesEditable && "cursor-default opacity-75",
+                          nightMode
+                            ? "bg-amber-900/10 border-amber-500/20 text-amber-200 placeholder-amber-600 focus:border-amber-500/50"
+                            : "bg-amber-50 border-amber-200 text-amber-900 placeholder-amber-400 focus:border-amber-400"
+                        )}
+                      />
+                      {savedNotas[d.id] && <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">✓ Guardado</p>}
+                    </div>
+                  );
+                })()}
               </>
             )}
           </React.Fragment>
@@ -857,7 +886,7 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
             </div>
           )}
 
-          {/* ═══ LISTO: llamar mesero/cajero ═══ */}
+          {/* ═══ LISTO: llamar mesero/cajero + volver ═══ */}
           {pedido.estado === "LISTO" && (
             <div className="flex">
               <button
@@ -889,6 +918,36 @@ export function OrderCard({ pedido, onUpdateEstado, onLlamarMesero, onReturnToPr
                   Volver
                 </button>
               )}
+              <button
+                onClick={handlePrint}
+                title="Imprimir comanda"
+                className={cn(
+                  "px-3 py-3 transition-all flex items-center justify-center",
+                  nightMode ? "border-l border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/5" : "border-l border-surface-border text-surface-muted hover:text-brand-600 hover:bg-brand-50"
+                )}
+              >
+                <Printer size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* ═══ ENTREGADO: volver + imprimir ═══ */}
+          {pedido.estado === "ENTREGADO" && canConfirm && onReturnToProcess && (
+            <div className="flex">
+              <button
+                onClick={handleReturnToProcess}
+                disabled={loadingReturn}
+                title="Devolver a preparacion"
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-3 py-3 text-[11px] font-bold transition-all disabled:opacity-50",
+                  nightMode
+                    ? "text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                    : "text-red-500 hover:bg-red-50 hover:text-red-600"
+                )}
+              >
+                {loadingReturn ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                Volver
+              </button>
               <button
                 onClick={handlePrint}
                 title="Imprimir comanda"
