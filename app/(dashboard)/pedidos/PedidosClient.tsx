@@ -251,25 +251,40 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   // ── Handlers ───────────────────────────────────────────────────────────
 
   async function handleUpdateEstado(id: number, estado: EstadoPedido) {
-    await fetch(`/api/pedidos/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado }),
-    });
+    try {
+      const res = await fetch(`/api/pedidos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado }),
+      });
 
-    if (estado === "CANCELADO") {
-      setPedidos(prev => prev.filter(p => p.id !== id));
-    } else {
-      setPedidos(prev =>
-        prev.map(p =>
-          p.id === id
-            ? { ...p, estado, meseroLlamado: estado === "ENTREGADO" ? false : p.meseroLlamado }
-            : p
-        )
-      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data?.error ?? `No se pudo actualizar el pedido (${res.status})`;
+        alert(msg);
+        // Refrescar para sincronizar con el estado real del servidor
+        fetchPedidos();
+        return;
+      }
+
+      if (estado === "CANCELADO") {
+        setPedidos(prev => prev.filter(p => p.id !== id));
+      } else {
+        setPedidos(prev =>
+          prev.map(p =>
+            p.id === id
+              ? { ...p, estado, meseroLlamado: estado === "ENTREGADO" ? false : p.meseroLlamado }
+              : p
+          )
+        );
+      }
+
+      setTimeout(fetchPedidos, 500);
+    } catch (e) {
+      console.error("[PedidosClient] handleUpdateEstado:", e);
+      alert("Error de red al actualizar el pedido. Reintentá.");
+      fetchPedidos();
     }
-
-    setTimeout(fetchPedidos, 500);
   }
 
   async function handleReturnToProcess(id: number) {

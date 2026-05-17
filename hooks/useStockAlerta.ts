@@ -27,9 +27,23 @@ export function useStockAlerta(sucursalId: number | null) {
       // Auto-limpiar después de 15 segundos
       setTimeout(() => setAlertas([]), 15_000);
     }
+    function onConnect() {
+      // Re-suscribir al room en cada reconexión
+      socket?.emit("alertas:join", sucursalId!);
+    }
+    function onError(err: Error) {
+      console.warn("[useStockAlerta] connect_error:", err.message);
+    }
 
     socket.on("stock:bajo", onStockBajo);
-    return () => { socket?.off("stock:bajo", onStockBajo); };
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onError);
+
+    return () => {
+      socket?.off("stock:bajo", onStockBajo);
+      socket?.off("connect", onConnect);
+      socket?.off("connect_error", onError);
+    };
   }, [sucursalId]);
 
   return { alertas, dismiss: () => setAlertas([]) };

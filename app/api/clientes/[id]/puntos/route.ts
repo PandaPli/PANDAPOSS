@@ -35,6 +35,15 @@ export async function POST(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  // Solo roles administrativos pueden ajustar puntos manualmente
+  const rol = (session.user as { rol?: string }).rol;
+  if (rol !== "ADMIN_GENERAL" && rol !== "RESTAURANTE") {
+    return NextResponse.json({ error: "Solo administradores pueden ajustar puntos" }, { status: 403 });
+  }
+
+  const usuarioId = (session.user as { id: number }).id;
+  const usuarioNombre = (session.user as { name?: string }).name;
+
   const { id } = await params;
   const clienteId = parseInt(id);
   if (isNaN(clienteId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
@@ -42,11 +51,11 @@ export async function POST(
   const body = await req.json();
   const { puntos, descripcion } = body as { puntos: number; descripcion?: string };
 
-  if (typeof puntos !== "number" || puntos === 0) {
-    return NextResponse.json({ error: "puntos debe ser un número diferente de 0" }, { status: 400 });
+  if (typeof puntos !== "number" || !Number.isFinite(puntos) || puntos === 0) {
+    return NextResponse.json({ error: "puntos debe ser un número finito diferente de 0" }, { status: 400 });
   }
 
-  await PuntosService.ajustar(clienteId, puntos, descripcion ?? "");
+  await PuntosService.ajustar(clienteId, puntos, descripcion ?? "", { usuarioId, usuarioNombre });
 
   const cliente = await prisma.cliente.findUnique({
     where: { id: clienteId },

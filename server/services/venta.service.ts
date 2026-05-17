@@ -500,11 +500,9 @@ export const VentaService = {
         where: { id: ventaId },
         data: { estado: "ANULADA" },
       });
-    });
 
-    // 4. Revertir puntos si aplica (fuera de la tx principal)
-    await PuntosService.revertirPorAnulacion(ventaId).catch((err) => {
-      console.error("[VentaService] revertirPuntos:", err);
+      // 4. Revertir puntos dentro de la misma transacción (atómico)
+      await PuntosService.revertirPorAnulacion(ventaId, tx);
     });
 
     return { id: ventaId, estado: "ANULADA" };

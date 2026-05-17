@@ -32,10 +32,36 @@ export async function PATCH(req: NextRequest) {
     },
   });
 
-  // Emitir por socket para que el restaurante y cliente vean la ubicación en tiempo real
+  // Buscar pedidos activos del rider para emitir solo a las rooms correctas
+  // (estados en los que aún tiene sentido trackear la ubicación)
+  const pedidosActivos = await prisma.pedido.findMany({
+    where: {
+      repartidorId: userId,
+      estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+    },
+    select: { id: true, usuario: { select: { sucursalId: true } } },
+  });
+
+  const orderIds = pedidosActivos.map((p) => p.id);
+  const sucursalIds = Array.from(
+    new Set(pedidosActivos.map((p) => p.usuario?.sucursalId).filter((id): id is number => typeof id === "number"))
+  );
+
+  // Emitir por socket a rooms específicos (evita broadcast global)
   const globalForSocket = global as unknown as { io?: import("socket.io").Server };
   try {
-    globalForSocket.io?.emit("driver:location", { riderId: userId, lat, lng, ts: Date.now() });
+    const payload = { riderId: userId, lat, lng, ts: Date.now(), orderIds };
+    const io = globalForSocket.io;
+    if (io) {
+      // Despacho de cada sucursal con pedidos activos del rider
+      for (const sId of sucursalIds) {
+        io.to(`tenant_${sId}_dispatch`).emit("driver:location:update", payload);
+      }
+      // Cliente final de cada pedido en tracking
+      for (const oId of orderIds) {
+        io.to(`order_${oId}_track`).emit("driver:location:update", payload);
+      }
+    }
   } catch {
     // No bloquear si el socket falla
   }

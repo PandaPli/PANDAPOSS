@@ -24,8 +24,14 @@ export async function POST(req: NextRequest) {
       where: { id: cajaId },
       data: { visorEstado: JSON.stringify(msg) },
     });
-  } catch {
-    // Si la caja no existe o falla, seguimos — la notificación en memoria aún funciona
+  } catch (err) {
+    // No bloqueamos: la notificación en memoria sigue funcionando para listeners
+    // del mismo proceso. Pero logueamos para detectar caja inexistente o errores
+    // de DB que dejan al cluster desincronizado del estado en memoria.
+    console.warn(
+      `[visor/push] No se pudo persistir estado de caja ${cajaId}:`,
+      err instanceof Error ? err.message : err
+    );
   }
 
   // 2. Notificar listeners del mismo proceso (respuesta inmediata sin polling)

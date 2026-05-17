@@ -19,6 +19,25 @@ function notifySynced() {
   }
 }
 
+// Notifica al UI que una venta con puntos involucrados fue descartada.
+// El operador debe revisar manualmente: el cliente NUNCA perdió los puntos en
+// el servidor (la venta no llegó), pero la UI local pudo haberlos mostrado como
+// gastados. Si esperaba ganar puntos, tampoco los recibió.
+type DescartedPuntosInfo = {
+  clienteId: number | null;
+  puntosCanjeados: number;
+  total: number;
+  motivo: string;
+  localId: string;
+};
+function notifyDescartePuntos(info: DescartedPuntosInfo) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent<DescartedPuntosInfo>("pp:offline:descarte-puntos", { detail: info }));
+  }
+  // Logging persistente para auditoría
+  console.warn("[OfflineQueue] Venta descartada con puntos involucrados:", info);
+}
+
 // ── Encolar ────────────────────────────────────────────────────────────────────
 
 export async function queueVenta(sucursalId: number, payload: object): Promise<string> {
@@ -83,12 +102,36 @@ export async function syncAll(): Promise<{ ok: number; failed: number }> {
       } else {
         // 4xx → no reintentar; 5xx → reintentar
         const status = res.status;
+        const willDiscard = status < 500;
         await db.pendingVentas.update(venta.id!, {
           retries: venta.retries + 1,
           errorMsg: `HTTP ${status}`,
           // Si es un error de cliente (caja cerrada, etc.), marcamos como synced para no volver a intentar
-          ...(status < 500 ? { synced: true, errorMsg: `Descartado (${status})` } : {}),
+          ...(willDiscard ? { synced: true, errorMsg: `Descartado (${status})` } : {}),
         });
+
+        // Reconciliación de puntos: si la venta descartada involucraba puntos
+        // (canjeados o por ganar con cliente identificado), notificar para que
+        // el operador pueda informar al cliente y revisar manualmente.
+        if (willDiscard) {
+          const p = venta.payload as {
+            clienteId?: number | null;
+            puntosCanjeados?: number;
+            total?: number;
+          };
+          const puntosCanjeados = typeof p.puntosCanjeados === "number" ? p.puntosCanjeados : 0;
+          const hayClienteIdentificado = typeof p.clienteId === "number" && p.clienteId > 0;
+          if (puntosCanjeados > 0 || hayClienteIdentificado) {
+            notifyDescartePuntos({
+              clienteId: hayClienteIdentificado ? p.clienteId! : null,
+              puntosCanjeados,
+              total: typeof p.total === "number" ? p.total : 0,
+              motivo: `HTTP ${status}`,
+              localId: venta.localId,
+            });
+          }
+        }
+
         failed++;
       }
     } catch {

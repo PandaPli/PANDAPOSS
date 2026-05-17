@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 /**
  * Calcula cuántos puntos gana un cliente por una compra.
@@ -61,11 +61,12 @@ export const PuntosService = {
   ) {
     if (puntos <= 0) return;
 
-    // Validar saldo (lectura dentro de la tx para consistencia)
-    const cliente = await tx.cliente.findUnique({
-      where: { id: clienteId },
-      select: { puntos: true, nombre: true },
-    });
+    // Lock pesimista: bloquear la fila del cliente para evitar que dos canjes
+    // concurrentes lean el mismo saldo y permitan gastar puntos que no existen.
+    const filas = await tx.$queryRaw<{ id: number; puntos: number; nombre: string }[]>(
+      Prisma.sql`SELECT id, puntos, nombre FROM clientes WHERE id = ${clienteId} LIMIT 1 FOR UPDATE`
+    );
+    const cliente = filas[0];
 
     if (!cliente) throw new Error("Cliente no encontrado.");
     if (cliente.puntos < puntos) {
@@ -91,24 +92,26 @@ export const PuntosService = {
   },
 
   /**
-   * Revierte puntos al anular una venta (fuera de tx, llamado post-anulación).
+   * Revierte puntos al anular una venta.
+   * Acepta un tx externo (transacción de anulación) para garantizar atomicidad.
+   * Si no se pasa tx, crea su propia transacción (backward-compatible).
    */
-  async revertirPorAnulacion(ventaId: number) {
-    const movimientos = await prisma.movimientoPuntos.findMany({
-      where: { ventaId },
-    });
+  async revertirPorAnulacion(ventaId: number, externalTx?: Prisma.TransactionClient) {
+    const run = async (tx: Prisma.TransactionClient) => {
+      // Lock atómico: verificar que no exista ya una reversión para esta venta
+      const yaAnulado = await tx.movimientoPuntos.findFirst({
+        where: { ventaId, tipo: "ANULADO" },
+      });
+      if (yaAnulado) return;
 
-    if (movimientos.length === 0) return;
+      const movimientos = await tx.movimientoPuntos.findMany({
+        where: { ventaId, tipo: { in: ["GANADO", "CANJEADO"] } },
+      });
 
-    await prisma.$transaction(async (tx) => {
+      if (movimientos.length === 0) return;
+
       for (const mov of movimientos) {
-        // Solo revertir si no fue ya anulado
-        const yaAnulado = await tx.movimientoPuntos.findFirst({
-          where: { ventaId, tipo: "ANULADO" },
-        });
-        if (yaAnulado) continue;
-
-        const delta = -mov.puntos; // inverso del movimiento original
+        const delta = -mov.puntos;
         await tx.cliente.update({
           where: { id: mov.clienteId },
           data: { puntos: { increment: delta } },
@@ -124,7 +127,13 @@ export const PuntosService = {
           },
         });
       }
-    });
+    };
+
+    if (externalTx) {
+      await run(externalTx);
+    } else {
+      await prisma.$transaction(run);
+    }
   },
 
   /** Obtiene el historial de movimientos de un cliente. */
@@ -144,8 +153,13 @@ export const PuntosService = {
     });
   },
 
-  /** Ajuste manual de puntos (admin). */
-  async ajustar(clienteId: number, puntos: number, descripcion: string) {
+  /** Ajuste manual de puntos (admin). Registra usuario para auditoría. */
+  async ajustar(
+    clienteId: number,
+    puntos: number,
+    descripcion: string,
+    audit?: { usuarioId: number; usuarioNombre?: string }
+  ) {
     const cliente = await prisma.cliente.findUnique({
       where: { id: clienteId },
       select: { puntos: true },
@@ -154,6 +168,15 @@ export const PuntosService = {
 
     const nuevoPuntaje = cliente.puntos + puntos;
     if (nuevoPuntaje < 0) throw new Error("El ajuste dejaría el saldo en negativo.");
+
+    // Prefijo de auditoría en la descripción (MovimientoPuntos no tiene columna
+    // usuarioId, así que dejamos rastro en el texto + entrada en tabla Log)
+    const auditPrefix = audit?.usuarioNombre
+      ? `[user:${audit.usuarioId}/${audit.usuarioNombre}] `
+      : audit?.usuarioId
+      ? `[user:${audit.usuarioId}] `
+      : "";
+    const descFinal = `${auditPrefix}${descripcion || `Ajuste manual: ${puntos > 0 ? "+" : ""}${puntos} pts`}`;
 
     await prisma.$transaction([
       prisma.cliente.update({
@@ -165,9 +188,19 @@ export const PuntosService = {
           clienteId,
           tipo: "AJUSTE",
           puntos,
-          descripcion: descripcion || `Ajuste manual: ${puntos > 0 ? "+" : ""}${puntos} pts`,
+          descripcion: descFinal,
         },
       }),
+      ...(audit?.usuarioId
+        ? [
+            prisma.log.create({
+              data: {
+                usuarioId: audit.usuarioId,
+                accion: `puntos.ajustar cliente=${clienteId} delta=${puntos > 0 ? "+" : ""}${puntos} desc="${descripcion ?? ""}"`,
+              },
+            }),
+          ]
+        : []),
     ]);
   },
 };

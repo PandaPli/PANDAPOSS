@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { io as ioClient, Socket } from "socket.io-client";
 import { Check, ChevronRight, Minus, Plus, ShoppingBag, Trash2, X, ArrowLeft } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { VitrinaBanner } from "@/components/vitrina/VitrinaBanner";
@@ -137,6 +138,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
   const [metodoPago, setMetodoPago] = useState<MetodoPagoKiosko>("caja");
   const [mpInitPoint, setMpInitPoint] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   const totalItems = cart.reduce((a, i) => a + i.cantidad, 0);
   const subtotal = cart.reduce((a, i) => a + i.precio * i.cantidad, 0);
@@ -174,7 +176,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
   }, [pantalla]);
 
   function resetKiosko() {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    stopPaymentWatchers();
     setCart([]);
     setNombreCliente("");
     setPedidoId(null);
@@ -277,14 +279,46 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
     }
   }
 
+  function stopPaymentWatchers() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  }
+
   function startPaymentPolling(pId: number) {
-    if (pollRef.current) clearInterval(pollRef.current);
+    stopPaymentWatchers();
+
+    // Socket: feedback instantáneo cuando el webhook MP confirma el pago
+    try {
+      const s = ioClient({ path: "/api/socket/io", reconnectionAttempts: 5 });
+      socketRef.current = s;
+      s.on("connect", () => {
+        s.emit("join-room", `pedido_${pId}_pago`);
+      });
+      s.on("pago:mp", (data: { pedidoId: number; status: string }) => {
+        if (data.pedidoId !== pId) return;
+        if (data.status === "approved") {
+          stopPaymentWatchers();
+          setPantalla("success");
+        } else {
+          // Pago rechazado/cancelado: mostrar error y volver a pantalla de pago
+          stopPaymentWatchers();
+          setError(`El pago no fue aprobado (${data.status}). Intentá nuevamente.`);
+          setPantalla("pago");
+        }
+      });
+      s.on("connect_error", () => { /* fallback al polling */ });
+    } catch { /* fallback al polling */ }
+
+    // Polling como respaldo si el socket falla
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/mercadopago/status?pedidoId=${pId}`);
         const data = await res.json();
         if (data.status === "approved") {
-          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          stopPaymentWatchers();
           setPantalla("success");
         }
       } catch { /* seguir polling */ }
@@ -431,7 +465,7 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
 
           <button
             onClick={() => {
-              if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+              stopPaymentWatchers();
               setPantalla("success");
             }}
             className="rounded-2xl border border-white/20 px-8 py-3 text-sm font-semibold text-white/50 hover:bg-white/5 transition-all"

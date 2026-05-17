@@ -48,8 +48,27 @@ export async function PUT(
 
   const data: Record<string, unknown> = {};
   if (typeof puntosActivo === "boolean") data.puntosActivo = puntosActivo;
-  if (typeof puntosPorMil === "number" && puntosPorMil >= 0) data.puntosPorMil = puntosPorMil;
-  if (typeof valorPunto === "number" && valorPunto >= 0) data.valorPunto = valorPunto;
+
+  // Validación estricta: finito, no negativo, dentro de límites razonables.
+  // Sin esto, valores como Infinity o NaN podrían romper cálculos de puntos.
+  if (typeof puntosPorMil === "number") {
+    if (!Number.isFinite(puntosPorMil) || puntosPorMil < 0 || puntosPorMil > 10000) {
+      return NextResponse.json(
+        { error: "puntosPorMil debe ser un número finito entre 0 y 10000" },
+        { status: 400 }
+      );
+    }
+    data.puntosPorMil = puntosPorMil;
+  }
+  if (typeof valorPunto === "number") {
+    if (!Number.isFinite(valorPunto) || valorPunto < 0 || valorPunto > 100000) {
+      return NextResponse.json(
+        { error: "valorPunto debe ser un número finito entre 0 y 100000" },
+        { status: 400 }
+      );
+    }
+    data.valorPunto = valorPunto;
+  }
 
   const updated = await prisma.sucursal.update({
     where: { id: sucursalId },

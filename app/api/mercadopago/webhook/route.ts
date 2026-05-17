@@ -108,24 +108,18 @@ export async function POST(req: NextRequest) {
       }).catch(() => { /* no bloquear */ });
     }
 
-    // Si el pago fue aprobado, notificar por socket
-    if (pagoAprobado && pedidoActual.usuario?.sucursalId) {
+    // Notificar por socket — emite tanto a la sucursal KDS como al room específico
+    // del pedido (al que se suscribe el kiosko que inició el pago) para feedback instantáneo.
+    if ((pagoAprobado || pagoFallido) && pedidoActual.usuario?.sucursalId) {
+      const status = pagoAprobado ? "approved" : paymentData.status;
       const globalForSocket = global as unknown as { io?: import("socket.io").Server };
       try {
         globalForSocket.io
           ?.to(`sucursal_${pedidoActual.usuario.sucursalId}_kds`)
-          .emit("pago:mp", { pedidoId, status: "approved" });
-      } catch { /* no bloquear */ }
-    }
-
-    // Si el pago fallo, notificar por socket para que el kiosko actualice
-    // su pantalla (polling tambien lo detectaria, pero esto es instantaneo)
-    if (pagoFallido && pedidoActual.usuario?.sucursalId) {
-      const globalForSocket = global as unknown as { io?: import("socket.io").Server };
-      try {
+          .emit("pago:mp", { pedidoId, status });
         globalForSocket.io
-          ?.to(`sucursal_${pedidoActual.usuario.sucursalId}_kds`)
-          .emit("pago:mp", { pedidoId, status: paymentData.status });
+          ?.to(`pedido_${pedidoId}_pago`)
+          .emit("pago:mp", { pedidoId, status });
       } catch { /* no bloquear */ }
     }
 
