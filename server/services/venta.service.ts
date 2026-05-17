@@ -539,8 +539,17 @@ export const VentaService = {
       const totalVenta = Math.max(0, subtotal - desc);
       const metodo     = toMetodoPagoVenta(meta.metodoPago);
 
+      // Buscar caja abierta de la sucursal para vincular a cuadratura
+      const cajaAbierta = sucursalId
+        ? await prisma.caja.findFirst({
+            where: { estado: "ABIERTA", sucursalId },
+            select: { id: true },
+            orderBy: { abiertaEn: "desc" },
+          })
+        : null;
+
       await VentaService.create({
-        cajaId:      null,
+        cajaId:      cajaAbierta?.id ?? null,
         clienteId,
         usuarioId,
         sucursalId,
