@@ -143,13 +143,12 @@ export const DeliveryService = {
       return acc + precio * Number(item.cantidad);
     }, 0);
 
-    // ── Validación de cupón server-side ──
+    // Cupón: pre-validación rápida (la validación atómica se hace dentro de la tx)
     let descuento = 0;
     let cuponId: number | null = null;
+    const codigoNorm = cuponCodigo?.toUpperCase().trim() || null;
 
-    if (cuponCodigo) {
-      const codigoNorm = cuponCodigo.toUpperCase().trim();
-
+    if (codigoNorm) {
       const cupon = await prisma.cupon.findUnique({
         where: { sucursalId_codigo: { sucursalId, codigo: codigoNorm } },
       });
@@ -322,8 +321,12 @@ export const DeliveryService = {
         );
       }
 
-      // 6. Incrementar uso del cupón
+      // 6. Validar y incrementar uso del cupón atómicamente dentro de la tx
       if (cuponId) {
+        const cuponFresh = await tx.cupon.findUnique({ where: { id: cuponId }, select: { usoActual: true, usoMax: true } });
+        if (cuponFresh?.usoMax !== null && cuponFresh!.usoActual >= cuponFresh!.usoMax!) {
+          throw new Error("Este cupón ya alcanzó el límite de usos.");
+        }
         await tx.cupon.update({
           where: { id: cuponId },
           data: { usoActual: { increment: 1 } },
@@ -626,30 +629,30 @@ export const DeliveryService = {
 
     // Al confirmar entrega con pago EFECTIVO: descontar pagoRider de la caja del día
     if (input.estado === "ENTREGADO" && meta.metodoPago === "EFECTIVO") {
-      try {
-        const deliveryData = await prisma.pedidoDelivery.findUnique({
-          where: { pedidoId: input.pedidoId },
-          select: { pagoRider: true },
+      const deliveryData = await prisma.pedidoDelivery.findUnique({
+        where: { pedidoId: input.pedidoId },
+        select: { pagoRider: true },
+      });
+      const montoRider = Number(deliveryData?.pagoRider ?? 0);
+      if (montoRider > 0 && pedido.usuario.sucursalId) {
+        const cajaAbierta = await prisma.caja.findFirst({
+          where: { sucursalId: pedido.usuario.sucursalId, estado: "ABIERTA" },
+          select: { id: true },
         });
-        const montoRider = Number(deliveryData?.pagoRider ?? 0);
-        if (montoRider > 0 && pedido.usuario.sucursalId) {
-          const cajaAbierta = await prisma.caja.findFirst({
-            where: { sucursalId: pedido.usuario.sucursalId, estado: "ABIERTA" },
-            select: { id: true },
+        if (cajaAbierta) {
+          await prisma.movimientoCaja.create({
+            data: {
+              tipo: "RETIRO",
+              monto: montoRider,
+              motivo: `Pago rider - Pedido #${input.pedidoId}`,
+              cajaId: cajaAbierta.id,
+              usuarioId: input.userId,
+            },
           });
-          if (cajaAbierta) {
-            await prisma.movimientoCaja.create({
-              data: {
-                tipo: "RETIRO",
-                monto: montoRider,
-                motivo: `Pago rider - Pedido #${input.pedidoId}`,
-                cajaId: cajaAbierta.id,
-                usuarioId: input.userId,
-              },
-            });
-          }
+        } else {
+          console.warn(`[Delivery] No hay caja abierta para registrar pago rider del pedido #${input.pedidoId}`);
         }
-      } catch { /* no bloquear el flujo si falla el movimiento */ }
+      }
     }
 
     await NotificationService.notifyDeliveryStatusChange({
