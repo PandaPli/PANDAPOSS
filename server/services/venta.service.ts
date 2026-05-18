@@ -565,8 +565,16 @@ export const VentaService = {
         pagos: [{ metodoPago: "TARJETA", monto: subtotal }],
       });
     } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        console.warn(
+          `[VentaService] registrarVentaKioskoAprobado: pedido ${pedidoId} ya fue procesado concurrentemente — ignorado`
+        );
+        return;
+      }
       console.error("[VentaService] registrarVentaKioskoAprobado:", e);
-      // Silencioso: no bloquear el flujo del webhook
     }
   },
 
@@ -591,13 +599,14 @@ export const VentaService = {
       // Solo pedidos delivery con clienteId y sin venta previa
       if (!pedido || !pedido.delivery?.clienteId || pedido.venta) return;
 
-      const clienteId  = pedido.delivery.clienteId;
-      const sucursalId = pedido.usuario.sucursalId ?? null;
-      const meta       = parseDeliveryObservation(pedido.observacion);
-      const subtotal   = pedido.detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
-      const desc       = meta.descuento ?? 0;
-      const totalVenta = Math.max(0, subtotal - desc);
-      const metodo     = toMetodoPagoVenta(meta.metodoPago);
+      const clienteId      = pedido.delivery.clienteId;
+      const sucursalId     = pedido.usuario.sucursalId ?? null;
+      const meta           = parseDeliveryObservation(pedido.observacion);
+      const subtotal       = pedido.detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
+      const desc           = meta.descuento ?? 0;
+      const puntosCanjeados = meta.puntosCanjeados ?? 0;
+      const totalVenta     = Math.max(0, subtotal - desc);
+      const metodo         = toMetodoPagoVenta(meta.metodoPago);
 
       // Usar el cajaId del pedido (guardado al crearlo) para vincular la venta al
       // turno correcto, aunque la caja ya haya sido cerrada al momento de la entrega.
@@ -629,9 +638,24 @@ export const VentaService = {
         total:     totalVenta,
         metodoPago: metodo,
         pagos: [{ metodoPago: metodo, monto: totalVenta }],
+        puntosCanjeados,
       });
-    } catch {
-      // Silencioso: nunca bloquear el flujo principal
+    } catch (err) {
+      // P2002 = unique constraint violation en Venta.pedidoId:
+      // dos requests concurrentes intentaron registrar la misma venta.
+      // La transacción interna de VentaService.create hace rollback completo
+      // (stock, puntos, venta) — el resultado final es idempotente y correcto.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        console.warn(
+          `[VentaService] registrarVentaOrdenEntregada: pedido ${pedidoId} ya fue procesado concurrentemente — ignorado`
+        );
+        return;
+      }
+      // Cualquier otro error es inesperado — loguear para debugging
+      console.error("[VentaService] registrarVentaOrdenEntregada:", err);
     }
   },
 };

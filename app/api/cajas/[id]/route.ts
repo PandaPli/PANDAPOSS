@@ -49,7 +49,7 @@ export async function PATCH(
       return NextResponse.json(caja);
     }
     if (action === "cerrar") {
-      const result = await CajaService.cerrar(id, saldoFinal ?? 0, observacion);
+      const result = await CajaService.cerrar(id, saldoFinal ?? 0, observacion, userId);
       return NextResponse.json(result);
     }
     return NextResponse.json({ error: "Acción no válida" }, { status: 400 });

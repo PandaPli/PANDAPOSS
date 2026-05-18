@@ -62,13 +62,22 @@ export async function GET(
 
 /** DELETE /api/cajas/[id]/pedidos-activos
  *  Cancela todos los pedidos activos de la sucursal y libera las mesas afectadas.
- *  ACCIÓN IRREVERSIBLE — solo se invoca tras confirmación explícita del usuario. */
+ *  ACCIÓN IRREVERSIBLE — requiere header X-Confirm-Delete-All: DELETE_ALL_ORDERS. */
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  // Token de confirmación explícita para evitar cancelaciones accidentales
+  const confirm = _req.headers.get("x-confirm-delete-all");
+  if (confirm !== "DELETE_ALL_ORDERS") {
+    return NextResponse.json(
+      { error: "Falta header X-Confirm-Delete-All: DELETE_ALL_ORDERS" },
+      { status: 400 }
+    );
+  }
 
   const { id } = await params;
   const cajaId = Number(id);

@@ -8,6 +8,8 @@ interface DeliveryMetaInput {
   cargoEnvio?: number;
   descuento?: number;
   cuponCodigo?: string | null;
+  /** Puntos canjeados por el cliente al hacer el pedido (para descontar en venta) */
+  puntosCanjeados?: number;
 }
 
 interface DeliveryMetaParsed {
@@ -18,6 +20,8 @@ interface DeliveryMetaParsed {
   cargoEnvio: number;
   descuento: number;
   cuponCodigo: string | null;
+  /** Puntos canjeados por el cliente al hacer el pedido */
+  puntosCanjeados: number;
 }
 
 const DELIVERY_PREFIX = "[DELIVERY]";
@@ -31,6 +35,7 @@ export function buildDeliveryObservation(input: DeliveryMetaInput) {
     cargoEnvio: Number(input.cargoEnvio ?? 0),
     descuento: Number(input.descuento ?? 0),
     cuponCodigo: input.cuponCodigo ?? null,
+    puntosCanjeados: Number(input.puntosCanjeados ?? 0),
   };
 
   return `${DELIVERY_PREFIX}${JSON.stringify(payload)}`;
@@ -46,6 +51,7 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
       cargoEnvio: 0,
       descuento: 0,
       cuponCodigo: null,
+      puntosCanjeados: 0,
     };
   }
 
@@ -59,6 +65,7 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
       cargoEnvio: Number(parsed.cargoEnvio ?? 0),
       descuento: Number((parsed as { descuento?: number }).descuento ?? 0),
       cuponCodigo: (parsed as { cuponCodigo?: string | null }).cuponCodigo ?? null,
+      puntosCanjeados: Number((parsed as { puntosCanjeados?: number }).puntosCanjeados ?? 0),
     };
   } catch {
     return {
@@ -69,6 +76,7 @@ export function parseDeliveryObservation(observacion: string | null | undefined)
       cargoEnvio: 0,
       descuento: 0,
       cuponCodigo: null,
+      puntosCanjeados: 0,
     };
   }
 }

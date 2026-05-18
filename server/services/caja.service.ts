@@ -55,7 +55,7 @@ export const CajaService = {
     });
   },
 
-  async cerrar(id: number, saldoFinal: number, observacion?: string) {
+  async cerrar(id: number, saldoFinal: number, observacion?: string, cerradoPorId?: number) {
     return prisma.$transaction(async (tx) => {
       // Lock pesimista: evita doble-cierre concurrente y bloquea cambios mientras
       // calculamos totales (consistencia entre el snapshot y la actualización final).
@@ -121,13 +121,19 @@ export const CajaService = {
       });
 
       if (arqueoAbierto) {
+        // Incluir userId de quien cerró en la observacion para auditoría
+        // (hasta que se agregue columna cerradoPorId en el schema)
+        const obsConAuditoria = cerradoPorId
+          ? `[cerradoPor:${cerradoPorId}]${observacion ? ` ${observacion}` : ""}`
+          : (observacion ?? null);
+
         await tx.arqueo.update({
           where: { id: arqueoAbierto.id },
           data: {
             saldoFinal,
             totalVentas,
             diferencia,
-            observacion: observacion ?? null,
+            observacion: obsConAuditoria,
             cerradaEn: hasta,
           },
         });
@@ -151,17 +157,26 @@ export const CajaService = {
     const desde = caja.abiertaEn;
     const hasta = new Date(); // C2: cota superior = este momento exacto
 
-    const [desgloseVentas, totalizados, movIngresos, movRetiros, anuladas] = await Promise.all([
+    const ventaWhere = { cajaId: id, estado: "PAGADA" as const, creadoEn: { gte: desde, lte: hasta } };
+
+    const [pagosPorMetodo, ventasPorMetodo, totalizados, movIngresos, movRetiros, anuladas] = await Promise.all([
+      // Desglose REAL de dinero por método — PagoVenta desglosa correctamente los pagos MIXTO
+      prisma.pagoVenta.groupBy({
+        by: ["metodoPago"],
+        _sum: { monto: true },
+        _count: { id: true },
+        where: { venta: ventaWhere },
+      }),
+      // Conteo de transacciones (ventas, no pagos individuales) por método declarado
       prisma.venta.groupBy({
         by: ["metodoPago"],
-        _sum: { total: true },
         _count: { id: true },
-        where: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
+        where: ventaWhere,
       }),
       prisma.venta.aggregate({
         _sum: { total: true },
         _count: { id: true },
-        where: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
+        where: ventaWhere,
       }),
       prisma.movimientoCaja.aggregate({
         _sum: { monto: true },
@@ -195,6 +210,9 @@ export const CajaService = {
       orderBy: { creadoEn: "asc" },
     });
 
+    // Construir breakdown usando PagoVenta como fuente de verdad para el dinero:
+    // - pagosPorMetodo: montos reales por método (MIXTO queda desglosado en EFECTIVO+TARJETA, etc.)
+    // - ventasPorMetodo: cantidad de transacciones (ventas) por método declarado en la venta
     const breakdown: Record<string, { transacciones: number; dinero: number }> = {
       EFECTIVO:      { transacciones: 0, dinero: 0 },
       TARJETA:       { transacciones: 0, dinero: 0 },
@@ -202,24 +220,23 @@ export const CajaService = {
       CREDITO:       { transacciones: 0, dinero: 0 },
       MIXTO:         { transacciones: 0, dinero: 0 },
     };
-    desgloseVentas.forEach((b) => {
-      breakdown[b.metodoPago] = {
-        transacciones: b._count.id,
-        dinero: Number(b._sum.total ?? 0),
-      };
-    });
 
-    // Bug 1 fix: efectivo real desde PagoVenta (incluye pagos MIXTO con componente en efectivo)
-    const efectivoPagosResumen = await prisma.pagoVenta.aggregate({
-      _sum: { monto: true },
-      where: {
-        metodoPago: "EFECTIVO",
-        venta: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
-      },
-    });
-    const efectivoReal = Number(efectivoPagosResumen._sum.monto ?? 0);
-    // Reemplazar el total de efectivo del breakdown con el valor real (PagoVenta)
-    breakdown.EFECTIVO.dinero = efectivoReal;
+    // Montos reales desde PagoVenta (cada método recibe solo su parte)
+    for (const p of pagosPorMetodo) {
+      if (breakdown[p.metodoPago]) {
+        breakdown[p.metodoPago].dinero = Number(p._sum.monto ?? 0);
+      }
+    }
+
+    // Conteo de transacciones desde Venta.metodoPago (refleja cómo se declaró el pago)
+    for (const v of ventasPorMetodo) {
+      if (breakdown[v.metodoPago]) {
+        breakdown[v.metodoPago].transacciones = v._count.id;
+      }
+    }
+
+    // Efectivo real = suma de todos los PagoVenta.EFECTIVO (incluye la parte cash de ventas MIXTO)
+    const efectivoReal = breakdown.EFECTIVO.dinero;
 
     const sumIngresos = Number(movIngresos._sum.monto ?? 0);
     const sumRetiros  = Number(movRetiros._sum.monto  ?? 0);
