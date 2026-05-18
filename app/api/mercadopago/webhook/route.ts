@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getPaymentAPI } from "@/lib/mercadopago";
+import { VentaService } from "@/server/services/venta.service";
 
 // POST /api/mercadopago/webhook — recibe notificaciones IPN de Mercado Pago
 export async function POST(req: NextRequest) {
@@ -106,6 +107,11 @@ export async function POST(req: NextRequest) {
           descripcion: `${pedidoActual.estado} → CANCELADO (pago MP ${paymentData.status})`,
         },
       }).catch(() => { /* no bloquear */ });
+    }
+
+    // Registrar venta kiosko cuando el pago MP se aprueba — así el dinero aparece en caja
+    if (pagoAprobado) {
+      await VentaService.registrarVentaKioskoAprobado(pedidoId);
     }
 
     // Notificar por socket — emite tanto a la sucursal KDS como al room específico

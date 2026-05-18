@@ -509,6 +509,53 @@ export const VentaService = {
   },
 
   /**
+   * Registra la venta de un pedido KIOSKO cuando Mercado Pago aprueba el pago.
+   * - Idempotente: si el pedido ya tiene Venta, no hace nada.
+   * - Silencioso: no lanza excepciones.
+   * - Usa el cajaId del pedido (guardado al crearlo) para vincular al turno correcto.
+   */
+  async registrarVentaKioskoAprobado(pedidoId: number): Promise<void> {
+    try {
+      const pedido = await prisma.pedido.findUnique({
+        where: { id: pedidoId },
+        include: {
+          usuario:  { select: { sucursalId: true, id: true } },
+          detalles: { select: { productoId: true, comboId: true, cantidad: true, precio: true } },
+          venta:    { select: { id: true } },
+        },
+      });
+
+      if (!pedido || pedido.venta) return; // Ya tiene venta — idempotente
+      if (pedido.tipo !== "MOSTRADOR")    return; // Solo para pedidos kiosko
+
+      const subtotal = pedido.detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
+
+      await VentaService.create({
+        cajaId:     pedido.cajaId ?? null,         // Caja del turno en que se creó el pedido
+        usuarioId:  pedido.usuarioId,
+        sucursalId: pedido.usuario?.sucursalId ?? null,
+        pedidoId:   pedido.id,
+        items: pedido.detalles.map((d) => ({
+          productoId: d.productoId ?? undefined,
+          comboId:    d.comboId    ?? undefined,
+          precio:     Number(d.precio ?? 0),
+          cantidad:   d.cantidad,
+          subtotal:   Number(d.precio ?? 0) * d.cantidad,
+        })),
+        subtotal,
+        descuento:  0,
+        impuesto:   0,
+        total:      subtotal,
+        metodoPago: "TARJETA",  // Pago digital MP → se registra como TARJETA
+        pagos: [{ metodoPago: "TARJETA", monto: subtotal }],
+      });
+    } catch (e) {
+      console.error("[VentaService] registrarVentaKioskoAprobado:", e);
+      // Silencioso: no bloquear el flujo del webhook
+    }
+  },
+
+  /**
    * Crea una Venta para acumular puntos cuando un pedido DELIVERY/RETIRO se entrega.
    * - Idempotente: si el pedido ya tiene Venta, no hace nada.
    * - Silencioso: no lanza excepciones.
@@ -537,17 +584,19 @@ export const VentaService = {
       const totalVenta = Math.max(0, subtotal - desc);
       const metodo     = toMetodoPagoVenta(meta.metodoPago);
 
-      // Buscar caja abierta de la sucursal para vincular a cuadratura
-      const cajaAbierta = sucursalId
-        ? await prisma.caja.findFirst({
+      // Usar el cajaId del pedido (guardado al crearlo) para vincular la venta al
+      // turno correcto, aunque la caja ya haya sido cerrada al momento de la entrega.
+      // Fallback: si el pedido no tiene cajaId (caso raro), buscar la caja actualmente abierta.
+      const cajaId = pedido.cajaId ?? (sucursalId
+        ? (await prisma.caja.findFirst({
             where: { estado: "ABIERTA", sucursalId },
             select: { id: true },
             orderBy: { abiertaEn: "desc" },
-          })
-        : null;
+          }))?.id ?? null
+        : null);
 
       await VentaService.create({
-        cajaId:      cajaAbierta?.id ?? null,
+        cajaId,
         clienteId,
         usuarioId,
         sucursalId,

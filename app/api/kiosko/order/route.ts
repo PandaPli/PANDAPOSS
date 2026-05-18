@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PedidoService } from "@/server/services/pedido.service";
+import { VentaService } from "@/server/services/venta.service";
 
 interface KioskoItem {
   productoId: number;
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
   try {
     const pedido = await PedidoService.create({
       usuarioId: sistemaUser.id,
+      cajaId: cajaAbierta.id, // Anclar pedido a la caja activa para que la venta siempre aparezca en el turno correcto
       tipo: "MOSTRADOR",
       items: (items as KioskoItem[]).map((i) => ({
         productoId: i.productoId,
@@ -81,14 +83,47 @@ export async function POST(req: NextRequest) {
       observacion: obs,
     });
 
-    // Si es pago por Mercado Pago, marcamos el pedido como "pending_payment".
-    // El repo de pedidos filtra estos pedidos del KDS hasta que el webhook
-    // de MP los marque como "approved". Si se rechazan, el webhook los cancela.
     if (esPagoMP) {
+      // Pago MP: marcar como pending_payment.
+      // La venta se registrará cuando el webhook confirme el pago aprobado.
       await prisma.pedido.update({
         where: { id: pedido.id },
         data: { mpStatus: "pending_payment" },
       });
+    } else {
+      // Pago en caja (EFECTIVO): registrar venta inmediatamente vinculada a la caja activa.
+      // Esto garantiza que el dinero del kiosko aparezca en el resumen del turno.
+      try {
+        const detalles = await prisma.detallePedido.findMany({
+          where: { pedidoId: pedido.id },
+          select: { productoId: true, comboId: true, cantidad: true, precio: true },
+        });
+        const subtotal = detalles.reduce((acc, d) => acc + Number(d.precio ?? 0) * d.cantidad, 0);
+
+        await VentaService.create({
+          cajaId: cajaAbierta.id,
+          usuarioId: sistemaUser.id,
+          sucursalId: sucursal.id,
+          pedidoId: pedido.id,
+          items: detalles.map((d) => ({
+            productoId: d.productoId ?? undefined,
+            comboId:    d.comboId    ?? undefined,
+            precio:     Number(d.precio ?? 0),
+            cantidad:   d.cantidad,
+            subtotal:   Number(d.precio ?? 0) * d.cantidad,
+          })),
+          subtotal,
+          descuento:  0,
+          impuesto:   0,
+          total:      subtotal,
+          metodoPago: "EFECTIVO",
+          pagos: [{ metodoPago: "EFECTIVO", monto: subtotal }],
+        });
+      } catch (ventaErr) {
+        // No bloquear — el pedido ya fue creado correctamente.
+        // El operador puede registrar la venta manualmente si es necesario.
+        console.error("[kiosko/order] Error al registrar venta:", ventaErr);
+      }
     }
 
     return NextResponse.json({ id: pedido.id, numero: pedido.numero }, { status: 201 });
