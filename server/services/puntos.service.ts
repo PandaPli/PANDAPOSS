@@ -102,13 +102,12 @@ export const PuntosService = {
 
     await prisma.$transaction(async (tx) => {
       for (const mov of movimientos) {
-        // Solo revertir si no fue ya anulado
         const yaAnulado = await tx.movimientoPuntos.findFirst({
-          where: { ventaId, tipo: "ANULADO" },
+          where: { ventaId, clienteId: mov.clienteId, tipo: "ANULADO", puntos: -mov.puntos },
         });
         if (yaAnulado) continue;
 
-        const delta = -mov.puntos; // inverso del movimiento original
+        const delta = -mov.puntos;
         await tx.cliente.update({
           where: { id: mov.clienteId },
           data: { puntos: { increment: delta } },

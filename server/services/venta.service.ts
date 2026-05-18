@@ -502,10 +502,8 @@ export const VentaService = {
       });
     });
 
-    // 4. Revertir puntos si aplica (fuera de la tx principal)
-    await PuntosService.revertirPorAnulacion(ventaId).catch((err) => {
-      console.error("[VentaService] revertirPuntos:", err);
-    });
+    // 4. Revertir puntos si aplica
+    await PuntosService.revertirPorAnulacion(ventaId);
 
     return { id: ventaId, estado: "ANULADA" };
   },

@@ -31,35 +31,46 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Pedido de otra sucursal" }, { status: 403 });
   }
 
-  // Solo tomar si está sin asignar
-  if (pedido.repartidorId !== null) {
-    return NextResponse.json({ error: "Este pedido ya tiene repartidor asignado" }, { status: 409 });
-  }
-
   // Generar código de entrega numérico de 4 dígitos
   const codigoEntrega = String(Math.floor(1000 + Math.random() * 9000));
 
-  // Buscar el id del Repartidor record (puede no existir aún)
-  const repartidorRecord = await prisma.repartidor.upsert({
-    where: { usuarioId: userId },
-    update: { estado: "EN_RUTA" },
-    create: { usuarioId: userId, vehiculo: "No especificado", estado: "EN_RUTA" },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Re-check dentro de la transacción para evitar race condition
+      const fresh = await tx.pedido.findUnique({
+        where: { id: pedidoId },
+        select: { repartidorId: true },
+      });
+      if (fresh?.repartidorId !== null) {
+        throw new Error("ALREADY_ASSIGNED");
+      }
 
-  await prisma.$transaction([
-    prisma.pedido.update({
-      where: { id: pedidoId },
-      data: { repartidorId: userId },
-    }),
-    prisma.pedidoDelivery.updateMany({
-      where: { pedidoId },
-      data: {
-        repartidorId: repartidorRecord.id,
-        codigoEntrega,
-        estado: "CONFIRMADO",
-      },
-    }),
-  ]);
+      const repartidorRecord = await tx.repartidor.upsert({
+        where: { usuarioId: userId },
+        update: { estado: "EN_RUTA" },
+        create: { usuarioId: userId, vehiculo: "No especificado", estado: "EN_RUTA" },
+      });
+
+      await tx.pedido.update({
+        where: { id: pedidoId },
+        data: { repartidorId: userId },
+      });
+
+      await tx.pedidoDelivery.updateMany({
+        where: { pedidoId },
+        data: {
+          repartidorId: repartidorRecord.id,
+          codigoEntrega,
+          estado: "CONFIRMADO",
+        },
+      });
+    });
+  } catch (err: any) {
+    if (err?.message === "ALREADY_ASSIGNED") {
+      return NextResponse.json({ error: "Este pedido ya tiene repartidor asignado" }, { status: 409 });
+    }
+    throw err;
+  }
 
   return NextResponse.json({ ok: true, codigoEntrega });
 }
