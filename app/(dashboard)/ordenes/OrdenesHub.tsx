@@ -7,8 +7,9 @@ import {
   Eye, Printer, X, MapPin, CreditCard, Truck, ShoppingCart,
   PackageCheck, RefreshCw, Copy, Check,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { useKdsSocket } from "@/hooks/useKdsSocket";
 
 /* ── Types ── */
 interface ProductoDetalle {
@@ -57,6 +58,7 @@ interface Props {
   simbolo:          string;
   sucursalNombre:   string;
   pedidoUrl:        string;
+  sucursalId:       number | null;
 }
 
 /* ── Estado → config visual ── */
@@ -85,12 +87,33 @@ const HUBS = [
 /* ════════════════════════════════════════
    Hub principal
 ════════════════════════════════════════ */
-export function OrdenesHub({ deliveryPedidos, llevarPedidos, mesaPedidos, simbolo, sucursalNombre, pedidoUrl }: Props) {
+export function OrdenesHub({ deliveryPedidos, llevarPedidos, mesaPedidos, simbolo, sucursalNombre, pedidoUrl, sucursalId }: Props) {
   const [selected,     setSelected]     = useState<AnyPedido | null>(null);
   const [deliveryList, setDeliveryList] = useState(deliveryPedidos);
   const [llevarList,   setLlevarList]   = useState(llevarPedidos);
   const [mesaList,     setMesaList]     = useState(mesaPedidos);
   const [loadingId,    setLoadingId]    = useState<number | null>(null);
+
+  const fetchSeq = useRef(0);
+  const fetchData = useCallback(async () => {
+    const seq = ++fetchSeq.current;
+    try {
+      const res = await fetch("/api/ordenes/hub");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (seq !== fetchSeq.current) return;
+      setDeliveryList(data.delivery);
+      setLlevarList(data.llevar);
+      setMesaList(data.mesa);
+    } catch { /* no bloquear */ }
+  }, []);
+
+  useKdsSocket(sucursalId, fetchData);
+
+  useEffect(() => {
+    const interval = setInterval(fetchData, 6000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   async function completarPedido(pedido: AnyPedido) {
     setLoadingId(pedido.id);
@@ -109,6 +132,7 @@ export function OrdenesHub({ deliveryPedidos, llevarPedidos, mesaPedidos, simbol
         setMesaList((prev) => prev.filter((p) => p.id !== pedido.id));
       }
       setSelected(null);
+      setTimeout(fetchData, 500);
     } catch { /* ignore */ } finally {
       setLoadingId(null);
     }

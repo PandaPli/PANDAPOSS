@@ -16,6 +16,7 @@ const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNod
   { key: "COCINA", label: "Cocina", icon: <ChefHat size={16} /> },
   { key: "BAR", label: "Bar", icon: <Wine size={16} /> },
   { key: "DELIVERY", label: "Delivery", icon: <Bike size={16} /> },
+  { key: "MOSTRADOR", label: "Retiro", icon: <ShoppingBag size={16} /> },
 ];
 
 interface Props {

@@ -254,6 +254,7 @@ export default async function OrdenesPage() {
       simbolo={simbolo}
       sucursalNombre={sucursalNombre}
       pedidoUrl={pedidoUrl}
+      sucursalId={sucursalId}
     />
   );
 }
