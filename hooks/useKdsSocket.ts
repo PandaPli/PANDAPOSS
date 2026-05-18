@@ -10,11 +10,16 @@ let socket: Socket | null = null;
  * Se conecta al room `sucursal_${sucursalId}_kds` y llama `onRefresh`
  * cuando llegan eventos de pedido nuevo o actualizado.
  * Retorna `connected` para que la UI pueda mostrar estado de conexión.
+ *
+ * IMPORTANTE: cuando `sucursalId` cambia, abandona la room anterior antes de
+ * unirse a la nueva para evitar que eventos de otra sucursal lleguen al KDS.
  */
 export function useKdsSocket(sucursalId: number | null, onRefresh: () => void) {
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
   const [connected, setConnected] = useState(false);
+  // Tracking de la sala a la que está unido actualmente para poder abandonarla
+  const joinedRoomRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!sucursalId) return;
@@ -23,7 +28,13 @@ export function useKdsSocket(sucursalId: number | null, onRefresh: () => void) {
       socket = ioClient({ path: "/api/socket/io", reconnectionAttempts: 10 });
     }
 
+    // Si ya estábamos en una room distinta, abandonarla primero
+    if (joinedRoomRef.current !== null && joinedRoomRef.current !== sucursalId) {
+      socket.emit("kds:leave", joinedRoomRef.current);
+    }
     socket.emit("kds:join", sucursalId);
+    joinedRoomRef.current = sucursalId;
+
     if (socket.connected) setConnected(true);
 
     function handleUpdate() {
@@ -33,6 +44,7 @@ export function useKdsSocket(sucursalId: number | null, onRefresh: () => void) {
       setConnected(true);
       // Re-join al reconectar: el server pierde las rooms al desconectar
       socket?.emit("kds:join", sucursalId!);
+      joinedRoomRef.current = sucursalId;
       // Refrescar para recuperar eventos perdidos durante la desconexión
       onRefreshRef.current();
     }
@@ -56,6 +68,9 @@ export function useKdsSocket(sucursalId: number | null, onRefresh: () => void) {
       socket?.off("connect", handleConnect);
       socket?.off("disconnect", handleDisconnect);
       socket?.off("connect_error", handleError);
+      // Al desmontar, abandonar la room limpiamente
+      socket?.emit("kds:leave", sucursalId);
+      joinedRoomRef.current = null;
     };
   }, [sucursalId]);
 

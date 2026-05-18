@@ -126,6 +126,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Emitir al KDS solo cuando el pedido ya está listo para preparar.
+    // Para MP, el pedido tiene estado "pending_payment" y NO debe aparecer en KDS
+    // hasta que el webhook confirme el pago (el webhook emitirá después).
+    if (!esPagoMP) {
+      const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+      try {
+        globalForSocket.io
+          ?.to(`sucursal_${sucursal.id}_kds`)
+          .emit("pedido:nuevo", { id: pedido.id });
+      } catch { /* no bloquear */ }
+    }
+
     return NextResponse.json({ id: pedido.id, numero: pedido.numero }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

@@ -19,6 +19,11 @@ export async function POST(
   const rol = (session.user as { rol: Rol }).rol;
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
+  // Solo ADMIN_GENERAL, RESTAURANTE y CASHIER pueden hacer ingresos/retiros
+  if (!["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"].includes(rol)) {
+    return NextResponse.json({ error: "Sin permisos para registrar movimientos de caja" }, { status: 403 });
+  }
+
   if (!tipo || !monto || !motivo)
     return NextResponse.json({ error: "Faltan datos obligatorios (tipo, monto, motivo)" }, { status: 400 });
 

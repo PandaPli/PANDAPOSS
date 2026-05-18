@@ -2,6 +2,16 @@ import { prisma } from "@/lib/db";
 import { CajaRepo } from "@/server/repositories/caja.repo";
 import { Prisma } from "@prisma/client";
 
+const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+
+function emitCajaEstado(sucursalId: number, estado: "ABIERTA" | "CERRADA", cajaId: number) {
+  try {
+    globalForSocket.io
+      ?.to(`sucursal_${sucursalId}_alertas`)
+      .emit("caja:estado", { sucursalId, cajaId, estado });
+  } catch { /* no bloquear */ }
+}
+
 export const CajaService = {
   async abrir(id: number, userId: number, saldoInicio: number) {
     return prisma.$transaction(async (tx) => {
@@ -38,6 +48,9 @@ export const CajaService = {
         }),
       ]);
 
+      // Notificar a clientes conectados que la caja fue abierta
+      emitCajaEstado(caja.sucursalId, "ABIERTA", id);
+
       return cajaActualizada;
     });
   },
@@ -47,9 +60,9 @@ export const CajaService = {
       // Lock pesimista: evita doble-cierre concurrente y bloquea cambios mientras
       // calculamos totales (consistencia entre el snapshot y la actualización final).
       const cajas = await tx.$queryRaw<
-        { id: number; estado: string; saldoInicio: number; abiertaEn: Date | null }[]
+        { id: number; estado: string; saldoInicio: number; abiertaEn: Date | null; sucursalId: number }[]
       >(
-        Prisma.sql`SELECT id, estado, saldoInicio, abiertaEn FROM cajas WHERE id = ${id} LIMIT 1 FOR UPDATE`
+        Prisma.sql`SELECT id, estado, saldoInicio, abiertaEn, "sucursalId" FROM cajas WHERE id = ${id} LIMIT 1 FOR UPDATE`
       );
       const caja = cajas[0];
       if (!caja) throw new Error("Caja no encontrada");
@@ -119,6 +132,9 @@ export const CajaService = {
           },
         });
       }
+
+      // Notificar a clientes conectados que la caja fue cerrada
+      emitCajaEstado(caja.sucursalId, "CERRADA", id);
 
       return { ...cajaActualizada, totalVentas, diferencia, totalEfectivo };
     });

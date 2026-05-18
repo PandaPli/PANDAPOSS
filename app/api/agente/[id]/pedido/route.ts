@@ -137,6 +137,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
+    // Notificar KDS para que la cocina vea el pedido en tiempo real
+    const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+    try {
+      globalForSocket.io
+        ?.to(`sucursal_${sucursalId}_kds`)
+        .emit("pedido:nuevo", { id: pedidoId });
+    } catch { /* no bloquear */ }
+
     return NextResponse.json({ pedidoId, total }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error interno";

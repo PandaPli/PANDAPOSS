@@ -118,14 +118,24 @@ export async function POST(req: NextRequest) {
     // del pedido (al que se suscribe el kiosko que inició el pago) para feedback instantáneo.
     if ((pagoAprobado || pagoFallido) && pedidoActual.usuario?.sucursalId) {
       const status = pagoAprobado ? "approved" : paymentData.status;
+      const sucursalId = pedidoActual.usuario.sucursalId;
       const globalForSocket = global as unknown as { io?: import("socket.io").Server };
       try {
+        // Notificación de estado de pago al kiosko y al panel de estado
         globalForSocket.io
-          ?.to(`sucursal_${pedidoActual.usuario.sucursalId}_kds`)
+          ?.to(`sucursal_${sucursalId}_kds`)
           .emit("pago:mp", { pedidoId, status });
         globalForSocket.io
           ?.to(`pedido_${pedidoId}_pago`)
           .emit("pago:mp", { pedidoId, status });
+
+        // Cuando el pago se aprueba, el pedido pending_payment pasa a PENDIENTE
+        // y debe aparecer en KDS como pedido nuevo para que la cocina lo prepare.
+        if (pagoAprobado) {
+          globalForSocket.io
+            ?.to(`sucursal_${sucursalId}_kds`)
+            .emit("pedido:nuevo", { id: pedidoId });
+        }
       } catch { /* no bloquear */ }
     }
 
