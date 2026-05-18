@@ -96,8 +96,12 @@ export function ClientePerfilClient({ clienteId }: { clienteId: number }) {
 
   useEffect(() => {
     fetch(`/api/clientes/${clienteId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((d) => setCliente(d))
+      .catch((err) => console.error("[ClientePerfil] fetch error:", err))
       .finally(() => setLoading(false));
   }, [clienteId]);
 

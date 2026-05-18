@@ -12,16 +12,21 @@ export async function GET(req: NextRequest) {
   const rol = (session.user as { rol: Rol }).rol;
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
-  const { searchParams } = new URL(req.url);
-  const pedidos = await PedidoRepo.list({
-    sucursalId,
-    isAdmin: rol === "ADMIN_GENERAL",
-    tipo:        searchParams.get("tipo"),
-    estado:      searchParams.get("estado"),
-    completados: searchParams.get("completados") === "1",
-  });
+  try {
+    const { searchParams } = new URL(req.url);
+    const pedidos = await PedidoRepo.list({
+      sucursalId,
+      isAdmin: rol === "ADMIN_GENERAL",
+      tipo:        searchParams.get("tipo"),
+      estado:      searchParams.get("estado"),
+      completados: searchParams.get("completados") === "1",
+    });
 
-  return NextResponse.json(pedidos);
+    return NextResponse.json(pedidos);
+  } catch (err) {
+    console.error("[GET /api/pedidos]", err);
+    return NextResponse.json({ error: "Error al obtener pedidos" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -41,15 +46,22 @@ export async function POST(req: NextRequest) {
   }
 
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
-  const pedido = await PedidoService.create({ ...body, usuarioId: userId });
 
-  // Notificar KDS en tiempo real
-  const globalForSocket = global as unknown as { io?: import("socket.io").Server };
   try {
-    if (sucursalId) {
-      globalForSocket.io?.to(`sucursal_${sucursalId}_kds`).emit("pedido:nuevo", { id: pedido.id });
-    }
-  } catch { /* no bloquear */ }
+    const pedido = await PedidoService.create({ ...body, usuarioId: userId });
 
-  return NextResponse.json(pedido, { status: 201 });
+    // Notificar KDS en tiempo real
+    const globalForSocket = global as unknown as { io?: import("socket.io").Server };
+    try {
+      if (sucursalId) {
+        globalForSocket.io?.to(`sucursal_${sucursalId}_kds`).emit("pedido:nuevo", { id: pedido.id });
+      }
+    } catch { /* no bloquear */ }
+
+    return NextResponse.json(pedido, { status: 201 });
+  } catch (err: any) {
+    console.error("[POST /api/pedidos]", err);
+    const msg = err?.message || "Error al crear pedido";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
 }

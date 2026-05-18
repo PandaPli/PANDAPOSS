@@ -52,7 +52,9 @@ function AgenteCard({ sucursal, onRefresh }: { sucursal: Sucursal; onRefresh: ()
           const data = await res.json();
           setAgente(data);
         }
-      } catch {}
+      } catch (err) {
+        console.warn("[AgenteCard] Error polling status:", err);
+      }
     }, 3000);
     return () => clearInterval(interval);
   }, [agente?.id, agente?.activo, agente?.estado]);
@@ -70,7 +72,9 @@ function AgenteCard({ sucursal, onRefresh }: { sucursal: Sucursal; onRefresh: ()
         setAgente(prev => prev ? { ...prev, ...data } : data);
         onRefresh();
       }
-    } catch {}
+    } catch (err) {
+      console.error("[AgenteCard] Error toggling agente:", err);
+    }
     setToggling(false);
   }
 
@@ -130,7 +134,7 @@ function AgenteCard({ sucursal, onRefresh }: { sucursal: Sucursal; onRefresh: ()
             Escanea con WhatsApp → Dispositivos vinculados
           </div>
           <img
-            src={agente!.qrBase64!}
+            src={agente?.qrBase64 ?? ""}
             alt="QR WhatsApp"
             className="w-48 h-48 rounded-xl border-4 border-white shadow-md"
           />

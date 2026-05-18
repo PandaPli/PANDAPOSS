@@ -34,16 +34,21 @@ export async function GET(req: NextRequest) {
     andFilters.push({ categoriaId: Number(categoriaId) });
   }
 
-  const productos = await prisma.producto.findMany({
-    where: {
-      activo: true,
-      ...(andFilters.length > 0 ? { AND: andFilters } : {}),
-    },
-    include: { categoria: { select: { nombre: true } } },
-    orderBy: { nombre: "asc" },
-  });
+  try {
+    const productos = await prisma.producto.findMany({
+      where: {
+        activo: true,
+        ...(andFilters.length > 0 ? { AND: andFilters } : {}),
+      },
+      include: { categoria: { select: { nombre: true } } },
+      orderBy: { nombre: "asc" },
+    });
 
-  return NextResponse.json(productos);
+    return NextResponse.json(productos);
+  } catch (err) {
+    console.error("[GET /api/productos]", err);
+    return NextResponse.json({ error: "Error al obtener productos" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -64,29 +69,34 @@ export async function POST(req: NextRequest) {
   const { allowed, error: limitError } = await checkLimit(effectiveSucursalId, "productos");
   if (!allowed) return NextResponse.json({ error: limitError }, { status: 403 });
 
-  const producto = await prisma.producto.create({
-    data: {
-      codigo: codigo.toUpperCase(),
-      nombre,
-      descripcion: descripcion || null,
-      precio,
-      costo: costo || null,
-      stock: stock || 0,
-      stockMinimo: stockMinimo || 0,
-      categoriaId: categoriaId || null,
-      ivaActivo: ivaActivo || false,
-      ivaPorc: ivaPorc || 0,
-      imagen: imagen || null,
-      enMenu: enMenu ?? true,
-      enMenuQR: enMenuQR ?? true,
-      enKiosko: enKiosko ?? true,
-      inventariable: inventariable ?? false,
-      // Asignar sucursal al producto (salvo ADMIN_GENERAL que puede crear globales)
-      sucursalId: rol !== "ADMIN_GENERAL" ? sucursalId : (body.sucursalId ?? null),
-    },
-  });
+  try {
+    const producto = await prisma.producto.create({
+      data: {
+        codigo: codigo.toUpperCase(),
+        nombre,
+        descripcion: descripcion || null,
+        precio,
+        costo: costo || null,
+        stock: stock || 0,
+        stockMinimo: stockMinimo || 0,
+        categoriaId: categoriaId || null,
+        ivaActivo: ivaActivo || false,
+        ivaPorc: ivaPorc || 0,
+        imagen: imagen || null,
+        enMenu: enMenu ?? true,
+        enMenuQR: enMenuQR ?? true,
+        enKiosko: enKiosko ?? true,
+        inventariable: inventariable ?? false,
+        sucursalId: rol !== "ADMIN_GENERAL" ? sucursalId : (body.sucursalId ?? null),
+      },
+    });
 
-  return NextResponse.json(producto, { status: 201 });
+    return NextResponse.json(producto, { status: 201 });
+  } catch (err: any) {
+    console.error("[POST /api/productos]", err);
+    const msg = err?.code === "P2002" ? "Ya existe un producto con ese código" : "Error al crear producto";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {

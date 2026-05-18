@@ -17,17 +17,19 @@ interface Window {
 }
 
 // Map global persistente en el proceso Node.js (survives HMR en dev)
-const globalForRL = global as unknown as { _rlStore?: Map<string, Window> };
+const globalForRL = global as unknown as { _rlStore?: Map<string, Window>; _rlTimer?: ReturnType<typeof setInterval> };
 if (!globalForRL._rlStore) globalForRL._rlStore = new Map();
 const store = globalForRL._rlStore;
 
-// Limpiar entradas expiradas cada 5 minutos para evitar memory leak
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, win] of store) {
-    if (now > win.resetAt) store.delete(key);
-  }
-}, 5 * 60 * 1000);
+// Limpiar entradas expiradas cada 5 minutos (un solo interval por proceso)
+if (!globalForRL._rlTimer) {
+  globalForRL._rlTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, win] of store) {
+      if (now > win.resetAt) store.delete(key);
+    }
+  }, 5 * 60 * 1000);
+}
 
 export interface RateLimitOptions {
   /** Máximo de requests permitidos en la ventana */

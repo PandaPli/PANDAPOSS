@@ -35,9 +35,12 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
 
   useEffect(() => {
     fetch("/api/blob/list")
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => { setBlobs(data); setLoadingBlobs(false); })
-      .catch(() => setLoadingBlobs(false));
+      .catch((err) => { console.error("[Fotos] fetch blobs error:", err); setLoadingBlobs(false); });
   }, []);
 
   const sucursales = ["todas", ...Array.from(new Set(localProds.map(p => p.sucursal ?? "Sin sucursal")))];
@@ -117,6 +120,7 @@ export function FotosClient({ productos }: { productos: Producto[] }) {
         const fd = new FormData();
         fd.append("file", file);
         const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!res.ok) { console.error("[Fotos] upload error:", res.status); continue; }
         const data = await res.json();
         if (data.url) setBlobs(prev => [{ url: data.url, pathname: file.name }, ...prev]);
       }

@@ -15,31 +15,36 @@ export async function GET(req: NextRequest) {
   const rol = (session.user as { rol: Rol }).rol;
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
-  const clientes = await prisma.cliente.findMany({
-    where: {
-      activo: true,
-      ...(rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {}),
-      ...(q
-        ? {
-            OR: [
-              { nombre: { contains: q } },
-              { email: { contains: q } },
-              { telefono: { contains: q } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { nombre: "asc" },
-    select: {
-      id: true, nombre: true, email: true, telefono: true,
-      direccion: true, genero: true, fechaNacimiento: true,
-      codigoCumple: true, activo: true, sucursalId: true,
-      puntos: true, rut: true,
-      sucursal: { select: { id: true, nombre: true } },
-    },
-  });
+  try {
+    const clientes = await prisma.cliente.findMany({
+      where: {
+        activo: true,
+        ...(rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {}),
+        ...(q
+          ? {
+              OR: [
+                { nombre: { contains: q } },
+                { email: { contains: q } },
+                { telefono: { contains: q } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: { nombre: "asc" },
+      select: {
+        id: true, nombre: true, email: true, telefono: true,
+        direccion: true, genero: true, fechaNacimiento: true,
+        codigoCumple: true, activo: true, sucursalId: true,
+        puntos: true, rut: true,
+        sucursal: { select: { id: true, nombre: true } },
+      },
+    });
 
-  return NextResponse.json(clientes);
+    return NextResponse.json(clientes);
+  } catch (err) {
+    console.error("[GET /api/clientes]", err);
+    return NextResponse.json({ error: "Error al obtener clientes" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -67,19 +72,25 @@ export async function POST(req: NextRequest) {
     cleanTelefono = cleanTelefono.trim();
   }
 
-  const cliente = await prisma.cliente.create({
-    data: {
-      nombre,
-      email: email || null,
-      telefono: cleanTelefono,
-      direccion: direccion || null,
-      genero: genero || null,
-      fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null,
-      sucursalId: effectiveSucursalId,
-    },
-  });
+  try {
+    const cliente = await prisma.cliente.create({
+      data: {
+        nombre,
+        email: email || null,
+        telefono: cleanTelefono,
+        direccion: direccion || null,
+        genero: genero || null,
+        fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : null,
+        sucursalId: effectiveSucursalId,
+      },
+    });
 
-  return NextResponse.json(cliente, { status: 201 });
+    return NextResponse.json(cliente, { status: 201 });
+  } catch (err: any) {
+    console.error("[POST /api/clientes]", err);
+    const msg = err?.code === "P2002" ? "Ya existe un cliente con esos datos" : "Error al crear cliente";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
