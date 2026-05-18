@@ -201,6 +201,7 @@ export const DeliveryService = {
           tipo: "DELIVERY",
           estado: "PENDIENTE",
           usuarioId: usuarioSistema.id,
+          cajaId: cajaAbierta.id,  // Anclar al turno actual para que la venta aparezca en caja aunque la caja cierre antes de la entrega
           direccionEntrega: cliente.direccion.trim(),
           telefonoCliente: cliente.telefono.trim(),
           observacion: buildDeliveryObservation({
