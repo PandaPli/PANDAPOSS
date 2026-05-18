@@ -39,24 +39,38 @@ export async function GET(req: NextRequest) {
   const limpio = telefono.replace(/\D/g, "").slice(-8);
   if (limpio.length < 7) return NextResponse.json(null, { status: 404 });
 
-  const cliente = await prisma.cliente.findFirst({
-    where: {
-      telefono: { endsWith: limpio },
-      sucursalId: idNum,
-      activo: true,
-    },
-    include: {
-      direcciones: { take: 1, orderBy: { id: "desc" } },
-    },
-  });
+  const [cliente, sucursalPuntos] = await Promise.all([
+    prisma.cliente.findFirst({
+      where: {
+        telefono: { endsWith: limpio },
+        sucursalId: idNum,
+        activo: true,
+      },
+      include: {
+        direcciones: { take: 1, orderBy: { id: "desc" } },
+      },
+    }),
+    // Leer configuración de puntos de la sucursal para calcular valor de canje
+    prisma.sucursal.findUnique({
+      where: { id: idNum },
+      select: { puntosActivo: true, valorPunto: true },
+    }),
+  ]);
 
   if (!cliente) return NextResponse.json(null, { status: 404 });
 
-  // Devolver solo los campos necesarios para el formulario de delivery
+  // Solo exponer puntos si la sucursal tiene el programa activo
+  const puntosActivo = sucursalPuntos?.puntosActivo ?? false;
+  const valorPunto   = puntosActivo ? Number(sucursalPuntos?.valorPunto ?? 0) : 0;
+
   return NextResponse.json({
     nombre: cliente.nombre,
     telefono: cliente.telefono,
     direccion: cliente.direcciones[0]?.calle ?? cliente.direccion ?? "",
     referencia: cliente.direcciones[0]?.referencia ?? "",
+    // Puntos solo si el programa está activo
+    puntos: puntosActivo ? (cliente.puntos ?? 0) : 0,
+    valorPunto,
+    puntosActivo,
   });
 }

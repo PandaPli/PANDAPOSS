@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const puntosCanjeados = Number(body.puntosCanjeados ?? 0);
+
     const result = await DeliveryService.createPublicOrder({
       sucursalId: Number(body.sucursalId),
       items: Array.isArray(body.items) ? (body.items as DeliveryItemInput[]) : [],
@@ -31,6 +33,7 @@ export async function POST(req: NextRequest) {
       cargoEnvio: Number(body.cargoEnvio ?? 0),
       zonaDelivery: typeof body.zonaDelivery === "string" ? body.zonaDelivery : undefined,
       cuponCodigo: typeof body.cuponCodigo === "string" ? body.cuponCodigo : null,
+      puntosCanjeados: Number.isFinite(puntosCanjeados) && puntosCanjeados >= 0 ? puntosCanjeados : 0,
     });
 
     return NextResponse.json(result, { status: 201 });

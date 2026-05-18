@@ -116,7 +116,8 @@ model Usuario {
   creadoEn          DateTime         @default(now())
   actualizadoEn     DateTime         @updatedAt
   tenantId          String?
-  arqueos           Arqueo[]
+  arqueos           Arqueo[]         @relation("ArqueoAbiertoPor")
+  arqueosCerrados   Arqueo[]         @relation("ArqueoCerradoPor")
   cajas             Caja[]
   empleadoRrhh      Empleado?
   logs              Log[]
@@ -359,21 +360,24 @@ model MovimientoCaja {
 }
 
 model Arqueo {
-  id          Int       @id @default(autoincrement())
-  cajaId      Int
-  usuarioId   Int
-  saldoInicio Decimal   @db.Decimal(10, 2)
-  saldoFinal  Decimal?  @db.Decimal(10, 2)
-  totalVentas Decimal?  @db.Decimal(10, 2)
-  diferencia  Decimal?  @db.Decimal(10, 2)
-  observacion String?   @db.Text
-  abiertaEn   DateTime  @default(now())
-  cerradaEn   DateTime?
-  caja        Caja      @relation(fields: [cajaId], references: [id])
-  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
+  id            Int       @id @default(autoincrement())
+  cajaId        Int
+  usuarioId     Int
+  cerradoPorId  Int?
+  saldoInicio   Decimal   @db.Decimal(10, 2)
+  saldoFinal    Decimal?  @db.Decimal(10, 2)
+  totalVentas   Decimal?  @db.Decimal(10, 2)
+  diferencia    Decimal?  @db.Decimal(10, 2)
+  observacion   String?   @db.Text
+  abiertaEn     DateTime  @default(now())
+  cerradaEn     DateTime?
+  caja          Caja      @relation(fields: [cajaId], references: [id])
+  usuario       Usuario   @relation("ArqueoAbiertoPor", fields: [usuarioId], references: [id])
+  cerradoPor    Usuario?  @relation("ArqueoCerradoPor", fields: [cerradoPorId], references: [id])
 
   @@index([cajaId], map: "arqueos_cajaId_fkey")
   @@index([usuarioId], map: "arqueos_usuarioId_fkey")
+  @@index([cerradoPorId], map: "arqueos_cerradoPorId_fkey")
   @@map("arqueos")
 }
 

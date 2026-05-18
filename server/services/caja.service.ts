@@ -121,20 +121,16 @@ export const CajaService = {
       });
 
       if (arqueoAbierto) {
-        // Incluir userId de quien cerró en la observacion para auditoría
-        // (hasta que se agregue columna cerradoPorId en el schema)
-        const obsConAuditoria = cerradoPorId
-          ? `[cerradoPor:${cerradoPorId}]${observacion ? ` ${observacion}` : ""}`
-          : (observacion ?? null);
-
         await tx.arqueo.update({
           where: { id: arqueoAbierto.id },
           data: {
             saldoFinal,
             totalVentas,
             diferencia,
-            observacion: obsConAuditoria,
+            observacion: observacion ?? null,
             cerradaEn: hasta,
+            // Registrar quién cerró la caja en columna dedicada (trazabilidad de auditoría)
+            ...(cerradoPorId ? { cerradoPorId } : {}),
           },
         });
       }

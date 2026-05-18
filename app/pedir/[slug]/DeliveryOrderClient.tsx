@@ -298,6 +298,11 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
   const [showCheckoutSheet, setShowCheckoutSheet] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [clientFoundLabel, setClientFoundLabel] = useState("");
+  // Puntos de fidelidad del cliente identificado
+  const [saldoPuntos, setSaldoPuntos] = useState(0);
+  const [valorPunto, setValorPunto] = useState(0);
+  const [puntosActivo, setPuntosActivo] = useState(false);
+  const [puntosCanjeados, setPuntosCanjeados] = useState(0);
   const [sugerenciaDireccion, setSugerenciaDireccion] = useState<{calle: string, referencia: string} | null>(null);
   const direccionRef = useRef(direccion);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -352,7 +357,10 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
     () => cart.reduce((acc, item) => acc + item.cantidad, 0),
     [cart]
   );
-  const total = subtotal + (modoRetiro ? 0 : (zonaSeleccionada?.precio ?? 0));
+  const descuentoPuntosValor = puntosCanjeados > 0 && valorPunto > 0
+    ? Math.round(puntosCanjeados * valorPunto) / 1000
+    : 0;
+  const total = Math.max(0, subtotal + (modoRetiro ? 0 : (zonaSeleccionada?.precio ?? 0)) - descuentoPuntosValor);
 
   function addItem(producto: Producto, selectedOpciones?: CartOpcion[]) {
     const opKey = selectedOpciones?.map(o => o.opcionId).sort().join("-") ?? "";
@@ -433,9 +441,13 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
   useEffect(() => { direccionRef.current = direccion; }, [direccion]);
 
   useEffect(() => {
-    // Si el usuario borra el telefono, limpiamos el badge
+    // Si el usuario borra el telefono, limpiamos el badge y los puntos
     if (telefono.length < 8) {
       setClientFoundLabel("");
+      setSaldoPuntos(0);
+      setValorPunto(0);
+      setPuntosActivo(false);
+      setPuntosCanjeados(0);
     }
 
     // Buscamos autofill cuando el numero tiene 8-9 dígitos (el prefijo +56 ya está fijo)
@@ -465,6 +477,16 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                   setDireccion(data.direccion);
                   setReferencia(data.referencia || "");
                 }
+              }
+
+              // Cargar saldo de puntos si el programa está activo
+              if (data.puntosActivo && data.puntos > 0) {
+                setSaldoPuntos(data.puntos);
+                setValorPunto(data.valorPunto ?? 0);
+                setPuntosActivo(true);
+              } else {
+                setSaldoPuntos(0);
+                setPuntosActivo(false);
               }
             }
           }
@@ -522,6 +544,7 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
           metodoPago: paymentSeleccionado.method,
           cargoEnvio: modoRetiro ? 0 : (zonaSeleccionada?.precio ?? 0),
           zonaDelivery: modoRetiro ? "Retiro en tienda" : (zonaSeleccionada?.nombre ?? null),
+          puntosCanjeados: puntosCanjeados > 0 ? puntosCanjeados : undefined,
           items: cart.map((item) => ({
             productoId: item.id,
             cantidad: item.cantidad,
@@ -1120,6 +1143,39 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                       <p className="text-[13px] font-bold text-emerald-600 px-2 -mt-1">{clientFoundLabel}</p>
                     )}
 
+                    {/* Canje de puntos — visible cuando el cliente tiene saldo */}
+                    {puntosActivo && saldoPuntos > 0 && (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles size={14} className="text-amber-500" />
+                            <span className="text-xs font-black text-amber-700">Tus puntos</span>
+                          </div>
+                          <span className="text-xs font-bold text-amber-900">{saldoPuntos} pts = {formatCurrency(Math.round(saldoPuntos * valorPunto) / 1000, sucursal.simbolo)}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-stone-500">
+                            <span>Canjear</span>
+                            <span className="font-bold text-emerald-700">-{formatCurrency(descuentoPuntosValor, sucursal.simbolo)}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={saldoPuntos}
+                            step={1}
+                            value={puntosCanjeados}
+                            onChange={(e) => setPuntosCanjeados(Number(e.target.value))}
+                            className="w-full accent-amber-500"
+                          />
+                          <div className="flex justify-between text-[10px] text-stone-400">
+                            <span>0</span>
+                            <span>{puntosCanjeados > 0 ? `${puntosCanjeados} pts` : "Deslizá para canjear"}</span>
+                            <span>{saldoPuntos}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-amber-400 mt-2" />
 
                     {!modoRetiro && (
@@ -1232,6 +1288,12 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                         {modoRetiro ? "Gratis" : formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}
                       </span>
                     </div>
+                    {descuentoPuntosValor > 0 && (
+                      <div className="mt-2 flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-1 text-amber-700"><Sparkles size={12} /> {puntosCanjeados} pts canjeados</span>
+                        <span className="font-semibold text-emerald-600">-{formatCurrency(descuentoPuntosValor, sucursal.simbolo)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
                     <span className="font-black text-white/80 uppercase tracking-wide text-sm">Total</span>
@@ -1349,6 +1411,12 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                     <span className="text-sm font-bold">{formatCurrency(zonaSeleccionada?.precio ?? 0, sucursal.simbolo)}</span>
                   </div>
                 )}
+                {descuentoPuntosValor > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-sm text-amber-700"><Sparkles size={12} /> {puntosCanjeados} pts</span>
+                    <span className="text-sm font-bold text-emerald-600">-{formatCurrency(descuentoPuntosValor, sucursal.simbolo)}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3">
                   <span className="text-sm font-black text-white/80 uppercase tracking-wide">Total</span>
                   <span className="text-xl font-black text-white">{formatCurrency(total, sucursal.simbolo)}</span>
@@ -1388,6 +1456,39 @@ export function DeliveryOrderClient({ sucursal, categorias, slug, zonas, flayerU
                   </div>
                 </div>
                 {clientFoundLabel && <p className="text-[13px] font-bold text-emerald-600 px-2">{clientFoundLabel}</p>}
+
+                {/* Canje de puntos — mobile */}
+                {puntosActivo && saldoPuntos > 0 && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-amber-500" />
+                        <span className="text-xs font-black text-amber-700">Tus puntos</span>
+                      </div>
+                      <span className="text-xs font-bold text-amber-900">{saldoPuntos} pts = {formatCurrency(Math.round(saldoPuntos * valorPunto) / 1000, sucursal.simbolo)}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-stone-500">
+                        <span>Canjear</span>
+                        <span className="font-bold text-emerald-700">-{formatCurrency(descuentoPuntosValor, sucursal.simbolo)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={saldoPuntos}
+                        step={1}
+                        value={puntosCanjeados}
+                        onChange={(e) => setPuntosCanjeados(Number(e.target.value))}
+                        className="w-full accent-amber-500"
+                      />
+                      <div className="flex justify-between text-[10px] text-stone-400">
+                        <span>0</span>
+                        <span>{puntosCanjeados > 0 ? `${puntosCanjeados} pts` : "Deslizá para canjear"}</span>
+                        <span>{saldoPuntos}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none transition focus:border-amber-400" />
 
