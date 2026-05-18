@@ -18,7 +18,7 @@ export default async function TrackOrderPage({ params }: Props) {
     include: {
       usuario: { select: { sucursalId: true, sucursal: { select: { nombre: true } } } },
       repartidor: { select: { nombre: true } },
-      delivery: { select: { zonaDelivery: true } },
+      delivery: { select: { zonaDelivery: true, codigoEntrega: true } },
       detalles: {
         include: {
           producto: { select: { nombre: true, precio: true } },
@@ -82,6 +82,9 @@ export default async function TrackOrderPage({ params }: Props) {
         repartidorNombre: pedido.repartidor?.nombre ?? null,
         zonaDelivery: pedido.delivery?.zonaDelivery ?? null,
         sucursalNombre: pedido.usuario.sucursal?.nombre ?? null,
+        codigoEntrega: ["EN_PROCESO", "LISTO", "ENTREGADO"].includes(pedido.estado)
+          ? (pedido.delivery?.codigoEntrega ?? null)
+          : null,
         creadoEn: pedido.creadoEn.toISOString(),
         estimadoMinutos: estimateDeliveryMinutes(pedidosActivos, driversActivos),
         detalles: pedido.detalles.map((detalle) => ({

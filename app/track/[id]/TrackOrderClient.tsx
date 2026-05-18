@@ -163,11 +163,20 @@ export function TrackOrderClient({ initialData }: Props) {
       const res = await fetch("/api/delivery/retiro-confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidoId: data.id }),
+        body: JSON.stringify({
+          pedidoId: data.id,
+          codigoEntrega: data.codigoEntrega ?? "",
+        }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        alert(body.error ?? "No se pudo confirmar el retiro. Intentá de nuevo.");
+        return;
+      }
       setRetirado(true);
       setData((p) => ({ ...p, estado: "ENTREGADO", trackingStage: "ENTREGADO" }));
+    } catch {
+      alert("Error de red. Verificá tu conexión e intentá de nuevo.");
     } finally { setConfirming(false); }
   }
 
