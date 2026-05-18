@@ -8,6 +8,7 @@ import { OrdenesHub } from "./OrdenesHub";
 import type { Rol } from "@/types";
 
 export const metadata: Metadata = { title: "PP — Ordenes" };
+export const dynamic = "force-dynamic";
 
 export default async function OrdenesPage() {
   const session = await getServerSession(authOptions);
@@ -41,7 +42,7 @@ export default async function OrdenesPage() {
     ? { usuario: { sucursalId } }
     : {};
 
-  const [pedidosDelivery, pedidosLlevar, pedidosMesa] = await Promise.all([
+  const [pedidosDelivery, pedidosLlevar, pedidosMesa, pedidosKioskoComer] = await Promise.all([
     prisma.pedido.findMany({
       where: {
         tipo: "DELIVERY",
@@ -90,6 +91,29 @@ export default async function OrdenesPage() {
       },
       include: {
         mesa: { select: { nombre: true } },
+        detalles: {
+          where: { cancelado: false },
+          include: {
+            producto: { select: { nombre: true, precio: true } },
+            combo:    { select: { nombre: true, precio: true } },
+          },
+        },
+      },
+      orderBy: { creadoEn: "desc" },
+      take: 50,
+    }),
+    // Kiosko "Comer Aquí" — sin mesa asignada, van a columna Servir
+    prisma.pedido.findMany({
+      where: {
+        tipo: "MOSTRADOR",
+        observacion: { contains: "KIOSKO" },
+        NOT: { observacion: { contains: "PARA LLEVAR" } },
+        mesaId: null,
+        estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+        creadoEn: { gte: turnoDesde },
+        ...sucursalFilter,
+      },
+      include: {
         detalles: {
           where: { cancelado: false },
           include: {
@@ -163,7 +187,7 @@ export default async function OrdenesPage() {
     };
   });
 
-  const mesaData = pedidosMesa.map((p) => {
+  const mesaRealData = pedidosMesa.map((p) => {
     const subtotal = p.detalles.reduce(
       (acc, d) => acc + Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0) * d.cantidad, 0,
     );
@@ -173,6 +197,7 @@ export default async function OrdenesPage() {
       estado:        p.estado,
       clienteNombre: (p as unknown as { mesa: { nombre: string } | null }).mesa?.nombre ?? `Mesa`,
       mesaNombre:    (p as unknown as { mesa: { nombre: string } | null }).mesa?.nombre ?? "Mesa",
+      esKiosko:      false,
       total:         subtotal,
       creadoEn:      p.creadoEn.toISOString(),
       items:         p.detalles.length,
@@ -187,6 +212,39 @@ export default async function OrdenesPage() {
       })),
     };
   });
+
+  const kioskoData = pedidosKioskoComer.map((p) => {
+    const obs = p.observacion ?? "";
+    const nombreMatch = obs.match(/👤\s*(.+?)(?:\s*·|$)/);
+    const subtotal = p.detalles.reduce(
+      (acc, d) => acc + Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0) * d.cantidad, 0,
+    );
+    return {
+      id:            p.id,
+      numero:        p.numero,
+      estado:        p.estado,
+      clienteNombre: nombreMatch?.[1]?.trim() ?? "Kiosko",
+      mesaNombre:    "Kiosko",
+      esKiosko:      true,
+      total:         subtotal,
+      creadoEn:      p.creadoEn.toISOString(),
+      items:         p.detalles.length,
+      metodoPago:    "EFECTIVO",
+      cargoEnvio:    0,
+      descuento:     0,
+      tipo:          "MESA" as const,
+      productos:     p.detalles.map((d) => ({
+        nombre:   d.producto?.nombre ?? d.combo?.nombre ?? d.nombre ?? "Producto",
+        cantidad: d.cantidad,
+        precio:   Number(d.precio ?? d.producto?.precio ?? d.combo?.precio ?? 0),
+      })),
+    };
+  });
+
+  // Combinar pedidos de mesa + kiosko "comer aquí" en columna Servir
+  const mesaData = [...mesaRealData, ...kioskoData].sort(
+    (a, b) => new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime(),
+  );
 
   return (
     <OrdenesHub

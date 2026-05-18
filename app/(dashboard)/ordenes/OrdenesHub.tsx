@@ -45,6 +45,7 @@ interface LlevarPedido extends PedidoBase {
 interface MesaPedido extends PedidoBase {
   tipo:       "MESA";
   mesaNombre: string;
+  esKiosko:   boolean;
 }
 
 type AnyPedido = DeliveryPedido | LlevarPedido | MesaPedido;
@@ -322,6 +323,9 @@ function OrderCard({
         <span className="flex items-center gap-1 truncate font-medium">
           <User size={10} className={`${colors.icon} shrink-0`} />{pedido.clienteNombre}
         </span>
+        {pedido.tipo === "MESA" && (pedido as MesaPedido).esKiosko && (
+          <span className="text-[8px] font-black px-1.5 py-px rounded-full bg-violet-100 text-violet-700 shrink-0">KIOSKO</span>
+        )}
         <span className="flex items-center gap-1 shrink-0">
           <Clock size={10} className={colors.icon} />{hora}
         </span>
