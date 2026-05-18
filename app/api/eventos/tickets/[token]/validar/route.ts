@@ -17,8 +17,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Token inválido o expirado" }, { status: 400 });
   }
 
-  void decoded;
-
   const ticket = await prisma.ticketEvento.findUnique({
     where: { token },
     include: {
@@ -28,6 +26,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   });
 
   if (!ticket) return NextResponse.json({ error: "Ticket no encontrado" }, { status: 404 });
+
+  // Verificar que el usuario pertenece a la sucursal del evento
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const userRol = (session.user as { rol: string }).rol;
+  if (userRol !== "ADMIN_GENERAL" && userSucursalId && ticket.evento.sucursalId !== userSucursalId) {
+    return NextResponse.json({ error: "No tienes permiso para validar tickets de otro local" }, { status: 403 });
+  }
 
   if (ticket.estado === "PENDIENTE_PAGO") {
     return NextResponse.json({ error: "Ticket pendiente de pago, no puede validarse" }, { status: 400 });

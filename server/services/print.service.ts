@@ -191,8 +191,12 @@ export function buildBoletaBuffer(d: BoletaData): Buffer {
 // ── TCP Send ───────────────────────────────────────────────────────────────
 export function sendToThermal(ipPort: string, data: Buffer): Promise<void> {
   return new Promise((resolve, reject) => {
-    const [host, portStr] = ipPort.includes(":") ? ipPort.split(":") : [ipPort, "9100"];
-    const port = parseInt(portStr, 10) || 9100;
+    const parts = ipPort.includes(":") ? ipPort.split(":") : [ipPort, "9100"];
+    const host = parts[0];
+    const port = parseInt(parts[1], 10);
+    if (!host || isNaN(port) || port < 1 || port > 65535) {
+      return reject(new Error(`Dirección de impresora inválida: "${ipPort}"`));
+    }
 
     const socket = new net.Socket();
     const TIMEOUT_MS = 5000;

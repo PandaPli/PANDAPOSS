@@ -573,11 +573,14 @@ export const DeliveryService = {
           }
         }
 
-        // pagoRider: usar override del admin si se proveyó, sino el de la zona
-        const pagoRiderFinal =
-          input.pagoRiderOverride != null
-            ? input.pagoRiderOverride
-            : pagoRider;
+        const pagoRiderFinal = (() => {
+          if (input.pagoRiderOverride != null) {
+            const v = Number(input.pagoRiderOverride);
+            if (isNaN(v) || v < 0 || v > 1_000_000) return pagoRider;
+            return v;
+          }
+          return pagoRider;
+        })();
 
         await prisma.pedidoDelivery.update({
           where: { id: delivery.id },
