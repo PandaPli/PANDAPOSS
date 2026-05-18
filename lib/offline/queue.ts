@@ -68,7 +68,11 @@ export async function syncAll(): Promise<{ ok: number; failed: number }> {
   // ── Ventas pendientes ──
   const pendingVentas = await db.pendingVentas.filter(v => !v.synced).toArray();
   for (const venta of pendingVentas) {
-    if (venta.retries >= MAX_RETRIES) { failed++; continue; }
+    if (venta.retries >= MAX_RETRIES) {
+      await db.pendingVentas.update(venta.id!, { synced: true, errorMsg: "Descartado (max reintentos)" });
+      failed++;
+      continue;
+    }
     try {
       const res = await fetch("/api/ventas", {
         method: "POST",
@@ -100,7 +104,11 @@ export async function syncAll(): Promise<{ ok: number; failed: number }> {
   // ── Pedidos pendientes ──
   const pendingPedidos = await db.pendingPedidos.filter(p => !p.synced).toArray();
   for (const pedido of pendingPedidos) {
-    if (pedido.retries >= MAX_RETRIES) { failed++; continue; }
+    if (pedido.retries >= MAX_RETRIES) {
+      await db.pendingPedidos.update(pedido.id!, { synced: true, errorMsg: "Descartado (max reintentos)" });
+      failed++;
+      continue;
+    }
     try {
       const res = await fetch("/api/pedidos", {
         method: "POST",

@@ -62,6 +62,9 @@ const TIPO_CONFIG: Record<
   MOSTRADOR: { label: "Mostrador", icon: <UtensilsCrossed size={16}/>,color: "text-gray-600",  bg: "bg-gray-50 border-gray-200" },
 };
 
+const POLL_INTERVAL = 30_000;
+const TICK_INTERVAL = 60_000;
+
 /* ── Componente ─────────────────────────────────────────── */
 export function WaiterPanelClient({ initial }: { initial: WaiterData }) {
   const [data, setData]     = useState<WaiterData>(initial);
@@ -75,15 +78,13 @@ export function WaiterPanelClient({ initial }: { initial: WaiterData }) {
     } catch { /* ignore */ }
   }, []);
 
-  // Polling cada 30 s
   useEffect(() => {
-    const id = setInterval(fetchData, 30_000);
+    const id = setInterval(fetchData, POLL_INTERVAL);
     return () => clearInterval(id);
   }, [fetchData]);
 
-  // Tick cada 60 s para actualizar timers
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    const id = setInterval(() => setTick((t) => t + 1), TICK_INTERVAL);
     return () => clearInterval(id);
   }, []);
 
