@@ -91,14 +91,21 @@ export async function POST(req: NextRequest) {
     }
 
     // P3: Buscar usuario receptor con rol adecuado (no CHEF, BAR ni DELIVERY)
-    const systemUser = await prisma.usuario.findFirst({
-      where: {
-        sucursalId: Number(sucursalId),
-        status: "ACTIVO",
-        rol: { in: ["RESTAURANTE", "CASHIER", "WAITER", "SECRETARY", "ADMIN_GENERAL"] },
-      },
-      orderBy: { id: "asc" },
-    });
+    // y caja abierta para anclar el pedido al turno activo
+    const [systemUser, cajaAbierta] = await Promise.all([
+      prisma.usuario.findFirst({
+        where: {
+          sucursalId: Number(sucursalId),
+          status: "ACTIVO",
+          rol: { in: ["RESTAURANTE", "CASHIER", "WAITER", "SECRETARY", "ADMIN_GENERAL"] },
+        },
+        orderBy: { id: "asc" },
+      }),
+      prisma.caja.findFirst({
+        where: { sucursalId: Number(sucursalId), estado: "ABIERTA" },
+        select: { id: true },
+      }),
+    ]);
 
     if (!systemUser) {
       return NextResponse.json(
@@ -114,7 +121,7 @@ export async function POST(req: NextRequest) {
       tipo: "COCINA",
       mesaId: mesa.id,
       usuarioId: systemUser.id,
-      cajaId: null,
+      cajaId: cajaAbierta?.id ?? null,
       observacion: observacionCliente,
       items: items.map((item) => ({
         productoId: Number(item.productoId),

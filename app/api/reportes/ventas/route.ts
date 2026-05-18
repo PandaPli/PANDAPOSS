@@ -83,16 +83,28 @@ export async function GET(req: NextRequest) {
       where: ventaWhere,
     }),
     // Ventas agrupadas por día (para gráfico)
-    prisma.$queryRawUnsafe<{ fecha: string; total: number; cantidad: number }[]>(
-      `SELECT DATE("creadoEn") as fecha, SUM(total) as total, COUNT(id) as cantidad
-       FROM "Venta"
-       WHERE "creadoEn" >= $1 AND "creadoEn" <= $2 AND estado = 'PAGADA'
-       ${sucursalId && rol !== "ADMIN_GENERAL" ? `AND "sucursalId" = ${sucursalId}` : ""}
-       GROUP BY DATE("creadoEn")
-       ORDER BY fecha ASC`,
-      desde,
-      hasta,
-    ),
+    // SEGURIDAD: sucursalId parametrizado como $3 — nunca interpolado en el string
+    (sucursalId && rol !== "ADMIN_GENERAL"
+      ? prisma.$queryRawUnsafe<{ fecha: string; total: number; cantidad: number }[]>(
+          `SELECT DATE("creadoEn") as fecha, SUM(total) as total, COUNT(id) as cantidad
+           FROM "Venta"
+           WHERE "creadoEn" >= $1 AND "creadoEn" <= $2 AND estado = 'PAGADA'
+           AND "sucursalId" = $3
+           GROUP BY DATE("creadoEn")
+           ORDER BY fecha ASC`,
+          desde,
+          hasta,
+          sucursalId,
+        )
+      : prisma.$queryRawUnsafe<{ fecha: string; total: number; cantidad: number }[]>(
+          `SELECT DATE("creadoEn") as fecha, SUM(total) as total, COUNT(id) as cantidad
+           FROM "Venta"
+           WHERE "creadoEn" >= $1 AND "creadoEn" <= $2 AND estado = 'PAGADA'
+           GROUP BY DATE("creadoEn")
+           ORDER BY fecha ASC`,
+          desde,
+          hasta,
+        )),
     // Anuladas del período
     prisma.venta.aggregate({
       _sum: { total: true },
@@ -100,17 +112,30 @@ export async function GET(req: NextRequest) {
       where: { creadoEn: { gte: desde, lte: hasta }, estado: "ANULADA", ...sucursalFilter },
     }),
     // Desglose por tipo de pedido (MOSTRADOR, DELIVERY, COCINA, BAR)
-    prisma.$queryRawUnsafe<{ tipo: string; total: number; cantidad: number }[]>(
-      `SELECT p.tipo, SUM(v.total) as total, COUNT(v.id) as cantidad
-       FROM "Venta" v
-       LEFT JOIN "Pedido" p ON v."pedidoId" = p.id
-       WHERE v."creadoEn" >= $1 AND v."creadoEn" <= $2 AND v.estado = 'PAGADA'
-       ${sucursalId && rol !== "ADMIN_GENERAL" ? `AND v."sucursalId" = ${sucursalId}` : ""}
-       GROUP BY p.tipo
-       ORDER BY total DESC`,
-      desde,
-      hasta,
-    ),
+    // SEGURIDAD: sucursalId parametrizado como $3 — nunca interpolado en el string
+    (sucursalId && rol !== "ADMIN_GENERAL"
+      ? prisma.$queryRawUnsafe<{ tipo: string; total: number; cantidad: number }[]>(
+          `SELECT p.tipo, SUM(v.total) as total, COUNT(v.id) as cantidad
+           FROM "Venta" v
+           LEFT JOIN "Pedido" p ON v."pedidoId" = p.id
+           WHERE v."creadoEn" >= $1 AND v."creadoEn" <= $2 AND v.estado = 'PAGADA'
+           AND v."sucursalId" = $3
+           GROUP BY p.tipo
+           ORDER BY total DESC`,
+          desde,
+          hasta,
+          sucursalId,
+        )
+      : prisma.$queryRawUnsafe<{ tipo: string; total: number; cantidad: number }[]>(
+          `SELECT p.tipo, SUM(v.total) as total, COUNT(v.id) as cantidad
+           FROM "Venta" v
+           LEFT JOIN "Pedido" p ON v."pedidoId" = p.id
+           WHERE v."creadoEn" >= $1 AND v."creadoEn" <= $2 AND v.estado = 'PAGADA'
+           GROUP BY p.tipo
+           ORDER BY total DESC`,
+          desde,
+          hasta,
+        )),
     // Pagos reales (PagoVenta) para desglose correcto de MIXTO
     prisma.pagoVenta.groupBy({
       by: ["metodoPago"],

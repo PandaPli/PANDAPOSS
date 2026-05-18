@@ -295,6 +295,9 @@ export const DeliveryService = {
       });
 
       // 4. Crear Delivery request
+      // Para pedidos de RETIRO se genera codigoEntrega al crear — permite que el
+      // cliente lo presente al retirar y evita que terceros confirmen retiros ajenos.
+      const esRetiro = /retiro/i.test(zonaDelivery ?? "");
       await tx.pedidoDelivery.create({
         data: {
           pedidoId: pedido.id,
@@ -306,6 +309,7 @@ export const DeliveryService = {
           costoEnvio: cargoEnvio,
           zonaDelivery: zonaDelivery ?? null,
           tiempoEstimado: estimadoMinutos,
+          codigoEntrega: esRetiro ? generarCodigoEntrega() : null,
           estado: "CREADO"
         }
       });
@@ -373,6 +377,12 @@ export const DeliveryService = {
       }
     }
 
+    // Leer codigoEntrega generado (si es retiro) para devolverlo al cliente
+    const deliveryCreado = await prisma.pedidoDelivery.findUnique({
+      where: { pedidoId: result.id },
+      select: { codigoEntrega: true },
+    });
+
     return {
       id: result.id,
       estado: result.estado,
@@ -382,6 +392,8 @@ export const DeliveryService = {
       total: Math.max(0, subtotal + cargoEnvio - descuento),
       estimadoMinutos,
       trackingUrl: `/track/${result.id}`,
+      // Solo se incluye para retiros — el cliente debe presentarlo al retirar
+      codigoEntrega: deliveryCreado?.codigoEntrega ?? null,
     };
   },
 

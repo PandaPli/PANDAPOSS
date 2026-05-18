@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { PedidoService } from "@/server/services/pedido.service";
 import { NotificationService } from "@/server/services/notification.service";
 import { prisma } from "@/lib/db";
+import type { Rol } from "@/types";
 
 export async function GET(
   req: NextRequest,
@@ -13,6 +14,8 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const { id: idStr } = await params;
+  const rol = (session.user as { rol: Rol }).rol;
+  const sessionSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const pedido = await prisma.pedido.findUnique({
     where: { id: Number(idStr) },
@@ -22,12 +25,22 @@ export async function GET(
           producto: true,
           combo: true,
         }
-      }
+      },
+      usuario: { select: { sucursalId: true } },
     }
   });
 
   if (!pedido) {
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+  }
+
+  // Verificar que el usuario solo acceda a pedidos de su propia sucursal
+  // ADMIN_GENERAL puede ver pedidos de cualquier sucursal
+  if (rol !== "ADMIN_GENERAL" && sessionSucursalId !== null) {
+    const pedidoSucursalId = pedido.usuario?.sucursalId ?? null;
+    if (pedidoSucursalId !== null && pedidoSucursalId !== sessionSucursalId) {
+      return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+    }
   }
 
   return NextResponse.json(pedido);

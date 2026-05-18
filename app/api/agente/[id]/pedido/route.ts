@@ -86,6 +86,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "No hay personal activo en la sucursal" }, { status: 422 });
       }
 
+      // Buscar caja abierta para anclar el pedido al turno activo
+      const cajaAbierta = await prisma.caja.findFirst({
+        where: { sucursalId, estado: "ABIERTA" },
+        select: { id: true },
+      });
+
       // Build observacion: include client name, payment method, and any unmatched items
       const obsLines = [
         `[WSP]`,
@@ -98,6 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const pedido = await PedidoService.create({
         usuarioId: usuarioSistema.id,
         tipo: "MOSTRADOR",
+        cajaId: cajaAbierta?.id ?? null,
         items: matchedItems,
         observacion: obsLines.join(" | "),
         telefonoCliente: cliente.telefono ?? null,

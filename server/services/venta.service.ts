@@ -172,6 +172,11 @@ export const VentaService = {
 
     const puntosCanjeados = puntosCanjeadosInput ?? 0;
 
+    // Bloquear CREDITO hasta que exista tabla de deudas implementada
+    if (metodoPago === "CREDITO" || pagos?.some((p) => p.metodoPago === "CREDITO")) {
+      throw new Error("El método de pago CRÉDITO no está disponible por el momento.");
+    }
+
     // ── Auto-resolver clienteId desde pedido delivery si no viene en el input ─
     let resolvedClienteId = clienteId ?? null;
     if (!resolvedClienteId && pedidoId && !modoGrupo) {
@@ -210,8 +215,18 @@ export const VentaService = {
       ? calcularDescuentoPuntos(puntosCanjeados, valorPunto)
       : 0;
 
+    // Validar que los descuentos no superen el subtotal (evita totales negativos)
+    const totalDescuentos = Number(descuento) + descuentoPuntos;
+    if (totalDescuentos > serverSubtotal + 0.02) {
+      throw new Error("El descuento total supera el subtotal de la venta.");
+    }
+
     const serverTotal =
       Math.round((serverSubtotal - Number(descuento) - descuentoPuntos + Number(impuesto)) * 100) / 100;
+
+    if (serverTotal < 0) {
+      throw new Error("El total de la venta no puede ser negativo.");
+    }
 
     // Tolerancia de 2 centavos para errores de punto flotante en el cliente
     if (Math.abs(serverSubtotal - Number(input.subtotal)) > 0.02) {
