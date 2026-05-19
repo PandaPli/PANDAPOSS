@@ -114,22 +114,27 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  // Hard delete en cascada: ventas → detalles, pedidos delivery, direcciones, cliente
+  // Hard delete en cascada: ventas → detalles + dependencias, pedidos delivery, direcciones, cliente
   await prisma.$transaction(async (tx) => {
     // 1. Obtener ventas del cliente
     const ventas = await tx.venta.findMany({ where: { clienteId: id }, select: { id: true } });
     const ventaIds = ventas.map((v) => v.id);
 
-    // 2. Eliminar detalles de venta
+    // 2. Eliminar registros dependientes de ventas
     if (ventaIds.length > 0) {
+      await tx.pagoVenta.deleteMany({ where: { ventaId: { in: ventaIds } } });
+      await tx.kardex.deleteMany({ where: { ventaId: { in: ventaIds } } });
       await tx.detalleVenta.deleteMany({ where: { ventaId: { in: ventaIds } } });
       await tx.venta.deleteMany({ where: { id: { in: ventaIds } } });
     }
 
-    // 3. Eliminar pedidos delivery
+    // 3. Eliminar movimientos de puntos del cliente
+    await tx.movimientoPuntos.deleteMany({ where: { clienteId: id } });
+
+    // 4. Eliminar pedidos delivery
     await tx.pedidoDelivery.deleteMany({ where: { clienteId: id } });
 
-    // 4. Eliminar direcciones
+    // 5. Eliminar direcciones
     await tx.direccionCliente.deleteMany({ where: { clienteId: id } });
 
     // 5. Eliminar cliente

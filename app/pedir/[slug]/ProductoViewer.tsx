@@ -65,15 +65,17 @@ export default function ProductoViewer({
   function goPrev() { setIndex((i) => (i > 0 ? i - 1 : productos.length - 1)); }
   function goNext() { setIndex((i) => (i < productos.length - 1 ? i + 1 : 0)); }
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
       if (e.key === "ArrowLeft") goPrev();
       if (e.key === "ArrowRight") goNext();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productos.length]);
 
   useEffect(() => {
