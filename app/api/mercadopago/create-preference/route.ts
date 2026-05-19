@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getPreferenceAPI } from "@/lib/mercadopago";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 // POST /api/mercadopago/create-preference
 // Body: { pedidoId, sucursalId }
 export async function POST(req: NextRequest) {
+  // Rate limit para evitar abuso (no requiere auth porque se usa desde el flujo delivery público)
+  const ip = getClientIp(req);
+  const rl = rateLimit(`mp:create-pref:${ip}`, { max: 10, windowMs: 60_000 });
+  if (!rl.allowed) return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+
   try {
     const { pedidoId, sucursalId } = await req.json();
 
     if (!pedidoId || !sucursalId) {
       return NextResponse.json({ error: "pedidoId y sucursalId son requeridos" }, { status: 400 });
+    }
+
+    // Verificar que el pedido existe y pertenece a la sucursal indicada
+    const pedidoCheck = await prisma.pedido.findUnique({
+      where: { id: Number(pedidoId) },
+      select: { usuario: { select: { sucursalId: true } } },
+    });
+    if (!pedidoCheck || pedidoCheck.usuario.sucursalId !== Number(sucursalId)) {
+      return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
     }
 
     // Obtener access token de la sucursal

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 // Roles allowed to use the desktop bot app
 const ALLOWED_ROLES = ["RESTAURANTE", "ADMIN_GENERAL"] as const;
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = rateLimit(`app:login:${ip}`, { max: 5, windowMs: 60_000 });
+  if (!rl.allowed) return NextResponse.json({ error: "Demasiados intentos. Espera un momento." }, { status: 429 });
+
   try {
     const body = await req.json();
     const { email, password } = body as { email?: string; password?: string };

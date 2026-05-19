@@ -1,6 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getPaymentAPI } from "@/lib/mercadopago";
+import { createHmac } from "crypto";
+
+/**
+ * Verifica la firma HMAC-SHA256 del webhook de Mercado Pago.
+ * MP envía el header `x-signature` con formato: `ts=<ts>,v1=<hash>`
+ * y `x-request-id`. La firma se calcula sobre `id:<dataId>;request-id:<requestId>;ts:<ts>;`
+ * usando el webhook secret como clave HMAC.
+ * Ref: https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks
+ */
+function verifyMPSignature(req: NextRequest, dataId: string): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+  if (!secret) {
+    // Si no hay secret configurado, aceptar (permite funcionar sin firma en dev)
+    // En producción se debe configurar MP_WEBHOOK_SECRET
+    console.warn("[MP Webhook] MP_WEBHOOK_SECRET no configurado — firma no verificada");
+    return true;
+  }
+
+  const xSignature = req.headers.get("x-signature");
+  const xRequestId = req.headers.get("x-request-id");
+  if (!xSignature || !xRequestId) return false;
+
+  // Parsear ts y v1 del header
+  const parts = Object.fromEntries(
+    xSignature.split(",").map((p) => {
+      const [k, ...v] = p.trim().split("=");
+      return [k, v.join("=")];
+    })
+  );
+  const ts = parts.ts;
+  const hash = parts.v1;
+  if (!ts || !hash) return false;
+
+  // Construir el manifest y calcular HMAC
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const expected = createHmac("sha256", secret).update(manifest).digest("hex");
+
+  return expected === hash;
+}
 
 // POST /api/mercadopago/webhook — recibe notificaciones IPN de Mercado Pago
 export async function POST(req: NextRequest) {
@@ -13,6 +52,12 @@ export async function POST(req: NextRequest) {
     }
 
     const paymentId = String(body.data.id);
+
+    // Verificar firma HMAC del webhook
+    if (!verifyMPSignature(req, paymentId)) {
+      console.warn("[MP Webhook] Firma inválida — rechazado", { paymentId });
+      return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
+    }
 
     // Buscar el pedido asociado: necesitamos el access token de la sucursal
     // MP envía external_reference = pedidoId

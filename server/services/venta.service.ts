@@ -322,8 +322,12 @@ export const VentaService = {
             }
           }
 
-          // Incrementar uso del cupón si aplica
+          // Validar y incrementar uso del cupón atómicamente dentro de la tx
           if (cuponId) {
+            const cuponFresh = await tx.cupon.findUnique({ where: { id: cuponId }, select: { usoActual: true, usoMax: true } });
+            if (cuponFresh?.usoMax !== null && cuponFresh!.usoActual >= cuponFresh!.usoMax!) {
+              throw new Error("Este cupón ya alcanzó el límite de usos.");
+            }
             await tx.cupon.update({
               where: { id: cuponId },
               data: { usoActual: { increment: 1 } },

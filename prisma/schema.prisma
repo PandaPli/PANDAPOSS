@@ -155,7 +155,7 @@ model Mesa {
   estado    EstadoMesa @default(LIBRE)
   salaId    Int
   creadoEn  DateTime   @default(now())
-  sala      Sala       @relation(fields: [salaId], references: [id])
+  sala      Sala       @relation(fields: [salaId], references: [id], onDelete: Cascade)
   pedidos   Pedido[]
 
   @@index([salaId], map: "mesas_salaId_fkey")
@@ -418,6 +418,7 @@ model Pedido {
   @@index([estado, creadoEn], map: "pedidos_estado_creadoEn_idx")
   @@index([tipo, estado], map: "pedidos_tipo_estado_idx")
   @@index([creadoEn], map: "pedidos_creadoEn_idx")
+  @@index([mpPreferenceId], map: "pedidos_mpPreferenceId_idx")
   @@map("pedidos")
 }
 
@@ -564,17 +565,17 @@ model Log {
 }
 
 model Configuracion {
-  id            Int     @id @default(1)
-  nombreEmpresa String  @default("PandaPoss") @db.VarChar(100)
-  rut           String? @db.VarChar(20)
-  direccion     String? @db.VarChar(200)
-  telefono      String? @db.VarChar(20)
-  email         String? @db.VarChar(100)
-  logoUrl          String? @db.VarChar(255)
-  homePreviewUrl   String? @db.VarChar(500)
-  moneda           String  @default("CLP") @db.VarChar(10)
-  simbolo       String  @default("$") @db.VarChar(5)
-  ivaPorc       Decimal @default(19.00) @db.Decimal(5, 2)
+  id             Int     @id @default(1)
+  nombreEmpresa  String  @default("PandaPoss") @db.VarChar(100)
+  rut            String? @db.VarChar(20)
+  direccion      String? @db.VarChar(200)
+  telefono       String? @db.VarChar(20)
+  email          String? @db.VarChar(100)
+  logoUrl        String? @db.VarChar(255)
+  homePreviewUrl String? @db.VarChar(500)
+  moneda         String  @default("CLP") @db.VarChar(10)
+  simbolo        String  @default("$") @db.VarChar(5)
+  ivaPorc        Decimal @default(19.00) @db.Decimal(5, 2)
 
   @@map("configuracion")
 }
@@ -1021,8 +1022,9 @@ model AgenteDireccion {
   referencia String? @db.VarChar(200)
   usosCount  Int     @default(1)
 
-  cliente AgenteCliente @relation(fields: [clienteId], references: [id])
+  cliente AgenteCliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
+  @@index([clienteId], map: "agentes_direcciones_clienteId_fkey")
   @@map("agentes_direcciones")
 }
 
@@ -1032,8 +1034,9 @@ model AgentePreferencia {
   texto     String   @db.VarChar(300)
   creadoEn  DateTime @default(now())
 
-  cliente AgenteCliente @relation(fields: [clienteId], references: [id])
+  cliente AgenteCliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
+  @@index([clienteId], map: "agentes_preferencias_clienteId_fkey")
   @@map("agentes_preferencias")
 }
 
@@ -1058,7 +1061,7 @@ model AgenteSesion {
   historialJson Json?
   updatedAt     DateTime @default(now()) @updatedAt
 
-  cliente AgenteCliente @relation(fields: [clienteId], references: [id])
+  cliente AgenteCliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
   @@unique([clienteId])
   @@map("agentes_sesiones")

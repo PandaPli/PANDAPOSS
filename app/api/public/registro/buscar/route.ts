@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 // GET /api/public/registro/buscar?telefono=XXXXXXXX&sucursalId=6
 // Busca un cliente por teléfono para prellenar el formulario de registro
 export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = rateLimit(`registro:buscar:${ip}`, { max: 20, windowMs: 60_000 });
+  if (!rl.allowed) return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
   const { searchParams } = new URL(req.url);
   const telefono = searchParams.get("telefono")?.trim();
   const sucursalId = searchParams.get("sucursalId");

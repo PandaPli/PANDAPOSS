@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 const DESCUENTO_PORCENTAJE = 30;
 const DESCUENTO_TOPE = 15000; // tope máximo en pesos
@@ -8,6 +9,10 @@ const DESCUENTO_TOPE = 15000; // tope máximo en pesos
 // Body: { codigo: string, subtotal: number, sucursalId: number }
 // Valida un código de cumpleaños y calcula el descuento aplicable
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = rateLimit(`cupones:cumple:${ip}`, { max: 10, windowMs: 60_000 });
+  if (!rl.allowed) return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+
   try {
     const { codigo, subtotal, sucursalId } = await req.json();
 
