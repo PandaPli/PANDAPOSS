@@ -93,15 +93,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Return session data for the Electron app
+    // SECURITY: API keys must NOT be sent to the client. The desktop app
+    // should use its own env vars or a secure token exchange instead.
     return NextResponse.json({
       agentId: agente.id,
       sucursalId: user.sucursal.id,
       restaurantName: user.sucursal.nombre,
       plan: user.sucursal.plan,
-      // Shared API key from server environment — used by the agent to authenticate
-      apiKey: process.env.AGENTE_API_KEY ?? "",
-      // Anthropic key stored server-side, forwarded to the local agent process
-      anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
     });
   } catch (err) {
     console.error("[app/login] error:", err);

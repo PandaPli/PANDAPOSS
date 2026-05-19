@@ -12,11 +12,14 @@ export async function GET(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: string }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const { id: idStr } = await params;
 
   const pedido = await prisma.pedido.findUnique({
     where: { id: Number(idStr) },
     include: {
+      usuario: { select: { sucursalId: true } },
       detalles: {
         include: {
           producto: true,
@@ -30,6 +33,10 @@ export async function GET(
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
   }
 
+  if (rol !== "ADMIN_GENERAL" && sucursalId && pedido.usuario.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+  }
+
   return NextResponse.json(pedido);
 }
 
@@ -40,8 +47,21 @@ export async function PATCH(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: string }).rol;
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const { id: idStr } = await params;
   const pedidoId = Number(idStr);
+
+  // Verificar ownership multi-tenant
+  const pedidoOwner = await prisma.pedido.findUnique({
+    where: { id: pedidoId },
+    select: { usuario: { select: { sucursalId: true } } },
+  });
+  if (!pedidoOwner) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+  if (rol !== "ADMIN_GENERAL" && userSucursalId && pedidoOwner.usuario.sucursalId !== userSucursalId) {
+    return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+  }
+
   const body = await req.json();
 
   // Leer datos de notificación antes de actualizar

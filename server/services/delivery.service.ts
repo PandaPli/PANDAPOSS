@@ -249,13 +249,9 @@ export const DeliveryService = {
 
       // Si no encontró por teléfono, buscar por nombre exacto en la misma sucursal
       if (!dbCliente) {
-        const nombreNorm = cliente.nombre.trim().toLowerCase();
-        const candidatos = await tx.cliente.findMany({
-          where: { sucursalId },
+        dbCliente = await tx.cliente.findFirst({
+          where: { sucursalId, nombre: cliente.nombre.trim() },
         });
-        dbCliente = candidatos.find(
-          (c) => c.nombre.trim().toLowerCase() === nombreNorm
-        ) ?? null;
       }
 
       if (!dbCliente) {

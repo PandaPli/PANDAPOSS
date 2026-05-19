@@ -8,6 +8,10 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: string }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const sucFilter = rol !== "ADMIN_GENERAL" && sucursalId ? { sucursalId } : {};
+
   const hoyInicio = startOfDay(new Date());
   const hoyFin = endOfDay(new Date());
 
@@ -15,13 +19,13 @@ export async function GET() {
     prisma.venta.aggregate({
       _count: { id: true },
       _sum: { total: true },
-      where: { creadoEn: { gte: hoyInicio, lte: hoyFin }, estado: "PAGADA" },
+      where: { creadoEn: { gte: hoyInicio, lte: hoyFin }, estado: "PAGADA", ...sucFilter },
     }),
     prisma.pedido.count({
-      where: { estado: { in: ["PENDIENTE", "EN_PROCESO"] } },
+      where: { estado: { in: ["PENDIENTE", "EN_PROCESO"] }, ...(sucursalId && rol !== "ADMIN_GENERAL" ? { usuario: { sucursalId } } : {}) },
     }),
-    prisma.mesa.count({ where: { estado: "OCUPADA" } }),
-    prisma.producto.count({ where: { stock: { lte: prisma.producto.fields.stockMinimo } } }),
+    prisma.mesa.count({ where: { estado: "OCUPADA", ...(sucursalId && rol !== "ADMIN_GENERAL" ? { sala: { sucursalId } } : {}) } }),
+    prisma.producto.count({ where: { stock: { lte: prisma.producto.fields.stockMinimo }, ...sucFilter } }),
   ]);
 
   // Ventas últimos 7 días
@@ -34,6 +38,7 @@ export async function GET() {
           where: {
             creadoEn: { gte: startOfDay(day), lte: endOfDay(day) },
             estado: "PAGADA",
+            ...sucFilter,
           },
         })
         .then((r) => ({

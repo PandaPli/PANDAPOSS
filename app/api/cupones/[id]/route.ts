@@ -17,8 +17,16 @@ export async function PATCH(
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const { id: paramId } = await params;
   const id = Number(paramId);
+
+  const existing = await prisma.cupon.findUnique({ where: { id }, select: { sucursalId: true } });
+  if (!existing) return NextResponse.json({ error: "Cupón no encontrado" }, { status: 404 });
+  if (rol !== "ADMIN_GENERAL" && sucursalId && existing.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Cupón no encontrado" }, { status: 404 });
+  }
+
   const body = await req.json();
 
   const cupon = await prisma.cupon.update({
@@ -50,7 +58,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const { id } = await params;
-  await prisma.cupon.delete({ where: { id: Number(id) } });
+  const cuponId = Number(id);
+
+  const existing = await prisma.cupon.findUnique({ where: { id: cuponId }, select: { sucursalId: true } });
+  if (!existing) return NextResponse.json({ error: "Cupón no encontrado" }, { status: 404 });
+  if (rol !== "ADMIN_GENERAL" && sucursalId && existing.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Cupón no encontrado" }, { status: 404 });
+  }
+
+  await prisma.cupon.delete({ where: { id: cuponId } });
   return NextResponse.json({ ok: true });
 }

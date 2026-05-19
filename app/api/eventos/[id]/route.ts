@@ -22,6 +22,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (!evento) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
+  const rol = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && sucursalId && evento.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  }
+
   return NextResponse.json(evento);
 }
 
@@ -37,6 +43,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const existing = await prisma.evento.findUnique({ where: { id: eventoId }, select: { sucursalId: true } });
+  if (!existing) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (rol !== "ADMIN_GENERAL" && sucursalId && existing.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  }
 
   const body = await req.json();
   const { nombre, descripcion, fecha, lugar, precio, capacidad, imagenUrl, activo } = body;
@@ -70,6 +83,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
   const eventoId = parseInt(id);
   if (isNaN(eventoId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const existing = await prisma.evento.findUnique({ where: { id: eventoId }, select: { sucursalId: true } });
+  if (!existing) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (rol !== "ADMIN_GENERAL" && sucursalId && existing.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  }
 
   const paidTickets = await prisma.ticketEvento.count({
     where: { eventoId, estado: { in: ["PAGADO", "VALIDADO"] } },

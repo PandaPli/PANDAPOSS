@@ -3,6 +3,21 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
+async function verifyMesaOwnership(mesaId: number, session: any): Promise<NextResponse | null> {
+  const rol = (session.user as { rol: string }).rol;
+  if (rol === "ADMIN_GENERAL") return null;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const mesa = await prisma.mesa.findUnique({
+    where: { id: mesaId },
+    select: { sala: { select: { sucursalId: true } } },
+  });
+  if (!mesa) return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
+  if (sucursalId && mesa.sala.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
+  }
+  return null;
+}
+
 // GET /api/mesas/[id] → lista de ítems activos de la mesa (para preview de borrado)
 export async function GET(
   req: NextRequest,
@@ -13,6 +28,9 @@ export async function GET(
 
   const { id } = await params;
   const mesaId = Number(id);
+
+  const denied = await verifyMesaOwnership(mesaId, session);
+  if (denied) return denied;
 
   const pedidos = await prisma.pedido.findMany({
     where: {
@@ -50,6 +68,9 @@ export async function DELETE(
 
   const { id } = await params;
   const mesaId = Number(id);
+
+  const denied = await verifyMesaOwnership(mesaId, session);
+  if (denied) return denied;
 
   await prisma.pedido.updateMany({
     where: {
