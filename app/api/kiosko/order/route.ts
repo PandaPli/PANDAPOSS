@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PedidoService } from "@/server/services/pedido.service";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 interface KioskoItem {
   productoId: number;
@@ -18,6 +19,13 @@ interface KioskoItem {
 // Si el pago se rechaza/cancela, el webhook cancela el pedido automaticamente.
 // Esto evita que la cocina prepare pedidos sin pago confirmado.
 export async function POST(req: NextRequest) {
+  // Rate limiting — 10 pedidos kiosko por IP por minuto
+  const ip = getClientIp(req);
+  const rl = rateLimit(`kiosko:order:${ip}`, { max: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
+
   const body = await req.json();
   const { sucursalId, items, nombreCliente, tipoConsumo, metodoPago } = body;
   const esPagoMP = metodoPago === "mercadopago";

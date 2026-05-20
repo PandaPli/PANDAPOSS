@@ -39,13 +39,19 @@ export async function GET(
 
   if (!venta) return NextResponse.json({ error: "Venta no encontrada" }, { status: 404 });
 
-  // Verificar acceso por sucursal
-  if (rol !== "ADMIN_GENERAL" && sucursalId && venta.caja?.sucursal) {
-    const ventaSucursalId = await prisma.caja
-      .findUnique({ where: { id: venta.cajaId! }, select: { sucursalId: true } })
-      .then((c) => c?.sucursalId);
+  // Verificar acceso por sucursal — cubrir ventas con caja y sin caja (delivery)
+  if (rol !== "ADMIN_GENERAL" && sucursalId) {
+    let ventaSucursalId: number | null = null;
+    if (venta.cajaId) {
+      const caja = await prisma.caja.findUnique({ where: { id: venta.cajaId }, select: { sucursalId: true } });
+      ventaSucursalId = caja?.sucursalId ?? null;
+    } else {
+      // Venta sin caja: verificar por usuario que la creó
+      const usuario = await prisma.usuario.findUnique({ where: { id: venta.usuarioId }, select: { sucursalId: true } });
+      ventaSucursalId = usuario?.sucursalId ?? null;
+    }
     if (ventaSucursalId !== sucursalId) {
-      return NextResponse.json({ error: "Sin acceso" }, { status: 403 });
+      return NextResponse.json({ error: "Venta no encontrada" }, { status: 404 });
     }
   }
 
@@ -82,9 +88,18 @@ export async function PATCH(
     }
     const venta = await prisma.venta.findUnique({
       where: { id: ventaId },
-      select: { boletaEmitida: true },
+      select: { boletaEmitida: true, cajaId: true, usuarioId: true },
     });
     if (!venta) return NextResponse.json({ error: "Venta no encontrada" }, { status: 404 });
+    // Verificar ownership por sucursal
+    if (rol !== "ADMIN_GENERAL" && sucursalId) {
+      const ownerSucursalId = venta.cajaId
+        ? (await prisma.caja.findUnique({ where: { id: venta.cajaId }, select: { sucursalId: true } }))?.sucursalId
+        : (await prisma.usuario.findUnique({ where: { id: venta.usuarioId }, select: { sucursalId: true } }))?.sucursalId;
+      if (ownerSucursalId !== sucursalId) {
+        return NextResponse.json({ error: "Venta no encontrada" }, { status: 404 });
+      }
+    }
     const updated = await prisma.venta.update({
       where: { id: ventaId },
       data: { boletaEmitida: !venta.boletaEmitida },

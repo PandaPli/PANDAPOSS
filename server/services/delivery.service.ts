@@ -40,6 +40,11 @@ interface DeliveryScope {
 const CUMPLE_PORCENTAJE = 30;
 const CUMPLE_TOPE = 15000;
 
+// P1: Límites para prevenir abuso del endpoint público delivery
+const MAX_DELIVERY_ITEMS    = 30;   // máximo de líneas por pedido
+const MAX_DELIVERY_CANTIDAD = 50;   // máximo de unidades por ítem
+const MAX_LIBRE_PRECIO      = 500_000; // tope para productos libres
+
 const allowedPayments: MetodoPago[] = ["EFECTIVO", "TARJETA", "TRANSFERENCIA"];
 const activeDeliveryStatuses: PrismaEstadoPedido[] = ["PENDIENTE", "EN_PROCESO", "LISTO"];
 
@@ -53,10 +58,33 @@ export const DeliveryService = {
     zonaDelivery?: string;
     cuponCodigo?: string | null;
   }) {
-    const { sucursalId, items, cliente, metodoPago, cargoEnvio = 0, zonaDelivery, cuponCodigo = null } = input;
+    const { sucursalId, items, cliente, metodoPago, cargoEnvio: rawCargoEnvio = 0, zonaDelivery, cuponCodigo = null } = input;
 
     if (!allowedPayments.includes(metodoPago)) {
       throw new Error("Selecciona un metodo de pago valido.");
+    }
+
+    // P1: Validar límites de ítems y cantidades
+    if (!items || items.length === 0) {
+      throw new Error("El pedido debe tener al menos un producto.");
+    }
+    if (items.length > MAX_DELIVERY_ITEMS) {
+      throw new Error(`El pedido no puede tener más de ${MAX_DELIVERY_ITEMS} productos.`);
+    }
+    for (const item of items) {
+      const cantidad = Number(item.cantidad);
+      if (!cantidad || isNaN(cantidad) || cantidad <= 0 || !Number.isInteger(cantidad)) {
+        throw new Error("Cantidad inválida en el pedido.");
+      }
+      if (cantidad > MAX_DELIVERY_CANTIDAD) {
+        throw new Error(`La cantidad por producto no puede superar ${MAX_DELIVERY_CANTIDAD} unidades.`);
+      }
+    }
+
+    // D1: Validar cargoEnvio — no permitir negativos ni valores absurdos
+    const cargoEnvio = Math.max(0, Math.round(Number(rawCargoEnvio) || 0));
+    if (!isFinite(cargoEnvio) || cargoEnvio > 500_000) {
+      throw new Error("Cargo de envío inválido.");
     }
 
     const sucursal = await prisma.sucursal.findUnique({
@@ -90,7 +118,9 @@ export const DeliveryService = {
     // Validar productos libres
     for (const item of itemsLibres) {
       if (!item.nombre?.trim()) throw new Error("El producto libre debe tener un nombre.");
-      if (!item.precio || Number(item.precio) <= 0) throw new Error("El producto libre debe tener un precio válido.");
+      const precioLibre = Number(item.precio);
+      if (!precioLibre || precioLibre <= 0 || !isFinite(precioLibre)) throw new Error("El producto libre debe tener un precio válido.");
+      if (precioLibre > MAX_LIBRE_PRECIO) throw new Error(`El precio del producto libre no puede superar ${MAX_LIBRE_PRECIO}.`);
     }
 
     const productIds = [...new Set(itemsRegulares.map((item) => Number(item.productoId)))];

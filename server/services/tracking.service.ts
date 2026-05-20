@@ -47,16 +47,26 @@ export const TrackingService = {
       }),
     ]);
 
+    // P4: Redactar datos sensibles — el tracking público no debe exponer PII completo.
+    // Solo mostramos iniciales del nombre y teléfono parcial.
+    const nombreRedactado = meta.clienteNombre
+      ? meta.clienteNombre.split(" ").map((p: string) => p.charAt(0) + "***").join(" ")
+      : null;
+    const telefonoRedactado = pedido.telefonoCliente
+      ? "****" + pedido.telefonoCliente.slice(-4)
+      : null;
+    const direccionRedactada = pedido.direccionEntrega
+      ? pedido.direccionEntrega.split(",")[0] + "..."
+      : null;
+
     return {
       id: pedido.id,
       estado: pedido.estado,
       trackingStage,
       trackingLabel: getDeliveryStageLabel(trackingStage, esRetiro),
-      clienteNombre: meta.clienteNombre,
-      telefonoCliente: pedido.telefonoCliente,
-      direccionEntrega: pedido.direccionEntrega,
-      referencia: meta.referencia,
-      departamento: meta.departamento,
+      clienteNombre: nombreRedactado,
+      telefonoCliente: telefonoRedactado,
+      direccionEntrega: direccionRedactada,
       metodoPago: meta.metodoPago,
       cargoEnvio: meta.cargoEnvio,
       subtotal,

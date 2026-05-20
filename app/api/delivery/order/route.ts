@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { DeliveryService } from "@/server/services/delivery.service";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import type { DeliveryCustomerInput, MetodoPago } from "@/types";
 
 interface DeliveryItemInput {
@@ -11,6 +12,19 @@ interface DeliveryItemInput {
 
 export async function POST(req: NextRequest) {
   try {
+    // P1: Rate limiting — 5 pedidos delivery por IP por minuto
+    const ip = getClientIp(req);
+    const rl = rateLimit(`public:delivery:${ip}`, { max: 5, windowMs: 60_000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en un momento." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+        }
+      );
+    }
+
     const body = await req.json();
     const result = await DeliveryService.createPublicOrder({
       sucursalId: Number(body.sucursalId),

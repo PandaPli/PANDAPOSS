@@ -32,10 +32,15 @@ export async function PATCH(req: NextRequest) {
     },
   });
 
-  // Emitir por socket para que el restaurante y cliente vean la ubicación en tiempo real
+  // Emitir por socket SOLO a la sucursal del rider (no a todos los tenants)
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const globalForSocket = global as unknown as { io?: import("socket.io").Server };
   try {
-    globalForSocket.io?.emit("driver:location", { riderId: userId, lat, lng, ts: Date.now() });
+    if (sucursalId) {
+      globalForSocket.io
+        ?.to(`sucursal_${sucursalId}_dispatch`)
+        .emit("driver:location", { riderId: userId, lat, lng, ts: Date.now() });
+    }
   } catch {
     // No bloquear si el socket falla
   }

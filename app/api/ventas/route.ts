@@ -70,13 +70,17 @@ export async function POST(req: NextRequest) {
     }
     const caja = await prisma.caja.findUnique({
       where: { id: Number(body.cajaId) },
-      select: { estado: true },
+      select: { estado: true, sucursalId: true },
     });
     if (!caja || caja.estado !== "ABIERTA") {
       return NextResponse.json(
         { error: "La caja seleccionada no está abierta. Abre una caja primero." },
         { status: 400 }
       );
+    }
+    // Verificar que la caja pertenece a la sucursal del usuario
+    if (caja.sucursalId !== sucursalId) {
+      return NextResponse.json({ error: "Caja no encontrada" }, { status: 404 });
     }
   }
 

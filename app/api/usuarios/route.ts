@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import type { Rol } from "@/types";
 import { UsuarioRepo } from "@/server/repositories/usuario.repo";
 import { checkLimit } from "@/core/billing/limitChecker";
@@ -65,7 +66,20 @@ export async function PATCH(req: NextRequest) {
   const rol = (session.user as { rol: Rol }).rol;
   if (!ADMIN_ROLES.includes(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
   const { id, password, rolUsuario, sucursalId: newSucursalId, ...rest } = await req.json();
+
+  // Tenant isolation: non-admin can only modify users from their own sucursal
+  if (rol !== "ADMIN_GENERAL" && sucursalId) {
+    const targetUser = await prisma.usuario.findUnique({
+      where: { id: Number(id) },
+      select: { sucursalId: true },
+    });
+    if (!targetUser || targetUser.sucursalId !== sucursalId) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+  }
+
   const data: Record<string, unknown> = { ...rest };
   if (rolUsuario) {
     // Prevent privilege escalation

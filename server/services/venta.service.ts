@@ -450,32 +450,41 @@ export const VentaService = {
 
   // ── A1: Anular venta y restaurar stock ──────────────────────────────────────
   async anular(ventaId: number) {
-    const venta = await prisma.venta.findUnique({
+    // Pre-check rápido (la validación atómica se hace dentro de la tx)
+    const ventaPreCheck = await prisma.venta.findUnique({
       where: { id: ventaId },
-      include: {
-        detalles: {
-          where: { productoId: { not: null } },
-          select: { productoId: true, cantidad: true },
-        },
-      },
+      select: { estado: true },
     });
-
-    if (!venta) throw new Error("Venta no encontrada.");
-    if (venta.estado === "ANULADA") throw new Error("La venta ya fue anulada.");
-    if (venta.estado !== "PAGADA") throw new Error("Solo se pueden anular ventas PAGADAS.");
-
-    // Agregar cantidades por producto (puede haber varios detalles del mismo)
-    const porProducto = new Map<number, number>();
-    for (const d of venta.detalles) {
-      if (!d.productoId) continue;
-      porProducto.set(d.productoId, (porProducto.get(d.productoId) ?? 0) + d.cantidad);
-    }
-    const productosAfectados = Array.from(porProducto.entries()).map(([productoId, cantidad]) => ({
-      productoId,
-      cantidad,
-    }));
+    if (!ventaPreCheck) throw new Error("Venta no encontrada.");
+    if (ventaPreCheck.estado === "ANULADA") throw new Error("La venta ya fue anulada.");
+    if (ventaPreCheck.estado !== "PAGADA") throw new Error("Solo se pueden anular ventas PAGADAS.");
 
     await prisma.$transaction(async (tx) => {
+      // A1: SELECT FOR UPDATE para bloquear la fila — evita doble anulación concurrente
+      const [locked] = await tx.$queryRaw<{ id: number; estado: string }[]>(
+        Prisma.sql`SELECT id, estado FROM ventas WHERE id = ${ventaId} LIMIT 1 FOR UPDATE`
+      );
+      if (!locked) throw new Error("Venta no encontrada.");
+      if (locked.estado === "ANULADA") throw new Error("La venta ya fue anulada.");
+      if (locked.estado !== "PAGADA") throw new Error("Solo se pueden anular ventas PAGADAS.");
+
+      // Leer detalles dentro de la tx
+      const detalles = await tx.detalleVenta.findMany({
+        where: { ventaId, productoId: { not: null } },
+        select: { productoId: true, cantidad: true },
+      });
+
+      // Agregar cantidades por producto
+      const porProducto = new Map<number, number>();
+      for (const d of detalles) {
+        if (!d.productoId) continue;
+        porProducto.set(d.productoId, (porProducto.get(d.productoId) ?? 0) + d.cantidad);
+      }
+      const productosAfectados = Array.from(porProducto.entries()).map(([productoId, cantidad]) => ({
+        productoId,
+        cantidad,
+      }));
+
       // 1. Restaurar stock
       await Promise.all(
         productosAfectados.map((p) =>
@@ -506,7 +515,7 @@ export const VentaService = {
       });
     });
 
-    // 4. Revertir puntos si aplica
+    // 4. Revertir puntos si aplica (fuera de tx, idempotente)
     await PuntosService.revertirPorAnulacion(ventaId);
 
     return { id: ventaId, estado: "ANULADA" };

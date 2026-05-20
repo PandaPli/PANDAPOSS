@@ -1,16 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createSlug } from "@/lib/slug";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    // P2: Rate limiting — 10 evaluaciones por IP por minuto
+    const ip = getClientIp(req);
+    const rl = rateLimit(`public:evaluacion:${ip}`, { max: 10, windowMs: 60_000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en un momento." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+        }
+      );
+    }
+
     const body = await req.json();
-    const { pedidoId, nick, estrellas, comentario } = body;
+    const { pedidoId, nick, comentario } = body;
+    const estrellas = Number(body.estrellas);
 
     if (!pedidoId || !nick || !estrellas) {
       return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
     }
-    if (estrellas < 1 || estrellas > 5) {
+    if (!Number.isInteger(estrellas) || estrellas < 1 || estrellas > 5) {
       return NextResponse.json({ error: "Estrellas inválidas" }, { status: 400 });
     }
 

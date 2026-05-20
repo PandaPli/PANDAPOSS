@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
   if (!sucursalId || !type || !data)
     return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
 
+  // Verificar que el usuario pertenece a la sucursal destino
+  const rol = (session.user as { rol: string }).rol;
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && Number(sucursalId) !== userSucursalId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
   const sucursal = await prisma.sucursal.findUnique({
     where: { id: Number(sucursalId) },
     select: { printerIp: true },

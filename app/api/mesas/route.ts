@@ -38,9 +38,26 @@ export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: Rol }).rol;
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
   const { id, estado } = await req.json();
+  if (!id || !estado) return NextResponse.json({ error: "id y estado requeridos" }, { status: 400 });
+
+  // Verificar que la mesa pertenece a la sucursal del usuario
+  if (rol !== "ADMIN_GENERAL") {
+    const mesa = await prisma.mesa.findUnique({
+      where: { id: Number(id) },
+      select: { sala: { select: { sucursalId: true } } },
+    });
+    if (!mesa) return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
+    if (mesa.sala.sucursalId !== userSucursalId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+  }
+
   const mesa = await prisma.mesa.update({
-    where: { id },
+    where: { id: Number(id) },
     data: { estado },
   });
   return NextResponse.json(mesa);

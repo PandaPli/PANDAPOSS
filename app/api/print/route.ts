@@ -10,9 +10,17 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: string }).rol;
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+
   const { sucursalId, content } = await req.json();
   if (!sucursalId || !content) {
     return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
+  }
+
+  // Verificar que el usuario pertenece a la sucursal destino
+  if (rol !== "ADMIN_GENERAL" && Number(sucursalId) !== userSucursalId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
   if (!globalForSocket.io) {

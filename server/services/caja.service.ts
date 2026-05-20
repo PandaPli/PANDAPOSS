@@ -43,82 +43,90 @@ export const CajaService = {
   },
 
   async cerrar(id: number, saldoFinal: number, observacion?: string) {
-    const caja = await CajaRepo.findById(id);
-    if (!caja) throw new Error("Caja no encontrada");
-    if (caja.estado === "CERRADA") throw new Error("La caja ya está cerrada");
+    // Pre-check rápido (la validación atómica se hace dentro de la tx)
+    const cajaPreCheck = await CajaRepo.findById(id);
+    if (!cajaPreCheck) throw new Error("Caja no encontrada");
+    if (cajaPreCheck.estado === "CERRADA") throw new Error("La caja ya está cerrada");
 
-    // C2: Guard — abiertaEn nunca debería ser null en una caja ABIERTA
-    if (!caja.abiertaEn) throw new Error("La caja no tiene fecha de apertura registrada.");
+    const result = await prisma.$transaction(async (tx) => {
+      // P6: SELECT FOR UPDATE para bloquear la fila — evita doble cierre concurrente
+      const [locked] = await tx.$queryRaw<{ id: number; estado: string; saldoInicio: number; abiertaEn: Date | null }[]>(
+        Prisma.sql`SELECT id, estado, saldoInicio, abiertaEn FROM cajas WHERE id = ${id} LIMIT 1 FOR UPDATE`
+      );
+      if (!locked) throw new Error("Caja no encontrada");
+      if (locked.estado === "CERRADA") throw new Error("La caja ya está cerrada");
 
-    const desde = caja.abiertaEn;
-    const hasta = new Date(); // C2: cota superior explícita = ahora
+      // C2: Guard — abiertaEn nunca debería ser null en una caja ABIERTA
+      if (!locked.abiertaEn) throw new Error("La caja no tiene fecha de apertura registrada.");
 
-    const ventasAgrupadas = await prisma.venta.groupBy({
-      by: ["metodoPago"],
-      _sum: { total: true },
-      _count: { id: true },
-      where: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
-    });
+      const desde = locked.abiertaEn;
+      const hasta = new Date(); // C2: cota superior explícita = ahora
 
-    let totalVentas = 0;
-    ventasAgrupadas.forEach((g) => { totalVentas += Number(g._sum.total ?? 0); });
+      const ventasAgrupadas = await tx.venta.groupBy({
+        by: ["metodoPago"],
+        _sum: { total: true },
+        _count: { id: true },
+        where: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
+      });
 
-    // Bug 1 fix: calcular efectivo real desde PagoVenta para incluir pagos MIXTO
-    // (una venta MIXTO puede tener parte en efectivo; antes solo contaban las ventas 100% EFECTIVO)
-    const efectivoPagos = await prisma.pagoVenta.aggregate({
-      _sum: { monto: true },
-      where: {
-        metodoPago: "EFECTIVO",
-        venta: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
-      },
-    });
-    const totalEfectivo = Number(efectivoPagos._sum.monto ?? 0);
+      let totalVentas = 0;
+      ventasAgrupadas.forEach((g) => { totalVentas += Number(g._sum.total ?? 0); });
 
-    const [ingresosAgr, retirosAgr] = await Promise.all([
-      prisma.movimientoCaja.aggregate({
+      // Bug 1 fix: calcular efectivo real desde PagoVenta para incluir pagos MIXTO
+      const efectivoPagos = await tx.pagoVenta.aggregate({
         _sum: { monto: true },
-        where: { cajaId: id, tipo: "INGRESO", creadoEn: { gte: desde, lte: hasta } },
-      }),
-      prisma.movimientoCaja.aggregate({
-        _sum: { monto: true },
-        where: { cajaId: id, tipo: "RETIRO", creadoEn: { gte: desde, lte: hasta } },
-      }),
-    ]);
+        where: {
+          metodoPago: "EFECTIVO",
+          venta: { cajaId: id, estado: "PAGADA", creadoEn: { gte: desde, lte: hasta } },
+        },
+      });
+      const totalEfectivo = Number(efectivoPagos._sum.monto ?? 0);
 
-    const totalIngresos = Number(ingresosAgr._sum.monto ?? 0);
-    const totalRetiros  = Number(retirosAgr._sum.monto  ?? 0);
-    const esperadoEnGaveta =
-      (Number(caja.saldoInicio) + totalEfectivo) + totalIngresos - totalRetiros;
-    const diferencia = saldoFinal - esperadoEnGaveta;
+      const [ingresosAgr, retirosAgr] = await Promise.all([
+        tx.movimientoCaja.aggregate({
+          _sum: { monto: true },
+          where: { cajaId: id, tipo: "INGRESO", creadoEn: { gte: desde, lte: hasta } },
+        }),
+        tx.movimientoCaja.aggregate({
+          _sum: { monto: true },
+          where: { cajaId: id, tipo: "RETIRO", creadoEn: { gte: desde, lte: hasta } },
+        }),
+      ]);
 
-    const arqueoAbierto = await prisma.arqueo.findFirst({
-      where: { cajaId: id, cerradaEn: null },
-      orderBy: { abiertaEn: "desc" },
-    });
+      const totalIngresos = Number(ingresosAgr._sum.monto ?? 0);
+      const totalRetiros  = Number(retirosAgr._sum.monto  ?? 0);
+      const esperadoEnGaveta =
+        (Number(locked.saldoInicio) + totalEfectivo) + totalIngresos - totalRetiros;
+      const diferencia = saldoFinal - esperadoEnGaveta;
 
-    const [cajaActualizada] = await prisma.$transaction([
-      prisma.caja.update({
+      const arqueoAbierto = await tx.arqueo.findFirst({
+        where: { cajaId: id, cerradaEn: null },
+        orderBy: { abiertaEn: "desc" },
+      });
+
+      const cajaActualizada = await tx.caja.update({
         where: { id },
         // Bug 4 fix: no borrar usuarioId — conserva quién tenía asignada la caja para auditoría
         data: { estado: "CERRADA", cerradaEn: hasta },
-      }),
-      ...(arqueoAbierto
-        ? [
-            prisma.arqueo.update({
-              where: { id: arqueoAbierto.id },
-              data: {
-                saldoFinal,
-                totalVentas,
-                diferencia,
-                observacion: observacion ?? null,
-                cerradaEn: hasta,
-              },
-            }),
-          ]
-        : []),
-    ]);
+      });
 
-    return { ...cajaActualizada, totalVentas, diferencia, totalEfectivo };
+      if (arqueoAbierto) {
+        await tx.arqueo.update({
+          where: { id: arqueoAbierto.id },
+          data: {
+            saldoFinal,
+            totalVentas,
+            diferencia,
+            observacion: observacion ?? null,
+            cerradaEn: hasta,
+          },
+        });
+      }
+
+      return { ...cajaActualizada, totalVentas, diferencia, totalEfectivo };
+    });
+
+    return result;
   },
 
   async getResumenTurno(id: number) {

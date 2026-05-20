@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { VentaService } from "@/server/services/venta.service";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 /**
  * POST /api/delivery/retiro-confirm
@@ -14,6 +15,19 @@ import { VentaService } from "@/server/services/venta.service";
  */
 export async function POST(req: NextRequest) {
   try {
+    // P3: Rate limiting — 10 confirmaciones por IP por minuto
+    const ip = getClientIp(req);
+    const rl = rateLimit(`public:retiro-confirm:${ip}`, { max: 10, windowMs: 60_000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en un momento." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+        }
+      );
+    }
+
     const body = await req.json() as { pedidoId?: number };
     const pedidoId = Number(body.pedidoId);
 

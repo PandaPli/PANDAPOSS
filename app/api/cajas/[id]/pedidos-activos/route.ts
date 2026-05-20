@@ -70,9 +70,21 @@ export async function DELETE(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  // P5: Solo ADMIN_GENERAL y RESTAURANTE pueden cancelar masivamente pedidos
+  const rol = (session.user as { rol: string }).rol;
+  if (!["ADMIN_GENERAL", "RESTAURANTE"].includes(rol)) {
+    return NextResponse.json({ error: "Sin permisos para cancelar pedidos masivamente" }, { status: 403 });
+  }
+
   const { id } = await params;
   const cajaId = Number(id);
   const sucursalId = await getSucursalId(cajaId);
+
+  // P5: Validar que la caja pertenece a la sucursal del usuario
+  const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && userSucursalId && sucursalId !== userSucursalId) {
+    return NextResponse.json({ error: "No autorizado para esta sucursal" }, { status: 403 });
+  }
 
   // Leer IDs antes de cancelar para poder liberar mesas
   const pedidos = await prisma.pedido.findMany({
