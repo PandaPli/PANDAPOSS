@@ -44,6 +44,12 @@ export async function PATCH(req: NextRequest) {
   const { id, estado } = await req.json();
   if (!id || !estado) return NextResponse.json({ error: "id y estado requeridos" }, { status: 400 });
 
+  // Validar estado contra enum — defensa en profundidad
+  const ESTADOS_VALIDOS = ["LIBRE", "OCUPADA", "CUENTA", "RESERVADA"];
+  if (!ESTADOS_VALIDOS.includes(estado)) {
+    return NextResponse.json({ error: "Estado de mesa inválido" }, { status: 400 });
+  }
+
   // Verificar que la mesa pertenece a la sucursal del usuario
   if (rol !== "ADMIN_GENERAL") {
     const mesa = await prisma.mesa.findUnique({

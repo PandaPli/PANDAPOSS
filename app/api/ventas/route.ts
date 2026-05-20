@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   const { searchParams } = new URL(req.url);
-  const limit = Number(searchParams.get("limit") ?? 20);
-  const page = Number(searchParams.get("page") ?? 1);
+  const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 20), 1), 100);
+  const page = Math.max(Number(searchParams.get("page") ?? 1), 1);
 
   const { ventas, total } = await VentaRepo.list({
     sucursalId,

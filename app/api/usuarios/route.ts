@@ -67,7 +67,8 @@ export async function PATCH(req: NextRequest) {
   if (!ADMIN_ROLES.includes(rol)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
-  const { id, password, rolUsuario, sucursalId: newSucursalId, ...rest } = await req.json();
+  const body = await req.json();
+  const { id, password, rolUsuario, sucursalId: newSucursalId } = body;
 
   // Tenant isolation: non-admin can only modify users from their own sucursal
   if (rol !== "ADMIN_GENERAL" && sucursalId) {
@@ -80,7 +81,13 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  const data: Record<string, unknown> = { ...rest };
+  // Whitelist: solo campos seguros — evitar inyección de rol, sucursalId, tenantId, etc.
+  const ALLOWED_FIELDS = ["nombre", "email", "status"] as const;
+  const data: Record<string, unknown> = {};
+  for (const field of ALLOWED_FIELDS) {
+    if (field in body) data[field] = body[field];
+  }
+
   if (rolUsuario) {
     // Prevent privilege escalation
     const allowedRoles = ["SECRETARY", "CASHIER", "WAITER", "CHEF", "BAR", "DELIVERY"];
