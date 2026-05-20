@@ -20,8 +20,17 @@ async function readVisorStateFromDB(cajaId: number): Promise<VisorMsg | null> {
 
 export async function GET(req: NextRequest) {
   const cajaId = Number(req.nextUrl.searchParams.get("c"));
-  if (!cajaId || isNaN(cajaId)) {
+  if (!cajaId || isNaN(cajaId) || cajaId <= 0) {
     return new Response("Falta parámetro c (cajaId)", { status: 400 });
+  }
+
+  // Validar que la caja existe — evitar que se pueda enumerar IDs arbitrarios
+  const cajaExiste = await prisma.caja.findUnique({
+    where: { id: cajaId },
+    select: { id: true },
+  });
+  if (!cajaExiste) {
+    return new Response("Caja no encontrada", { status: 404 });
   }
 
   const encoder = new TextEncoder();

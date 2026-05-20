@@ -41,6 +41,39 @@ export async function POST(req: NextRequest) {
 
     const targetUrl = url.trim();
 
+    // ── SSRF protection: validar URL ────────────────────────────────────────
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch {
+      return NextResponse.json({ error: "URL inválida" }, { status: 400 });
+    }
+
+    // Solo permitir http/https
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return NextResponse.json({ error: "Solo se permiten URLs http/https" }, { status: 400 });
+    }
+
+    // Bloquear IPs privadas, localhost, y metadatos cloud
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const blockedPatterns = [
+      /^localhost$/i,
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2\d|3[01])\./,
+      /^192\.168\./,
+      /^169\.254\./,          // link-local / AWS metadata
+      /^0\./,
+      /^\[::1\]$/,            // IPv6 localhost
+      /^\[fc/i, /^\[fd/i,    // IPv6 private
+      /^\[fe80/i,            // IPv6 link-local
+      /metadata\.google/i,
+      /metadata\.azure/i,
+    ];
+    if (blockedPatterns.some((p) => p.test(hostname))) {
+      return NextResponse.json({ error: "URL no permitida" }, { status: 400 });
+    }
+
     // ── Bloquear redes sociales (requieren JS / login) ──────────────────────
     const esRedsocial =
       targetUrl.includes("wa.me") ||

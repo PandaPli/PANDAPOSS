@@ -3,7 +3,7 @@ import { Bike, MapPin, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 // Mock Data para el mapa logistico MIENTRAS
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "pk.eyJ1IjoiZ2FieWciLCJhIjoiY2x0MWlyNWN3MWozbjJpbXVzeXpwcHFwbiJ9.N2S49iS--"; // Dummy o default
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 const MOCK_RESTAURANT = { lat: -33.4569, lng: -70.6483 };
 
 export default function DispatchCenterPage() {

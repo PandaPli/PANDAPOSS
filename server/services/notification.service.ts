@@ -1,5 +1,6 @@
 // Cola en memoria para mensajes WhatsApp salientes.
 // Persiste mientras el servidor esté corriendo; se drena al ser consumida por el agente.
+const MAX_WSP_QUEUE_PER_SUCURSAL = 500;
 const wspQueue = new Map<number, Array<{ telefono: string; pedidoId: number; mensaje: string }>>();
 
 export const NotificationService = {
@@ -25,6 +26,10 @@ export const NotificationService = {
       input.sucursalId
     ) {
       const queue = wspQueue.get(input.sucursalId) ?? [];
+      if (queue.length >= MAX_WSP_QUEUE_PER_SUCURSAL) {
+        console.warn(`[NotificationService] wspQueue llena para sucursal ${input.sucursalId} (${queue.length}), descartando mensaje más antiguo`);
+        queue.shift(); // Descartar el más antiguo para hacer espacio
+      }
       queue.push({
         telefono: input.telefono,
         pedidoId: input.pedidoId,

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Estacion } from "@prisma/client";
 
+const ADMIN_ROLES = ["ADMIN_GENERAL", "RESTAURANTE"];
+
 // PATCH /api/categorias/[id] → actualizar nombre o estacion
 export async function PATCH(
   req: NextRequest,
@@ -11,6 +13,11 @@ export async function PATCH(
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rol = (session.user as { rol: string }).rol;
+  if (!ADMIN_ROLES.includes(rol)) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
 
   const { id } = await params;
   const body = await req.json();

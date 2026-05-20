@@ -18,15 +18,24 @@ export async function POST(req: NextRequest) {
 
   const { cajaId, ...msg } = body;
 
-  // 1. Persistir en DB — fiable en PM2 cluster (todos los workers comparten la misma DB)
-  try {
-    await prisma.caja.update({
-      where: { id: cajaId },
-      data: { visorEstado: JSON.stringify(msg) },
-    });
-  } catch {
-    // Si la caja no existe o falla, seguimos — la notificación en memoria aún funciona
+  // Verificar que la caja pertenece a la sucursal del usuario
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  const caja = await prisma.caja.findUnique({
+    where: { id: cajaId },
+    select: { sucursalId: true },
+  });
+  if (!caja) {
+    return NextResponse.json({ error: "Caja no encontrada" }, { status: 404 });
   }
+  if (caja.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Sin permisos sobre esta caja" }, { status: 403 });
+  }
+
+  // 1. Persistir en DB — fiable en PM2 cluster (todos los workers comparten la misma DB)
+  await prisma.caja.update({
+    where: { id: cajaId },
+    data: { visorEstado: JSON.stringify(msg) },
+  });
 
   // 2. Notificar listeners del mismo proceso (respuesta inmediata sin polling)
   pushVisorStateMem(cajaId, msg as VisorMsg);

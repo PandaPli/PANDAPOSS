@@ -4,10 +4,17 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
+const ADMIN_ROLES = ["ADMIN_GENERAL", "RESTAURANTE"];
+
 // POST /api/categorias/reorder  → { items: [{ id, orden }] }
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
+  const rol = (session.user as { rol: string }).rol;
+  if (!ADMIN_ROLES.includes(rol)) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
 
   const { items } = (await req.json()) as { items: { id: number; orden: number }[] };
   if (!Array.isArray(items)) return NextResponse.json({ error: "items requerido" }, { status: 400 });
