@@ -89,12 +89,16 @@ export async function POST(req: NextRequest) {
       observacion: obs,
     });
 
-    // Incrementar uso del cupón si aplica
+    // Incrementar uso del cupón si aplica (dentro de transacción para evitar race condition)
     if (cuponId && cuponId > 0) {
-      await prisma.cupon.update({
-        where: { id: cuponId },
-        data: { usoActual: { increment: 1 } },
-      }).catch(() => { /* no bloquear si falla */ });
+      try {
+        await prisma.$transaction(async (tx) => {
+          const cupon = await tx.cupon.findUnique({ where: { id: cuponId }, select: { usoActual: true, usoMax: true } });
+          if (cupon && (cupon.usoMax === null || cupon.usoActual < cupon.usoMax)) {
+            await tx.cupon.update({ where: { id: cuponId }, data: { usoActual: { increment: 1 } } });
+          }
+        });
+      } catch { /* no bloquear si falla */ }
     }
 
     // ── Registrar Venta (siempre) para cuadratura de caja y puntos ──────────

@@ -29,7 +29,11 @@ export async function POST(req: NextRequest) {
   if (!nombre) return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
 
   const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
-  const effectiveSucursalId = sucursalId || userSucursalId || 1;
+  // Solo ADMIN_GENERAL puede especificar sucursalId diferente
+  const effectiveSucursalId = rolCheck === "ADMIN_GENERAL" && sucursalId ? Number(sucursalId) : userSucursalId;
+  if (!effectiveSucursalId || effectiveSucursalId <= 0) {
+    return NextResponse.json({ error: "No se pudo determinar la sucursal" }, { status: 400 });
+  }
 
   const { allowed, error } = await checkLimit(effectiveSucursalId, "cajas");
   if (!allowed) return NextResponse.json({ error }, { status: 403 });

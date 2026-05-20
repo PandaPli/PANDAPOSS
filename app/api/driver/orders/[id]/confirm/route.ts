@@ -44,6 +44,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Código incorrecto" }, { status: 422 });
   }
 
+  // Validar que el pedido esté en estado LISTO antes de confirmar entrega
+  if (pedido.estado !== "LISTO") {
+    return NextResponse.json(
+      { error: `No se puede confirmar entrega: el pedido está en estado ${pedido.estado}` },
+      { status: 409 }
+    );
+  }
+
   // Código correcto — marcar como ENTREGADO
   await prisma.$transaction([
     prisma.pedido.update({
