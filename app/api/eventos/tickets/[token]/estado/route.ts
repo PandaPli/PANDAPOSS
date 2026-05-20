@@ -22,8 +22,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ to
     return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
   }
 
-  const ticket = await prisma.ticketEvento.findUnique({ where: { token } });
+  const ticket = await prisma.ticketEvento.findUnique({
+    where: { token },
+    include: { evento: { select: { sucursalId: true } } },
+  });
   if (!ticket) return NextResponse.json({ error: "Ticket no encontrado" }, { status: 404 });
+
+  // Verificar que el ticket pertenece a la sucursal del usuario
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && sucursalId && ticket.evento.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Ticket no encontrado" }, { status: 404 });
+  }
 
   const updated = await prisma.ticketEvento.update({
     where: { token },

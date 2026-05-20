@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import type { Rol } from "@/types";
+
+const ALLOWED_ROLES: Rol[] = ["ADMIN_GENERAL", "RESTAURANTE"];
 
 export async function GET(
   _req: NextRequest,
@@ -10,9 +13,20 @@ export async function GET(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: Rol }).rol;
+  if (!ALLOWED_ROLES.includes(rol)) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+
   const { id } = await params;
   const sucursalId = parseInt(id);
   if (isNaN(sucursalId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  // Verificar ownership: RESTAURANTE solo puede ver su propia sucursal
+  const sessionSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && sessionSucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
 
   const sucursal = await prisma.sucursal.findUnique({
     where: { id: sucursalId },
@@ -35,9 +49,20 @@ export async function PUT(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const rol = (session.user as { rol: Rol }).rol;
+  if (!ALLOWED_ROLES.includes(rol)) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+
   const { id } = await params;
   const sucursalId = parseInt(id);
   if (isNaN(sucursalId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+  // Verificar ownership
+  const sessionSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && sessionSucursalId !== sucursalId) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
 
   const body = await req.json();
   const { puntosActivo, puntosPorMil, valorPunto } = body as {

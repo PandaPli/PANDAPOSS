@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 // Endpoint público — devuelve pedidos activos (EN_PROCESO + LISTO) del turno actual.
 // Sin auth: solo expone número de orden y estado (sin PII).
 export async function GET(req: NextRequest) {
+  // Rate limiting — 30 req/min (pantalla de llamador hace polling)
+  const ip = getClientIp(req);
+  const rl = rateLimit(`llamador:publico:${ip}`, { max: 30, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const sucursalId = Number(searchParams.get("sucursalId"));
-  if (!sucursalId) return NextResponse.json({ error: "Falta sucursalId" }, { status: 400 });
+  if (!sucursalId || sucursalId <= 0) return NextResponse.json({ error: "Falta sucursalId" }, { status: 400 });
 
   // Desde apertura de caja o últimas 10 horas como fallback
   let desde: Date;

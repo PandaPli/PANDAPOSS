@@ -28,6 +28,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Debe especificar productoId o comboId" }, { status: 400 });
   }
 
+  // Verificar que el pedido pertenece a la sucursal del usuario
+  const rol = (session.user as { rol?: string }).rol;
+  const sucursalId = (session.user as { sucursalId?: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && sucursalId) {
+    const pedido = await prisma.pedido.findUnique({
+      where: { id: body.pedidoId },
+      select: {
+        mesa: { select: { sala: { select: { sucursalId: true } } } },
+        usuario: { select: { sucursalId: true } },
+      },
+    });
+    if (!pedido) return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 });
+    const pedidoSucursalId = pedido.mesa?.sala?.sucursalId ?? pedido.usuario?.sucursalId;
+    if (pedidoSucursalId && pedidoSucursalId !== sucursalId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+  }
+
   const detalle = await prisma.detallePedido.create({
     data: {
       pedidoId:    body.pedidoId,

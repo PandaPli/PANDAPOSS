@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import type { Rol } from "@/types";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -25,9 +26,17 @@ export async function GET(_req: Request, { params }: Params) {
       email: true,
       puntos: true,
       creadoEn: true,
+      sucursalId: true,
     },
   });
   if (!cliente) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+
+  // Verificar ownership de sucursal
+  const rol = (session.user as { rol: Rol }).rol;
+  const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && cliente.sucursalId !== sucursalId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
 
   // Estadísticas de ventas (últimas 50 ventas)
   const ventas = await prisma.venta.findMany({

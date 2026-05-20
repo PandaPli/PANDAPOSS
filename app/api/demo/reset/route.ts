@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Limpiar logs del usuario demo
-    await tx.log.deleteMany({ where: { usuarioId: 13 } });
+    await tx.log.deleteMany({ where: { usuarioId: DEMO_USUARIO_ID } });
   });
 
   return NextResponse.json({

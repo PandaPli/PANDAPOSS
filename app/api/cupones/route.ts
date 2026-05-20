@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
   }
 
-  const sid = body.sucursalId ? Number(body.sucursalId) : sucursalId;
+  // ADMIN_GENERAL puede especificar sucursalId; otros solo usan la suya
+  const sid = rol === "ADMIN_GENERAL" && body.sucursalId ? Number(body.sucursalId) : sucursalId;
   if (!sid) return NextResponse.json({ error: "sucursalId requerido" }, { status: 400 });
 
   try {

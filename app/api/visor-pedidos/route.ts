@@ -1,12 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 // GET /api/visor-pedidos?sucursalId=6
 // Devuelve pedidos KIOSKO del turno actual agrupados por estado
 export async function GET(req: NextRequest) {
+  // Rate limiting — 30 req/min (pantalla de visor hace polling)
+  const ip = getClientIp(req);
+  const rl = rateLimit(`visor-pedidos:${ip}`, { max: 30, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   const sucursalId = Number(req.nextUrl.searchParams.get("sucursalId"));
-  if (!sucursalId || isNaN(sucursalId)) {
+  if (!sucursalId || isNaN(sucursalId) || sucursalId <= 0) {
     return NextResponse.json({ error: "sucursalId requerido" }, { status: 400 });
+  }
+
+  // Validar que la sucursal existe y está activa
+  const sucursal = await prisma.sucursal.findUnique({
+    where: { id: sucursalId },
+    select: { id: true, activa: true },
+  });
+  if (!sucursal || !sucursal.activa) {
+    return NextResponse.json({ error: "Sucursal no encontrada" }, { status: 404 });
   }
 
   // Usar apertura de caja como inicio del turno
@@ -42,10 +62,12 @@ export async function GET(req: NextRequest) {
     orderBy: { creadoEn: "asc" },
   });
 
-  // Parsear nombre del cliente desde observacion
+  // Parsear solo primer nombre del cliente (sin apellido) para el visor público
   const result = pedidos.map((p) => {
     const nombreMatch = p.observacion?.match(/👤\s*([^·]+)/);
-    const nombre = nombreMatch ? nombreMatch[1].trim() : null;
+    const nombreCompleto = nombreMatch ? nombreMatch[1].trim() : null;
+    // Solo mostrar primer nombre para privacidad
+    const nombre = nombreCompleto ? nombreCompleto.split(" ")[0] : null;
     return {
       id: p.id,
       numero: p.numero,
