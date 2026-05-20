@@ -59,6 +59,8 @@ export interface CreateVentaInput {
   cuponCodigo?: string | null;
   /** Puntos que el cliente desea canjear (requiere clienteId) */
   puntosCanjeados?: number | null;
+  /** Si true: registra la venta pero NO cierra el pedido (para llevar: pago anticipado, cocina aún debe preparar) */
+  skipPedidoClose?: boolean;
 }
 
 function generateVentaNumero() {
@@ -168,6 +170,7 @@ export const VentaService = {
       cuponId,
       cuponCodigo,
       puntosCanjeados: puntosCanjeadosInput,
+      skipPedidoClose,
     } = input;
 
     const puntosCanjeados = puntosCanjeadosInput ?? 0;
@@ -397,8 +400,10 @@ export const VentaService = {
             if (mesaId) {
               await checkAndCloseMesa(tx, mesaId);
             }
-          } else {
+          } else if (!skipPedidoClose) {
             // Modo normal: cerrar TODOS los pedidos activos de la mesa (no solo el último)
+            // skipPedidoClose = true → pago anticipado (ej. Para Llevar): el pedido
+            // queda activo en KDS para que cocina lo prepare.
             if (mesaId) {
               // Marcar todos los pedidos activos de la mesa como ENTREGADO
               await tx.pedido.updateMany({

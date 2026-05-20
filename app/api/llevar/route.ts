@@ -131,6 +131,9 @@ export async function POST(req: NextRequest) {
         total: totalVenta,
         metodoPago: metodo,
         pagos: [{ metodoPago: metodo, monto: totalVenta }],
+        // Pago anticipado: registrar venta para cuadratura, pero NO cerrar el pedido.
+        // El pedido debe quedar PENDIENTE en KDS para que cocina lo prepare.
+        skipPedidoClose: true,
       });
     } catch { /* no bloquear respuesta si falla */ }
 
