@@ -48,7 +48,18 @@ export async function POST(req: NextRequest) {
   const sucursalId = (session.user as { sucursalId: number | null }).sucursalId;
 
   try {
-    const pedido = await PedidoService.create({ ...body, usuarioId: userId });
+    // Whitelist explícita — no pasar body completo para evitar inyección de campos
+    const pedido = await PedidoService.create({
+      mesaId: body.mesaId ?? null,
+      cajaId: body.cajaId ?? null,
+      usuarioId: userId,
+      tipo: body.tipo ?? undefined,
+      items: body.items,
+      observacion: body.observacion ?? null,
+      direccionEntrega: body.direccionEntrega ?? null,
+      telefonoCliente: body.telefonoCliente ?? null,
+      repartidorId: body.repartidorId ?? null,
+    });
 
     // Notificar KDS en tiempo real
     const globalForSocket = global as unknown as { io?: import("socket.io").Server };

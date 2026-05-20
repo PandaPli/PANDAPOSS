@@ -43,6 +43,15 @@ export async function GET(
   const cajaId = Number(id);
   const sucursalId = await getSucursalId(cajaId);
 
+  // Tenant isolation: verificar que la caja pertenece a la sucursal del usuario
+  const rol = (session.user as { rol: string }).rol;
+  if (rol !== "ADMIN_GENERAL") {
+    const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+    if (!sucursalId || sucursalId !== userSucursalId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+  }
+
   const pedidos = await prisma.pedido.findMany({
     where: buildWhere(sucursalId),
     select: {

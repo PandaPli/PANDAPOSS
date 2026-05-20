@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { subscribeVisor, getVisorStateMem, type VisorMsg } from "@/lib/visorBus";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,16 @@ async function readVisorStateFromDB(cajaId: number): Promise<VisorMsg | null> {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limiting: máx 10 conexiones SSE por IP por minuto (anti-DoS)
+  const ip = getClientIp(req);
+  const rl = rateLimit(`visor:stream:${ip}`, { max: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return new Response("Demasiadas conexiones. Intenta de nuevo en un momento.", {
+      status: 429,
+      headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+    });
+  }
+
   const cajaId = Number(req.nextUrl.searchParams.get("c"));
   if (!cajaId || isNaN(cajaId) || cajaId <= 0) {
     return new Response("Falta parámetro c (cajaId)", { status: 400 });

@@ -8,8 +8,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const { id } = await params;
+  const productoId = Number(id);
+
+  // Tenant isolation: verificar que el producto pertenece a la sucursal del usuario
+  const rol = (session.user as { rol: string }).rol;
+  if (rol !== "ADMIN_GENERAL") {
+    const userSucursalId = (session.user as { sucursalId: number | null }).sucursalId;
+    const producto = await prisma.producto.findUnique({
+      where: { id: productoId },
+      select: { sucursalId: true },
+    });
+    if (!producto) return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+    if (producto.sucursalId !== userSucursalId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+  }
+
   const grupos = await prisma.varianteGrupo.findMany({
-    where: { productoId: Number(id) },
+    where: { productoId },
     orderBy: { orden: "asc" },
     include: { opciones: { orderBy: { orden: "asc" } } },
   });
