@@ -149,9 +149,16 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { id, ...data } = body;
+  const { id } = body;
 
   if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 });
+
+  // Whitelist de campos editables — evitar que se modifiquen sucursalId, puntos, etc.
+  const ALLOWED_FIELDS = ["nombre", "email", "telefono", "direccion", "genero", "fechaNacimiento", "rut", "activo"] as const;
+  const data: Record<string, unknown> = {};
+  for (const field of ALLOWED_FIELDS) {
+    if (field in body) data[field] = body[field];
+  }
 
   // Evitar que nombre quede vacío
   if ("nombre" in data && (!data.nombre || !String(data.nombre).trim()))
@@ -172,10 +179,15 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (data.telefono) {
-    let t = String(data.telefono).trim();
+    let t = String(data.telefono as string).trim();
     t = t.replace(/^\+?56\s*9\s*/, "");
     t = t.replace(/^569\s*/, "");
     data.telefono = t.trim() || null;
+  }
+
+  // Convertir fechaNacimiento a Date si viene como string
+  if (data.fechaNacimiento && typeof data.fechaNacimiento === "string") {
+    data.fechaNacimiento = new Date(data.fechaNacimiento);
   }
 
   const cliente = await prisma.cliente.update({

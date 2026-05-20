@@ -26,6 +26,20 @@ export async function POST(
   const originalId = Number(detalleId);
   if (isNaN(originalId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
 
+  // Verificar que el detalle pertenece a la sucursal del usuario
+  const rol = (session.user as { rol?: string }).rol;
+  const sucursalId = (session.user as { sucursalId?: number | null }).sucursalId;
+  if (rol !== "ADMIN_GENERAL" && sucursalId) {
+    const detalle = await prisma.detallePedido.findUnique({
+      where: { id: originalId },
+      select: { pedido: { select: { usuario: { select: { sucursalId: true } }, mesa: { select: { sala: { select: { sucursalId: true } } } } } } },
+    });
+    const detalleSucursalId = detalle?.pedido?.mesa?.sala?.sucursalId ?? detalle?.pedido?.usuario?.sucursalId;
+    if (detalleSucursalId && detalleSucursalId !== sucursalId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+  }
+
   const body = await req.json() as {
     splits: { grupo: string; cantidad: number }[];
   };

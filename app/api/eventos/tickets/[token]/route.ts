@@ -24,5 +24,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
 
   const qrDataUrl = await QRCode.toDataURL(token);
 
-  return NextResponse.json({ ...ticket, qrDataUrl });
+  // Redactar PII en endpoint público — solo iniciales y datos parciales
+  const clienteRedactado = ticket.cliente ? {
+    id: ticket.cliente.id,
+    nombre: ticket.cliente.nombre
+      ? ticket.cliente.nombre.split(" ").map((p: string) => p.charAt(0) + "***").join(" ")
+      : null,
+    email: ticket.cliente.email
+      ? ticket.cliente.email.replace(/^(.{2}).*(@.*)$/, "$1***$2")
+      : null,
+    telefono: ticket.cliente.telefono
+      ? "****" + ticket.cliente.telefono.slice(-4)
+      : null,
+  } : null;
+
+  return NextResponse.json({ ...ticket, cliente: clienteRedactado, qrDataUrl });
 }

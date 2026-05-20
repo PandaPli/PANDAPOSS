@@ -67,9 +67,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No hay usuario de sistema configurado" }, { status: 500 });
   }
 
+  // Sanitizar inputs del endpoint público
+  const nombreLimpio = typeof nombreCliente === "string" ? nombreCliente.trim().slice(0, 100) : null;
+  const tipoLimpio = tipoConsumo === "llevar" ? "llevar" : "comer";
+
   const obs = [
-    tipoConsumo === "llevar" ? "🥡 PARA LLEVAR" : "🍽️ COMER AQUÍ",
-    nombreCliente ? `👤 ${nombreCliente}` : null,
+    tipoLimpio === "llevar" ? "🥡 PARA LLEVAR" : "🍽️ COMER AQUÍ",
+    nombreLimpio ? `👤 ${nombreLimpio}` : null,
     "📟 KIOSKO",
   ]
     .filter(Boolean)

@@ -39,11 +39,23 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(agentes);
 }
 
+const ADMIN_ROLES = ["ADMIN_GENERAL", "RESTAURANTE"];
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  const user = session.user as { rol?: string; sucursalId?: number };
+  if (!ADMIN_ROLES.includes(user.rol ?? "")) {
+    return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+  }
+
   const { sucursalId, activo } = await req.json();
+
+  // Ownership: RESTAURANTE solo puede gestionar su propia sucursal
+  if (user.rol !== "ADMIN_GENERAL" && Number(sucursalId) !== user.sucursalId) {
+    return NextResponse.json({ error: "No autorizado para esta sucursal" }, { status: 403 });
+  }
 
   const sucursal = await prisma.sucursal.findUnique({
     where: { id: sucursalId },
