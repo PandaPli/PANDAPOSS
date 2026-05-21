@@ -115,9 +115,9 @@ async function findPedidoActivo(
         numero: opts.numero,
         estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
         OR: [
-          { caja: { sucursalId: ctx.sucursalId } },
-          { mesa: { sala: { sucursalId: ctx.sucursalId } } },
-          { usuario: { sucursalId: ctx.sucursalId } },
+          { caja: { sucursalId: ctx.sucursalId! } },
+          { mesa: { sala: { sucursalId: ctx.sucursalId! } } },
+          { usuario: { sucursalId: ctx.sucursalId! } },
         ],
       },
       include: { detalles: true, mesa: true },
@@ -543,9 +543,9 @@ async function estadoCocina(
   const baseWhere = {
     estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] as const },
     OR: [
-      { caja: { sucursalId: ctx.sucursalId } },
-      { mesa: { sala: { sucursalId: ctx.sucursalId } } },
-      { usuario: { sucursalId: ctx.sucursalId } },
+      { caja: { sucursalId: ctx.sucursalId! } },
+      { mesa: { sala: { sucursalId: ctx.sucursalId! } } },
+      { usuario: { sucursalId: ctx.sucursalId! } },
     ],
   } satisfies Prisma.PedidoWhereInput;
 
