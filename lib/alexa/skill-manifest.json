@@ -1,0 +1,214 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "panda pos",
+      "intents": [
+        {
+          "name": "CrearPedidoIntent",
+          "slots": [
+            { "name": "mesa", "type": "AMAZON.NUMBER" },
+            { "name": "producto", "type": "AMAZON.SearchQuery" },
+            { "name": "cantidad", "type": "AMAZON.NUMBER" },
+            { "name": "observacion", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "crear pedido de {cantidad} {producto} para la mesa {mesa}",
+            "crear pedido de {producto} para la mesa {mesa}",
+            "pedido de {cantidad} {producto} mesa {mesa}",
+            "pon {cantidad} {producto} en la mesa {mesa}",
+            "agrega {cantidad} {producto} a la mesa {mesa}",
+            "quiero {cantidad} {producto} para la mesa {mesa}",
+            "dame {cantidad} {producto} para la mesa {mesa}",
+            "traeme {cantidad} {producto} a la mesa {mesa}",
+            "manda {cantidad} {producto} a la mesa {mesa}",
+            "crear pedido de {producto} para mostrador",
+            "pedido de mostrador de {cantidad} {producto}",
+            "pedido para llevar de {cantidad} {producto}"
+          ]
+        },
+        {
+          "name": "EstadoMesasIntent",
+          "slots": [
+            { "name": "sala", "type": "AMAZON.SearchQuery" },
+            { "name": "estado", "type": "ESTADO_MESA" }
+          ],
+          "samples": [
+            "estado de mesas",
+            "mesas libres",
+            "mesas ocupadas",
+            "que mesas hay libres",
+            "cuantas mesas libres hay",
+            "que mesas estan ocupadas",
+            "mesas disponibles",
+            "mesas de la sala {sala}",
+            "estado de las mesas"
+          ]
+        },
+        {
+          "name": "EstadoCocinaIntent",
+          "slots": [
+            { "name": "estacion", "type": "ESTACION_COCINA" }
+          ],
+          "samples": [
+            "estado de cocina",
+            "como esta la cocina",
+            "pedidos pendientes",
+            "cuantos pedidos hay pendientes",
+            "que hay en cocina",
+            "estado de la barra",
+            "pedidos en proceso",
+            "pedidos listos",
+            "estado de {estacion}"
+          ]
+        },
+        {
+          "name": "ConsultarVentasIntent",
+          "slots": [
+            { "name": "periodo", "type": "PERIODO_VENTAS" }
+          ],
+          "samples": [
+            "ventas de hoy",
+            "cuanto se ha vendido hoy",
+            "ventas de ayer",
+            "ventas de la semana",
+            "ventas del mes",
+            "como van las ventas",
+            "cuanto hemos vendido {periodo}",
+            "resumen de ventas {periodo}",
+            "ventas {periodo}"
+          ]
+        },
+        {
+          "name": "LeerComandaIntent",
+          "slots": [
+            { "name": "mesa", "type": "AMAZON.NUMBER" },
+            { "name": "numero", "type": "AMAZON.NUMBER" }
+          ],
+          "samples": [
+            "leer comanda de la mesa {mesa}",
+            "que pidio la mesa {mesa}",
+            "que tiene la mesa {mesa}",
+            "comanda de la mesa {mesa}",
+            "ver pedido numero {numero}",
+            "leer pedido {numero}",
+            "que hay en la mesa {mesa}"
+          ]
+        },
+        {
+          "name": "ActualizarPedidoIntent",
+          "slots": [
+            { "name": "mesa", "type": "AMAZON.NUMBER" },
+            { "name": "numero", "type": "AMAZON.NUMBER" },
+            { "name": "estado", "type": "ESTADO_PEDIDO" }
+          ],
+          "samples": [
+            "marcar pedido de mesa {mesa} como {estado}",
+            "pedido {numero} {estado}",
+            "mesa {mesa} {estado}",
+            "marcar pedido {numero} como {estado}",
+            "cambiar estado del pedido {numero} a {estado}",
+            "pedido de mesa {mesa} esta {estado}"
+          ]
+        },
+        {
+          "name": "ConsultarStockIntent",
+          "slots": [
+            { "name": "producto", "type": "AMAZON.SearchQuery" },
+            { "name": "categoria", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "hay {producto}",
+            "tenemos {producto}",
+            "cuanto queda de {producto}",
+            "stock de {producto}",
+            "buscar {producto}",
+            "precio de {producto}",
+            "que productos hay de {categoria}",
+            "consultar stock"
+          ]
+        },
+        {
+          "name": "CancelarProductoIntent",
+          "slots": [
+            { "name": "mesa", "type": "AMAZON.NUMBER" },
+            { "name": "numero", "type": "AMAZON.NUMBER" },
+            { "name": "producto", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "cancelar {producto} de la mesa {mesa}",
+            "quitar {producto} del pedido {numero}",
+            "sacar {producto} de la mesa {mesa}",
+            "eliminar {producto} de la mesa {mesa}",
+            "cancela {producto} del pedido {numero}"
+          ]
+        },
+        {
+          "name": "ComandoLibreIntent",
+          "slots": [
+            { "name": "frase", "type": "AMAZON.SearchQuery" }
+          ],
+          "samples": [
+            "{frase}",
+            "ejecuta {frase}",
+            "necesito {frase}",
+            "dime {frase}"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "ESTADO_MESA",
+          "values": [
+            { "name": { "value": "libre" } },
+            { "name": { "value": "ocupada" } },
+            { "name": { "value": "cuenta" } },
+            { "name": { "value": "reservada" } }
+          ]
+        },
+        {
+          "name": "ESTACION_COCINA",
+          "values": [
+            { "name": { "value": "cocina" } },
+            { "name": { "value": "barra" } },
+            { "name": { "value": "cuarto caliente" } },
+            { "name": { "value": "mostrador" } }
+          ]
+        },
+        {
+          "name": "ESTADO_PEDIDO",
+          "values": [
+            { "name": { "value": "en proceso", "synonyms": ["en preparacion", "preparando"] } },
+            { "name": { "value": "listo", "synonyms": ["terminado", "preparado"] } },
+            { "name": { "value": "entregado", "synonyms": ["servido", "despachado"] } },
+            { "name": { "value": "cancelado", "synonyms": ["anulado"] } }
+          ]
+        },
+        {
+          "name": "PERIODO_VENTAS",
+          "values": [
+            { "name": { "value": "hoy" } },
+            { "name": { "value": "ayer" } },
+            { "name": { "value": "semana", "synonyms": ["esta semana", "la semana"] } },
+            { "name": { "value": "mes", "synonyms": ["este mes", "el mes"] } }
+          ]
+        }
+      ]
+    }
+  }
+}
