@@ -36,8 +36,10 @@ export function verifyAlexaRequest(
   if (timestamp) {
     const requestTime = new Date(timestamp).getTime();
     const now = Date.now();
-    if (Math.abs(now - requestTime) > MAX_TIMESTAMP_AGE_MS) {
-      return { valid: false, error: "Request expirado (timestamp > 150s)" };
+    const diff = Math.abs(now - requestTime);
+    if (diff > MAX_TIMESTAMP_AGE_MS) {
+      console.error(`[alexa:verify] Timestamp rechazado: request=${timestamp}, now=${new Date(now).toISOString()}, diff=${diff}ms`);
+      return { valid: false, error: `Request expirado (timestamp diff=${Math.round(diff / 1000)}s > 150s)` };
     }
   }
 

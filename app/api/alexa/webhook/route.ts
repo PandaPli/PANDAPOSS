@@ -39,9 +39,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Verificar request de Alexa
+  const expectedSkillId = process.env.ALEXA_SKILL_ID;
+  console.log(`[alexa:webhook] Request type=${body.request?.type}, skillId=${expectedSkillId ? "set" : "empty"}, appId=${(body.session?.application as Record<string, unknown>)?.applicationId}`);
+
   const verification = verifyAlexaRequest(
     body as unknown as Record<string, unknown>,
-    process.env.ALEXA_SKILL_ID,
+    expectedSkillId,
   );
   if (!verification.valid) {
     console.error("[alexa:webhook] Verificacion fallida:", verification.error);
