@@ -1,10 +1,11 @@
 "use client";
 
-import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { Bot, Loader2, MessageCircle, Mic, MicOff, Send, Sparkles, Volume2, Wrench, X } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPandiAnswer } from "@/lib/pandi/pandi-engine";
 import type { PandiAnswer, PandiMessage } from "@/lib/pandi/types";
 import { PANDI_QUICK_QUESTIONS } from "@/lib/pandi/knowledge";
+import { usePandiVoiceRealtime } from "@/hooks/usePandiVoiceRealtime";
 
 const STORAGE_KEY = "pp_pandi_activo";
 
@@ -25,6 +26,7 @@ export function PandiAssistant({
   const [question, setQuestion] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [pandiActivo, setPandiActivo] = useState(true);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [messages, setMessages] = useState<PandiMessage[]>(() => [
     createMessage(
       "assistant",
@@ -56,6 +58,43 @@ export function PandiAssistant({
   }, [messages, isThinking, isOpen]);
 
   const quickQuestions = useMemo(() => PANDI_QUICK_QUESTIONS.slice(0, 4), []);
+  const voice = usePandiVoiceRealtime({
+    onUserTranscript: (text) => {
+      setMessages((current) => [...current, createMessage("user", text)]);
+    },
+    onAssistantTranscript: (text) => {
+      setMessages((current) => [...current, createMessage("assistant", text)]);
+    },
+    onToolCall: (name, result) => {
+      const TOOL_LABELS: Record<string, string> = {
+        crear_pedido: "Pedido creado",
+        leer_comanda: "Comanda leida",
+        actualizar_pedido: "Pedido actualizado",
+        cancelar_producto: "Producto cancelado",
+        consultar_stock: "Stock consultado",
+        consultar_ventas: "Ventas consultadas",
+        estado_cocina: "Estado cocina",
+        estado_mesas: "Estado mesas",
+      };
+      const label = TOOL_LABELS[name] ?? name;
+      const icon = result.ok ? "✅" : "❌";
+      setMessages((current) => [
+        ...current,
+        createMessage("assistant", `${icon} ${label}: ${result.message}`),
+      ]);
+    },
+    onError: (message) => setVoiceError(message),
+  });
+
+  const voiceLabel = useMemo(() => {
+    if (voice.state === "connecting") return "Conectando voz";
+    if (voice.state === "listening") return "Escuchando";
+    if (voice.state === "thinking") return "Procesando";
+    if (voice.state === "responding") return "Respondiendo";
+    if (voice.state === "executing") return "Ejecutando";
+    if (voice.state === "error") return "Voz no disponible";
+    return "Activar voz";
+  }, [voice.state]);
 
   if (!pandiActivo) return null;
 
@@ -147,6 +186,33 @@ export function PandiAssistant({
           </div>
         ) : null}
 
+        {voice.state !== "idle" ? (
+          <div className="mr-8 rounded-2xl rounded-tl-sm border border-emerald-100 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
+            <div className="mb-2 flex items-center gap-2">
+              {voice.state === "responding" ? (
+                <Volume2 className="h-4 w-4 text-emerald-600" />
+              ) : voice.state === "executing" ? (
+                <Wrench className="h-4 w-4 animate-spin text-amber-600" />
+              ) : (
+                <Mic className="h-4 w-4 text-emerald-600" />
+              )}
+              <span>{voiceLabel}</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className={`h-full rounded-full transition-[width] ${voice.state === "executing" ? "bg-amber-500" : "bg-emerald-500"}`}
+                style={{ width: `${Math.max(6, voice.state === "executing" ? 100 : voice.level * 100)}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {voiceError ? (
+          <div className="mr-8 rounded-2xl rounded-tl-sm border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {voiceError}
+          </div>
+        ) : null}
+
         {/* Ancla para auto-scroll */}
         <div ref={bottomRef} />
       </div>
@@ -180,6 +246,23 @@ export function PandiAssistant({
               disabled={isThinking}
             />
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setVoiceError(null);
+              if (voice.isActive) voice.stop();
+              else void voice.start();
+            }}
+            className={
+              voice.isActive
+                ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition hover:bg-emerald-700"
+                : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"
+            }
+            aria-label={voice.isActive ? "Detener voz" : "Activar voz"}
+            title={voiceLabel}
+          >
+            {voice.isActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
           <button
             type="submit"
             disabled={isThinking || !question.trim()}

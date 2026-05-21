@@ -83,7 +83,9 @@ app.prepare().then(() => {
         room === `printer_${auth.sucursalId}` ||
         room === `tenant_${auth.sucursalId}_kds` ||
         room === `tenant_${auth.sucursalId}_dispatch` ||
-        room === `sucursal_${auth.sucursalId}_dispatch`;
+        room === `sucursal_${auth.sucursalId}_dispatch` ||
+        room === `sucursal_${auth.sucursalId}_ai` ||
+        room === `sucursal_${auth.sucursalId}_voice`;
       if (!allowed) return;
       socket.join(room);
     });
@@ -128,6 +130,25 @@ app.prepare().then(() => {
     socket.on("alertas:join", (sucursalId) => {
       if (sucursalId !== auth.sucursalId) return;
       socket.join(`sucursal_${sucursalId}_alertas`);
+    });
+
+    // ── Voz / IA ─────────────────────────────────────────
+    socket.on("ai-pos:join", (sucursalId) => {
+      if (sucursalId !== auth.sucursalId) return;
+      socket.join(`sucursal_${sucursalId}_ai`);
+    });
+
+    socket.on("voice:join", (sucursalId) => {
+      if (sucursalId !== auth.sucursalId) return;
+      socket.join(`sucursal_${sucursalId}_voice`);
+    });
+
+    socket.on("voice:state", (data) => {
+      if (!auth.sucursalId) return;
+      io.to(`sucursal_${auth.sucursalId}_voice`).emit("voice:state:update", {
+        ...data,
+        userId: auth.userId,
+      });
     });
 
     socket.on("disconnect", () => {
