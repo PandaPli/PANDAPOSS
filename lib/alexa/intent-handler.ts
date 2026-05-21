@@ -214,10 +214,9 @@ export async function handleAlexaRequest(body: AlexaRequestBody): Promise<AlexaR
 
   // 2. Estado de mesas
   if (intent.name === "EstadoMesasIntent") {
-    const sala = slots?.sala?.value ?? undefined;
-    const estado = slots?.estado?.value?.toUpperCase() ?? undefined;
+    const estado = slots?.estadoMesa?.value?.toUpperCase() ?? undefined;
 
-    const result = await executeVoiceTool("estado_mesas", { sala, estado }, ctx);
+    const result = await executeVoiceTool("estado_mesas", { estado }, ctx);
     return speak(result.message, false, session.attributes);
   }
 
@@ -250,7 +249,7 @@ export async function handleAlexaRequest(body: AlexaRequestBody): Promise<AlexaR
   if (intent.name === "ActualizarPedidoIntent") {
     const mesa = slots?.mesa?.value ?? undefined;
     const numero = slots?.numero?.value ? parseInt(slots.numero.value, 10) : undefined;
-    const estado = slots?.estado?.value?.toUpperCase() ?? undefined;
+    const estado = slots?.estadoPedido?.value?.toUpperCase() ?? undefined;
 
     if (!estado) {
       return speak("A que estado quieres cambiar el pedido? En proceso, listo, entregado o cancelado.", false, session.attributes);
@@ -262,10 +261,9 @@ export async function handleAlexaRequest(body: AlexaRequestBody): Promise<AlexaR
 
   // 7. Consultar stock
   if (intent.name === "ConsultarStockIntent") {
-    const busqueda = slots?.producto?.value ?? slots?.busqueda?.value ?? undefined;
-    const categoria = slots?.categoria?.value ?? undefined;
+    const busqueda = slots?.busqueda?.value ?? undefined;
 
-    const result = await executeVoiceTool("consultar_stock", { busqueda, categoria }, ctx);
+    const result = await executeVoiceTool("consultar_stock", { busqueda }, ctx);
     return speak(result.message, false, session.attributes);
   }
 

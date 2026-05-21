@@ -7,9 +7,8 @@
           "name": "CrearPedidoIntent",
           "slots": [
             { "name": "mesa", "type": "AMAZON.NUMBER" },
-            { "name": "producto", "type": "AMAZON.SearchQuery" },
-            { "name": "cantidad", "type": "AMAZON.NUMBER" },
-            { "name": "observacion", "type": "AMAZON.SearchQuery" }
+            { "name": "producto", "type": "PRODUCTO_MENU" },
+            { "name": "cantidad", "type": "AMAZON.NUMBER" }
           ],
           "samples": [
             "crear pedido de {cantidad} {producto} para la mesa {mesa}",
@@ -29,8 +28,7 @@
         {
           "name": "EstadoMesasIntent",
           "slots": [
-            { "name": "sala", "type": "AMAZON.SearchQuery" },
-            { "name": "estado", "type": "ESTADO_MESA" }
+            { "name": "estadoMesa", "type": "ESTADO_MESA" }
           ],
           "samples": [
             "estado de mesas",
@@ -40,8 +38,9 @@
             "cuantas mesas libres hay",
             "que mesas estan ocupadas",
             "mesas disponibles",
-            "mesas de la sala {sala}",
-            "estado de las mesas"
+            "mesas {estadoMesa}",
+            "estado de las mesas",
+            "que mesas hay {estadoMesa}"
           ]
         },
         {
@@ -99,31 +98,29 @@
           "slots": [
             { "name": "mesa", "type": "AMAZON.NUMBER" },
             { "name": "numero", "type": "AMAZON.NUMBER" },
-            { "name": "estado", "type": "ESTADO_PEDIDO" }
+            { "name": "estadoPedido", "type": "ESTADO_PEDIDO" }
           ],
           "samples": [
-            "marcar pedido de mesa {mesa} como {estado}",
-            "pedido {numero} {estado}",
-            "mesa {mesa} {estado}",
-            "marcar pedido {numero} como {estado}",
-            "cambiar estado del pedido {numero} a {estado}",
-            "pedido de mesa {mesa} esta {estado}"
+            "marcar pedido de mesa {mesa} como {estadoPedido}",
+            "pedido {numero} {estadoPedido}",
+            "mesa {mesa} {estadoPedido}",
+            "marcar pedido {numero} como {estadoPedido}",
+            "cambiar estado del pedido {numero} a {estadoPedido}",
+            "pedido de mesa {mesa} esta {estadoPedido}"
           ]
         },
         {
           "name": "ConsultarStockIntent",
           "slots": [
-            { "name": "producto", "type": "AMAZON.SearchQuery" },
-            { "name": "categoria", "type": "AMAZON.SearchQuery" }
+            { "name": "busqueda", "type": "AMAZON.SearchQuery" }
           ],
           "samples": [
-            "hay {producto}",
-            "tenemos {producto}",
-            "cuanto queda de {producto}",
-            "stock de {producto}",
-            "buscar {producto}",
-            "precio de {producto}",
-            "que productos hay de {categoria}",
+            "hay {busqueda}",
+            "tenemos {busqueda}",
+            "cuanto queda de {busqueda}",
+            "stock de {busqueda}",
+            "buscar {busqueda}",
+            "precio de {busqueda}",
             "consultar stock"
           ]
         },
@@ -132,7 +129,7 @@
           "slots": [
             { "name": "mesa", "type": "AMAZON.NUMBER" },
             { "name": "numero", "type": "AMAZON.NUMBER" },
-            { "name": "producto", "type": "AMAZON.SearchQuery" }
+            { "name": "producto", "type": "PRODUCTO_MENU" }
           ],
           "samples": [
             "cancelar {producto} de la mesa {mesa}",
@@ -148,28 +145,18 @@
             { "name": "frase", "type": "AMAZON.SearchQuery" }
           ],
           "samples": [
-            "{frase}",
             "ejecuta {frase}",
             "necesito {frase}",
-            "dime {frase}"
+            "dime {frase}",
+            "hazme {frase}",
+            "por favor {frase}",
+            "quiero saber {frase}"
           ]
         },
-        {
-          "name": "AMAZON.HelpIntent",
-          "samples": []
-        },
-        {
-          "name": "AMAZON.StopIntent",
-          "samples": []
-        },
-        {
-          "name": "AMAZON.CancelIntent",
-          "samples": []
-        },
-        {
-          "name": "AMAZON.FallbackIntent",
-          "samples": []
-        }
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] }
       ],
       "types": [
         {
@@ -206,6 +193,31 @@
             { "name": { "value": "ayer" } },
             { "name": { "value": "semana", "synonyms": ["esta semana", "la semana"] } },
             { "name": { "value": "mes", "synonyms": ["este mes", "el mes"] } }
+          ]
+        },
+        {
+          "name": "PRODUCTO_MENU",
+          "values": [
+            { "name": { "value": "hamburguesa", "synonyms": ["burger", "hamburgesa"] } },
+            { "name": { "value": "pizza", "synonyms": ["piza", "pizzas"] } },
+            { "name": { "value": "completo", "synonyms": ["completos", "hot dog"] } },
+            { "name": { "value": "empanada", "synonyms": ["empanadas"] } },
+            { "name": { "value": "coca cola", "synonyms": ["coca", "cola"] } },
+            { "name": { "value": "cerveza", "synonyms": ["chela", "birra"] } },
+            { "name": { "value": "papas fritas", "synonyms": ["papas", "papitas", "fritas"] } },
+            { "name": { "value": "ensalada", "synonyms": ["ensaladas"] } },
+            { "name": { "value": "agua", "synonyms": ["agua mineral", "botella de agua"] } },
+            { "name": { "value": "jugo", "synonyms": ["jugos", "zumo"] } },
+            { "name": { "value": "cafe", "synonyms": ["cafecito", "tinto"] } },
+            { "name": { "value": "sandwich", "synonyms": ["sandwiches", "sanduche"] } },
+            { "name": { "value": "pollo", "synonyms": ["pollito", "pechuga"] } },
+            { "name": { "value": "carne", "synonyms": ["res", "bistec"] } },
+            { "name": { "value": "sopa", "synonyms": ["sopita", "caldo"] } },
+            { "name": { "value": "postre", "synonyms": ["postres", "dulce"] } },
+            { "name": { "value": "tacos", "synonyms": ["taco", "taquitos"] } },
+            { "name": { "value": "arroz", "synonyms": ["arrocito"] } },
+            { "name": { "value": "refresco", "synonyms": ["gaseosa", "soda"] } },
+            { "name": { "value": "limonada", "synonyms": ["limon"] } }
           ]
         }
       ]
