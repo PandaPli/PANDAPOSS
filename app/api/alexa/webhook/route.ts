@@ -6,7 +6,7 @@ import { rateLimit, getClientIp } from "@/lib/rateLimit";
 /**
  * POST /api/alexa/webhook
  *
- * Endpoint que recibe las requests de la Alexa Skill.
+ * Endpoint que recibe las requests de la Alexa Skill de PandaPOS.
  * Alexa envia un JSON con session, request y context.
  * Nosotros respondemos con outputSpeech para que Alexa hable.
  *
