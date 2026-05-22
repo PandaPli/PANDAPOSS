@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShoppingBag, Plus, Minus, Trash2, Clock, User, Search,
   CheckCircle2, ArrowRight, RefreshCw, ChevronDown, ChevronUp,
-  Star, X, Phone, ArrowLeft, Check, PackageCheck,
+  Star, X, Phone, ArrowLeft, Check, PackageCheck, Printer,
   Banknote, CreditCard, ArrowLeftRight, Tag, Gift, Percent, Wallet, Ticket,
 } from "lucide-react";
 import { cn, formatCurrency, formatPhone } from "@/lib/utils";
@@ -78,6 +78,9 @@ interface Props {
   pedidos: PedidoLlevar[];
   sucursalId: number | null;
   simbolo: string;
+  sucursalNombre: string;
+  sucursalTelefono: string | null;
+  sucursalDireccion: string | null;
 }
 
 type Vista = "nuevo" | "lista";
@@ -90,7 +93,7 @@ const ESTADO_STYLES: Record<string, string> = {
   CANCELADO:  "bg-red-100 text-red-600",
 };
 
-export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, simbolo }: Props) {
+export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, simbolo, sucursalNombre, sucursalTelefono, sucursalDireccion }: Props) {
   const [vista, setVista] = useState<Vista>("nuevo");
   const [pedidos, setPedidos] = useState(initialPedidos);
 
@@ -341,6 +344,103 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   // ── Pedidos activos vs completados ──
   const pedidosActivos = pedidos.filter((p) => ["PENDIENTE", "EN_PROCESO", "LISTO"].includes(p.estado));
   const pedidosCompletados = pedidos.filter((p) => ["ENTREGADO", "CANCELADO"].includes(p.estado));
+
+  async function printComanda(pedido: PedidoLlevar) {
+    const QRCode = await import("qrcode");
+    const menuUrl = `https://www.pandaposs.com/menu?sucursal=${sucursalId ?? 1}`;
+    const qrDataUrl = await QRCode.toDataURL(menuUrl, {
+      width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" },
+    });
+
+    const hora  = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const fecha = new Date(pedido.creadoEn).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+
+    const itemsHtml = pedido.detalles.map((d) => {
+      const opcionesStr = d.opciones && d.opciones.length > 0
+        ? `<div style="font-size:11px;color:#666;margin:1px 0 4px 20px;">${d.opciones.map(o => o.opcionNombre + (o.precio > 0 ? ` +${simbolo}${o.precio.toLocaleString("es-CL")}` : "")).join(", ")}</div>`
+        : "";
+      return `<tr>
+        <td style="padding:4px 0;font-size:14px;font-weight:500;">${d.cantidad}x ${d.nombre}</td>
+        <td style="padding:4px 0;font-size:14px;font-weight:700;text-align:right;">${simbolo}${(d.precio * d.cantidad).toLocaleString("es-CL")}</td>
+      </tr>${opcionesStr ? `<tr><td colspan="2">${opcionesStr}</td></tr>` : ""}`;
+    }).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Comanda #${pedido.numero}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111;width:320px;padding:0}
+    .wrap{border:3px solid #000;border-radius:12px;overflow:hidden}
+    .hero{background:#000;color:#fff;padding:16px;text-align:center}
+    .hero .num{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1}
+    .hero .nombre{font-size:22px;font-weight:900;margin-top:8px;text-transform:uppercase;letter-spacing:0.5px}
+    .hero .badge{display:inline-block;margin-top:8px;font-size:11px;font-weight:800;padding:3px 12px;border-radius:20px;background:#10b981;color:#fff;text-transform:uppercase;letter-spacing:0.5px}
+    .section{padding:10px 14px;border-bottom:1px dashed #ccc}
+    .label-sm{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;letter-spacing:0.5px}
+    table{width:100%;border-collapse:collapse}
+    .total-row td{padding-top:8px;font-size:18px;font-weight:900;border-top:2px solid #000}
+    .local-info{padding:10px 14px;background:#f5f5f5;border-bottom:1px dashed #ccc}
+    .local-info .name{font-size:14px;font-weight:800}
+    .local-info .detail{font-size:11px;color:#555;margin-top:2px}
+    .qr-section{padding:14px;display:flex;align-items:center;gap:14px;background:#fafafa}
+    .qr-text{flex:1}
+    .qr-text .cta{font-size:15px;font-weight:900;color:#111}
+    .qr-text .sub{font-size:10px;color:#888;margin-top:2px}
+    .footer{font-size:10px;color:#888;text-align:center;padding:6px}
+    @media print{html,body{width:320px}@page{margin:0;size:320px auto}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO: Numero grande + Nombre grande -->
+  <div class="hero">
+    <div class="num">#${pedido.numero}</div>
+    <div class="nombre">${pedido.clienteNombre}</div>
+    <div class="badge">${pedido.horaRetiro ? `Retiro ${pedido.horaRetiro}` : "Para Llevar"}</div>
+  </div>
+
+  <!-- Productos -->
+  <div class="section">
+    <p class="label-sm" style="margin-bottom:6px;">Productos</p>
+    <table><tbody>
+      ${itemsHtml}
+      <tr class="total-row">
+        <td>TOTAL</td>
+        <td style="text-align:right">${simbolo}${pedido.total.toLocaleString("es-CL")}</td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <!-- Info del local -->
+  <div class="local-info">
+    <div class="name">${sucursalNombre}</div>
+    ${sucursalTelefono ? `<div class="detail">${sucursalTelefono}</div>` : ""}
+    ${sucursalDireccion ? `<div class="detail">${sucursalDireccion}</div>` : ""}
+  </div>
+
+  <!-- QR -->
+  <div class="qr-section">
+    <img src="${qrDataUrl}" width="90" height="90" alt="QR" style="border-radius:8px;border:1px solid #ddd" />
+    <div class="qr-text">
+      <div class="cta">Pide de nuevo</div>
+      <div class="sub">Escanea para ver el menu</div>
+    </div>
+  </div>
+
+  <div class="footer">${fecha} · ${hora}</div>
+
+</div>
+<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script>
+</body>
+</html>`;
+
+    const popup = window.open("", "_blank", "width=380,height=700,scrollbars=yes");
+    if (popup) { popup.document.write(html); popup.document.close(); }
+  }
 
   return (
     <div className="space-y-5">
@@ -864,6 +964,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                   expanded={expandedPedido === p.id}
                   onToggle={() => setExpandedPedido(expandedPedido === p.id ? null : p.id)}
                   onMarcarRetirado={(id) => void updateEstado(id, "ENTREGADO")}
+                  onPrint={(ped) => void printComanda(ped)}
                   loadingId={loadingId}
                 />
               ))}
@@ -883,6 +984,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
                   simbolo={simbolo}
                   expanded={expandedPedido === p.id}
                   onToggle={() => setExpandedPedido(expandedPedido === p.id ? null : p.id)}
+                  onPrint={(ped) => void printComanda(ped)}
                   loadingId={loadingId}
                 />
               ))}
@@ -1002,13 +1104,14 @@ function VariantesModal({
 
 /* ── Tarjeta de pedido ── */
 function PedidoCard({
-  pedido, simbolo, expanded, onToggle, onMarcarRetirado, loadingId,
+  pedido, simbolo, expanded, onToggle, onMarcarRetirado, onPrint, loadingId,
 }: {
   pedido: PedidoLlevar;
   simbolo: string;
   expanded: boolean;
   onToggle: () => void;
   onMarcarRetirado?: (id: number) => void;
+  onPrint?: (pedido: PedidoLlevar) => void;
   loadingId?: number | null;
 }) {
   const hora = new Date(pedido.creadoEn).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
@@ -1057,6 +1160,18 @@ function PedidoCard({
               )}
             </div>
           ))}
+
+          {/* ── Botones de acción ── */}
+          <div className="flex gap-2 mt-3">
+            {onPrint && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onPrint(pedido); }}
+                className="flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-surface-bg border border-surface-border text-surface-text hover:bg-surface-hover transition-all active:scale-95"
+              >
+                <Printer size={14} /> Imprimir Comanda
+              </button>
+            )}
+          </div>
 
           {/* ── Botón marcar retirado (solo cuando está LISTO) ── */}
           {pedido.estado === "LISTO" && onMarcarRetirado && (

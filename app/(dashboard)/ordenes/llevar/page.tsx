@@ -29,6 +29,13 @@ export default async function LlevarPage() {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d;
   })();
 
+  const sucursal = sucursalId
+    ? await prisma.sucursal.findUnique({
+        where: { id: sucursalId },
+        select: { nombre: true, telefono: true, direccion: true },
+      })
+    : null;
+
   const [productos, pedidosLlevar] = await Promise.all([
     prisma.producto.findMany({
       where: { activo: true, enMenu: true, ...(sucursalId ? { sucursalId } : {}) },
@@ -110,6 +117,9 @@ export default async function LlevarPage() {
       pedidos={pedidosData}
       sucursalId={sucursalId}
       simbolo={simbolo}
+      sucursalNombre={sucursal?.nombre ?? "PandaPoss"}
+      sucursalTelefono={sucursal?.telefono ?? null}
+      sucursalDireccion={sucursal?.direccion ?? null}
     />
   );
 }
