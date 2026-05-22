@@ -357,7 +357,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
 
     const itemsHtml = pedido.detalles.map((d) => {
       const opcionesStr = d.opciones && d.opciones.length > 0
-        ? `<div style="font-size:11px;color:#666;margin:1px 0 4px 20px;">${d.opciones.map(o => o.opcionNombre + (o.precio > 0 ? ` +${simbolo}${o.precio.toLocaleString("es-CL")}` : "")).join(", ")}</div>`
+        ? `<div style="font-size:11px;margin:1px 0 4px 20px;">${d.opciones.map(o => o.opcionNombre + (o.precio > 0 ? ` +${simbolo}${o.precio.toLocaleString("es-CL")}` : "")).join(", ")}</div>`
         : "";
       return `<tr>
         <td style="padding:4px 0;font-size:14px;font-weight:500;">${d.cantidad}x ${d.nombre}</td>
@@ -373,23 +373,23 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;color:#111;width:320px;padding:0}
-    .wrap{border:3px solid #000;border-radius:12px;overflow:hidden}
-    .hero{background:#000;color:#fff;padding:16px;text-align:center}
-    .hero .num{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1}
-    .hero .nombre{font-size:22px;font-weight:900;margin-top:8px;text-transform:uppercase;letter-spacing:0.5px}
-    .hero .badge{display:inline-block;margin-top:8px;font-size:11px;font-weight:800;padding:3px 12px;border-radius:20px;background:#10b981;color:#fff;text-transform:uppercase;letter-spacing:0.5px}
-    .section{padding:10px 14px;border-bottom:1px dashed #ccc}
-    .label-sm{font-size:10px;color:#888;text-transform:uppercase;font-weight:700;letter-spacing:0.5px}
+    .wrap{border:2px solid #000;overflow:hidden}
+    .hero{padding:12px 14px;text-align:center;border-bottom:3px double #000}
+    .hero .num{font-size:40px;font-weight:900;letter-spacing:-1px;line-height:1}
+    .hero .nombre{font-size:24px;font-weight:900;margin-top:6px;text-transform:uppercase;letter-spacing:0.5px;border-top:1px solid #000;padding-top:6px}
+    .hero .badge{display:inline-block;margin-top:6px;font-size:12px;font-weight:800;padding:2px 10px;border:2px solid #000;text-transform:uppercase;letter-spacing:0.5px}
+    .section{padding:10px 14px;border-bottom:1px dashed #000}
+    .label-sm{font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:0.5px}
     table{width:100%;border-collapse:collapse}
     .total-row td{padding-top:8px;font-size:18px;font-weight:900;border-top:2px solid #000}
-    .local-info{padding:10px 14px;background:#f5f5f5;border-bottom:1px dashed #ccc}
+    .local-info{padding:10px 14px;border-bottom:1px dashed #000}
     .local-info .name{font-size:14px;font-weight:800}
-    .local-info .detail{font-size:11px;color:#555;margin-top:2px}
-    .qr-section{padding:14px;display:flex;align-items:center;gap:14px;background:#fafafa}
+    .local-info .detail{font-size:11px;margin-top:2px}
+    .qr-section{padding:14px;display:flex;align-items:center;gap:14px}
     .qr-text{flex:1}
-    .qr-text .cta{font-size:15px;font-weight:900;color:#111}
-    .qr-text .sub{font-size:10px;color:#888;margin-top:2px}
-    .footer{font-size:10px;color:#888;text-align:center;padding:6px}
+    .qr-text .cta{font-size:15px;font-weight:900}
+    .qr-text .sub{font-size:10px;margin-top:2px}
+    .footer{font-size:10px;text-align:center;padding:6px;border-top:1px dashed #000}
     @media print{html,body{width:320px}@page{margin:0;size:320px auto}}
   </style>
 </head>
@@ -424,7 +424,7 @@ export function LlevarClient({ productos, pedidos: initialPedidos, sucursalId, s
 
   <!-- QR -->
   <div class="qr-section">
-    <img src="${qrDataUrl}" width="90" height="90" alt="QR" style="border-radius:8px;border:1px solid #ddd" />
+    <img src="${qrDataUrl}" width="90" height="90" alt="QR" style="border:1px solid #000" />
     <div class="qr-text">
       <div class="cta">Pide de nuevo</div>
       <div class="sub">Escanea para ver el menu</div>
