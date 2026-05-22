@@ -36,41 +36,55 @@ export function buildDeliveryObservation(input: DeliveryMetaInput) {
   return `${DELIVERY_PREFIX}${JSON.stringify(payload)}`;
 }
 
+const DEFAULT_META: DeliveryMetaParsed = {
+  clienteNombre: "Cliente PandaPoss",
+  referencia: null,
+  departamento: null,
+  metodoPago: "EFECTIVO",
+  cargoEnvio: 0,
+  descuento: 0,
+  cuponCodigo: null,
+};
+
 export function parseDeliveryObservation(observacion: string | null | undefined): DeliveryMetaParsed {
-  if (!observacion || !observacion.startsWith(DELIVERY_PREFIX)) {
+  if (!observacion) return { ...DEFAULT_META };
+
+  if (observacion.startsWith(DELIVERY_PREFIX)) {
+    try {
+      const parsed = JSON.parse(observacion.slice(DELIVERY_PREFIX.length)) as Partial<DeliveryMetaParsed>;
+      return {
+        clienteNombre: parsed.clienteNombre?.trim() || "Cliente PandaPoss",
+        referencia: parsed.referencia ?? null,
+        departamento: parsed.departamento ?? null,
+        metodoPago: (parsed.metodoPago as MetodoPago) ?? "EFECTIVO",
+        cargoEnvio: Number(parsed.cargoEnvio ?? 0),
+        descuento: Number((parsed as { descuento?: number }).descuento ?? 0),
+        cuponCodigo: (parsed as { cuponCodigo?: string | null }).cuponCodigo ?? null,
+      };
+    } catch {
+      return { ...DEFAULT_META };
+    }
+  }
+
+  // MOSTRADOR / Para Llevar: "🥡 PARA LLEVAR · 👤 Nombre · 💳 EFECTIVO · 🆔 123"
+  const nombre = observacion.match(/👤\s*([^·]+)/)?.[1]?.trim();
+  const metodo = observacion.match(/💳\s*([^·]+)/)?.[1]?.trim();
+  const descMatch = observacion.match(/🏷️\s*DESC:(\d+)/)?.[1];
+  const cupon = observacion.match(/🎟️\s*([^·]+)/)?.[1]?.trim();
+
+  if (nombre || metodo) {
     return {
-      clienteNombre: "Cliente PandaPoss",
+      clienteNombre: nombre || "Cliente PandaPoss",
       referencia: null,
       departamento: null,
-      metodoPago: "EFECTIVO",
+      metodoPago: (metodo as MetodoPago) ?? "EFECTIVO",
       cargoEnvio: 0,
-      descuento: 0,
-      cuponCodigo: null,
+      descuento: descMatch ? Number(descMatch) : 0,
+      cuponCodigo: cupon ?? null,
     };
   }
 
-  try {
-    const parsed = JSON.parse(observacion.slice(DELIVERY_PREFIX.length)) as Partial<DeliveryMetaParsed>;
-    return {
-      clienteNombre: parsed.clienteNombre?.trim() || "Cliente PandaPoss",
-      referencia: parsed.referencia ?? null,
-      departamento: parsed.departamento ?? null,
-      metodoPago: (parsed.metodoPago as MetodoPago) ?? "EFECTIVO",
-      cargoEnvio: Number(parsed.cargoEnvio ?? 0),
-      descuento: Number((parsed as { descuento?: number }).descuento ?? 0),
-      cuponCodigo: (parsed as { cuponCodigo?: string | null }).cuponCodigo ?? null,
-    };
-  } catch {
-    return {
-      clienteNombre: "Cliente PandaPoss",
-      referencia: null,
-      departamento: null,
-      metodoPago: "EFECTIVO",
-      cargoEnvio: 0,
-      descuento: 0,
-      cuponCodigo: null,
-    };
-  }
+  return { ...DEFAULT_META };
 }
 
 export function getDeliveryTrackingStage(

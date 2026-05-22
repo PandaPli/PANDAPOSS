@@ -18,12 +18,12 @@ export const TrackingService = {
       },
     });
 
-    if (!pedido || pedido.tipo !== "DELIVERY") {
-      throw new Error("Pedido delivery no encontrado.");
+    if (!pedido || !["DELIVERY", "MOSTRADOR"].includes(pedido.tipo)) {
+      throw new Error("Pedido no encontrado.");
     }
 
     const meta = parseDeliveryObservation(pedido.observacion);
-    const esRetiro = /retiro/i.test(pedido.delivery?.zonaDelivery ?? "");
+    const esRetiro = pedido.tipo === "MOSTRADOR" || /retiro/i.test(pedido.delivery?.zonaDelivery ?? "");
     const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), esRetiro);
     const subtotal = pedido.detalles.reduce((acc, detalle) => {
       const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0);
@@ -48,9 +48,12 @@ export const TrackingService = {
     ]);
 
     // P4: Redactar datos sensibles — el tracking público no debe exponer PII completo.
-    // Solo mostramos iniciales del nombre y teléfono parcial.
+    // MOSTRADOR: solo tiene primer nombre, no requiere redacción.
+    // DELIVERY: redactar nombre completo a iniciales.
     const nombreRedactado = meta.clienteNombre
-      ? meta.clienteNombre.split(" ").map((p: string) => p.charAt(0) + "***").join(" ")
+      ? pedido.tipo === "MOSTRADOR"
+        ? meta.clienteNombre
+        : meta.clienteNombre.split(" ").map((p: string) => p.charAt(0) + "***").join(" ")
       : null;
     const telefonoRedactado = pedido.telefonoCliente
       ? "****" + pedido.telefonoCliente.slice(-4)

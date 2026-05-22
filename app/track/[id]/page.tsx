@@ -28,7 +28,7 @@ export default async function TrackOrderPage({ params }: Props) {
     },
   });
 
-  if (!pedido || pedido.tipo !== "DELIVERY") notFound();
+  if (!pedido || !["DELIVERY", "MOSTRADOR"].includes(pedido.tipo)) notFound();
 
   // Expirar el track después de 48h — los datos siguen en historial/informes
   const horasDesdeCreacion = (Date.now() - pedido.creadoEn.getTime()) / 1000 / 3600;
@@ -69,7 +69,7 @@ export default async function TrackOrderPage({ params }: Props) {
       initialData={{
         id: pedido.id,
         estado: pedido.estado,
-        trackingStage: getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), /retiro/i.test(pedido.delivery?.zonaDelivery ?? "")),
+        trackingStage: getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), pedido.tipo === "MOSTRADOR" || /retiro/i.test(pedido.delivery?.zonaDelivery ?? "")),
         clienteNombre: meta.clienteNombre,
         telefonoCliente: pedido.telefonoCliente ?? "",
         direccionEntrega: pedido.direccionEntrega ?? "",

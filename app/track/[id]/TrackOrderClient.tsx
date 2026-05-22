@@ -102,6 +102,14 @@ const STYLES = `
   .t-breathe      { animation: t-breathe 5s ease-in-out infinite; }
   .t-step-pop     { animation: t-step-pop .45s cubic-bezier(.34,1.56,.64,1) both; }
 
+  @keyframes t-eval-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(234,179,8,.25), 0 0 0 0 rgba(250,204,21,.0); }
+    50%      { box-shadow: 0 0 20px rgba(234,179,8,.45), 0 0 0 6px rgba(250,204,21,.15); }
+  }
+  .t-eval-banner {
+    animation: t-eval-glow 2s ease-in-out infinite, t-fade-up .5s ease both;
+  }
+
   /* shimmer overlay used on track segments */
   .t-shimmer-seg {
     position: absolute; inset: 0; overflow: hidden;
@@ -276,6 +284,26 @@ export function TrackOrderClient({ initialData }: Props) {
           </header>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* ════ EVALÚANOS — banner encabezado ════ */}
+            {isDone && data.trackingStage === "ENTREGADO" && data.sucursalNombre && (
+              <Link
+                href={`/evaluacion/${createSlug(data.sucursalNombre)}?pedido=${data.id}`}
+                className="t-eval-banner"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  borderRadius: 20, border: `2px solid rgba(250,204,21,.55)`,
+                  background: "linear-gradient(135deg, rgba(250,204,21,.18), rgba(234,179,8,.10))",
+                  padding: "15px 20px",
+                  fontSize: 16, fontWeight: 900, color: "#92400E",
+                  textDecoration: "none",
+                }}
+              >
+                <Star size={20} style={{ color: "#EAB308", fill: "#FACC15" }} />
+                ¡Evalúanos!
+                <ArrowUpRight size={16} style={{ opacity: .6 }} />
+              </Link>
+            )}
 
             {/* ════════════════════════════════
                 HERO CARD — estado + stepper
@@ -644,25 +672,6 @@ export function TrackOrderClient({ initialData }: Props) {
                 </div>
                 <p style={{ marginTop: 14, fontSize: 12, color: C.mid }}>Dile este código al repartidor</p>
               </div>
-            )}
-
-            {/* ════ EVALÚANOS ════ */}
-            {isDone && data.trackingStage === "ENTREGADO" && data.sucursalNombre && (
-              <Link
-                href={`/evaluacion/${createSlug(data.sucursalNombre)}?pedido=${data.id}`}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                  borderRadius: 20, border: `2px solid rgba(250,204,21,.5)`,
-                  background: "linear-gradient(135deg, rgba(250,204,21,.12), rgba(234,179,8,.08))",
-                  padding: "17px 20px",
-                  fontSize: 15, fontWeight: 900, color: "#92400E",
-                  textDecoration: "none", transition: "all .22s",
-                  animation: "t-fade-up .5s ease both", animationDelay: ".08s",
-                }}
-              >
-                <Star size={20} style={{ color: "#EAB308", fill: "#FACC15" }} />
-                ¡Evalúanos!
-              </Link>
             )}
 
             {/* ════ RESUMEN DEL PEDIDO ════ */}
