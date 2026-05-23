@@ -26,7 +26,7 @@ export const TrackingService = {
     const esRetiro = pedido.tipo === "MOSTRADOR" || /retiro/i.test(pedido.delivery?.zonaDelivery ?? "");
     const trackingStage = getDeliveryTrackingStage(pedido.estado as never, Boolean(pedido.repartidorId), esRetiro);
     const subtotal = pedido.detalles.reduce((acc, detalle) => {
-      const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0);
+      const precio = Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0);
       return acc + precio * detalle.cantidad;
     }, 0);
 
@@ -84,10 +84,10 @@ export const TrackingService = {
       creadoEn: pedido.creadoEn.toISOString(),
       estimadoMinutos: estimateDeliveryMinutes(pedidosActivos, driversActivos),
       detalles: pedido.detalles.map((detalle) => ({
-        nombre: detalle.producto?.nombre ?? detalle.combo?.nombre ?? "Item",
+        nombre: detalle.producto?.nombre ?? detalle.combo?.nombre ?? detalle.nombre ?? "Item",
         cantidad: detalle.cantidad,
-        precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0),
-        subtotal: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? 0) * detalle.cantidad,
+        precio: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0),
+        subtotal: Number(detalle.producto?.precio ?? detalle.combo?.precio ?? detalle.precio ?? 0) * detalle.cantidad,
       })),
     };
   },
