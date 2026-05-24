@@ -141,11 +141,11 @@ async function findPedidoActivo(
   return null;
 }
 
-/** Busca un producto por nombre con fuzzy matching */
+/** Busca un producto por nombre con fuzzy matching mejorado */
 async function findProducto(nombre: string, sucursalId: number) {
   const term = nombre.trim().toLowerCase();
 
-  // 1. Exacto
+  // 1. Exacto (case-insensitive via collation)
   let producto = await prisma.producto.findFirst({
     where: { sucursalId, activo: true, nombre: { equals: nombre } },
     select: { id: true, nombre: true, precio: true },
@@ -159,28 +159,69 @@ async function findProducto(nombre: string, sucursalId: number) {
   });
   if (producto) return producto;
 
-  // 3. Buscar todos y hacer matching por palabras
+  // 3. Buscar todos y hacer matching inteligente con normalizacion
   const todos = await prisma.producto.findMany({
     where: { sucursalId, activo: true },
     select: { id: true, nombre: true, precio: true },
   });
 
-  // Partial match — alguna palabra del termino aparece en el nombre
-  const palabras = term.split(/\s+/).filter((p) => p.length > 2);
-  const match = todos.find((p) => {
-    const nombreLower = p.nombre.toLowerCase();
-    return palabras.some((palabra) => nombreLower.includes(palabra));
+  // Normalizar el termino de busqueda (quitar acentos, etc.)
+  const termNorm = term
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // 3a. Contains normalizado — buscar el termino completo dentro del nombre normalizado
+  const matchContains = todos.find((p) => {
+    const nombreNorm = p.nombre.toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return nombreNorm.includes(termNorm) || termNorm.includes(nombreNorm);
   });
+  if (matchContains) return matchContains;
 
-  if (match) return match;
+  // 3b. Partial match — alguna palabra del termino aparece en el nombre
+  // (incluye palabras de 2+ chars para que "20" funcione)
+  const palabras = termNorm.split(/\s+/).filter((p) => p.length >= 2);
 
-  // 4. Word-based — cada palabra del nombre del producto aparece en el termino
-  const matchInverso = todos.find((p) => {
-    const palabrasProducto = p.nombre.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
-    return palabrasProducto.length > 0 && palabrasProducto.some((w) => term.includes(w));
-  });
+  // Puntuar cada producto: mas palabras coincidentes = mejor match
+  let bestMatch: (typeof todos)[0] | null = null;
+  let bestScore = 0;
 
-  return matchInverso ?? null;
+  for (const p of todos) {
+    const nombreNorm = p.nombre.toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    let score = 0;
+    for (const palabra of palabras) {
+      if (nombreNorm.includes(palabra)) score++;
+    }
+
+    // Tambien checar si palabras del producto aparecen en el termino
+    const palabrasProducto = nombreNorm.split(/\s+/).filter((w) => w.length >= 2);
+    for (const w of palabrasProducto) {
+      if (termNorm.includes(w)) score += 0.5;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = p;
+    }
+  }
+
+  // Requiere al menos 1 palabra coincidente
+  if (bestMatch && bestScore >= 1) return bestMatch;
+
+  return null;
 }
 
 // ── 1. Crear pedido ────────────────────────────────────────

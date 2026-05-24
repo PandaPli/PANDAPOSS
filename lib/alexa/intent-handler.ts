@@ -11,7 +11,7 @@
 
 import { prisma } from "@/lib/db";
 import { executeVoiceTool } from "@/lib/voice/executor";
-import { normalizeText } from "./normalizer";
+import { normalizeText, normalizeForSearch } from "./normalizer";
 
 // ── Tipos de Alexa ─────────────────────────────────────────
 
@@ -128,7 +128,7 @@ function extractItems(slots: Record<string, AlexaSlot> | undefined) {
     const cantidadRaw = slots[`cantidad${i}`]?.value ?? slots[`cantidad`]?.value;
     const cantidad = cantidadRaw ? parseInt(cantidadRaw, 10) : 1;
     const observacion = slots[`observacion${i}`]?.value ?? slots[`observacion`]?.value ?? undefined;
-    items.push({ nombre: normalizeText(nombre), cantidad: isNaN(cantidad) ? 1 : cantidad, observacion });
+    items.push({ nombre: normalizeForSearch(nombre), cantidad: isNaN(cantidad) ? 1 : cantidad, observacion });
     // Solo tomar el primer match si usamos slots sin indice
     if (!slots[`producto${i}`]) break;
   }
@@ -397,20 +397,20 @@ function parseItemsFromFrase(text: string): Array<{ nombre: string; cantidad: nu
     // Intentar extraer cantidad + nombre
     const match = part.match(/^(\d+)\s+(.+)$/);
     if (match) {
-      items.push({ nombre: match[2].trim(), cantidad: parseInt(match[1], 10) });
+      items.push({ nombre: normalizeForSearch(match[2].trim()), cantidad: parseInt(match[1], 10) });
       continue;
     }
 
     // Cantidad en palabras
     const wordMatch = part.match(/^(un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(.+)$/i);
     if (wordMatch) {
-      items.push({ nombre: wordMatch[2].trim(), cantidad: numberWords[wordMatch[1].toLowerCase()] ?? 1 });
+      items.push({ nombre: normalizeForSearch(wordMatch[2].trim()), cantidad: numberWords[wordMatch[1].toLowerCase()] ?? 1 });
       continue;
     }
 
     // Sin cantidad explicita = 1
     if (part.length > 2) {
-      items.push({ nombre: part, cantidad: 1 });
+      items.push({ nombre: normalizeForSearch(part), cantidad: 1 });
     }
   }
 
