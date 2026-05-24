@@ -163,15 +163,16 @@ export async function POST(req: NextRequest) {
     const { texto } = body as { texto: string };
     if (!texto?.trim()) return NextResponse.json({ error: "Texto vacío" }, { status: 400 });
 
-    const client = new Anthropic();
+    try {
+      const client = new Anthropic();
 
-    const message = await client.messages.create({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "user",
-          content: `Analiza esta carta/menú de restaurante y extrae todos los productos con sus precios.
+      const message = await client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: `Analiza esta carta/menú de restaurante y extrae todos los productos con sus precios.
 
 Devuelve SOLO un JSON válido con este formato exacto, sin texto adicional ni markdown:
 {"productos":[{"nombre":"string","precio":número,"categoria":"string","descripcion":"string"}]}
@@ -186,21 +187,28 @@ Reglas:
 
 Carta:
 ${texto}`,
-        },
-      ],
-    });
+          },
+        ],
+      });
 
-    const content = message.content[0];
-    if (content.type !== "text") {
-      return NextResponse.json({ error: "Error de AI" }, { status: 500 });
-    }
+      const content = message.content[0];
+      if (content.type !== "text") {
+        return NextResponse.json({ error: "Error de AI" }, { status: 500 });
+      }
 
-    try {
       const clean = content.text.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim();
       const parsed = JSON.parse(clean);
       return NextResponse.json({ productos: parsed.productos ?? [] });
-    } catch {
-      return NextResponse.json({ error: "No se pudo interpretar la respuesta de AI", raw: content.text }, { status: 500 });
+    } catch (e: unknown) {
+      console.error("[importar-carta] Error AI preview:", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("authentication") || msg.includes("api_key") || msg.includes("401")) {
+        return NextResponse.json({ error: "Error de configuración de AI. Contacta soporte." }, { status: 500 });
+      }
+      if (msg.includes("model") || msg.includes("not found") || msg.includes("deprecated")) {
+        return NextResponse.json({ error: "Modelo de AI no disponible. Contacta soporte." }, { status: 500 });
+      }
+      return NextResponse.json({ error: "Error al analizar la carta con AI. Intenta nuevamente." }, { status: 500 });
     }
   }
 
