@@ -141,79 +141,86 @@ async function findPedidoActivo(
   return null;
 }
 
-/** Busca un producto por nombre con fuzzy matching mejorado */
-async function findProducto(nombre: string, sucursalId: number) {
-  const term = nombre.trim().toLowerCase();
-
-  // Incluir productos de la sucursal Y productos globales (sucursalId null)
-  const sucursalFilter = { OR: [{ sucursalId }, { sucursalId: null as number | null }] };
-
-  // 1. Exacto (case-insensitive via collation)
-  let producto = await prisma.producto.findFirst({
-    where: { ...sucursalFilter, activo: true, nombre: { equals: nombre } },
-    select: { id: true, nombre: true, precio: true },
-  });
-  if (producto) return producto;
-
-  // 2. Contains
-  producto = await prisma.producto.findFirst({
-    where: { ...sucursalFilter, activo: true, nombre: { contains: term } },
-    select: { id: true, nombre: true, precio: true },
-  });
-  if (producto) return producto;
-
-  // 3. Buscar todos y hacer matching inteligente con normalizacion
-  const todos = await prisma.producto.findMany({
-    where: { ...sucursalFilter, activo: true },
-    select: { id: true, nombre: true, precio: true },
-  });
-
-  // Normalizar el termino de busqueda (quitar acentos, etc.)
-  const termNorm = term
+/** Normaliza un nombre para comparacion (quita acentos, lowercase, solo alfanumerico) */
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
 
-  // 3a. Contains normalizado — buscar el termino completo dentro del nombre normalizado
+/** Busca un producto por nombre con fuzzy matching mejorado.
+ *  Busca primero en la sucursal, luego en productos globales.
+ */
+async function findProducto(nombre: string, sucursalId: number) {
+  const term = nombre.trim().toLowerCase();
+
+  console.log(`[findProducto] Buscando: "${term}" en sucursal ${sucursalId}`);
+
+  // Intentar primero solo en la sucursal, luego ampliar a globales
+  for (const filter of [
+    { sucursalId, activo: true as const },
+    { sucursalId: null as number | null, activo: true as const },
+  ]) {
+    // 1. Contains directo en BD
+    const producto = await prisma.producto.findFirst({
+      where: { ...filter, nombre: { contains: term } },
+      select: { id: true, nombre: true, precio: true, sucursalId: true },
+    });
+    if (producto) {
+      console.log(`[findProducto] Encontrado (contains): "${producto.nombre}" (id=${producto.id})`);
+      return producto;
+    }
+  }
+
+  // 2. Buscar todos los productos de la sucursal + globales y hacer matching inteligente
+  const todos = await prisma.producto.findMany({
+    where: {
+      OR: [{ sucursalId }, { sucursalId: null }],
+      activo: true,
+    },
+    select: { id: true, nombre: true, precio: true, sucursalId: true },
+  });
+
+  console.log(`[findProducto] Total productos candidatos: ${todos.length}`);
+
+  const termNorm = normalizeName(term);
+
+  // 2a. Contains normalizado — buscar el termino dentro del nombre o viceversa
   const matchContains = todos.find((p) => {
-    const nombreNorm = p.nombre.toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const nombreNorm = normalizeName(p.nombre);
     return nombreNorm.includes(termNorm) || termNorm.includes(nombreNorm);
   });
-  if (matchContains) return matchContains;
+  if (matchContains) {
+    console.log(`[findProducto] Encontrado (norm-contains): "${matchContains.nombre}" (id=${matchContains.id})`);
+    return matchContains;
+  }
 
-  // 3b. Partial match — alguna palabra del termino aparece en el nombre
-  // (incluye palabras de 2+ chars para que "20" funcione)
+  // 2b. Scoring por palabras — mas coincidencias = mejor match
   const palabras = termNorm.split(/\s+/).filter((p) => p.length >= 2);
-
-  // Puntuar cada producto: mas palabras coincidentes = mejor match
   let bestMatch: (typeof todos)[0] | null = null;
   let bestScore = 0;
 
   for (const p of todos) {
-    const nombreNorm = p.nombre.toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
+    const nombreNorm = normalizeName(p.nombre);
     let score = 0;
+
+    // Palabras del termino que aparecen en el producto
     for (const palabra of palabras) {
       if (nombreNorm.includes(palabra)) score++;
     }
 
-    // Tambien checar si palabras del producto aparecen en el termino
+    // Palabras del producto que aparecen en el termino (menos peso)
     const palabrasProducto = nombreNorm.split(/\s+/).filter((w) => w.length >= 2);
     for (const w of palabrasProducto) {
       if (termNorm.includes(w)) score += 0.5;
     }
+
+    // Bonus: preferir productos de la sucursal sobre globales
+    if (p.sucursalId === sucursalId && score > 0) score += 0.3;
 
     if (score > bestScore) {
       bestScore = score;
@@ -221,9 +228,12 @@ async function findProducto(nombre: string, sucursalId: number) {
     }
   }
 
-  // Requiere al menos 1 palabra coincidente
-  if (bestMatch && bestScore >= 1) return bestMatch;
+  if (bestMatch && bestScore >= 1) {
+    console.log(`[findProducto] Encontrado (scoring=${bestScore}): "${bestMatch.nombre}" (id=${bestMatch.id})`);
+    return bestMatch;
+  }
 
+  console.log(`[findProducto] NO encontrado para: "${term}"`);
   return null;
 }
 
@@ -251,6 +261,7 @@ async function crearPedido(
 
   // Resolver cada item a un productoId
   const resolvedItems: Array<{ productoId: number; cantidad: number; observacion: string | null }> = [];
+  const resolvedNames: string[] = [];
   const notFound: string[] = [];
 
   for (const item of items) {
@@ -264,6 +275,7 @@ async function crearPedido(
       cantidad: item.cantidad ?? 1,
       observacion: item.observacion ?? null,
     });
+    resolvedNames.push(`${item.cantidad ?? 1}x ${producto.nombre}`);
   }
 
   if (notFound.length > 0 && resolvedItems.length === 0) {
@@ -293,7 +305,7 @@ async function crearPedido(
   }
 
   const mesaLabel = mesaId ? ` en mesa ${mesaNombre}` : " de mostrador";
-  let msg = `Pedido #${pedido.numero} creado${mesaLabel} con ${resolvedItems.length} producto(s).`;
+  let msg = `Pedido numero ${pedido.numero} creado${mesaLabel}: ${resolvedNames.join(", ")}.`;
   if (notFound.length > 0) {
     msg += ` No encontre: ${notFound.join(", ")}.`;
   }
