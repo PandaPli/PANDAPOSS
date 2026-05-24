@@ -145,23 +145,26 @@ async function findPedidoActivo(
 async function findProducto(nombre: string, sucursalId: number) {
   const term = nombre.trim().toLowerCase();
 
+  // Incluir productos de la sucursal Y productos globales (sucursalId null)
+  const sucursalFilter = { OR: [{ sucursalId }, { sucursalId: null as number | null }] };
+
   // 1. Exacto (case-insensitive via collation)
   let producto = await prisma.producto.findFirst({
-    where: { sucursalId, activo: true, nombre: { equals: nombre } },
+    where: { ...sucursalFilter, activo: true, nombre: { equals: nombre } },
     select: { id: true, nombre: true, precio: true },
   });
   if (producto) return producto;
 
   // 2. Contains
   producto = await prisma.producto.findFirst({
-    where: { sucursalId, activo: true, nombre: { contains: term } },
+    where: { ...sucursalFilter, activo: true, nombre: { contains: term } },
     select: { id: true, nombre: true, precio: true },
   });
   if (producto) return producto;
 
   // 3. Buscar todos y hacer matching inteligente con normalizacion
   const todos = await prisma.producto.findMany({
-    where: { sucursalId, activo: true },
+    where: { ...sucursalFilter, activo: true },
     select: { id: true, nombre: true, precio: true },
   });
 
@@ -449,7 +452,7 @@ async function consultarStock(
   const categoria = args.categoria as string | undefined;
 
   const where: Prisma.ProductoWhereInput = {
-    sucursalId: ctx.sucursalId!,
+    OR: [{ sucursalId: ctx.sucursalId! }, { sucursalId: null }],
     activo: true,
   };
 
