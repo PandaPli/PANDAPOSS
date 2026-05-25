@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 });
   }
 
-  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso, productoMesActivo, productoMesId, productoMesTitulo, productoMesPrecio, productoDiaActivo, productoDiaId, productoDiaTitulo, productoDiaPrecio, ofertaFugazActivo, ofertaFugazId, ofertaFugazPrecio, ofertaFugazHasta } = body as Record<string, unknown>;
+  const { nombre, direccion, telefono, email, simbolo, activa, logoUrl, cartaBg, cartaTagline, cartaSaludo, plan, printerPath, printerIp, rut, giroComercial, zonasDelivery, socialFacebook, socialInstagram, socialWhatsapp, socialYoutube, socialTiktok, socialTwitter, flayerUrl, flayerActivo, mpAccessToken, notifAviso, productoMesActivo, productoMesId, productoMesTitulo, productoMesPrecio, productoDiaActivo, productoDiaId, productoDiaTitulo, productoDiaPrecio, ofertaFugazActivo, ofertaFugazId, ofertaFugazPrecio, ofertaFugazHasta, kioskPin } = body as Record<string, unknown>;
 
   const data: Record<string, unknown> = {};
 
@@ -61,6 +61,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (flayerUrl    !== undefined) data.flayerUrl    = (flayerUrl    as string)?.trim() || null;
     if (flayerActivo !== undefined) data.flayerActivo = Boolean(flayerActivo);
     if (mpAccessToken !== undefined) data.mpAccessToken = (mpAccessToken as string)?.trim() || null;
+    if (kioskPin !== undefined) {
+      const pin = (kioskPin as string)?.replace(/\D/g, "").slice(0, 4) || null;
+      data.kioskPin = pin && pin.length === 4 ? pin : null;
+    }
     if (productoMesActivo  !== undefined) data.productoMesActivo  = Boolean(productoMesActivo);
     if (productoMesId      !== undefined) data.productoMesId      = productoMesId      ? Number(productoMesId)      : null;
     if (productoMesTitulo  !== undefined) data.productoMesTitulo  = (productoMesTitulo  as string)?.trim() || null;
@@ -91,6 +95,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
     if (flayerUrl    !== undefined) data.flayerUrl    = (flayerUrl    as string)?.trim() || null;
     if (flayerActivo !== undefined) data.flayerActivo = Boolean(flayerActivo);
+    if (kioskPin !== undefined) {
+      const pin = (kioskPin as string)?.replace(/\D/g, "").slice(0, 4) || null;
+      data.kioskPin = pin && pin.length === 4 ? pin : null;
+    }
   }
 
   try {

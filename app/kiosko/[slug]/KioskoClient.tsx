@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Check, ChevronRight, Minus, Plus, ShoppingBag, Trash2, X, ArrowLeft } from "lucide-react";
+import { Check, ChevronRight, Minus, Plus, ShoppingBag, Trash2, X, ArrowLeft, Maximize, Lock } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { VitrinaBanner } from "@/components/vitrina/VitrinaBanner";
 import type { VitrinaItem } from "@/components/vitrina/VitrinaBanner";
@@ -28,9 +28,11 @@ interface Props {
   categorias: Categoria[];
   mpEnabled?: boolean;
   vitrinaItems?: VitrinaItem[];
+  kioskPin?: string;
 }
 
 const IDLE_TIMEOUT = 90_000; // 90s sin interacción → volver a idle
+const DEFAULT_KIOSK_PIN = "0000";
 
 // ── Variantes modal ────────────────────────────────────────────────────────
 function VariantesModal({
@@ -122,7 +124,7 @@ function VariantesModal({
 }
 
 // ── Main Kiosko Client ─────────────────────────────────────────────────────
-export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [] }: Props) {
+export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [], kioskPin }: Props) {
   const [pantalla, setPantalla] = useState<Pantalla>("idle");
   const [catActiva, setCatActiva] = useState(categorias[0]?.id ?? 0);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -137,6 +139,13 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
   const [metodoPago, setMetodoPago] = useState<MetodoPagoKiosko>("caja");
   const [mpInitPoint, setMpInitPoint] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Kiosk lock ────────────────────────────────────────────────────────────
+  const [kioskLocked, setKioskLocked] = useState(false);
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+  const [pinDigits, setPinDigits] = useState<string[]>([]);
+  const [pinError, setPinError] = useState(false);
+  const kioskLockedRef = useRef(false);
 
   const totalItems = cart.reduce((a, i) => a + i.cantidad, 0);
   const subtotal = cart.reduce((a, i) => a + i.precio * i.cantidad, 0);
@@ -172,6 +181,73 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
       return () => clearTimeout(t);
     }
   }, [pantalla]);
+
+  // ── Kiosk fullscreen & lock ─────────────────────────────────────────────
+  useEffect(() => { kioskLockedRef.current = kioskLocked; }, [kioskLocked]);
+
+  function enterKioskMode() {
+    document.documentElement.requestFullscreen?.()
+      .then(() => { setKioskLocked(true); })
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    function onFsChange() {
+      if (!document.fullscreenElement && kioskLockedRef.current) {
+        setShowPinOverlay(true);
+        setPinDigits([]);
+        setPinError(false);
+      }
+    }
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  useEffect(() => {
+    if (!kioskLocked) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.history.pushState(null, "", window.location.href);
+    function onPopState() {
+      window.history.pushState(null, "", window.location.href);
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [kioskLocked]);
+
+  function handlePinDigit(d: string) {
+    if (pinDigits.length >= 4) return;
+    const next = [...pinDigits, d];
+    setPinDigits(next);
+    setPinError(false);
+    if (next.length === 4) {
+      if (next.join("") === (kioskPin || DEFAULT_KIOSK_PIN)) {
+        setKioskLocked(false);
+        setShowPinOverlay(false);
+        setPinDigits([]);
+      } else {
+        setPinError(true);
+        setTimeout(() => setPinDigits([]), 500);
+      }
+    }
+  }
+
+  function handlePinDelete() {
+    setPinDigits(prev => prev.slice(0, -1));
+    setPinError(false);
+  }
+
+  function returnToKiosk() {
+    setShowPinOverlay(false);
+    setPinDigits([]);
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }
 
   function resetKiosko() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -293,6 +369,52 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
 
   const productos = categorias.find(c => c.id === catActiva)?.productos ?? [];
 
+  // ── PIN OVERLAY (bloqueo kiosko) ──────────────────────────────────────────
+  if (showPinOverlay) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0a0a14] text-white select-none">
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-400/15 border-2 border-amber-400/40">
+            <Lock size={36} className="text-amber-400" />
+          </div>
+          <h2 className="text-2xl font-black">Kiosko Bloqueado</h2>
+          <p className="text-white/40 text-sm">Ingresa el PIN de 4 dígitos para salir</p>
+
+          <div className="flex gap-4 my-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className={`h-5 w-5 rounded-full border-2 transition-all duration-200 ${
+                pinError ? "border-red-400 bg-red-400" :
+                i < pinDigits.length ? "border-amber-400 bg-amber-400" : "border-white/20"
+              }`} />
+            ))}
+          </div>
+          {pinError && <p className="text-red-400 text-sm font-bold animate-pulse">PIN incorrecto</p>}
+
+          <div className="grid grid-cols-3 gap-3 mt-2">
+            {["1","2","3","4","5","6","7","8","9","","0","⌫"].map(k =>
+              k === "" ? <div key="empty" /> : (
+                <button key={k}
+                  onClick={() => k === "⌫" ? handlePinDelete() : handlePinDigit(k)}
+                  className={`h-16 w-16 rounded-2xl text-2xl font-black transition-all active:scale-90 ${
+                    k === "⌫" ? "bg-red-500/15 text-red-300 hover:bg-red-500/25" : "bg-white/10 hover:bg-white/20"
+                  }`}
+                >
+                  {k}
+                </button>
+              )
+            )}
+          </div>
+
+          <button onClick={returnToKiosk}
+            className="mt-6 rounded-2xl bg-amber-400 px-8 py-4 font-black text-black hover:bg-amber-300 transition-all active:scale-95"
+          >
+            Volver al Kiosko
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── IDLE ──────────────────────────────────────────────────────────────────
   if (pantalla === "idle") {
     return (
@@ -305,6 +427,24 @@ export function KioskoClient({ sucursal, categorias, mpEnabled, vitrinaItems = [
         onClick={() => setPantalla("menu")}
       >
         <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+
+        {!kioskLocked && (
+          <button
+            onClick={(e) => { e.stopPropagation(); enterKioskMode(); }}
+            className="absolute top-6 right-6 z-20 flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-white/60 hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm border border-white/10"
+          >
+            <Maximize size={20} />
+            <span className="text-sm font-bold">Pantalla completa</span>
+          </button>
+        )}
+
+        {kioskLocked && (
+          <div className="absolute top-6 right-6 z-20 flex items-center gap-2 rounded-2xl bg-emerald-500/15 px-4 py-3 text-emerald-400 border border-emerald-500/20 backdrop-blur-sm">
+            <Lock size={16} />
+            <span className="text-sm font-bold">Modo Kiosko</span>
+          </div>
+        )}
+
         <div className="relative z-10 flex flex-col items-center gap-8 text-center px-8">
           {sucursal.logoUrl
             ? <img src={sucursal.logoUrl} alt={sucursal.nombre} className="h-40 w-auto object-contain drop-shadow-2xl" />

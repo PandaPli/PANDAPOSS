@@ -36,6 +36,7 @@ model Sucursal {
   menuQR            Boolean        @default(false)
   correoActivo      Boolean        @default(false)
   kioskActivo       Boolean        @default(false)
+  kioskPin          String?        @db.VarChar(4)
   creadoEn          DateTime       @default(now())
   logoUrl           String?        @db.VarChar(255)
   cartaBg           String?        @db.VarChar(255)

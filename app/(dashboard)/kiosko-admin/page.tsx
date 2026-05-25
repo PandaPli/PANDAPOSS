@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { createSlug } from "@/lib/slug";
 import Link from "next/link";
 import { Monitor, ExternalLink } from "lucide-react";
+import { KioskPinConfig } from "./KioskPinConfig";
 
 export const metadata: Metadata = { title: "PP — Kiosko" };
 
@@ -17,7 +18,7 @@ export default async function KioskoAdminPage() {
 
   const sucursales = await prisma.sucursal.findMany({
     where: sucursalId ? { id: sucursalId, activa: true } : { activa: true },
-    select: { id: true, nombre: true, logoUrl: true },
+    select: { id: true, nombre: true, logoUrl: true, kioskPin: true },
     orderBy: { nombre: "asc" },
   });
 
@@ -31,7 +32,7 @@ export default async function KioskoAdminPage() {
       </div>
 
       <div className="rounded-2xl border border-brand-200 bg-brand-50/40 p-4 text-sm text-brand-700">
-        <strong>¿Cómo usarlo?</strong> Abre el link en el dispositivo táctil → el cliente navega el menú → confirma su pedido → aparece en KDS automáticamente. Recomendamos modo pantalla completa (F11).
+        <strong>¿Cómo usarlo?</strong> Abre el link en el dispositivo táctil → el cliente navega el menú → confirma su pedido → aparece en KDS automáticamente. Usa el botón &ldquo;Pantalla completa&rdquo; en el kiosko para activar el modo bloqueado.
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -49,10 +50,13 @@ export default async function KioskoAdminPage() {
                   <p className="text-xs text-surface-muted font-mono">/kiosko/{slug}</p>
                 </div>
               </div>
+
+              <KioskPinConfig sucursalId={s.id} currentPin={s.kioskPin} />
+
               <Link
                 href={url}
                 target="_blank"
-                className="flex items-center justify-center gap-2 w-full rounded-xl bg-zinc-900 py-3 text-sm font-bold text-white hover:bg-zinc-700 transition-all"
+                className="flex items-center justify-center gap-2 w-full rounded-xl bg-zinc-900 py-3 text-sm font-bold text-white hover:bg-zinc-700 transition-all mt-3"
               >
                 <ExternalLink size={15} />
                 Abrir Kiosko

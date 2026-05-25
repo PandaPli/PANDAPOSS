@@ -17,7 +17,7 @@ export default async function KioskoPage({ params }: Props) {
     where: { activa: true },
     select: {
       id: true, nombre: true, logoUrl: true, simbolo: true, cartaBg: true,
-      mpAccessToken: true,
+      mpAccessToken: true, kioskPin: true,
       productoMesActivo: true, productoMesTitulo: true, productoMesPrecio: true,
       productoMes: { select: { id: true, nombre: true, precio: true, imagen: true, descripcion: true } },
       productoDiaActivo: true, productoDiaTitulo: true, productoDiaPrecio: true,
@@ -142,6 +142,7 @@ export default async function KioskoPage({ params }: Props) {
       categorias={safeCategorias}
       mpEnabled={mpEnabled}
       vitrinaItems={vitrinaItems}
+      kioskPin={branch.kioskPin ?? undefined}
     />
   );
 }
