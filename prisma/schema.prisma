@@ -88,12 +88,14 @@ model Sucursal {
   permisosRrhh      PermisoRrhh[]
   productos         Producto[]
   salas             Sala[]
+  estacionamientos  Estacionamiento[]
   tenant            Tenant?        @relation(fields: [tenantId], references: [id])
   turnos            Turno[]
   usuarios          Usuario[]
   vacaciones        Vacacion[]
   agente            AgenteWsp?
   evaluaciones      Evaluacion[]
+  sesiones          SesionActividad[]
 
   // ─── BILLING ──────────────────────────────────────────────────────
   estadoPago      EstadoPago @default(PENDIENTE)
@@ -129,6 +131,7 @@ model Usuario {
   sucursal          Sucursal?        @relation(fields: [sucursalId], references: [id])
   tenant            Tenant?          @relation(fields: [tenantId], references: [id])
   ventas            Venta[]
+  sesiones          SesionActividad[]
 
   @@index([sucursalId], map: "usuarios_sucursalId_fkey")
   @@index([tenantId], map: "usuarios_tenantId_fkey")
@@ -161,6 +164,19 @@ model Mesa {
 
   @@index([salaId], map: "mesas_salaId_fkey")
   @@map("mesas")
+}
+
+model Estacionamiento {
+  id         Int      @id @default(autoincrement())
+  numero     String   @db.VarChar(20)
+  sucursalId Int
+  activo     Boolean  @default(true)
+  creadoEn   DateTime @default(now())
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+  pedidos    Pedido[]
+
+  @@index([sucursalId], map: "estacionamientos_sucursalId_fkey")
+  @@map("estacionamientos")
 }
 
 model Categoria {
@@ -379,40 +395,43 @@ model Arqueo {
 }
 
 model Pedido {
-  id               Int             @id @default(autoincrement())
-  numero           Int             @default(0)
-  mesaId           Int?
-  cajaId           Int?
-  usuarioId        Int
-  repartidorId     Int?
-  tipo             TipoPedido      @default(COCINA)
-  estado           EstadoPedido    @default(PENDIENTE)
-  observacion      String?         @db.Text
-  meseroLlamado    Boolean         @default(false)
-  llamadoTipo      String?         @db.VarChar(10)
-  direccionEntrega String?         @db.VarChar(300)
-  telefonoCliente  String?         @db.VarChar(30)
-  creadoEn         DateTime        @default(now())
-  actualizadoEn    DateTime        @updatedAt
-  iniciadoEn       DateTime?
-  listoEn          DateTime?
-  tenantId         String?
-  mpPreferenceId   String?         @db.VarChar(100)
-  mpPaymentId      String?         @db.VarChar(100)
-  mpStatus         String?         @db.VarChar(30)
-  detalles         DetallePedido[]
-  eventos          EventoPedido[]
-  caja             Caja?           @relation(fields: [cajaId], references: [id])
-  mesa             Mesa?           @relation(fields: [mesaId], references: [id])
-  repartidor       Usuario?        @relation("PedidosRepartidor", fields: [repartidorId], references: [id])
-  Tenant           Tenant?         @relation(fields: [tenantId], references: [id])
-  usuario          Usuario         @relation(fields: [usuarioId], references: [id])
-  delivery         PedidoDelivery?
-  evaluacion       Evaluacion?
-  venta            Venta?
+  id                  Int              @id @default(autoincrement())
+  numero              Int              @default(0)
+  mesaId              Int?
+  estacionamientoId   Int?
+  cajaId              Int?
+  usuarioId           Int
+  repartidorId        Int?
+  tipo                TipoPedido       @default(COCINA)
+  estado              EstadoPedido     @default(PENDIENTE)
+  observacion         String?          @db.Text
+  meseroLlamado       Boolean          @default(false)
+  llamadoTipo         String?          @db.VarChar(10)
+  direccionEntrega    String?          @db.VarChar(300)
+  telefonoCliente     String?          @db.VarChar(30)
+  creadoEn            DateTime         @default(now())
+  actualizadoEn       DateTime         @updatedAt
+  iniciadoEn          DateTime?
+  listoEn             DateTime?
+  tenantId            String?
+  mpPreferenceId      String?          @db.VarChar(100)
+  mpPaymentId         String?          @db.VarChar(100)
+  mpStatus            String?          @db.VarChar(30)
+  detalles            DetallePedido[]
+  eventos             EventoPedido[]
+  caja                Caja?            @relation(fields: [cajaId], references: [id])
+  mesa                Mesa?            @relation(fields: [mesaId], references: [id])
+  estacionamiento     Estacionamiento? @relation(fields: [estacionamientoId], references: [id])
+  repartidor          Usuario?         @relation("PedidosRepartidor", fields: [repartidorId], references: [id])
+  Tenant              Tenant?          @relation(fields: [tenantId], references: [id])
+  usuario             Usuario          @relation(fields: [usuarioId], references: [id])
+  delivery            PedidoDelivery?
+  evaluacion          Evaluacion?
+  venta               Venta?
 
   @@index([cajaId], map: "pedidos_cajaId_fkey")
   @@index([mesaId], map: "pedidos_mesaId_fkey")
+  @@index([estacionamientoId], map: "pedidos_estacionamientoId_fkey")
   @@index([repartidorId], map: "pedidos_repartidorId_fkey")
   @@index([tenantId], map: "pedidos_tenantId_fkey")
   @@index([usuarioId], map: "pedidos_usuarioId_fkey")
@@ -563,6 +582,23 @@ model Log {
   @@index([usuarioId], map: "logs_usuarioId_fkey")
   @@index([creadoEn], map: "logs_creadoEn_idx")
   @@map("logs")
+}
+
+model SesionActividad {
+  id          Int       @id @default(autoincrement())
+  usuarioId   Int
+  sucursalId  Int
+  inicioEn    DateTime  @default(now())
+  ultimoPing  DateTime  @default(now())
+  duracionSeg Int       @default(0)
+  activa      Boolean   @default(true)
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
+  sucursal    Sucursal  @relation(fields: [sucursalId], references: [id])
+
+  @@index([sucursalId], map: "sesiones_actividad_sucursalId_idx")
+  @@index([usuarioId], map: "sesiones_actividad_usuarioId_idx")
+  @@index([activa], map: "sesiones_actividad_activa_idx")
+  @@map("sesiones_actividad")
 }
 
 model Configuracion {

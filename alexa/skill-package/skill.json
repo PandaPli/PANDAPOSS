@@ -1,0 +1,39 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "es-US": {
+          "summary": "Control por voz externo para PandaPoss.",
+          "examplePhrases": [
+            "Alexa abre panda pos",
+            "Alexa pregunta a panda pos cuanto vendimos hoy",
+            "Alexa pregunta a panda pos como va cocina"
+          ],
+          "keywords": ["restaurante", "pos", "ventas", "cocina"],
+          "name": "Panda POS",
+          "description": "Permite consultar ventas, cocina, stock y pedidos de PandaPoss por voz."
+        }
+      },
+      "isAvailableWorldwide": false,
+      "testingInstructions": "Usar una cuenta PandaPoss autorizada y configurar PANDA_API_BASE_URL, PANDA_ALEXA_SECRET y PANDA_DEFAULT_SUCURSAL_ID en Lambda.",
+      "category": "BUSINESS_AND_FINANCE",
+      "distributionCountries": ["US"]
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sourceDir": "../lambda"
+        }
+      }
+    },
+    "manifestVersion": "1.0",
+    "permissions": [],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "usesPersonalInfo": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false
+    }
+  }
+}

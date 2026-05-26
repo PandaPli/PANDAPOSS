@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: PandaPoss Alexa external voice layer
+
+Parameters:
+  PandaApiBaseUrl:
+    Type: String
+  PandaAlexaSecret:
+    Type: String
+    NoEcho: true
+  PandaDefaultSucursalId:
+    Type: String
+
+Resources:
+  PandaPossAlexaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs20.x
+      Handler: index.handler
+      CodeUri: lambda/
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          PANDA_API_BASE_URL: !Ref PandaApiBaseUrl
+          PANDA_ALEXA_SECRET: !Ref PandaAlexaSecret
+          PANDA_DEFAULT_SUCURSAL_ID: !Ref PandaDefaultSucursalId
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill
+
+Outputs:
+  PandaPossAlexaFunctionArn:
+    Value: !GetAtt PandaPossAlexaFunction.Arn

@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { sucursalId, mesaId, items, clienteInfo } = body;
+    const { sucursalId, mesaId, estacionamientoId, items, clienteInfo } = body;
 
-    // 1. Validación básica
-    if (!sucursalId || !mesaId || !items || !Array.isArray(items) || items.length === 0) {
+    // 1. Validación básica — necesita mesa O estacionamiento
+    if (!sucursalId || (!mesaId && !estacionamientoId) || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Faltan datos obligatorios para crear el pedido" }, { status: 400 });
     }
 
@@ -64,16 +64,24 @@ export async function POST(req: NextRequest) {
       ? clienteInfo.nombre.trim().slice(0, MAX_NOMBRE_LEN)
       : "";
 
-    // 2. Verificar sucursal y mesa
-    const [sucursal, mesa] = await Promise.all([
+    // 2. Verificar sucursal, mesa o estacionamiento
+    const [sucursal, mesa, estacionamiento] = await Promise.all([
       prisma.sucursal.findUnique({
         where: { id: Number(sucursalId) },
         select: { activa: true, menuQR: true, plan: true },
       }),
-      prisma.mesa.findFirst({
-        where: { id: Number(mesaId), sala: { sucursalId: Number(sucursalId) } },
-        select: { id: true },
-      }),
+      mesaId
+        ? prisma.mesa.findFirst({
+            where: { id: Number(mesaId), sala: { sucursalId: Number(sucursalId) } },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      estacionamientoId
+        ? prisma.estacionamiento.findFirst({
+            where: { id: Number(estacionamientoId), sucursalId: Number(sucursalId), activo: true },
+            select: { id: true, numero: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     if (!sucursal || !sucursal.activa || !effectiveFeature(sucursal.plan, sucursal.menuQR)) {
@@ -83,9 +91,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!mesa) {
+    if (!mesa && !estacionamiento) {
       return NextResponse.json(
-        { error: "La mesa indicada no es válida para esta sucursal." },
+        { error: "La mesa o estacionamiento indicado no es válido para esta sucursal." },
         { status: 404 }
       );
     }
@@ -108,18 +116,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Observación sanitizada
-    const observacionCliente = nombreCliente ? `Cliente: ${nombreCliente}` : "";
+    const parts: string[] = [];
+    if (nombreCliente) parts.push(`Cliente: ${nombreCliente}`);
+    if (estacionamiento) parts.push(`Estacionamiento N° ${estacionamiento.numero}`);
+    const observacionCliente = parts.join(" | ");
 
     const pedido = await PedidoService.create({
       tipo: "COCINA",
-      mesaId: mesa.id,
+      mesaId: mesa?.id ?? null,
+      estacionamientoId: estacionamiento?.id ?? null,
       usuarioId: systemUser.id,
       cajaId: null,
       observacion: observacionCliente,
       items: items.map((item) => ({
         productoId: Number(item.productoId),
         cantidad:   Number(item.cantidad),
-        // P1: truncar observación por ítem
         observacion: typeof item.notas === "string"
           ? item.notas.trim().slice(0, MAX_OBS_LEN)
           : typeof item.observacion === "string"
@@ -128,11 +139,12 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    // Marcar mesa como OCUPADA
-    await prisma.mesa.update({
-      where: { id: mesa.id },
-      data: { estado: "OCUPADA" },
-    });
+    if (mesa) {
+      await prisma.mesa.update({
+        where: { id: mesa.id },
+        data: { estado: "OCUPADA" },
+      });
+    }
 
     return NextResponse.json(pedido, { status: 201 });
   } catch (error) {

@@ -5,7 +5,7 @@ import { MenuClient } from "./MenuClient";
 import { effectiveFeature } from "@/lib/plan";
 
 interface Props {
-  searchParams: Promise<{ sucursal?: string; mesa?: string }>;
+  searchParams: Promise<{ sucursal?: string; mesa?: string; estacionamiento?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
@@ -15,22 +15,29 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function MenuPage({ searchParams }: Props) {
-  const { sucursal: sucursalParam, mesa: mesaParam } = await searchParams;
+  const { sucursal: sucursalParam, mesa: mesaParam, estacionamiento: estParam } = await searchParams;
 
   const sucursalId = sucursalParam ? Number(sucursalParam) : NaN;
   const mesaId     = mesaParam     ? Number(mesaParam)     : NaN;
+  const estId      = estParam      ? Number(estParam)      : NaN;
 
   if (isNaN(sucursalId)) notFound();
 
-  const [sucursal, mesa, categorias] = await Promise.all([
+  const [sucursal, mesa, estacionamiento, categorias] = await Promise.all([
     prisma.sucursal.findUnique({
       where: { id: sucursalId, activa: true },
       select: { id: true, nombre: true, menuQR: true, plan: true, simbolo: true },
     }),
     !isNaN(mesaId)
       ? prisma.mesa.findFirst({
-          where: { id: mesaId, sala: { sucursalId } }, // Validar que la mesa pertenezca a esta sucursal
+          where: { id: mesaId, sala: { sucursalId } },
           select: { id: true, nombre: true },
+        })
+      : Promise.resolve(null),
+    !isNaN(estId)
+      ? prisma.estacionamiento.findFirst({
+          where: { id: estId, sucursalId, activo: true },
+          select: { id: true, numero: true },
         })
       : Promise.resolve(null),
     prisma.categoria.findMany({
@@ -53,10 +60,8 @@ export default async function MenuPage({ searchParams }: Props) {
 
   if (!sucursal || !effectiveFeature(sucursal.plan, sucursal.menuQR)) notFound();
 
-  // Filtrar categorías con al menos 1 producto
   const cats = categorias.filter((c) => c.productos.length > 0);
 
-  // Convertir Decimal/Num a number para el cliente
   const safeCategorias = cats.map(c => ({
     id: c.id,
     nombre: c.nombre,
@@ -76,6 +81,8 @@ export default async function MenuPage({ searchParams }: Props) {
       simbolo={sucursal.simbolo ?? "$"}
       mesaId={mesa?.id}
       mesaNombre={mesa?.nombre}
+      estacionamientoId={estacionamiento?.id}
+      estacionamientoNumero={estacionamiento?.numero}
       categorias={safeCategorias}
     />
   );

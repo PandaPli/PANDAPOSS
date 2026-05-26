@@ -1,0 +1,143 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "panda pos",
+      "intents": [
+        {
+          "name": "SalesTodayIntent",
+          "slots": [],
+          "samples": [
+            "cuanto vendimos hoy",
+            "cuanto llevamos vendido",
+            "dime las ventas de hoy",
+            "cuanto se vendio hoy"
+          ]
+        },
+        {
+          "name": "KitchenStatusIntent",
+          "slots": [],
+          "samples": [
+            "como va cocina",
+            "estado de cocina",
+            "como van los pedidos",
+            "que tiene pendiente cocina",
+            "dime el estado del K D S"
+          ]
+        },
+        {
+          "name": "StockQueryIntent",
+          "slots": [
+            {
+              "name": "productName",
+              "type": "PRODUCT_NAME"
+            }
+          ],
+          "samples": [
+            "cuanto stock queda de {productName}",
+            "consulta stock de {productName}",
+            "hay {productName}",
+            "revisa stock de {productName}"
+          ]
+        },
+        {
+          "name": "AddOrderIntent",
+          "slots": [
+            {
+              "name": "quantity",
+              "type": "AMAZON.NUMBER"
+            },
+            {
+              "name": "productName",
+              "type": "PRODUCT_NAME"
+            },
+            {
+              "name": "tableNumber",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "agrega {quantity} {productName} mesa {tableNumber}",
+            "mesa {tableNumber} pide {quantity} {productName}",
+            "anota {quantity} {productName} en mesa {tableNumber}",
+            "sumale {quantity} {productName} a mesa {tableNumber}"
+          ]
+        },
+        {
+          "name": "CancelProductIntent",
+          "slots": [
+            {
+              "name": "productName",
+              "type": "PRODUCT_NAME"
+            },
+            {
+              "name": "tableNumber",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "cancela {productName} mesa {tableNumber}",
+            "quita {productName} de mesa {tableNumber}",
+            "elimina {productName} mesa {tableNumber}"
+          ]
+        },
+        {
+          "name": "RepeatUsualIntent",
+          "slots": [
+            {
+              "name": "tableNumber",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "lo mismo de siempre para mesa {tableNumber}",
+            "repite lo de siempre mesa {tableNumber}",
+            "mesa {tableNumber} quiere lo de siempre"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "PRODUCT_NAME",
+          "values": [
+            {
+              "name": {
+                "value": "handroll",
+                "synonyms": ["hand roll", "handroll camaron", "handroll camarón"]
+              }
+            },
+            {
+              "name": {
+                "value": "bebida",
+                "synonyms": ["gaseosa", "refresco", "coca cola", "sprite", "fanta"]
+              }
+            },
+            {
+              "name": {
+                "value": "coca cola",
+                "synonyms": ["coca", "coca zero"]
+              }
+            },
+            {
+              "name": {
+                "value": "papas fritas",
+                "synonyms": ["papas", "porción de papas"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

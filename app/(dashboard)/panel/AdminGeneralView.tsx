@@ -6,10 +6,12 @@ import Link from "next/link";
 import {
   Building2, TrendingUp, Users, Wallet,
   Star, Gift, CheckCircle2, Clock, AlertTriangle,
-  ShoppingBag, Store,
+  ShoppingBag, Store, ArrowUpRight, Wifi, Timer,
+  Activity, CreditCard,
 } from "lucide-react";
 import { SucursalRow } from "./SucursalRow";
 import { HomeEditorModule } from "./HomeEditorModule";
+import { AdminPanelTabs } from "./AdminPanelTabs";
 
 type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
 
@@ -30,6 +32,12 @@ async function getAdminData() {
       },
     },
     orderBy: { orden: "asc" },
+  });
+
+  const umbralInactivo = new Date(ahora.getTime() - 2 * 60 * 1000);
+  await prisma.sesionActividad.updateMany({
+    where: { activa: true, ultimoPing: { lt: umbralInactivo } },
+    data: { activa: false },
   });
 
   const [ventasHoyArr, ventasMesArr, pedidosActivosArr, cajasAbiertasArr] = await Promise.all([
@@ -68,12 +76,32 @@ async function getAdminData() {
   const pedidosActivosMap = Object.fromEntries(pedidosActivosArr.map(v => [v.id, v.count]));
   const cajasAbiertasMap  = Object.fromEntries(cajasAbiertasArr.map(v => [v.id, v.open]));
 
+  const [ultimaConexionArr, tiempoTotalArr] = await Promise.all([
+    Promise.all(sucursales.map(s =>
+      prisma.sesionActividad.findFirst({
+        where: { sucursalId: s.id },
+        orderBy: { ultimoPing: "desc" },
+        select: { ultimoPing: true },
+      }).then(r => ({ id: s.id, ultimoPing: r?.ultimoPing ?? null }))
+    )),
+    Promise.all(sucursales.map(s =>
+      prisma.sesionActividad.aggregate({
+        _sum: { duracionSeg: true },
+        where: { sucursalId: s.id },
+      }).then(r => ({ id: s.id, totalSeg: Number(r._sum.duracionSeg ?? 0) }))
+    )),
+  ]);
+
+  const ultimaConexionMap = Object.fromEntries(ultimaConexionArr.map(v => [v.id, v.ultimoPing]));
+  const tiempoTotalMap    = Object.fromEntries(tiempoTotalArr.map(v => [v.id, v.totalSeg]));
+
   const ventasHoyGlobal        = ventasHoyArr.reduce((s, v) => s + v.total, 0);
   const ventasMesGlobal        = ventasMesArr.reduce((s, v) => s + v.total, 0);
   const totalPedidosActivos    = pedidosActivosArr.reduce((s, v) => s + v.count, 0);
   const totalSucursalesConCaja = cajasAbiertasArr.filter(v => v.open > 0).length;
   const totalClientes          = sucursales.reduce((s, suc) => s + suc._count.clientes, 0);
   const totalTxHoy             = ventasHoyArr.reduce((s, v) => s + v.count, 0);
+  const sesionesActivas        = await prisma.sesionActividad.count({ where: { activa: true } });
 
   const pagoCount: Partial<Record<EstadoPago, number>> = {};
   for (const s of sucursales) {
@@ -81,7 +109,6 @@ async function getAdminData() {
     pagoCount[ep] = (pagoCount[ep] ?? 0) + 1;
   }
 
-  // Gráfico 7 días
   const dias = Array.from({ length: 7 }, (_, i) => subDays(ahora, 6 - i));
   const chartData: Record<string, number | string>[] = await Promise.all(
     dias.map(async (day) => {
@@ -102,22 +129,23 @@ async function getAdminData() {
 
   return {
     sucursales, ventasHoyGlobal, ventasMesGlobal, totalPedidosActivos,
-    totalSucursalesConCaja, totalClientes, totalTxHoy, pagoCount,
+    totalSucursalesConCaja, totalClientes, totalTxHoy, pagoCount, sesionesActivas,
     ventasHoyMap, ventasMesMap, pedidosActivosMap, cajasAbiertasMap,
+    ultimaConexionMap, tiempoTotalMap,
     chartData, series, ahora,
   };
 }
 
-// ── Configuración pago ─────────────────────────────────────────────────────
-const PAGO_DISPLAY: Record<EstadoPago, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  SOCIO:     { label: "Socio",     color: "text-violet-700",  bg: "bg-violet-100",  icon: <Star size={10} /> },
-  AL_DIA:    { label: "Al día",    color: "text-emerald-700", bg: "bg-emerald-100", icon: <CheckCircle2 size={10} /> },
-  GRATIS:    { label: "Gratis",    color: "text-blue-700",    bg: "bg-blue-100",    icon: <Gift size={10} /> },
-  PENDIENTE: { label: "Pendiente", color: "text-amber-700",   bg: "bg-amber-100",   icon: <Clock size={10} /> },
-  ATRASADO:  { label: "Atrasado",  color: "text-red-700",     bg: "bg-red-100",     icon: <AlertTriangle size={10} /> },
+// ── Pago config ───────────────────────────────────────────────────────────
+const PAGO_DISPLAY: Record<EstadoPago, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
+  SOCIO:     { label: "Socio",     color: "text-violet-700",  bg: "bg-violet-500/10", border: "border-violet-300/30", icon: <Star size={11} /> },
+  AL_DIA:    { label: "Al día",    color: "text-emerald-700", bg: "bg-emerald-500/10", border: "border-emerald-300/30", icon: <CheckCircle2 size={11} /> },
+  GRATIS:    { label: "Gratis",    color: "text-blue-700",    bg: "bg-blue-500/10", border: "border-blue-300/30", icon: <Gift size={11} /> },
+  PENDIENTE: { label: "Pendiente", color: "text-amber-700",   bg: "bg-amber-500/10", border: "border-amber-300/30", icon: <Clock size={11} /> },
+  ATRASADO:  { label: "Atrasado",  color: "text-red-700",     bg: "bg-red-500/10", border: "border-red-300/30", icon: <AlertTriangle size={11} /> },
 };
 
-// ── Componente ─────────────────────────────────────────────────────────────
+// ── Componente ────────────────────────────────────────────────────────────
 export async function AdminGeneralView() {
   const [adminData, configData] = await Promise.all([
     getAdminData(),
@@ -126,179 +154,336 @@ export async function AdminGeneralView() {
 
   const {
     sucursales, ventasHoyGlobal, ventasMesGlobal, totalPedidosActivos,
-    totalSucursalesConCaja, totalClientes, totalTxHoy, pagoCount,
+    totalSucursalesConCaja, totalClientes, totalTxHoy, pagoCount, sesionesActivas,
     ventasHoyMap, ventasMesMap, pedidosActivosMap, cajasAbiertasMap,
+    ultimaConexionMap, tiempoTotalMap,
     chartData, series, ahora,
   } = adminData;
 
   const mesLabel = new Intl.DateTimeFormat("es-CL", { month: "long" }).format(ahora);
 
-  return (
+  // ── TAB: General ──────────────────────────────────────────────────────
+  const generalTab = (
     <div className="space-y-4">
-
-      {/* ── HEADER ────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center shadow shrink-0">
-            <Building2 size={18} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-surface-text tracking-tight leading-none">PANDAADMIN</h1>
-            <p className="text-xs text-surface-muted capitalize mt-0.5">
-              {new Intl.DateTimeFormat("es-CL", { weekday: "long", day: "numeric", month: "long" }).format(ahora)}
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {/* Ventas Hoy - hero card */}
+        <div className="col-span-2 lg:col-span-1 relative overflow-hidden rounded-2xl border border-brand-200/40 bg-gradient-to-br from-brand-500/10 via-white/80 to-violet-500/5 backdrop-blur-xl p-5 shadow-[0_8px_30px_rgba(79,70,229,0.08)]">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-400/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-brand-600/15 flex items-center justify-center">
+                <TrendingUp size={16} className="text-brand-600" />
+              </div>
+              <span className="text-[11px] font-bold text-brand-600 uppercase tracking-wider">Ventas Hoy</span>
+            </div>
+            <p className="text-3xl font-black text-brand-700 tabular-nums leading-none">
+              {formatCurrency(ventasHoyGlobal, "$")}
             </p>
+            <p className="text-xs text-brand-500/80 mt-2 font-medium">{totalTxHoy} transacciones</p>
           </div>
         </div>
-        <span className="hidden sm:block text-xs bg-brand-100 text-brand-700 px-3 py-1 rounded-full font-bold uppercase tracking-wide">
-          Control General
-        </span>
-      </div>
 
-      {/* ── KPIs ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        <div className="rounded-xl border border-brand-100 bg-brand-50 p-3">
-          <div className="flex items-center gap-1 mb-1">
-            <TrendingUp size={12} className="text-brand-600" />
-            <span className="text-[10px] font-bold text-brand-600 uppercase tracking-wide">Ventas Hoy</span>
+        {/* Ventas Mes */}
+        <div className="relative overflow-hidden rounded-2xl border border-violet-200/40 bg-gradient-to-br from-violet-500/8 via-white/80 to-fuchsia-500/5 backdrop-blur-xl p-5 shadow-[0_4px_20px_rgba(124,58,237,0.06)]">
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-violet-400/10 rounded-full blur-2xl translate-y-8 -translate-x-8" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-violet-600/15 flex items-center justify-center">
+                <Wallet size={16} className="text-violet-600" />
+              </div>
+              <span className="text-[11px] font-bold text-violet-600 uppercase tracking-wider">Ventas {mesLabel}</span>
+            </div>
+            <p className="text-2xl font-black text-violet-700 tabular-nums leading-none">
+              {formatCurrency(ventasMesGlobal, "$")}
+            </p>
+            <p className="text-xs text-violet-500/80 mt-2 font-medium">mes en curso</p>
           </div>
-          <p className="text-xl font-black text-brand-700 tabular-nums leading-none">
-            {formatCurrency(ventasHoyGlobal, "$")}
-          </p>
-          <p className="text-[10px] text-brand-500 mt-1">{totalTxHoy} transacciones</p>
         </div>
 
-        <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
-          <div className="flex items-center gap-1 mb-1">
-            <Wallet size={12} className="text-violet-600" />
-            <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wide">Ventas {mesLabel}</span>
-          </div>
-          <p className="text-xl font-black text-violet-700 tabular-nums leading-none">
-            {formatCurrency(ventasMesGlobal, "$")}
-          </p>
-          <p className="text-[10px] text-violet-500 mt-1">mes en curso</p>
-        </div>
-
-        <div className={`rounded-xl border p-3 ${totalPedidosActivos > 0 ? "border-amber-100 bg-amber-50" : "border-surface-border bg-surface-bg"}`}>
-          <div className="flex items-center gap-1 mb-1">
-            <ShoppingBag size={12} className={totalPedidosActivos > 0 ? "text-amber-600" : "text-surface-muted"} />
-            <span className={`text-[10px] font-bold uppercase tracking-wide ${totalPedidosActivos > 0 ? "text-amber-600" : "text-surface-muted"}`}>
+        {/* Pedidos activos */}
+        <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl p-5 ${
+          totalPedidosActivos > 0
+            ? "border-amber-200/40 bg-gradient-to-br from-amber-500/10 via-white/80 to-orange-500/5 shadow-[0_4px_20px_rgba(245,158,11,0.08)]"
+            : "border-white/40 bg-white/60"
+        }`}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${totalPedidosActivos > 0 ? "bg-amber-600/15" : "bg-slate-100"}`}>
+              <ShoppingBag size={16} className={totalPedidosActivos > 0 ? "text-amber-600" : "text-slate-400"} />
+            </div>
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${totalPedidosActivos > 0 ? "text-amber-600" : "text-slate-400"}`}>
               Pedidos Activos
             </span>
           </div>
-          <p className={`text-xl font-black tabular-nums leading-none ${totalPedidosActivos > 0 ? "text-amber-700" : "text-surface-muted"}`}>
+          <p className={`text-2xl font-black tabular-nums leading-none ${totalPedidosActivos > 0 ? "text-amber-700" : "text-slate-300"}`}>
             {totalPedidosActivos}
           </p>
-          <p className={`text-[10px] mt-1 ${totalPedidosActivos > 0 ? "text-amber-500" : "text-surface-muted"}`}>
+          <p className={`text-xs mt-2 font-medium ${totalPedidosActivos > 0 ? "text-amber-500/80" : "text-slate-400"}`}>
             {totalPedidosActivos > 0 ? "en cocina / barra" : "sin pedidos"}
           </p>
         </div>
+      </div>
 
-        <div className={`rounded-xl border p-3 ${totalSucursalesConCaja > 0 ? "border-emerald-100 bg-emerald-50" : "border-surface-border bg-surface-bg"}`}>
-          <div className="flex items-center gap-1 mb-1">
-            <Store size={12} className={totalSucursalesConCaja > 0 ? "text-emerald-600" : "text-surface-muted"} />
-            <span className={`text-[10px] font-bold uppercase tracking-wide ${totalSucursalesConCaja > 0 ? "text-emerald-600" : "text-surface-muted"}`}>
+      {/* Second row KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        {/* Sucursales */}
+        <div className={`rounded-2xl border backdrop-blur-xl p-4 ${
+          totalSucursalesConCaja > 0
+            ? "border-emerald-200/40 bg-gradient-to-br from-emerald-500/8 via-white/80 to-teal-500/5"
+            : "border-white/40 bg-white/60"
+        }`}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${totalSucursalesConCaja > 0 ? "bg-emerald-600/15" : "bg-slate-100"}`}>
+              <Store size={14} className={totalSucursalesConCaja > 0 ? "text-emerald-600" : "text-slate-400"} />
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${totalSucursalesConCaja > 0 ? "text-emerald-600" : "text-slate-400"}`}>
               Sucursales
             </span>
           </div>
-          <p className={`text-xl font-black leading-none ${totalSucursalesConCaja > 0 ? "text-emerald-700" : "text-surface-muted"}`}>
+          <p className={`text-xl font-black leading-none ${totalSucursalesConCaja > 0 ? "text-emerald-700" : "text-slate-300"}`}>
             <span className="tabular-nums">{totalSucursalesConCaja}</span>
-            <span className="text-base font-medium opacity-60">/{sucursales.length}</span>
+            <span className="text-sm font-medium opacity-50">/{sucursales.length}</span>
           </p>
-          <p className={`text-[10px] mt-1 ${totalSucursalesConCaja > 0 ? "text-emerald-500" : "text-surface-muted"}`}>
+          <p className={`text-[10px] mt-1.5 font-medium ${totalSucursalesConCaja > 0 ? "text-emerald-500/70" : "text-slate-400"}`}>
             con caja abierta
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-          <div className="flex items-center gap-1 mb-1">
-            <Users size={12} className="text-slate-600" />
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">Clientes</span>
+        {/* Clientes */}
+        <div className="rounded-2xl border border-slate-200/40 bg-gradient-to-br from-slate-500/5 via-white/80 to-slate-500/3 backdrop-blur-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-lg bg-slate-600/10 flex items-center justify-center">
+              <Users size={14} className="text-slate-600" />
+            </div>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Clientes</span>
           </div>
           <p className="text-xl font-black text-slate-700 tabular-nums leading-none">
             {totalClientes.toLocaleString("es-CL")}
           </p>
-          <p className="text-[10px] text-slate-500 mt-1">registrados</p>
+          <p className="text-[10px] text-slate-400 mt-1.5 font-medium">registrados</p>
+        </div>
+
+        {/* Sesiones activas */}
+        <div className={`rounded-2xl border backdrop-blur-xl p-4 ${
+          sesionesActivas > 0
+            ? "border-cyan-200/40 bg-gradient-to-br from-cyan-500/8 via-white/80 to-blue-500/5"
+            : "border-white/40 bg-white/60"
+        }`}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${sesionesActivas > 0 ? "bg-cyan-600/15" : "bg-slate-100"}`}>
+              <Activity size={14} className={sesionesActivas > 0 ? "text-cyan-600" : "text-slate-400"} />
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${sesionesActivas > 0 ? "text-cyan-600" : "text-slate-400"}`}>
+              En línea
+            </span>
+          </div>
+          <p className={`text-xl font-black tabular-nums leading-none ${sesionesActivas > 0 ? "text-cyan-700" : "text-slate-300"}`}>
+            {sesionesActivas}
+          </p>
+          <p className={`text-[10px] mt-1.5 font-medium ${sesionesActivas > 0 ? "text-cyan-500/70" : "text-slate-400"}`}>
+            {sesionesActivas === 1 ? "usuario activo" : "usuarios activos"}
+          </p>
         </div>
       </div>
 
-      {/* ── ESTADO DE PAGOS ───────────────────────────────────────────── */}
-      <div className="card px-4 py-2.5 flex items-center gap-3 flex-wrap">
-        <span className="text-[10px] font-bold text-surface-muted uppercase tracking-widest shrink-0">
-          Estado de pagos
-        </span>
-        <div className="flex items-center gap-2 flex-wrap flex-1">
+      {/* Estado de pagos - glass bar */}
+      <div className="rounded-2xl border border-white/50 bg-white/50 backdrop-blur-xl p-4 shadow-[0_2px_16px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <CreditCard size={14} className="text-surface-muted" />
+            <span className="text-[11px] font-bold text-surface-muted uppercase tracking-widest">Estado de Pagos</span>
+          </div>
+          <Link href="/pagos" className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 font-semibold transition-colors">
+            Administrar <ArrowUpRight size={11} />
+          </Link>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
           {(["SOCIO", "AL_DIA", "GRATIS", "PENDIENTE", "ATRASADO"] as EstadoPago[]).map(key => {
             const n = pagoCount[key] ?? 0;
             if (n === 0) return null;
             const cfg = PAGO_DISPLAY[key];
             return (
-              <span key={key} className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.color}`}>
-                {cfg.icon} {cfg.label} · {n}
+              <span key={key} className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border backdrop-blur-sm ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                {cfg.icon} {cfg.label} <span className="opacity-50">·</span> {n}
               </span>
             );
           })}
         </div>
-        <Link href="/pagos" className="shrink-0 text-xs text-brand-600 hover:underline font-semibold">
-          Administrar pagos →
+      </div>
+    </div>
+  );
+
+  // ── TAB: Sucursales ───────────────────────────────────────────────────
+  const sucursalesTab = (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-brand-600/10 backdrop-blur-sm flex items-center justify-center">
+            <Store size={15} className="text-brand-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-black text-surface-text leading-none">Sucursales</h2>
+            <p className="text-[10px] text-surface-muted mt-0.5">{sucursales.length} registradas · {totalSucursalesConCaja} activas</p>
+          </div>
+        </div>
+        <Link href="/sucursales" className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 font-semibold transition-colors bg-brand-50/60 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-brand-100/40">
+          Gestionar <ArrowUpRight size={11} />
         </Link>
       </div>
-
-      {/* ── SUCURSALES ────────────────────────────────────────────────── */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between px-0.5">
-          <h2 className="text-[10px] font-bold text-surface-muted uppercase tracking-widest">
-            Sucursales · {sucursales.length}
-          </h2>
-          <Link href="/sucursales" className="text-xs text-brand-600 hover:underline font-semibold">
-            Gestionar →
-          </Link>
+      {sucursales.length === 0 ? (
+        <div className="rounded-2xl border border-white/50 bg-white/40 backdrop-blur-xl p-12 text-center text-surface-muted text-sm">
+          No hay sucursales registradas.
         </div>
-        {sucursales.length === 0 ? (
-          <div className="card p-8 text-center text-surface-muted text-sm">No hay sucursales.</div>
-        ) : (
-          <div className="space-y-1">
-            {sucursales.map(s => (
-              <SucursalRow
-                key={s.id}
-                id={s.id}
-                nombre={s.nombre}
-                logoUrl={s.logoUrl}
-                creadoEn={s.creadoEn.toISOString()}
-                plan={s.plan}
-                estadoPago={s.estadoPago as EstadoPago}
-                mesesGratis={s.mesesGratis}
-                ventasHoy={ventasHoyMap[s.id] ?? { total: 0, count: 0 }}
-                ventasMes={ventasMesMap[s.id] ?? 0}
-                pedidosActivos={pedidosActivosMap[s.id] ?? 0}
-                cajasAbiertas={cajasAbiertasMap[s.id] ?? 0}
-                totalClientes={s._count.clientes}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      ) : (
+        <div className="space-y-2">
+          {sucursales.map(s => (
+            <SucursalRow
+              key={s.id}
+              id={s.id}
+              nombre={s.nombre}
+              logoUrl={s.logoUrl}
+              creadoEn={s.creadoEn.toISOString()}
+              plan={s.plan}
+              estadoPago={s.estadoPago as EstadoPago}
+              mesesGratis={s.mesesGratis}
+              ventasHoy={ventasHoyMap[s.id] ?? { total: 0, count: 0 }}
+              ventasMes={ventasMesMap[s.id] ?? 0}
+              pedidosActivos={pedidosActivosMap[s.id] ?? 0}
+              cajasAbiertas={cajasAbiertasMap[s.id] ?? 0}
+              totalClientes={s._count.clientes}
+              ultimaConexion={ultimaConexionMap[s.id]?.toISOString() ?? null}
+              tiempoTotalSeg={tiempoTotalMap[s.id] ?? 0}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
-      {/* ── EDITOR HOME ──────────────────────────────────────────────── */}
-      <HomeEditorModule currentUrl={configData?.homePreviewUrl} />
-
-      {/* ── GRÁFICO 7 DÍAS ────────────────────────────────────────────── */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="font-bold text-surface-text text-sm">Ventas por Sucursal</h2>
-            <p className="text-xs text-surface-muted mt-0.5">Últimos 7 días — comparativa</p>
+  // ── TAB: Analítica ────────────────────────────────────────────────────
+  const analiticaTab = (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-white/50 bg-white/50 backdrop-blur-xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-brand-600/10 flex items-center justify-center">
+              <TrendingUp size={15} className="text-brand-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-surface-text leading-none">Ventas por Sucursal</h2>
+              <p className="text-[10px] text-surface-muted mt-0.5">Últimos 7 días — comparativa</p>
+            </div>
           </div>
-          <span className="flex items-center gap-1 text-xs text-brand-600 bg-brand-50 px-2.5 py-1 rounded-xl font-semibold border border-brand-100">
+          <span className="flex items-center gap-1.5 text-xs text-brand-600 bg-brand-50/60 backdrop-blur-sm px-3 py-1.5 rounded-xl font-semibold border border-brand-100/40">
             <TrendingUp size={12} /> Esta semana
           </span>
         </div>
         {sucursales.length > 0 ? (
           <MultiSalesChart data={chartData} series={series} simbolo="$" />
         ) : (
-          <div className="h-32 flex items-center justify-center text-surface-muted text-sm">Sin datos</div>
+          <div className="h-40 flex items-center justify-center text-surface-muted text-sm rounded-xl bg-white/30">Sin datos</div>
         )}
       </div>
 
+      {/* Mini ranking */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-white/50 bg-white/40 backdrop-blur-xl p-4">
+          <h3 className="text-[11px] font-bold text-surface-muted uppercase tracking-wider mb-3">Top Ventas Mes</h3>
+          <div className="space-y-2">
+            {[...sucursales]
+              .sort((a, b) => (ventasMesMap[b.id] ?? 0) - (ventasMesMap[a.id] ?? 0))
+              .slice(0, 5)
+              .map((s, i) => (
+                <div key={s.id} className="flex items-center gap-2.5">
+                  <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                    i === 0 ? "bg-amber-400/20 text-amber-700" :
+                    i === 1 ? "bg-slate-300/20 text-slate-600" :
+                    i === 2 ? "bg-orange-400/15 text-orange-700" :
+                    "bg-slate-100 text-slate-400"
+                  }`}>{i + 1}</span>
+                  <span className="text-xs font-semibold text-surface-text flex-1 truncate">{s.nombre}</span>
+                  <span className="text-xs font-black text-surface-text tabular-nums">
+                    {formatCurrency(ventasMesMap[s.id] ?? 0, "$")}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-white/50 bg-white/40 backdrop-blur-xl p-4">
+          <h3 className="text-[11px] font-bold text-surface-muted uppercase tracking-wider mb-3">Actividad por Sucursal</h3>
+          <div className="space-y-2">
+            {[...sucursales]
+              .sort((a, b) => (tiempoTotalMap[b.id] ?? 0) - (tiempoTotalMap[a.id] ?? 0))
+              .slice(0, 5)
+              .map((s, i) => {
+                const seg = tiempoTotalMap[s.id] ?? 0;
+                const hrs = Math.floor(seg / 3600);
+                const min = Math.floor((seg % 3600) / 60);
+                const label = hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
+                return (
+                  <div key={s.id} className="flex items-center gap-2.5">
+                    <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                      i === 0 ? "bg-indigo-400/20 text-indigo-700" :
+                      i === 1 ? "bg-indigo-300/15 text-indigo-600" :
+                      "bg-slate-100 text-slate-400"
+                    }`}>{i + 1}</span>
+                    <span className="text-xs font-semibold text-surface-text flex-1 truncate">{s.nombre}</span>
+                    <div className="flex items-center gap-1 text-xs font-bold text-indigo-600 tabular-nums">
+                      <Timer size={10} /> {label}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── TAB: Configuración ────────────────────────────────────────────────
+  const configTab = (
+    <HomeEditorModule currentUrl={configData?.homePreviewUrl} />
+  );
+
+  return (
+    <div className="space-y-5">
+      {/* ── HEADER CRISTAL ────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/50 bg-gradient-to-r from-brand-600/8 via-white/70 to-violet-600/5 backdrop-blur-xl p-5 shadow-[0_4px_24px_rgba(79,70,229,0.06)]">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-brand-400/8 rounded-full blur-3xl -translate-y-10 translate-x-10" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-400/8 rounded-full blur-3xl translate-y-10 -translate-x-10" />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 bg-gradient-to-br from-brand-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-600/20">
+              <Building2 size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-surface-text tracking-tight leading-none">PANDAADMIN</h1>
+              <p className="text-xs text-surface-muted capitalize mt-1">
+                {new Intl.DateTimeFormat("es-CL", { weekday: "long", day: "numeric", month: "long" }).format(ahora)}
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            {sesionesActivas > 0 && (
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-300/30 backdrop-blur-sm px-3 py-1.5 rounded-xl">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                {sesionesActivas} en línea
+              </span>
+            )}
+            <span className="text-[11px] bg-brand-600/10 text-brand-700 backdrop-blur-sm px-4 py-1.5 rounded-xl font-bold uppercase tracking-wider border border-brand-200/30">
+              Control General
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── TABS ──────────────────────────────────────────────────────── */}
+      <AdminPanelTabs
+        general={generalTab}
+        sucursales={sucursalesTab}
+        analitica={analiticaTab}
+        config={configTab}
+      />
     </div>
   );
 }

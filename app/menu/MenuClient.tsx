@@ -32,10 +32,12 @@ interface Props {
   simbolo: string;
   mesaId?: number;
   mesaNombre?: string;
+  estacionamientoId?: number;
+  estacionamientoNumero?: string;
   categorias: Categoria[];
 }
 
-export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNombre, categorias }: Props) {
+export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNombre, estacionamientoId, estacionamientoNumero, categorias }: Props) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isOrdering, setIsOrdering] = useState(false);
   const [showCart, setShowCart] = useState(false);
@@ -69,8 +71,10 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
     setCart((prev) => prev.map((p) => p.id === prodId ? { ...p, notas } : p));
   }
 
+  const canOrder = !!(mesaId || estacionamientoId);
+
   async function submitOrder() {
-    if (cart.length === 0 || !mesaId) return;
+    if (cart.length === 0 || !canOrder) return;
 
     setIsOrdering(true);
     setErrorObj(null);
@@ -81,7 +85,8 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sucursalId,
-          mesaId,
+          mesaId: mesaId || undefined,
+          estacionamientoId: estacionamientoId || undefined,
           items: cart.map(item => ({
              productoId: item.id,
              cantidad: item.cantidad,
@@ -118,7 +123,9 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
           </div>
           <h2 className="text-xl font-bold text-gray-900">¡Pedido Enviado!</h2>
           <p className="text-gray-500 text-sm">
-            La cocina ya está preparando tu orden. Pronto será llevada a tu mesa.
+            {estacionamientoId
+              ? `La cocina ya está preparando tu orden. Será llevada al estacionamiento N° ${estacionamientoNumero}.`
+              : "La cocina ya está preparando tu orden. Pronto será llevada a tu mesa."}
           </p>
           <button 
             onClick={() => setOrderSuccess(false)}
@@ -141,8 +148,10 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
               <h1 className="text-lg font-bold text-gray-900">{sucursalNombre}</h1>
               {mesaNombre ? (
                 <p className="text-sm text-gray-500">Mesa: <span className="font-semibold">{mesaNombre}</span></p>
+              ) : estacionamientoNumero ? (
+                <p className="text-sm text-gray-500">Estacionamiento: <span className="font-semibold">N° {estacionamientoNumero}</span></p>
               ) : (
-                <p className="text-sm text-amber-500 flex items-center gap-1 mt-0.5 font-medium"><Info size={14}/> Solo lectura (Falta QR de mesa)</p>
+                <p className="text-sm text-amber-500 flex items-center gap-1 mt-0.5 font-medium"><Info size={14}/> Solo lectura (Falta QR)</p>
               )}
             </div>
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md">
@@ -192,7 +201,7 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
                         
                         {/* Action Buttons (Only enabled if Mesa exists) */}
                         <div className="flex items-center sm:justify-end gap-3 mt-2 sm:mt-0 opacity-100">
-                           {mesaId ? (
+                           {canOrder ? (
                               <>
                                 {qty > 0 ? (
                                   <div className="flex items-center gap-3 bg-indigo-50 px-2 py-1.5 rounded-xl border border-indigo-100">
@@ -228,7 +237,7 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
       </div>
 
       {/* Sticky Bottom Cart Bar */}
-      {cartCount > 0 && mesaId && (
+      {cartCount > 0 && canOrder && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40 animate-in slide-in-from-bottom-full pb-safe">
           <div className="max-w-2xl mx-auto px-4 py-3 pb-8 sm:pb-4 flex items-center justify-between">
             <div>
@@ -261,7 +270,9 @@ export function MenuClient({ sucursalId, sucursalNombre, simbolo, mesaId, mesaNo
             <div className="px-5 pb-3 pt-2 flex items-center justify-between border-b border-gray-100 shrink-0">
                <div>
                   <h2 className="font-bold text-gray-900 text-xl">Tu Orden</h2>
-                  <p className="text-xs text-indigo-600 font-medium">Mesa {mesaNombre}</p>
+                  <p className="text-xs text-indigo-600 font-medium">
+                    {mesaNombre ? `Mesa ${mesaNombre}` : estacionamientoNumero ? `Estacionamiento N° ${estacionamientoNumero}` : ""}
+                  </p>
                </div>
                <button onClick={() => setShowCart(false)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200">
                  <XIcon />

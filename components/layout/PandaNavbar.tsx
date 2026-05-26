@@ -96,7 +96,7 @@ const modules: AppModule[] = [
   { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gradient-to-br from-slate-500 to-gray-700", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
 
   { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-gradient-to-br from-teal-500 to-emerald-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil.", featureKey: "kiosko" },
-  { label: "Carta QR", href: "/carta-qr", icon: QrCode, color: "bg-gradient-to-br from-purple-500 to-violet-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Menu publico y QR.", featureKey: "menuQR" },
+  { label: "QR", href: "/qr", icon: QrCode, color: "bg-gradient-to-br from-purple-500 to-violet-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Generador de codigos QR: mesas y estacionamiento.", featureKey: "menuQR" },
   { label: "Eventos", href: "/eventos", icon: Ticket, color: "bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "operacion", description: "Gestion de eventos y venta de tickets QR.", featureKey: "eventos" },
 ];
 

@@ -14,6 +14,7 @@ interface PedidoItem {
 
 export interface CreatePedidoInput {
   mesaId?: number | null;
+  estacionamientoId?: number | null;
   cajaId?: number | null;
   usuarioId: number;
   tipo?: string;
@@ -52,6 +53,7 @@ export const PedidoService = {
   async create(input: CreatePedidoInput) {
     const {
       mesaId,
+      estacionamientoId,
       cajaId,
       usuarioId,
       tipo,
@@ -101,6 +103,7 @@ export const PedidoService = {
     const pedido = await prisma.pedido.create({
       data: {
         mesaId: mesaId ?? null,
+        estacionamientoId: estacionamientoId ?? null,
         cajaId: cajaId ?? null,
         usuarioId,
         tipo: (tipo ?? "COCINA") as never,
