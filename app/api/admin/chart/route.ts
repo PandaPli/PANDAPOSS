@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
     WHERE  v.creadoEn >= ${chartStart}
       AND  v.creadoEn <= ${chartEnd}
       AND  v.estado   = 'PAGADA'
-    GROUP BY c.sucursalId, DATE(v.creadoEn)
-    ORDER BY DATE(v.creadoEn)
+    GROUP BY c.sucursalId, DATE_FORMAT(v.creadoEn, ${dateFormat})
+    ORDER BY MIN(v.creadoEn)
   `;
 
   const sucIdToName = Object.fromEntries(sucursales.map(s => [s.id, s.nombre]));
