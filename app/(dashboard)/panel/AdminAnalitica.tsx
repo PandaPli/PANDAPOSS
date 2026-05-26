@@ -91,6 +91,8 @@ export function AdminAnalitica({
       setChartData(initialChartData);
       setSeries(initialSeries);
       setVentasRango([]);
+      setDesde("");
+      setHasta("");
     }
   }
 

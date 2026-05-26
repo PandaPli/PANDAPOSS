@@ -8,7 +8,17 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
+  const rol = (session.user as { rol: Rol }).rol;
+
+  // Non-admin users only get operational fields (currency, tax) — not business PII
+  const select = rol === "ADMIN_GENERAL"
+    ? undefined
+    : { id: true, moneda: true, simbolo: true, ivaPorc: true, nombreEmpresa: true, logoUrl: true } as const;
+
+  const config = select
+    ? await prisma.configuracion.findUnique({ where: { id: 1 }, select })
+    : await prisma.configuracion.findUnique({ where: { id: 1 } });
+
   return NextResponse.json(config);
 }
 

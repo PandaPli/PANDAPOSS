@@ -100,15 +100,20 @@ export function SucursalRow({
   const isOnline = ultimaConexion && (Date.now() - new Date(ultimaConexion).getTime()) < 120_000;
 
   async function saveLogo() {
+    const url = logoInput.trim();
+    if (url && !/^https?:\/\/.+/i.test(url)) {
+      toast("error", "URL inválida — debe comenzar con http:// o https://");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/sucursales", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, logoUrl: logoInput.trim() }),
+        body: JSON.stringify({ id, logoUrl: url }),
       });
       if (!res.ok) throw new Error();
-      setCurrentLogo(logoInput.trim() || null);
+      setCurrentLogo(url || null);
       setEditingLogo(false);
     } catch {
       toast("error", "No se pudo guardar el logo");

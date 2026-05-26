@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Save, Loader2, Building2, Receipt, CheckCircle2, AlertCircle, Circle,
+  Save, Loader2, Building2, Receipt, Circle,
 } from "lucide-react";
 import { HomeEditorModule } from "./HomeEditorModule";
+import { useToast } from "@/components/ui/Toast";
 
 interface Config {
   id: number;
@@ -25,22 +26,9 @@ interface Props {
   homePreviewUrl: string | null;
 }
 
-function GlassMsg({ msg }: { msg: { type: "ok" | "error"; text: string } | null }) {
-  if (!msg) return null;
-  return (
-    <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-medium backdrop-blur-sm border ${
-      msg.type === "ok"
-        ? "bg-emerald-500/10 text-emerald-700 border-emerald-300/30"
-        : "bg-red-500/10 text-red-600 border-red-300/30"
-    }`}>
-      {msg.type === "ok" ? <CheckCircle2 size={13} className="shrink-0" /> : <AlertCircle size={13} className="shrink-0" />}
-      <span>{msg.text}</span>
-    </div>
-  );
-}
-
 export function AdminConfigPanel({ config, homePreviewUrl }: Props) {
   const router = useRouter();
+  const { toast } = useToast();
 
   // Snapshot of the saved state for dirty-checking
   const savedForm = useMemo(() => ({
@@ -56,7 +44,6 @@ export function AdminConfigPanel({ config, homePreviewUrl }: Props) {
 
   const [form, setForm] = useState(savedForm);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   // Dirty detection
   const isDirty = useMemo(() => {
@@ -82,7 +69,6 @@ export function AdminConfigPanel({ config, homePreviewUrl }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setMsg(null);
     try {
       const res = await fetch("/api/configuracion", {
         method: "PATCH",
@@ -102,10 +88,10 @@ export function AdminConfigPanel({ config, homePreviewUrl }: Props) {
         const d = await res.json();
         throw new Error(d.error ?? "Error al guardar");
       }
-      setMsg({ type: "ok", text: "Configuración guardada correctamente" });
+      toast("ok", "Configuración guardada correctamente");
       router.refresh();
     } catch (e) {
-      setMsg({ type: "error", text: (e as Error).message });
+      toast("error", (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -125,8 +111,6 @@ export function AdminConfigPanel({ config, homePreviewUrl }: Props) {
           {isDirty ? "Sin guardar" : "Guardado"}
         </span>
       </div>
-
-      <GlassMsg msg={msg} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* ── Datos de la Empresa ─────────────────────────────────────── */}

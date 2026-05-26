@@ -39,6 +39,10 @@ async function getAdminData() {
     orderBy: { orden: "asc" },
   });
 
+  // Idempotent cleanup: mark stale sessions as inactive.
+  // Runs on every render (including auto-refresh) but is safe under concurrency —
+  // updateMany with the same WHERE/SET is a no-op if already applied.
+  // Must await: the sesionesActivas count below depends on this being done first.
   const umbralInactivo = new Date(ahora.getTime() - 2 * 60 * 1000);
   await prisma.sesionActividad.updateMany({
     where: { activa: true, ultimoPing: { lt: umbralInactivo } },

@@ -11,8 +11,10 @@ export async function GET(req: NextRequest) {
   const rol = (session.user as { rol: Rol }).rol;
   if (rol !== "ADMIN_GENERAL") return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-  const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? 50), 200);
-  const offset = Number(req.nextUrl.searchParams.get("offset") ?? 0);
+  const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? 50);
+  const rawOffset = Number(req.nextUrl.searchParams.get("offset") ?? 0);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 200) : 50;
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
 
   const [logs, total] = await Promise.all([
     prisma.log.findMany({

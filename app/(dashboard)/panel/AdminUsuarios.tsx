@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Users, Plus, Search, Edit3, UserX, UserCheck, Loader2,
   X, ChevronDown, Shield, Store,
@@ -67,16 +67,26 @@ export function AdminUsuarios({ sucursales }: Props) {
   const [editForm, setEditForm] = useState({ nombre: "", email: "", rolUsuario: "WAITER" as Rol, sucursalId: "" as string });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Toggle status loading
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchUsuarios = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const res = await fetch("/api/usuarios");
+      const res = await fetch("/api/usuarios", { signal: controller.signal });
       if (!res.ok) throw new Error();
       const data: Usuario[] = await res.json();
       setUsuarios(data);
-    } catch {
-      toast("error", "Error al cargar usuarios");
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        toast("error", "Error al cargar usuarios");
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [toast]);
 
@@ -92,7 +102,11 @@ export function AdminUsuarios({ sucursales }: Props) {
 
   async function handleCreate() {
     if (!form.nombre || !form.usuario || !form.password) {
-      toast("error", "Nombre, usuario y contrasena son requeridos");
+      toast("error", "Nombre, usuario y contraseña son requeridos");
+      return;
+    }
+    if (form.password.length < 6) {
+      toast("error", "La contraseña debe tener al menos 6 caracteres");
       return;
     }
     setCreating(true);
@@ -123,6 +137,11 @@ export function AdminUsuarios({ sucursales }: Props) {
 
   async function handleToggleStatus(u: Usuario) {
     const newStatus = u.status === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+    if (newStatus === "INACTIVO") {
+      const ok = window.confirm(`¿Desactivar a "${u.nombre}"? No podrá iniciar sesión.`);
+      if (!ok) return;
+    }
+    setTogglingId(u.id);
     try {
       const res = await fetch("/api/usuarios", {
         method: "PATCH",
@@ -134,6 +153,8 @@ export function AdminUsuarios({ sucursales }: Props) {
       toast("ok", `Usuario ${newStatus === "ACTIVO" ? "activado" : "desactivado"}`);
     } catch {
       toast("error", "Error al cambiar estado");
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -368,14 +389,18 @@ export function AdminUsuarios({ sucursales }: Props) {
                     </button>
                     <button
                       onClick={() => handleToggleStatus(u)}
-                      className={`p-1.5 rounded-lg transition-all ${
+                      disabled={togglingId === u.id}
+                      className={`p-1.5 rounded-lg transition-all disabled:opacity-40 ${
                         u.status === "ACTIVO"
                           ? "text-surface-muted hover:text-red-600 hover:bg-red-500/10"
                           : "text-emerald-600 hover:bg-emerald-500/10"
                       }`}
                       title={u.status === "ACTIVO" ? "Desactivar" : "Activar"}
                     >
-                      {u.status === "ACTIVO" ? <UserX size={12} /> : <UserCheck size={12} />}
+                      {togglingId === u.id
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : u.status === "ACTIVO" ? <UserX size={12} /> : <UserCheck size={12} />
+                      }
                     </button>
                   </div>
                 </div>
