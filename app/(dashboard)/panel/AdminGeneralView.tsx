@@ -1,17 +1,22 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
-import { MultiSalesChart } from "@/components/dashboard/MultiSalesChart";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import {
   Building2, TrendingUp, Users, Wallet,
   Star, Gift, CheckCircle2, Clock, AlertTriangle,
-  ShoppingBag, Store, ArrowUpRight, Wifi, Timer,
+  ShoppingBag, Store, ArrowUpRight,
   Activity, CreditCard,
 } from "lucide-react";
 import { SucursalRow } from "./SucursalRow";
+import { SucursalList } from "./SucursalList";
 import { HomeEditorModule } from "./HomeEditorModule";
+import { AdminConfigPanel } from "./AdminConfigPanel";
 import { AdminPanelTabs } from "./AdminPanelTabs";
+import { AdminAnalitica } from "./AdminAnalitica";
+import { AdminUsuarios } from "./AdminUsuarios";
+import { AdminLogs } from "./AdminLogs";
 
 type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
 
@@ -109,22 +114,38 @@ async function getAdminData() {
     pagoCount[ep] = (pagoCount[ep] ?? 0) + 1;
   }
 
+  // Chart: single raw query instead of N×7 individual aggregates
   const dias = Array.from({ length: 7 }, (_, i) => subDays(ahora, 6 - i));
-  const chartData: Record<string, number | string>[] = await Promise.all(
-    dias.map(async (day) => {
-      const entry: Record<string, number | string> = { fecha: format(day, "dd/MM") };
-      await Promise.all(
-        sucursales.map(async (s) => {
-          const r = await prisma.venta.aggregate({
-            _sum: { total: true },
-            where: { caja: { sucursalId: s.id }, creadoEn: { gte: startOfDay(day), lte: endOfDay(day) }, estado: "PAGADA" },
-          });
-          entry[s.nombre] = Number(r._sum.total ?? 0);
-        })
-      );
-      return entry;
-    })
-  );
+  const chartStart = startOfDay(dias[0]);
+  const chartEnd   = endOfDay(dias[6]);
+
+  const chartRows = await prisma.$queryRaw<
+    { sucursalId: number; fecha: string; total: number }[]
+  >`
+    SELECT c.sucursalId,
+           DATE_FORMAT(v.creadoEn, '%d/%m') AS fecha,
+           COALESCE(SUM(v.total), 0)        AS total
+    FROM   ventas v
+    JOIN   cajas  c ON v.cajaId = c.id
+    WHERE  v.creadoEn >= ${chartStart}
+      AND  v.creadoEn <= ${chartEnd}
+      AND  v.estado   = 'PAGADA'
+    GROUP BY c.sucursalId, DATE(v.creadoEn)
+    ORDER BY DATE(v.creadoEn)
+  `;
+
+  const sucIdToName = Object.fromEntries(sucursales.map(s => [s.id, s.nombre]));
+  const chartData: Record<string, number | string>[] = dias.map(day => {
+    const label = format(day, "dd/MM");
+    const entry: Record<string, number | string> = { fecha: label };
+    for (const s of sucursales) entry[s.nombre] = 0;
+    return entry;
+  });
+  for (const row of chartRows) {
+    const name = sucIdToName[row.sucursalId];
+    const slot = chartData.find(d => d.fecha === row.fecha);
+    if (slot && name) slot[name] = Number(row.total);
+  }
   const series = sucursales.map(s => s.nombre);
 
   return {
@@ -149,7 +170,22 @@ const PAGO_DISPLAY: Record<EstadoPago, { label: string; color: string; bg: strin
 export async function AdminGeneralView() {
   const [adminData, configData] = await Promise.all([
     getAdminData(),
-    prisma.configuracion.findUnique({ where: { id: 1 }, select: { homePreviewUrl: true } }),
+    prisma.configuracion.findUnique({
+      where: { id: 1 },
+      select: {
+        id: true,
+        nombreEmpresa: true,
+        rut: true,
+        direccion: true,
+        telefono: true,
+        email: true,
+        moneda: true,
+        simbolo: true,
+        ivaPorc: true,
+        logoUrl: true,
+        homePreviewUrl: true,
+      },
+    }),
   ]);
 
   const {
@@ -314,6 +350,26 @@ export async function AdminGeneralView() {
   );
 
   // ── TAB: Sucursales ───────────────────────────────────────────────────
+  const sucursalRows = sucursales.map(s => (
+    <SucursalRow
+      key={s.id}
+      id={s.id}
+      nombre={s.nombre}
+      logoUrl={s.logoUrl}
+      creadoEn={s.creadoEn.toISOString()}
+      plan={s.plan}
+      estadoPago={s.estadoPago as EstadoPago}
+      mesesGratis={s.mesesGratis}
+      ventasHoy={ventasHoyMap[s.id] ?? { total: 0, count: 0 }}
+      ventasMes={ventasMesMap[s.id] ?? 0}
+      pedidosActivos={pedidosActivosMap[s.id] ?? 0}
+      cajasAbiertas={cajasAbiertasMap[s.id] ?? 0}
+      totalClientes={s._count.clientes}
+      ultimaConexion={ultimaConexionMap[s.id]?.toISOString() ?? null}
+      tiempoTotalSeg={tiempoTotalMap[s.id] ?? 0}
+    />
+  ));
+
   const sucursalesTab = (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -335,114 +391,60 @@ export async function AdminGeneralView() {
           No hay sucursales registradas.
         </div>
       ) : (
-        <div className="space-y-2">
-          {sucursales.map(s => (
-            <SucursalRow
-              key={s.id}
-              id={s.id}
-              nombre={s.nombre}
-              logoUrl={s.logoUrl}
-              creadoEn={s.creadoEn.toISOString()}
-              plan={s.plan}
-              estadoPago={s.estadoPago as EstadoPago}
-              mesesGratis={s.mesesGratis}
-              ventasHoy={ventasHoyMap[s.id] ?? { total: 0, count: 0 }}
-              ventasMes={ventasMesMap[s.id] ?? 0}
-              pedidosActivos={pedidosActivosMap[s.id] ?? 0}
-              cajasAbiertas={cajasAbiertasMap[s.id] ?? 0}
-              totalClientes={s._count.clientes}
-              ultimaConexion={ultimaConexionMap[s.id]?.toISOString() ?? null}
-              tiempoTotalSeg={tiempoTotalMap[s.id] ?? 0}
-            />
-          ))}
-        </div>
+        <SucursalList
+          sucursales={sucursales.map(s => ({
+            id: s.id,
+            nombre: s.nombre,
+            plan: s.plan,
+            estadoPago: s.estadoPago as EstadoPago,
+          }))}
+        >
+          {sucursalRows}
+        </SucursalList>
       )}
     </div>
   );
 
   // ── TAB: Analítica ────────────────────────────────────────────────────
   const analiticaTab = (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-white/50 bg-white/50 backdrop-blur-xl p-5 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-brand-600/10 flex items-center justify-center">
-              <TrendingUp size={15} className="text-brand-600" />
-            </div>
-            <div>
-              <h2 className="text-sm font-black text-surface-text leading-none">Ventas por Sucursal</h2>
-              <p className="text-[10px] text-surface-muted mt-0.5">Últimos 7 días — comparativa</p>
-            </div>
-          </div>
-          <span className="flex items-center gap-1.5 text-xs text-brand-600 bg-brand-50/60 backdrop-blur-sm px-3 py-1.5 rounded-xl font-semibold border border-brand-100/40">
-            <TrendingUp size={12} /> Esta semana
-          </span>
-        </div>
-        {sucursales.length > 0 ? (
-          <MultiSalesChart data={chartData} series={series} simbolo="$" />
-        ) : (
-          <div className="h-40 flex items-center justify-center text-surface-muted text-sm rounded-xl bg-white/30">Sin datos</div>
-        )}
-      </div>
-
-      {/* Mini ranking */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-white/50 bg-white/40 backdrop-blur-xl p-4">
-          <h3 className="text-[11px] font-bold text-surface-muted uppercase tracking-wider mb-3">Top Ventas Mes</h3>
-          <div className="space-y-2">
-            {[...sucursales]
-              .sort((a, b) => (ventasMesMap[b.id] ?? 0) - (ventasMesMap[a.id] ?? 0))
-              .slice(0, 5)
-              .map((s, i) => (
-                <div key={s.id} className="flex items-center gap-2.5">
-                  <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                    i === 0 ? "bg-amber-400/20 text-amber-700" :
-                    i === 1 ? "bg-slate-300/20 text-slate-600" :
-                    i === 2 ? "bg-orange-400/15 text-orange-700" :
-                    "bg-slate-100 text-slate-400"
-                  }`}>{i + 1}</span>
-                  <span className="text-xs font-semibold text-surface-text flex-1 truncate">{s.nombre}</span>
-                  <span className="text-xs font-black text-surface-text tabular-nums">
-                    {formatCurrency(ventasMesMap[s.id] ?? 0, "$")}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-white/50 bg-white/40 backdrop-blur-xl p-4">
-          <h3 className="text-[11px] font-bold text-surface-muted uppercase tracking-wider mb-3">Actividad por Sucursal</h3>
-          <div className="space-y-2">
-            {[...sucursales]
-              .sort((a, b) => (tiempoTotalMap[b.id] ?? 0) - (tiempoTotalMap[a.id] ?? 0))
-              .slice(0, 5)
-              .map((s, i) => {
-                const seg = tiempoTotalMap[s.id] ?? 0;
-                const hrs = Math.floor(seg / 3600);
-                const min = Math.floor((seg % 3600) / 60);
-                const label = hrs > 0 ? `${hrs}h ${min}m` : `${min}m`;
-                return (
-                  <div key={s.id} className="flex items-center gap-2.5">
-                    <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                      i === 0 ? "bg-indigo-400/20 text-indigo-700" :
-                      i === 1 ? "bg-indigo-300/15 text-indigo-600" :
-                      "bg-slate-100 text-slate-400"
-                    }`}>{i + 1}</span>
-                    <span className="text-xs font-semibold text-surface-text flex-1 truncate">{s.nombre}</span>
-                    <div className="flex items-center gap-1 text-xs font-bold text-indigo-600 tabular-nums">
-                      <Timer size={10} /> {label}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      </div>
-    </div>
+    <AdminAnalitica
+      initialChartData={chartData}
+      initialSeries={series}
+      initialVentasMes={ventasMesMap}
+      initialTiempoTotal={tiempoTotalMap}
+      sucursales={sucursales.map(s => ({ id: s.id, nombre: s.nombre }))}
+    />
   );
 
+  // ── TAB: Usuarios ────────────────────────────────────────────────────
+  const usuariosTab = (
+    <AdminUsuarios
+      sucursales={sucursales.map(s => ({ id: s.id, nombre: s.nombre }))}
+    />
+  );
+
+  // ── TAB: Logs ────────────────────────────────────────────────────────
+  const logsTab = <AdminLogs />;
+
   // ── TAB: Configuración ────────────────────────────────────────────────
-  const configTab = (
-    <HomeEditorModule currentUrl={configData?.homePreviewUrl} />
+  const configTab = configData ? (
+    <AdminConfigPanel
+      config={{
+        id: configData.id,
+        nombreEmpresa: configData.nombreEmpresa,
+        rut: configData.rut,
+        direccion: configData.direccion,
+        telefono: configData.telefono,
+        email: configData.email,
+        moneda: configData.moneda,
+        simbolo: configData.simbolo,
+        ivaPorc: Number(configData.ivaPorc),
+        logoUrl: configData.logoUrl,
+      }}
+      homePreviewUrl={configData.homePreviewUrl}
+    />
+  ) : (
+    <HomeEditorModule currentUrl={null} />
   );
 
   return (
@@ -478,12 +480,16 @@ export async function AdminGeneralView() {
       </div>
 
       {/* ── TABS ──────────────────────────────────────────────────────── */}
-      <AdminPanelTabs
-        general={generalTab}
-        sucursales={sucursalesTab}
-        analitica={analiticaTab}
-        config={configTab}
-      />
+      <Suspense fallback={<div className="h-20 rounded-2xl bg-white/30 animate-pulse" />}>
+        <AdminPanelTabs
+          general={generalTab}
+          sucursales={sucursalesTab}
+          analitica={analiticaTab}
+          usuarios={usuariosTab}
+          logs={logsTab}
+          config={configTab}
+        />
+      </Suspense>
     </div>
   );
 }

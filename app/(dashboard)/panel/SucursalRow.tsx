@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import {
   Building2, Image as ImageIcon, Check, X, Loader2,
   Star, Gift, CheckCircle2, Clock, AlertTriangle,
   Wifi, Timer, ChevronDown, ChevronUp,
+  Settings2, CreditCard,
 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 type EstadoPago = "PENDIENTE" | "AL_DIA" | "ATRASADO" | "GRATIS" | "SOCIO";
+type PlanTipo = "BASICO" | "PRO" | "PRIME" | "DEMO";
 
 const PAGO_CFG: Record<EstadoPago, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
   SOCIO:     { label: "Socio",     color: "text-violet-700",  bg: "bg-violet-500/10", border: "border-violet-300/30", icon: <Star size={9} /> },
@@ -24,6 +28,9 @@ const PLAN_CFG: Record<string, { color: string; bg: string; border: string }> = 
   BASICO: { color: "text-amber-700",  bg: "bg-amber-500/10",  border: "border-amber-300/30" },
   DEMO:   { color: "text-slate-600",  bg: "bg-slate-500/10",  border: "border-slate-300/30" },
 };
+
+const PLANES: PlanTipo[] = ["BASICO", "PRO", "PRIME", "DEMO"];
+const ESTADOS_PAGO: EstadoPago[] = ["AL_DIA", "PENDIENTE", "ATRASADO", "GRATIS", "SOCIO"];
 
 export interface SucursalRowProps {
   id: number;
@@ -74,14 +81,22 @@ export function SucursalRow({
   ventasHoy, ventasMes, pedidosActivos, cajasAbiertas, totalClientes,
   ultimaConexion, tiempoTotalSeg,
 }: SucursalRowProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [expanded, setExpanded]         = useState(false);
   const [editingLogo, setEditingLogo]   = useState(false);
   const [logoInput, setLogoInput]       = useState(logoUrl ?? "");
   const [currentLogo, setCurrentLogo]   = useState(logoUrl);
   const [saving, setSaving]             = useState(false);
 
-  const pago    = PAGO_CFG[estadoPago];
-  const planCfg = PLAN_CFG[plan] ?? PLAN_CFG.BASICO;
+  // Quick actions panel
+  const [showActions, setShowActions]   = useState(false);
+  const [currentPlan, setCurrentPlan]   = useState(plan);
+  const [currentPago, setCurrentPago]   = useState(estadoPago);
+  const [actionSaving, setActionSaving] = useState(false);
+
+  const pago    = PAGO_CFG[currentPago];
+  const planCfg = PLAN_CFG[currentPlan] ?? PLAN_CFG.BASICO;
   const isOnline = ultimaConexion && (Date.now() - new Date(ultimaConexion).getTime()) < 120_000;
 
   async function saveLogo() {
@@ -96,9 +111,49 @@ export function SucursalRow({
       setCurrentLogo(logoInput.trim() || null);
       setEditingLogo(false);
     } catch {
-      alert("No se pudo guardar el logo");
+      toast("error", "No se pudo guardar el logo");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePlanChange(newPlan: PlanTipo) {
+    if (newPlan === currentPlan) return;
+    setActionSaving(true);
+    try {
+      const res = await fetch(`/api/sucursales/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: newPlan }),
+      });
+      if (!res.ok) throw new Error();
+      setCurrentPlan(newPlan);
+      toast("ok", `Plan cambiado a ${newPlan}`);
+      router.refresh();
+    } catch {
+      toast("error", "Error al cambiar plan");
+    } finally {
+      setActionSaving(false);
+    }
+  }
+
+  async function handlePagoChange(newPago: EstadoPago) {
+    if (newPago === currentPago) return;
+    setActionSaving(true);
+    try {
+      const res = await fetch(`/api/sucursales/${id}/billing`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estadoPago: newPago }),
+      });
+      if (!res.ok) throw new Error();
+      setCurrentPago(newPago);
+      toast("ok", `Estado de pago actualizado`);
+      router.refresh();
+    } catch {
+      toast("error", "Error al cambiar estado de pago");
+    } finally {
+      setActionSaving(false);
     }
   }
 
@@ -135,12 +190,12 @@ export function SucursalRow({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-bold text-sm text-surface-text truncate leading-tight">{nombre}</span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg leading-none border backdrop-blur-sm ${planCfg.bg} ${planCfg.color} ${planCfg.border}`}>
-              {plan}
+              {currentPlan}
             </span>
             <span className={`flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-lg leading-none border backdrop-blur-sm ${pago.bg} ${pago.color} ${pago.border}`}>
               {pago.icon}
               {pago.label}
-              {estadoPago === "GRATIS" && mesesGratis > 0 ? ` ${mesesGratis}m` : ""}
+              {currentPago === "GRATIS" && mesesGratis > 0 ? ` ${mesesGratis}m` : ""}
             </span>
           </div>
           <p className="text-[10px] text-surface-muted mt-0.5 hidden sm:block">
@@ -197,8 +252,23 @@ export function SucursalRow({
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => setEditingLogo(!editingLogo)}
-            className="p-1.5 text-surface-muted hover:text-brand-600 hover:bg-brand-500/10 rounded-lg transition-all"
+            onClick={() => { setShowActions(!showActions); setEditingLogo(false); }}
+            className={`p-1.5 rounded-lg transition-all ${
+              showActions
+                ? "text-brand-600 bg-brand-500/10"
+                : "text-surface-muted hover:text-brand-600 hover:bg-brand-500/10"
+            }`}
+            title="Acciones rápidas"
+          >
+            <Settings2 size={12} />
+          </button>
+          <button
+            onClick={() => { setEditingLogo(!editingLogo); setShowActions(false); }}
+            className={`p-1.5 rounded-lg transition-all ${
+              editingLogo
+                ? "text-brand-600 bg-brand-500/10"
+                : "text-surface-muted hover:text-brand-600 hover:bg-brand-500/10"
+            }`}
             title="Editar logo"
           >
             <ImageIcon size={12} />
@@ -246,6 +316,71 @@ export function SucursalRow({
             <div className="rounded-xl bg-white/40 border border-white/50 backdrop-blur-sm p-2.5 text-center">
               <p className="text-[11px] font-black text-surface-text tabular-nums">{formatCurrency(ventasMes, "$")}</p>
               <p className="text-[9px] text-surface-muted">este mes</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick actions panel */}
+      {showActions && (
+        <div className="mx-4 mb-3 rounded-xl bg-white/50 backdrop-blur-sm border border-brand-200/30 p-3 space-y-3 animate-fade-in">
+          {actionSaving && (
+            <div className="flex items-center gap-2 text-xs text-brand-600 font-medium">
+              <Loader2 size={11} className="animate-spin" /> Guardando...
+            </div>
+          )}
+
+          {/* Plan */}
+          <div>
+            <p className="text-[10px] font-bold text-surface-muted uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <CreditCard size={10} /> Plan
+            </p>
+            <div className="flex gap-1 flex-wrap">
+              {PLANES.map(p => {
+                const cfg = PLAN_CFG[p] ?? PLAN_CFG.BASICO;
+                const isActive = currentPlan === p;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => handlePlanChange(p)}
+                    disabled={actionSaving}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all disabled:opacity-40 ${
+                      isActive
+                        ? `${cfg.bg} ${cfg.color} ${cfg.border} ring-1 ring-offset-1 ring-brand-300/40`
+                        : "bg-white/40 text-surface-muted border-white/50 hover:bg-white/70"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Estado de pago */}
+          <div>
+            <p className="text-[10px] font-bold text-surface-muted uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <CheckCircle2 size={10} /> Estado de Pago
+            </p>
+            <div className="flex gap-1 flex-wrap">
+              {ESTADOS_PAGO.map(ep => {
+                const cfg = PAGO_CFG[ep];
+                const isActive = currentPago === ep;
+                return (
+                  <button
+                    key={ep}
+                    onClick={() => handlePagoChange(ep)}
+                    disabled={actionSaving}
+                    className={`flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all disabled:opacity-40 ${
+                      isActive
+                        ? `${cfg.bg} ${cfg.color} ${cfg.border} ring-1 ring-offset-1 ring-brand-300/40`
+                        : "bg-white/40 text-surface-muted border-white/50 hover:bg-white/70"
+                    }`}
+                  >
+                    {cfg.icon} {cfg.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
