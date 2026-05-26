@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkFeature } from "@/core/billing/featureChecker";
+import { prisma } from "@/lib/db";
 import QRCode from "qrcode";
 
 export async function GET(req: NextRequest) {
@@ -22,14 +23,25 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const sucursal = searchParams.get("sucursal");
   const mesa     = searchParams.get("mesa");
-  const nombre   = searchParams.get("nombre") ?? `Mesa ${mesa}`;
 
   if (!sucursal || !mesa) {
     return NextResponse.json({ error: "Parámetros sucursal y mesa requeridos" }, { status: 400 });
   }
 
-  const clientBaseUrl = searchParams.get("baseUrl");
-  const appUrl = clientBaseUrl || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+  // Validar que la mesa pertenece a la sucursal indicada
+  const mesaDb = await prisma.mesa.findFirst({
+    where: { id: Number(mesa), sala: { sucursalId: Number(sucursal) } },
+    select: { id: true, nombre: true },
+  });
+
+  if (!mesaDb) {
+    return NextResponse.json({ error: "La mesa no pertenece a esta sucursal." }, { status: 404 });
+  }
+
+  const nombre = searchParams.get("nombre") ?? mesaDb.nombre;
+
+  // URL segura: solo desde variables de entorno del servidor
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
   const menuUrl = `${appUrl}/menu?sucursal=${sucursal}&mesa=${mesa}`;
 
   try {
@@ -43,6 +55,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ qr: qrDataUrl, url: menuUrl, mesa: nombre });
   } catch (err: any) {
     console.error("[QR GENERATION ERROR]:", err);
-    return NextResponse.json({ error: "Fallo interno al generar el código QR", details: err?.message }, { status: 500 });
+    return NextResponse.json({ error: "Fallo interno al generar el código QR" }, { status: 500 });
   }
 }

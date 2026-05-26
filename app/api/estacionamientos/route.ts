@@ -81,6 +81,22 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
   }
 
-  await prisma.estacionamiento.delete({ where: { id } });
+  // Verificar que no tenga pedidos activos antes de desactivar
+  const pedidosActivos = await prisma.pedido.count({
+    where: {
+      estacionamientoId: id,
+      estado: { in: ["PENDIENTE", "EN_PROCESO", "LISTO"] },
+    },
+  });
+
+  if (pedidosActivos > 0) {
+    return NextResponse.json(
+      { error: `No se puede eliminar: tiene ${pedidosActivos} pedido(s) activo(s).` },
+      { status: 409 }
+    );
+  }
+
+  // Soft-delete: desactivar en lugar de borrar para preservar historial
+  await prisma.estacionamiento.update({ where: { id }, data: { activo: false } });
   return NextResponse.json({ ok: true });
 }

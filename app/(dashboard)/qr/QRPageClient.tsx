@@ -70,9 +70,8 @@ export function QRPageClient({ salas, estacionamientos: initialEstacionamientos,
     const key = `mesa-${mesa.id}`;
     setLoadingId(key);
     try {
-      const baseUrl = window.location.origin;
       const res = await fetch(
-        `/api/qr/mesa?sucursal=${mesa.sala.sucursalId}&mesa=${mesa.id}&nombre=${encodeURIComponent(mesa.nombre)}&baseUrl=${encodeURIComponent(baseUrl)}`
+        `/api/qr/mesa?sucursal=${mesa.sala.sucursalId}&mesa=${mesa.id}&nombre=${encodeURIComponent(mesa.nombre)}`
       );
       const data = await res.json();
       if (!res.ok) { alert(data.error || "Error al generar el QR"); return; }
@@ -84,9 +83,8 @@ export function QRPageClient({ salas, estacionamientos: initialEstacionamientos,
     const key = `est-${spot.id}`;
     setLoadingId(key);
     try {
-      const baseUrl = window.location.origin;
       const res = await fetch(
-        `/api/qr/estacionamiento?sucursal=${spot.sucursalId}&estacionamiento=${spot.id}&numero=${encodeURIComponent(spot.numero)}&baseUrl=${encodeURIComponent(baseUrl)}`
+        `/api/qr/estacionamiento?sucursal=${spot.sucursalId}&estacionamiento=${spot.id}&numero=${encodeURIComponent(spot.numero)}`
       );
       const data = await res.json();
       if (!res.ok) { alert(data.error || "Error al generar el QR"); return; }
