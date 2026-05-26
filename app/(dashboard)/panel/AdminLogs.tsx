@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { FileText, Loader2, ChevronLeft, ChevronRight, Shield, Store } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { FileText, Loader2, ChevronLeft, ChevronRight, Store } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 interface LogEntry {
@@ -44,18 +44,25 @@ export function AdminLogs() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchLogs = useCallback(async (p: number) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/logs?limit=${PAGE_SIZE}&offset=${p * PAGE_SIZE}`);
+      const res = await fetch(`/api/admin/logs?limit=${PAGE_SIZE}&offset=${p * PAGE_SIZE}`, { signal: controller.signal });
       if (!res.ok) throw new Error();
       const data: LogsResponse = await res.json();
       setLogs(data.logs);
       setTotal(data.total);
-    } catch {
-      toast("error", "Error al cargar logs");
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        toast("error", "Error al cargar logs");
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [toast]);
 

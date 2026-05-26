@@ -45,67 +45,71 @@ async function getAdminData() {
     data: { activa: false },
   });
 
-  const [ventasHoyArr, ventasMesArr, pedidosActivosArr, cajasAbiertasArr] = await Promise.all([
-    Promise.all(sucursales.map(s =>
-      prisma.venta.aggregate({
-        _sum: { total: true }, _count: { id: true },
-        where: { caja: { sucursalId: s.id }, creadoEn: { gte: hoy, lte: hoyFin }, estado: "PAGADA" },
-      }).then(r => ({ id: s.id, total: Number(r._sum.total ?? 0), count: r._count.id }))
-    )),
-    Promise.all(sucursales.map(s =>
-      prisma.venta.aggregate({
-        _sum: { total: true },
-        where: { caja: { sucursalId: s.id }, creadoEn: { gte: mesInicio, lte: hoyFin }, estado: "PAGADA" },
-      }).then(r => ({ id: s.id, total: Number(r._sum.total ?? 0) }))
-    )),
-    Promise.all(sucursales.map(s =>
-      prisma.pedido.count({
-        where: {
-          estado: { in: ["PENDIENTE", "EN_PROCESO"] },
-          OR: [
-            { caja: { sucursalId: s.id } },
-            { mesa: { sala: { sucursalId: s.id } } },
-            { usuario: { sucursalId: s.id } },
-          ],
-        },
-      }).then(count => ({ id: s.id, count }))
-    )),
-    Promise.all(sucursales.map(s =>
-      prisma.caja.count({ where: { sucursalId: s.id, estado: "ABIERTA" } })
-        .then(count => ({ id: s.id, open: count }))
-    )),
+  // Optimized: 4 GROUP BY queries instead of 6×N individual queries
+  const [ventasHoyRows, ventasMesRows, cajasAbiertasRows, sesionRows] = await Promise.all([
+    // Ventas hoy por sucursal (1 query)
+    prisma.$queryRaw<{ sucursalId: number; total: number; cnt: number }[]>`
+      SELECT c.sucursalId, COALESCE(SUM(v.total), 0) AS total, COUNT(v.id) AS cnt
+      FROM ventas v JOIN cajas c ON v.cajaId = c.id
+      WHERE v.creadoEn >= ${hoy} AND v.creadoEn <= ${hoyFin} AND v.estado = 'PAGADA'
+      GROUP BY c.sucursalId
+    `,
+    // Ventas mes por sucursal (1 query)
+    prisma.$queryRaw<{ sucursalId: number; total: number }[]>`
+      SELECT c.sucursalId, COALESCE(SUM(v.total), 0) AS total
+      FROM ventas v JOIN cajas c ON v.cajaId = c.id
+      WHERE v.creadoEn >= ${mesInicio} AND v.creadoEn <= ${hoyFin} AND v.estado = 'PAGADA'
+      GROUP BY c.sucursalId
+    `,
+    // Cajas abiertas por sucursal (1 query)
+    prisma.$queryRaw<{ sucursalId: number; cnt: number }[]>`
+      SELECT sucursalId, COUNT(*) AS cnt FROM cajas WHERE estado = 'ABIERTA' GROUP BY sucursalId
+    `,
+    // Sesiones: última conexión + tiempo total por sucursal (1 query)
+    prisma.$queryRaw<{ sucursalId: number; ultimoPing: Date | null; totalSeg: number }[]>`
+      SELECT sucursalId, MAX(ultimoPing) AS ultimoPing, COALESCE(SUM(duracionSeg), 0) AS totalSeg
+      FROM sesiones_actividad GROUP BY sucursalId
+    `,
   ]);
 
-  const ventasHoyMap      = Object.fromEntries(ventasHoyArr.map(v => [v.id, { total: v.total, count: v.count }]));
-  const ventasMesMap      = Object.fromEntries(ventasMesArr.map(v => [v.id, v.total]));
+  // Pedidos activos sigue con Prisma ORM por la complejidad del OR multi-tabla
+  const pedidosActivosArr = await Promise.all(sucursales.map(s =>
+    prisma.pedido.count({
+      where: {
+        estado: { in: ["PENDIENTE", "EN_PROCESO"] },
+        OR: [
+          { caja: { sucursalId: s.id } },
+          { mesa: { sala: { sucursalId: s.id } } },
+          { usuario: { sucursalId: s.id } },
+        ],
+      },
+    }).then(count => ({ id: s.id, count }))
+  ));
+
+  const ventasHoyMap: Record<number, { total: number; count: number }> = {};
+  for (const r of ventasHoyRows) ventasHoyMap[r.sucursalId] = { total: Number(r.total), count: Number(r.cnt) };
+
+  const ventasMesMap: Record<number, number> = {};
+  for (const r of ventasMesRows) ventasMesMap[r.sucursalId] = Number(r.total);
+
   const pedidosActivosMap = Object.fromEntries(pedidosActivosArr.map(v => [v.id, v.count]));
-  const cajasAbiertasMap  = Object.fromEntries(cajasAbiertasArr.map(v => [v.id, v.open]));
 
-  const [ultimaConexionArr, tiempoTotalArr] = await Promise.all([
-    Promise.all(sucursales.map(s =>
-      prisma.sesionActividad.findFirst({
-        where: { sucursalId: s.id },
-        orderBy: { ultimoPing: "desc" },
-        select: { ultimoPing: true },
-      }).then(r => ({ id: s.id, ultimoPing: r?.ultimoPing ?? null }))
-    )),
-    Promise.all(sucursales.map(s =>
-      prisma.sesionActividad.aggregate({
-        _sum: { duracionSeg: true },
-        where: { sucursalId: s.id },
-      }).then(r => ({ id: s.id, totalSeg: Number(r._sum.duracionSeg ?? 0) }))
-    )),
-  ]);
+  const cajasAbiertasMap: Record<number, number> = {};
+  for (const r of cajasAbiertasRows) cajasAbiertasMap[r.sucursalId] = Number(r.cnt);
 
-  const ultimaConexionMap = Object.fromEntries(ultimaConexionArr.map(v => [v.id, v.ultimoPing]));
-  const tiempoTotalMap    = Object.fromEntries(tiempoTotalArr.map(v => [v.id, v.totalSeg]));
+  const ultimaConexionMap: Record<number, Date | null> = {};
+  const tiempoTotalMap: Record<number, number> = {};
+  for (const r of sesionRows) {
+    ultimaConexionMap[r.sucursalId] = r.ultimoPing;
+    tiempoTotalMap[r.sucursalId] = Number(r.totalSeg);
+  }
 
-  const ventasHoyGlobal        = ventasHoyArr.reduce((s, v) => s + v.total, 0);
-  const ventasMesGlobal        = ventasMesArr.reduce((s, v) => s + v.total, 0);
+  const ventasHoyGlobal        = Object.values(ventasHoyMap).reduce((s, v) => s + v.total, 0);
+  const ventasMesGlobal        = Object.values(ventasMesMap).reduce((s, v) => s + v, 0);
   const totalPedidosActivos    = pedidosActivosArr.reduce((s, v) => s + v.count, 0);
-  const totalSucursalesConCaja = cajasAbiertasArr.filter(v => v.open > 0).length;
+  const totalSucursalesConCaja = Object.values(cajasAbiertasMap).filter(n => n > 0).length;
   const totalClientes          = sucursales.reduce((s, suc) => s + suc._count.clientes, 0);
-  const totalTxHoy             = ventasHoyArr.reduce((s, v) => s + v.count, 0);
+  const totalTxHoy             = Object.values(ventasHoyMap).reduce((s, v) => s + v.count, 0);
   const sesionesActivas        = await prisma.sesionActividad.count({ where: { activa: true } });
 
   const pagoCount: Partial<Record<EstadoPago, number>> = {};

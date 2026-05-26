@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     orderBy: { orden: "asc" },
   });
 
-  const dateFormat = daysBack <= 7 ? "%d/%m" : daysBack <= 31 ? "%d/%m" : "%d/%m";
+  const dateFormat = "%d/%m";
 
   const chartRows = await prisma.$queryRaw<
     { sucursalId: number; fecha: string; total: number }[]

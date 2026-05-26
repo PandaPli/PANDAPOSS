@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { MultiSalesChart } from "@/components/dashboard/MultiSalesChart";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -53,10 +53,15 @@ export function AdminAnalitica({
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchRange = useCallback(async (r: Range) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/chart?range=${r}`);
+      const res = await fetch(`/api/admin/chart?range=${r}`, { signal: controller.signal });
       if (!res.ok) throw new Error();
       const data: ChartApiResponse = await res.json();
       setChartData(data.chartData);
@@ -64,10 +69,12 @@ export function AdminAnalitica({
       setVentasRango(data.ventasRango);
       setDesde(data.desde);
       setHasta(data.hasta);
-    } catch {
-      toast("error", "Error al cargar datos del gráfico");
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        toast("error", "Error al cargar datos del gráfico");
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [toast]);
 
@@ -87,6 +94,17 @@ export function AdminAnalitica({
     }
   }
 
+  /** Escape a CSV field: wrap in quotes if it contains comma/quote/newline, double any quotes */
+  function csvEscape(val: string | number): string {
+    const s = String(val);
+    // Prevent formula injection: prefix with tab if starts with =, +, -, @, |
+    const safe = /^[=+\-@|]/.test(s) ? `\t${s}` : s;
+    if (safe.includes(",") || safe.includes('"') || safe.includes("\n")) {
+      return `"${safe.replace(/"/g, '""')}"`;
+    }
+    return safe;
+  }
+
   function exportCSV() {
     try {
       // Build CSV from chart data
@@ -95,9 +113,9 @@ export function AdminAnalitica({
         return;
       }
 
-      const headers = ["Fecha", ...series];
+      const headers = ["Fecha", ...series.map(csvEscape)];
       const rows = chartData.map(row => {
-        return [row.fecha, ...series.map(s => String(row[s] ?? 0))].join(",");
+        return [csvEscape(row.fecha as string), ...series.map(s => csvEscape(row[s] ?? 0))].join(",");
       });
 
       // Add summary rows
@@ -106,7 +124,7 @@ export function AdminAnalitica({
         rows.push("Resumen por Sucursal");
         rows.push("Sucursal,Total,Transacciones");
         for (const v of ventasRango) {
-          rows.push(`${v.nombre},${v.total},${v.transacciones}`);
+          rows.push(`${csvEscape(v.nombre)},${v.total},${v.transacciones}`);
         }
       }
 
@@ -124,18 +142,24 @@ export function AdminAnalitica({
     }
   }
 
-  // Rankings
-  const sortedVentas = ventasRango.length > 0
-    ? [...ventasRango].sort((a, b) => b.total - a.total).slice(0, 5)
-    : [...sucursales]
-        .map(s => ({ ...s, total: initialVentasMes[s.id] ?? 0 }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
+  // Rankings (memoized)
+  const sortedVentas = useMemo(() =>
+    ventasRango.length > 0
+      ? [...ventasRango].sort((a, b) => b.total - a.total).slice(0, 5)
+      : [...sucursales]
+          .map(s => ({ ...s, total: initialVentasMes[s.id] ?? 0 }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 5),
+    [ventasRango, sucursales, initialVentasMes]
+  );
 
-  const sortedActividad = [...sucursales]
-    .map(s => ({ ...s, seg: initialTiempoTotal[s.id] ?? 0 }))
-    .sort((a, b) => b.seg - a.seg)
-    .slice(0, 5);
+  const sortedActividad = useMemo(() =>
+    [...sucursales]
+      .map(s => ({ ...s, seg: initialTiempoTotal[s.id] ?? 0 }))
+      .sort((a, b) => b.seg - a.seg)
+      .slice(0, 5),
+    [sucursales, initialTiempoTotal]
+  );
 
   return (
     <div className="space-y-4">

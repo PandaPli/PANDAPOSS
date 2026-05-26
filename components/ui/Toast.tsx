@@ -55,16 +55,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       {/* Toast container */}
       {toasts.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm">
+        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm" role="region" aria-label="Notificaciones">
           {toasts.map(t => (
             <div
               key={t.id}
+              role="alert"
+              aria-live="assertive"
               className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border backdrop-blur-xl shadow-lg text-xs font-medium animate-slide-in ${STYLE[t.type]}`}
             >
               {ICON[t.type]}
               <span className="flex-1">{t.text}</span>
               <button
                 onClick={() => removeToast(t.id)}
+                aria-label="Cerrar notificación"
                 className="p-0.5 opacity-50 hover:opacity-100 transition-opacity"
               >
                 <X size={12} />

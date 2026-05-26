@@ -64,7 +64,7 @@ export function AdminUsuarios({ sucursales }: Props) {
 
   // Edit
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ nombre: "", email: "", rolUsuario: "" as Rol, sucursalId: "" as string });
+  const [editForm, setEditForm] = useState({ nombre: "", email: "", rolUsuario: "WAITER" as Rol, sucursalId: "" as string });
   const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchUsuarios = useCallback(async () => {
