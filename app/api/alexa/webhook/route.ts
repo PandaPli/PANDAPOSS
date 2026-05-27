@@ -41,8 +41,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Headers de firma de Alexa
+  // Amazon envia Signature-256 (SHA-256) en skills nuevas, Signature (SHA-1) en antiguas
   const certChainUrl = req.headers.get("signaturecertchainurl");
-  const signature = req.headers.get("signature-256") ?? req.headers.get("signature");
+  const signature256 = req.headers.get("signature-256");
+  const signature1 = req.headers.get("signature");
+  const signature = signature256 ?? signature1;
+  const signatureAlgorithm: "SHA1" | "SHA256" = signature256 ? "SHA256" : "SHA1";
 
   const expectedSkillId = process.env.ALEXA_SKILL_ID;
 
@@ -52,6 +56,7 @@ export async function POST(req: NextRequest) {
     certChainUrl,
     signature,
     expectedSkillId,
+    signatureAlgorithm,
   );
 
   if (!verification.valid) {

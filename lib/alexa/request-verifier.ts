@@ -92,8 +92,8 @@ async function fetchCert(certUrl: string): Promise<string> {
 }
 
 /** Verifica la firma criptografica del body */
-function verifySignature(pem: string, signature: string, body: string): boolean {
-  const verifier = crypto.createVerify("SHA1");
+function verifySignature(pem: string, signature: string, body: string, algorithm: "SHA1" | "SHA256" = "SHA1"): boolean {
+  const verifier = crypto.createVerify(algorithm);
   verifier.update(body, "utf8");
   return verifier.verify(pem, signature, "base64");
 }
@@ -140,6 +140,7 @@ export async function verifyAlexaRequestFull(
   certChainUrl: string | null,
   signature: string | null,
   expectedAppId?: string,
+  signatureAlgorithm: "SHA1" | "SHA256" = "SHA1",
 ): Promise<AlexaVerifyResult> {
   // Parsear body para validaciones basicas
   let body: Record<string, unknown>;
@@ -170,8 +171,8 @@ export async function verifyAlexaRequestFull(
   try {
     const pem = await fetchCert(certChainUrl);
 
-    // Verificar firma
-    if (!verifySignature(pem, signature, rawBody)) {
+    // Verificar firma con el algoritmo correcto
+    if (!verifySignature(pem, signature, rawBody, signatureAlgorithm)) {
       return { valid: false, error: "Firma criptografica invalida" };
     }
   } catch (error) {
