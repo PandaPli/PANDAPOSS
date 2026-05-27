@@ -10,6 +10,28 @@ import { prisma } from "@/lib/db";
 import { PedidoService } from "@/server/services/pedido.service";
 import type { Prisma, Estacion, EstadoMesa } from "@prisma/client";
 
+// ── Constantes ────────────────────────────────────────────
+const CHILE_TZ = "America/Santiago";
+const VALID_ESTADOS_MESA: readonly string[] = ["LIBRE", "OCUPADA", "CUENTA", "RESERVADA"];
+const VALID_ESTACIONES: readonly string[] = ["COCINA", "BARRA", "SUSHI", "MOSTRADOR"];
+const VALID_ESTADOS_PEDIDO: readonly string[] = ["PENDIENTE", "EN_PROCESO", "LISTO", "ENTREGADO", "CANCELADO"];
+
+/** Formatea precio para TTS de Alexa (evita que diga "dolares") */
+function formatPriceVoice(precio: number): string {
+  if (precio >= 1000) {
+    const miles = Math.floor(precio / 1000);
+    const resto = precio % 1000;
+    if (resto === 0) return `${miles} mil pesos`;
+    return `${miles} mil ${resto} pesos`;
+  }
+  return `${precio} pesos`;
+}
+
+/** Formatea precio para TTS corto (sin "pesos", para listas) */
+function formatPriceShort(precio: number): string {
+  return `${precio.toLocaleString("es-CL")} pesos`;
+}
+
 // ── Contexto de ejecucion ──────────────────────────────────
 interface VoiceContext {
   userId: number;
@@ -67,7 +89,7 @@ export async function executeVoiceTool(
 async function findMesa(mesaNombre: string, sucursalId: number) {
   const nombre = mesaNombre.trim();
 
-  // Busqueda exacta
+  // 1. Busqueda exacta (case-insensitive via collation MySQL)
   let mesa = await prisma.mesa.findFirst({
     where: {
       nombre: { equals: nombre },
@@ -75,30 +97,45 @@ async function findMesa(mesaNombre: string, sucursalId: number) {
     },
     select: { id: true, nombre: true, estado: true },
   });
-
   if (mesa) return mesa;
 
-  // Busqueda case-insensitive con contains
-  mesa = await prisma.mesa.findFirst({
-    where: {
-      nombre: { contains: nombre },
-      sala: { sucursalId },
-    },
-    select: { id: true, nombre: true, estado: true },
-  });
-
-  if (mesa) return mesa;
-
-  // Solo numero — buscar "Mesa X", "X", etc.
+  // 2. Busqueda "Mesa X" — formato comun en la BD
   const soloNumero = nombre.replace(/\D/g, "");
   if (soloNumero) {
+    // Buscar exactamente "Mesa {numero}" para evitar que "3" matchee "13" o "30"
     mesa = await prisma.mesa.findFirst({
+      where: {
+        nombre: { equals: `Mesa ${soloNumero}` },
+        sala: { sucursalId },
+      },
+      select: { id: true, nombre: true, estado: true },
+    });
+    if (mesa) return mesa;
+
+    // Buscar solo el numero exacto
+    mesa = await prisma.mesa.findFirst({
+      where: {
+        nombre: { equals: soloNumero },
+        sala: { sucursalId },
+      },
+      select: { id: true, nombre: true, estado: true },
+    });
+    if (mesa) return mesa;
+
+    // Ultimo recurso: contains pero filtrar falsos positivos
+    const candidatas = await prisma.mesa.findMany({
       where: {
         nombre: { contains: soloNumero },
         sala: { sucursalId },
       },
       select: { id: true, nombre: true, estado: true },
     });
+
+    // Solo aceptar si el numero en el nombre de la mesa coincide exactamente
+    mesa = candidatas.find((m) => {
+      const numEnNombre = m.nombre.replace(/\D/g, "");
+      return numEnNombre === soloNumero;
+    }) ?? null;
   }
 
   return mesa;
@@ -176,13 +213,15 @@ async function findProducto(nombre: string, sucursalId: number) {
     }
   }
 
-  // 2. Buscar todos los productos de la sucursal + globales y hacer matching inteligente
+  // 2. Buscar productos de la sucursal + globales para matching inteligente (limitado)
   const todos = await prisma.producto.findMany({
     where: {
       OR: [{ sucursalId }, { sucursalId: null }],
       activo: true,
     },
     select: { id: true, nombre: true, precio: true, sucursalId: true },
+    take: 200,
+    orderBy: { sucursalId: "desc" }, // Sucursal primero, globales despues
   });
 
   console.log(`[findProducto] Total productos candidatos: ${todos.length}`);
@@ -301,7 +340,7 @@ async function crearPedido(
   const io = (global as unknown as { io?: { to: (room: string) => { emit: (event: string, data: unknown) => void } } }).io;
   if (io && ctx.sucursalId) {
     io.to(`sucursal_${ctx.sucursalId}_kds`).emit("pedido:nuevo", pedido);
-    io.to(`tenant_${ctx.sucursalId}_kds`).emit("order:created", pedido);
+    io.to(`sucursal_${ctx.sucursalId}_pedidos`).emit("order:created", pedido);
   }
 
   const mesaLabel = mesaId ? ` en mesa ${mesaNombre}` : " de mostrador";
@@ -330,7 +369,7 @@ async function leerComanda(
 
   const detalles = pedido.detalles
     .filter((d) => !d.cancelado)
-    .map((d) => `${d.cantidad}x ${d.nombre ?? "Producto"} ($${Number(d.precio ?? 0).toLocaleString("es-CL")})`)
+    .map((d) => `${d.cantidad}x ${d.nombre ?? "Producto"}`)
     .join(", ");
 
   const total = pedido.detalles
@@ -341,7 +380,7 @@ async function leerComanda(
 
   return {
     ok: true,
-    message: `Pedido #${pedido.numero}${mesaLabel} (${pedido.estado}): ${detalles}. Total: $${total.toLocaleString("es-CL")}.`,
+    message: `Pedido #${pedido.numero}${mesaLabel} (${pedido.estado}): ${detalles}. Total: ${formatPriceVoice(total)}.`,
     data: { pedidoId: pedido.id, estado: pedido.estado },
   };
 }
@@ -355,6 +394,9 @@ async function actualizarPedido(
   const estado = args.estado as string | undefined;
   if (!estado) {
     return { ok: false, message: "Necesito saber a que estado cambiar el pedido." };
+  }
+  if (!VALID_ESTADOS_PEDIDO.includes(estado)) {
+    return { ok: false, message: `Estado "${estado}" no es valido. Opciones: en proceso, listo, entregado o cancelado.` };
   }
 
   const pedido = await findPedidoActivo(
@@ -485,7 +527,7 @@ async function consultarStock(
       inventariable: true,
       categoria: { select: { nombre: true } },
     },
-    take: 15,
+    take: 5, // Limitar para respuesta de voz manejable
     orderBy: { nombre: "asc" },
   });
 
@@ -495,14 +537,14 @@ async function consultarStock(
 
   const lista = productos
     .map((p) => {
-      const stock = p.inventariable ? ` (stock: ${Number(p.stock)})` : "";
-      return `${p.nombre} $${Number(p.precio).toLocaleString("es-CL")}${stock} [${p.categoria?.nombre ?? "Sin cat"}]`;
+      const stock = p.inventariable ? `, stock ${Number(p.stock)}` : "";
+      return `${p.nombre}, ${formatPriceShort(Number(p.precio))}${stock}`;
     })
     .join("; ");
 
   return {
     ok: true,
-    message: `${productos.length} producto(s) encontrado(s): ${lista}.`,
+    message: `${productos.length} producto(s): ${lista}.`,
   };
 }
 
@@ -514,32 +556,33 @@ async function consultarVentas(
 ): Promise<VoiceResult> {
   const periodo = (args.periodo as string) ?? "hoy";
 
-  const now = new Date();
+  // Usar timezone de Chile para calcular "hoy", "ayer", etc.
+  const nowChile = new Date(new Date().toLocaleString("en-US", { timeZone: CHILE_TZ }));
   let desde: Date;
 
   switch (periodo) {
     case "ayer": {
-      const ayer = new Date(now);
+      const ayer = new Date(nowChile);
       ayer.setDate(ayer.getDate() - 1);
       ayer.setHours(0, 0, 0, 0);
       desde = ayer;
       break;
     }
     case "semana": {
-      const semana = new Date(now);
+      const semana = new Date(nowChile);
       semana.setDate(semana.getDate() - 7);
       semana.setHours(0, 0, 0, 0);
       desde = semana;
       break;
     }
     case "mes": {
-      const mes = new Date(now.getFullYear(), now.getMonth(), 1);
+      const mes = new Date(nowChile.getFullYear(), nowChile.getMonth(), 1);
       desde = mes;
       break;
     }
     default: {
       // hoy
-      const hoy = new Date(now);
+      const hoy = new Date(nowChile);
       hoy.setHours(0, 0, 0, 0);
       desde = hoy;
     }
@@ -552,7 +595,7 @@ async function consultarVentas(
           fin.setDate(fin.getDate() + 1);
           return fin;
         })()
-      : now;
+      : new Date();
 
   const ventas = await prisma.venta.findMany({
     where: {
@@ -579,12 +622,12 @@ async function consultarVentas(
   }
 
   const desglose = Object.entries(porMetodo)
-    .map(([metodo, data]) => `${metodo}: ${data.count} ventas, $${data.total.toLocaleString("es-CL")}`)
+    .map(([metodo, data]) => `${metodo}: ${data.count} ventas, ${formatPriceShort(data.total)}`)
     .join("; ");
 
   return {
     ok: true,
-    message: `Ventas ${periodo}: ${ventas.length} ventas, total $${totalGeneral.toLocaleString("es-CL")}. ${desglose}.`,
+    message: `Ventas ${periodo}: ${ventas.length} ventas, total ${formatPriceVoice(totalGeneral)}. ${desglose}.`,
   };
 }
 
@@ -605,14 +648,15 @@ async function estadoCocina(
     ],
   } satisfies Prisma.PedidoWhereInput;
 
-  // Si hay filtro de estacion, agregar condicion en detalles
-  const estacionWhere = estacion
+  // Si hay filtro de estacion valida, agregar condicion en detalles
+  const estacionValida = estacion && VALID_ESTACIONES.includes(estacion) ? estacion : undefined;
+  const estacionWhere = estacionValida
     ? {
         ...baseWhere,
         detalles: {
           some: {
             cancelado: false,
-            producto: { is: { categoria: { is: { estacion: estacion as Estacion } } } },
+            producto: { is: { categoria: { is: { estacion: estacionValida as Estacion } } } },
           },
         },
       } satisfies Prisma.PedidoWhereInput
@@ -650,7 +694,7 @@ async function estadoMesas(
     where.sala = { sucursalId: ctx.sucursalId!, nombre: { contains: salaNombre.trim() } };
   }
 
-  if (estadoFilter) {
+  if (estadoFilter && VALID_ESTADOS_MESA.includes(estadoFilter)) {
     where.estado = estadoFilter as EstadoMesa;
   }
 

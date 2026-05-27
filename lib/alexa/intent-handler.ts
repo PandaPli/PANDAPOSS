@@ -115,6 +115,28 @@ async function resolveContext(session: AlexaSession): Promise<PosContext | null>
   return null;
 }
 
+// ── Extraer valor resuelto de un slot (Entity Resolution) ──
+
+function resolveSlotValue(slot: AlexaSlot | undefined): string | undefined {
+  if (!slot?.value) return undefined;
+
+  // Intentar obtener el valor canonico de Entity Resolution
+  const resolutions = (slot as unknown as Record<string, unknown>).resolutions as
+    | { resolutionsPerAuthority?: Array<{ status: { code: string }; values?: Array<{ value: { name: string } }> }> }
+    | undefined;
+
+  if (resolutions?.resolutionsPerAuthority) {
+    for (const auth of resolutions.resolutionsPerAuthority) {
+      if (auth.status.code === "ER_SUCCESS_MATCH" && auth.values?.[0]?.value?.name) {
+        return auth.values[0].value.name;
+      }
+    }
+  }
+
+  // Fallback al valor crudo
+  return slot.value;
+}
+
 // ── Extraer productos de slots de Alexa ────────────────────
 
 function extractItems(slots: Record<string, AlexaSlot> | undefined) {
@@ -123,7 +145,8 @@ function extractItems(slots: Record<string, AlexaSlot> | undefined) {
 
   // Slots genericos: producto1, cantidad1, producto2, cantidad2, etc.
   for (let i = 1; i <= 5; i++) {
-    const nombre = slots[`producto${i}`]?.value ?? slots[`producto`]?.value;
+    const rawSlot = slots[`producto${i}`] ?? slots[`producto`];
+    const nombre = resolveSlotValue(rawSlot);
     if (!nombre) continue;
     const cantidadRaw = slots[`cantidad${i}`]?.value ?? slots[`cantidad`]?.value;
     const cantidad = cantidadRaw ? parseInt(cantidadRaw, 10) : 1;
