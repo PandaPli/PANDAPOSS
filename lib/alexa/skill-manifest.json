@@ -22,7 +22,21 @@
             "manda {cantidad} {producto} a la mesa {mesa}",
             "crear pedido de {producto} para mostrador",
             "pedido de mostrador de {cantidad} {producto}",
-            "pedido para llevar de {cantidad} {producto}"
+            "pedido para llevar de {cantidad} {producto}",
+            "{cantidad} {producto} mesa {mesa}",
+            "{cantidad} {producto} para la mesa {mesa}",
+            "{producto} para la mesa {mesa}",
+            "{producto} mesa {mesa}",
+            "ponme {cantidad} {producto} mesa {mesa}",
+            "mete {cantidad} {producto} a la mesa {mesa}",
+            "crea pedido {producto} mesa {mesa}",
+            "crea pedido {cantidad} {producto} mesa {mesa}",
+            "pedido {producto} mesa {mesa}",
+            "pedido {cantidad} {producto} para mesa {mesa}",
+            "agrega {producto} mesa {mesa}",
+            "{producto} para llevar",
+            "{cantidad} {producto} para llevar",
+            "{cantidad} {producto} de mostrador"
           ]
         },
         {
@@ -40,7 +54,10 @@
             "mesas disponibles",
             "mesas {estadoMesa}",
             "estado de las mesas",
-            "que mesas hay {estadoMesa}"
+            "que mesas hay {estadoMesa}",
+            "como estan las mesas",
+            "hay mesas libres",
+            "mesas"
           ]
         },
         {
@@ -57,7 +74,10 @@
             "estado de la barra",
             "pedidos en proceso",
             "pedidos listos",
-            "estado de {estacion}"
+            "estado de {estacion}",
+            "cocina",
+            "como va la cocina",
+            "que hay pendiente"
           ]
         },
         {
@@ -74,7 +94,9 @@
             "como van las ventas",
             "cuanto hemos vendido {periodo}",
             "resumen de ventas {periodo}",
-            "ventas {periodo}"
+            "ventas {periodo}",
+            "ventas",
+            "cuanto llevamos"
           ]
         },
         {
@@ -90,7 +112,10 @@
             "comanda de la mesa {mesa}",
             "ver pedido numero {numero}",
             "leer pedido {numero}",
-            "que hay en la mesa {mesa}"
+            "que hay en la mesa {mesa}",
+            "comanda mesa {mesa}",
+            "pedido de la mesa {mesa}",
+            "mesa {mesa} que tiene"
           ]
         },
         {
@@ -106,7 +131,9 @@
             "mesa {mesa} {estadoPedido}",
             "marcar pedido {numero} como {estadoPedido}",
             "cambiar estado del pedido {numero} a {estadoPedido}",
-            "pedido de mesa {mesa} esta {estadoPedido}"
+            "pedido de mesa {mesa} esta {estadoPedido}",
+            "mesa {mesa} lista",
+            "pedido {numero} listo"
           ]
         },
         {
@@ -136,7 +163,9 @@
             "quitar {producto} del pedido {numero}",
             "sacar {producto} de la mesa {mesa}",
             "eliminar {producto} de la mesa {mesa}",
-            "cancela {producto} del pedido {numero}"
+            "cancela {producto} del pedido {numero}",
+            "saca {producto} mesa {mesa}",
+            "quita {producto} mesa {mesa}"
           ]
         },
         {
@@ -173,7 +202,7 @@
           "values": [
             { "name": { "value": "cocina" } },
             { "name": { "value": "barra" } },
-            { "name": { "value": "cuarto caliente" } },
+            { "name": { "value": "sushi" } },
             { "name": { "value": "mostrador" } }
           ]
         },
@@ -198,26 +227,63 @@
         {
           "name": "PRODUCTO_MENU",
           "values": [
-            { "name": { "value": "hamburguesa", "synonyms": ["burger", "hamburgesa"] } },
-            { "name": { "value": "pizza", "synonyms": ["piza", "pizzas"] } },
-            { "name": { "value": "completo", "synonyms": ["completos", "hot dog"] } },
-            { "name": { "value": "empanada", "synonyms": ["empanadas"] } },
-            { "name": { "value": "coca cola", "synonyms": ["coca", "cola"] } },
-            { "name": { "value": "cerveza", "synonyms": ["chela", "birra"] } },
-            { "name": { "value": "papas fritas", "synonyms": ["papas", "papitas", "fritas"] } },
-            { "name": { "value": "ensalada", "synonyms": ["ensaladas"] } },
-            { "name": { "value": "agua", "synonyms": ["agua mineral", "botella de agua"] } },
-            { "name": { "value": "jugo", "synonyms": ["jugos", "zumo"] } },
-            { "name": { "value": "cafe", "synonyms": ["cafecito", "tinto"] } },
-            { "name": { "value": "sandwich", "synonyms": ["sandwiches", "sanduche"] } },
-            { "name": { "value": "pollo", "synonyms": ["pollito", "pechuga"] } },
-            { "name": { "value": "carne", "synonyms": ["res", "bistec"] } },
-            { "name": { "value": "sopa", "synonyms": ["sopita", "caldo"] } },
-            { "name": { "value": "postre", "synonyms": ["postres", "dulce"] } },
-            { "name": { "value": "tacos", "synonyms": ["taco", "taquitos"] } },
-            { "name": { "value": "arroz", "synonyms": ["arrocito"] } },
-            { "name": { "value": "refresco", "synonyms": ["gaseosa", "soda"] } },
-            { "name": { "value": "limonada", "synonyms": ["limon"] } }
+            { "name": { "value": "tabla veinte", "synonyms": ["tabla 20", "tabla veinte piezas", "tabla 20 piezas"] } },
+            { "name": { "value": "tabla treinta", "synonyms": ["tabla 30", "tabla treinta piezas", "tabla 30 piezas"] } },
+            { "name": { "value": "tabla cuarenta", "synonyms": ["tabla 40", "tabla cuarenta piezas"] } },
+            { "name": { "value": "tabla cincuenta", "synonyms": ["tabla 50", "tabla cincuenta piezas"] } },
+            { "name": { "value": "tabla sesenta", "synonyms": ["tabla 60"] } },
+            { "name": { "value": "tabla setenta", "synonyms": ["tabla 70"] } },
+            { "name": { "value": "tabla ochenta", "synonyms": ["tabla 80"] } },
+            { "name": { "value": "tabla bampai", "synonyms": ["tabla 101", "tabla grande"] } },
+            { "name": { "value": "tabla hot", "synonyms": ["tabla hot 46"] } },
+            { "name": { "value": "tabla vegana", "synonyms": ["tabla vegan", "tabla 20 vegan"] } },
+            { "name": { "value": "tori tori", "synonyms": ["tori tori 40"] } },
+            { "name": { "value": "california", "synonyms": ["roll california"] } },
+            { "name": { "value": "hot rolls", "synonyms": ["hotrolls", "hot roll"] } },
+            { "name": { "value": "rainbow", "synonyms": ["roll rainbow"] } },
+            { "name": { "value": "acevichado hot", "synonyms": ["acevichado"] } },
+            { "name": { "value": "amusake", "synonyms": ["amusake rolls"] } },
+            { "name": { "value": "chesse tropical sake", "synonyms": ["cheese tropical", "tropical sake"] } },
+            { "name": { "value": "chicken woo", "synonyms": ["chicken"] } },
+            { "name": { "value": "dolce woow", "synonyms": ["dolce", "dolce woo"] } },
+            { "name": { "value": "duo suka", "synonyms": ["duosuka"] } },
+            { "name": { "value": "sara fresh", "synonyms": ["sara", "sara fresca"] } },
+            { "name": { "value": "sara malibu", "synonyms": ["malibu"] } },
+            { "name": { "value": "sara sidney", "synonyms": ["sidney"] } },
+            { "name": { "value": "star rolls", "synonyms": ["starrolls", "star roll"] } },
+            { "name": { "value": "shinchimi fresh", "synonyms": ["shinchimi"] } },
+            { "name": { "value": "surimi sake spice", "synonyms": ["surimi sake", "surimi"] } },
+            { "name": { "value": "toka tori", "synonyms": ["toka tori rolls"] } },
+            { "name": { "value": "vai malandra", "synonyms": ["vaimalandra"] } },
+            { "name": { "value": "avocado", "synonyms": ["roll avocado"] } },
+            { "name": { "value": "chesse cream", "synonyms": ["cheese cream"] } },
+            { "name": { "value": "futomaki", "synonyms": ["futo maki"] } },
+            { "name": { "value": "sake rolls", "synonyms": ["sakerolls"] } },
+            { "name": { "value": "handroll", "synonyms": ["hand roll", "handrolls"] } },
+            { "name": { "value": "salmon palta", "synonyms": ["handroll salmon palta"] } },
+            { "name": { "value": "salmon queso", "synonyms": ["handroll salmon queso"] } },
+            { "name": { "value": "camaron palta", "synonyms": ["handroll camaron palta"] } },
+            { "name": { "value": "camaron queso", "synonyms": ["handroll camaron queso"] } },
+            { "name": { "value": "pollo palta", "synonyms": ["handroll pollo palta"] } },
+            { "name": { "value": "pollo queso", "synonyms": ["handroll pollo queso"] } },
+            { "name": { "value": "queso palta", "synonyms": ["handroll queso palta"] } },
+            { "name": { "value": "gohan", "synonyms": ["bowl gohan"] } },
+            { "name": { "value": "tropicals", "synonyms": ["bowl tropical"] } },
+            { "name": { "value": "sushi burger", "synonyms": ["sushiburger"] } },
+            { "name": { "value": "sushi dog", "synonyms": ["sushidog"] } },
+            { "name": { "value": "gyozas fritas", "synonyms": ["gyozas", "gyoza"] } },
+            { "name": { "value": "gyozas al vapor", "synonyms": ["gyozas vapor"] } },
+            { "name": { "value": "ceviche", "synonyms": ["ceviche sushi"] } },
+            { "name": { "value": "temaki", "synonyms": ["temakis"] } },
+            { "name": { "value": "hosomaki", "synonyms": ["hosomakis"] } },
+            { "name": { "value": "bolitas crispys", "synonyms": ["bolitas", "crispys"] } },
+            { "name": { "value": "fingers", "synonyms": ["fingers eleccion"] } },
+            { "name": { "value": "woki noodle", "synonyms": ["woki", "noodle", "fideos"] } },
+            { "name": { "value": "woki rice", "synonyms": ["arroz woki", "arroz"] } },
+            { "name": { "value": "woki pad thai", "synonyms": ["pad thai", "padthai"] } },
+            { "name": { "value": "ramen", "synonyms": ["rammen", "ramen sopa"] } },
+            { "name": { "value": "agua", "synonyms": ["botella de agua"] } },
+            { "name": { "value": "bebida lata", "synonyms": ["bebida", "lata", "gaseosa"] } }
           ]
         }
       ]

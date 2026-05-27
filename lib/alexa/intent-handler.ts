@@ -144,7 +144,7 @@ export async function handleAlexaRequest(body: AlexaRequestBody): Promise<AlexaR
   // ── Launch ─────────────────────────────────────────────
   if (request.type === "LaunchRequest") {
     return speak(
-      "Bienvenido a PandaPOS. Puedes decir: crear pedido, estado de mesas, estado de cocina, o consultar ventas. Que necesitas?",
+      "PandaPOS listo. Que necesitas?",
       false,
       session.attributes,
     );
