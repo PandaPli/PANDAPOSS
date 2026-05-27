@@ -407,14 +407,14 @@ function parseItemsFromFrase(text: string): Array<{ nombre: string; cantidad: nu
     seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
   };
 
-  // Limpiar prefijos de intencion
+  // Limpiar prefijos de intencion (no quitar "y" aqui — se usa para separar items)
   const cleaned = text
-    .replace(/(pedir|pedido|crear|quiero|dame|traeme|pon|agrega|para la mesa\s*\d+|de mostrador|y)/gi, " ")
+    .replace(/(pedir|pedido|crear|quiero|dame|traeme|pon|agrega|para la mesa\s*\d+|de mostrador)/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  // Separar por comas o "y"
-  const parts = cleaned.split(/[,]/).map((p) => p.trim()).filter(Boolean);
+  // Separar por comas o " y " (como separador entre items)
+  const parts = cleaned.split(/\s*,\s*|\s+y\s+/).map((p) => p.trim()).filter(Boolean);
 
   for (const part of parts) {
     // Intentar extraer cantidad + nombre
