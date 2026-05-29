@@ -6,6 +6,7 @@ import { NuevaVentaClient } from "./NuevaVentaClient";
 import { CajaBasicaClient } from "@/app/(dashboard)/ventas/caja/CajaBasicaClient";
 import type { CartItem, RondaPedido } from "@/types";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "PP — Caja" };
 
 const PEDIDOS_ACTIVOS = ["PENDIENTE", "EN_PROCESO", "LISTO"] as const;

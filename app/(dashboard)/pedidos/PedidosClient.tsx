@@ -178,11 +178,12 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
   const fetchPedidos = useCallback(async () => {
     const seq = ++fetchSeq.current;
     try {
+      const opts = { cache: "no-store" } as RequestInit;
       const [r1, r2, r3, r4] = await Promise.all([
-        fetch("/api/pedidos?estado=PENDIENTE"),
-        fetch("/api/pedidos?estado=EN_PROCESO"),
-        fetch("/api/pedidos?estado=LISTO"),
-        fetch("/api/pedidos?completados=1"),   // historial LISTO + ENTREGADO 24h
+        fetch("/api/pedidos?estado=PENDIENTE", opts),
+        fetch("/api/pedidos?estado=EN_PROCESO", opts),
+        fetch("/api/pedidos?estado=LISTO", opts),
+        fetch("/api/pedidos?completados=1", opts),   // historial LISTO + ENTREGADO 24h
       ]);
       const p1: PedidoConDetalles[] = r1.ok ? await r1.json() : [];
       const p2 = r2.ok ? await r2.json() : [];

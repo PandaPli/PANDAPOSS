@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { PedidosClient } from "./PedidosClient";
 import type { Rol } from "@/types";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "PP — Pedidos" };
 
 /* Micro-mensajes por rol */

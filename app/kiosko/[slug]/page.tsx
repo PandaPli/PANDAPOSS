@@ -41,7 +41,7 @@ export default async function KioskoPage({ params }: Props) {
         where: {
           activo: true,
           enKiosko: true,
-          OR: [{ sucursalId }, { sucursalId: null }],
+          sucursalId,          // aislamiento estricto: solo productos de esta sucursal
         },
         select: {
           id: true,
