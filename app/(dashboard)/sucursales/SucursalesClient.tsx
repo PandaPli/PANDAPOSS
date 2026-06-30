@@ -146,6 +146,16 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
     }
   }
 
+  async function hardDelete(s: Sucursal) {
+    const res = await fetch(`/api/sucursales/${s.id}/hard-delete`, { method: "DELETE" });
+    if (res.ok) {
+      setSucursales((prev) => prev.filter((x) => x.id !== s.id));
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert("Error al eliminar: " + (data.error ?? "desconocido"));
+    }
+  }
+
   async function toggleNotif(s: Sucursal) {
     const nuevoValor = !s.notifAviso;
     const res = await fetch(`/api/sucursales/${s.id}`, {
@@ -223,6 +233,7 @@ export function SucursalesClient({ sucursales: initial }: { sucursales: Sucursal
                   onEdit={openEdit}
                   onToggleActiva={toggleActiva}
                   onToggleNotif={toggleNotif}
+                  onHardDelete={hardDelete}
                 />
               ))}
             </div>

@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw, Bell, BellOff, Star, Gift, Clock, AlertTriangle } from "lucide-react";
+import { GripVertical, Pencil, CheckCircle2, XCircle, Users, Wallet, RotateCcw, Bell, BellOff, Star, Gift, Clock, AlertTriangle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { PlanTipo } from "@/core/billing/planConfig";
 
@@ -21,12 +21,15 @@ interface Props {
   onEdit: (s: any) => void;
   onToggleActiva: (s: any) => void;
   onToggleNotif: (s: any) => void;
+  onHardDelete: (s: any) => Promise<void>;
 }
 
 const DEMO_SUCURSAL_ID = 5;
 
-export function SortableSucursalCard({ s, onEdit, onToggleActiva, onToggleNotif }: Props) {
+export function SortableSucursalCard({ s, onEdit, onToggleActiva, onToggleNotif, onHardDelete }: Props) {
   const [resetting, setResetting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleResetDemo() {
     if (!confirm("¿Resetear todos los datos de la demo? Esta acción no se puede deshacer.")) return;
@@ -197,6 +200,46 @@ export function SortableSucursalCard({ s, onEdit, onToggleActiva, onToggleNotif 
           <RotateCcw size={12} className={resetting ? "animate-spin" : ""} />
           {resetting ? "Reseteando..." : "Resetear Demo"}
         </button>
+      )}
+
+      {/* Borrado definitivo */}
+      {!confirmDelete ? (
+        <button
+          onClick={() => setConfirmDelete(true)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition-colors font-medium"
+        >
+          <Trash2 size={12} />
+          Eliminar sucursal
+        </button>
+      ) : (
+        <div className="mt-2 rounded-lg border border-red-300 bg-red-50 p-3 space-y-2">
+          <p className="text-xs font-semibold text-red-700">¿Eliminar &ldquo;{s.nombre}&rdquo; definitivamente?</p>
+          <p className="text-[11px] text-red-600 leading-snug">
+            <span className="font-medium">Se borran:</span> ventas, pedidos, usuarios, cajas, empleados.<br />
+            <span className="font-medium">Se conservan:</span> carta (productos), clientes e imágenes.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+              className="flex-1 text-xs py-1.5 rounded-lg border border-surface-border text-surface-text hover:bg-surface-bg transition-colors font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => {
+                setDeleting(true);
+                await onHardDelete(s);
+                setDeleting(false);
+                setConfirmDelete(false);
+              }}
+              disabled={deleting}
+              className="flex-1 text-xs py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
+            >
+              {deleting ? "Eliminando..." : "Sí, eliminar"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
