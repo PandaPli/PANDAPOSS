@@ -15,3 +15,6 @@ scripts/userOutput*.json
 bot-app/dist/
 bot-app/node_modules/
 bot-app/package-lock.json
+
+# Respaldos de datos (contienen PII y hashes de contraseñas)
+backups/

@@ -29,10 +29,12 @@ export function useKdsSocket(sucursalId: number | null, onRefresh: () => void) {
 
     socket.on("pedido:nuevo", handleUpdate);
     socket.on("pedido:update", handleUpdate);
+    socket.on("pago:mp", handleUpdate);
 
     return () => {
       socket?.off("pedido:nuevo", handleUpdate);
       socket?.off("pedido:update", handleUpdate);
+      socket?.off("pago:mp", handleUpdate);
     };
   }, [sucursalId]);
 }

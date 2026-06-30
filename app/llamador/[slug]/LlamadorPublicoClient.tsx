@@ -325,9 +325,11 @@ export function LlamadorPublicoClient({ sucursalId, sucursalNombre, initialData 
     const handleUpdate = () => void fetchOrdenes();
     socket.on("pedido:nuevo", handleUpdate);
     socket.on("pedido:update", handleUpdate);
+    socket.on("pago:mp", handleUpdate);
     return () => {
       socket?.off("pedido:nuevo", handleUpdate);
       socket?.off("pedido:update", handleUpdate);
+      socket?.off("pago:mp", handleUpdate);
     };
   }, [sucursalId, fetchOrdenes]);
 

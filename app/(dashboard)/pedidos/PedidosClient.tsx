@@ -10,6 +10,7 @@ import { useKdsUI } from "@/stores/kdsStore";
 import type { Rol } from "@/types";
 import { useKdsSocket } from "@/hooks/useKdsSocket";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
+import { useMpRecovery } from "@/hooks/useMpRecovery";
 
 const tipoTabs: { key: TipoPedido | "TODOS"; label: string; icon: React.ReactNode }[] = [
   { key: "TODOS", label: "Todos", icon: <UtensilsCrossed size={16} /> },
@@ -207,6 +208,9 @@ export function PedidosClient({ pedidos: initial, rol, sucursalId }: Props) {
 
   // Tiempo real via Socket.IO
   useKdsSocket(sucursalId ?? null, fetchPedidos);
+
+  // Heartbeat: recuperar pagos MP atascados en pending_payment
+  useMpRecovery();
 
   useEffect(() => {
     fetchPedidos();

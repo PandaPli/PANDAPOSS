@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/limpieza",
       "schedule": "0 5 * * 0"
+    },
+    {
+      "path": "/api/cron/mp-recovery",
+      "schedule": "*/2 * * * *"
     }
   ]
 }

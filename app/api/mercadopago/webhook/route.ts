@@ -95,14 +95,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (!paymentData) {
-      console.warn("[MP Webhook] No se pudo encontrar pago:", paymentId);
+      console.error("[MP Webhook] PAGO NO ENCONTRADO en ninguna sucursal — paymentId:", paymentId, "sucursales probadas:", sucursales.length);
       return NextResponse.json({ ok: true });
     }
 
     const pedidoId = Number(paymentData.external_reference);
     if (!pedidoId || isNaN(pedidoId)) {
+      console.error("[MP Webhook] external_reference inválido:", paymentData.external_reference, "paymentId:", paymentId);
       return NextResponse.json({ ok: true });
     }
+
+    console.log(`[MP Webhook] Pago ${paymentId} → pedido ${pedidoId} — status: ${paymentData.status}`);
 
     // Leer estado actual del pedido para decidir como actualizarlo
     const pedidoActual = await prisma.pedido.findUnique({
@@ -115,6 +118,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!pedidoActual) {
+      console.error("[MP Webhook] Pedido NO existe en DB — pedidoId:", pedidoId, "paymentId:", paymentId);
       return NextResponse.json({ ok: true });
     }
 

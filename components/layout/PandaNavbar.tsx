@@ -10,6 +10,7 @@ import {
   Bot,
   BriefcaseBusiness,
   Building2,
+  Calculator,
   CalendarDays,
   ChevronDown,
   ClipboardList,
@@ -71,6 +72,7 @@ interface AppModule {
   description: string;
   featured?: boolean;
   featureKey?: FeatureKey;
+  external?: boolean;
 }
 
 const modules: AppModule[] = [
@@ -94,6 +96,7 @@ const modules: AppModule[] = [
   { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-gradient-to-br from-violet-500 to-purple-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
   { label: "Sucursales", href: "/sucursales", icon: Building2, color: "bg-gradient-to-br from-rose-400 to-pink-600", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Sedes y orden visual." },
   { label: "Configuracion", href: "/configuracion", icon: Settings, color: "bg-gradient-to-br from-slate-500 to-gray-700", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Parametros globales." },
+  { label: "Contador IA", href: process.env.NEXT_PUBLIC_CONTADOR_URL || "#", icon: Calculator, color: "bg-gradient-to-br from-cyan-500 to-teal-700", roles: ["ADMIN_GENERAL"], category: "configuracion", description: "Contabilidad, SII y F29 — acceso administrador.", external: true },
 
   { label: "Kiosko", href: "/kiosko-admin", icon: Monitor, color: "bg-gradient-to-br from-teal-500 to-emerald-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Terminal de autoservicio táctil.", featureKey: "kiosko" },
   { label: "QR", href: "/qr", icon: QrCode, color: "bg-gradient-to-br from-purple-500 to-violet-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Generador de codigos QR: mesas y estacionamiento.", featureKey: "menuQR" },
@@ -185,7 +188,14 @@ function AppIconCard({ mod, active, locked, onClick, sortable, showCategory, dra
 
   if (sortable) return inner;
   return (
-    <a href={locked ? "/planes" : mod.href} onClick={onClick} title={mod.description}>
+    <a
+      href={locked ? "/planes" : mod.href}
+      onClick={onClick}
+      title={mod.description}
+      {...(mod.external && !locked
+        ? { target: "_blank", rel: "noopener noreferrer" }
+        : {})}
+    >
       {inner}
     </a>
   );

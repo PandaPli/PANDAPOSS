@@ -52,12 +52,13 @@ async function main() {
   });
   console.log(`  ✅ Sucursales: ${sucursales.length}`);
 
-  // ── 3. USUARIOS (sin password) ────────────────────────────────────────────
+  // ── 3. USUARIOS (con password hasheada bcrypt) ────────────────────────────
   const usuarios = await prisma.usuario.findMany({
     select: {
       id: true,
       nombre: true,
       usuario: true,
+      password: true, // hash bcrypt — necesario para recuperar el login desde el backup
       email: true,
       rol: true,
       status: true,
