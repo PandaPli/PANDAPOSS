@@ -1,6 +1,10 @@
 .env*.local
 .env
+.env.vercel-check*
 node_modules/
+
+# Proyecto ajeno copiado accidentalmente en la raíz
+UsersPANDADesktophermes-desktop/
 .next/
 out/
 build/

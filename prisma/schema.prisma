@@ -80,6 +80,7 @@ model Sucursal {
   asistencias       Asistencia[]
   cajas             Caja[]
   clientes          Cliente[]
+  compras           Compra[]
   cupones           Cupon[]
   departamentos     Departamento[]
   empleados         Empleado[]
@@ -219,6 +220,7 @@ model Producto {
   detallesPedido        DetallePedido[]
   detallesVenta         DetalleVenta[]
   kardex                Kardex[]
+  comprasDetalle        CompraDetalle[]
   variantes             VarianteGrupo[]
   categoria             Categoria?      @relation(fields: [categoriaId], references: [id])
   sucursal              Sucursal?       @relation(fields: [sucursalId], references: [id])
@@ -260,20 +262,75 @@ model VarianteOpcion {
 }
 
 model Ingrediente {
-  id          Int       @id @default(autoincrement())
-  codigo      String    @unique @db.VarChar(30)
-  nombre      String    @db.VarChar(120)
-  stock       Decimal   @default(0.00) @db.Decimal(10, 2)
-  stockMinimo Decimal   @default(0.00) @db.Decimal(10, 2)
-  unidad      String    @default("und") @db.VarChar(20)
-  costo       Decimal?  @db.Decimal(10, 2)
-  sucursalId  Int?
-  activo      Boolean   @default(true)
-  creadoEn    DateTime  @default(now())
-  sucursal    Sucursal? @relation(fields: [sucursalId], references: [id])
+  id             Int                 @id @default(autoincrement())
+  codigo         String              @unique @db.VarChar(30)
+  nombre         String              @db.VarChar(120)
+  stock          Decimal             @default(0.00) @db.Decimal(10, 2)
+  stockMinimo    Decimal             @default(0.00) @db.Decimal(10, 2)
+  unidad         String              @default("und") @db.VarChar(20)
+  costo          Decimal?            @db.Decimal(10, 2)
+  sucursalId     Int?
+  activo         Boolean             @default(true)
+  creadoEn       DateTime            @default(now())
+  sucursal       Sucursal?           @relation(fields: [sucursalId], references: [id])
+  kardex         KardexIngrediente[]
+  comprasDetalle CompraDetalle[]
 
   @@index([sucursalId], map: "ingredientes_sucursalId_fkey")
   @@map("ingredientes")
+}
+
+model KardexIngrediente {
+  id            Int         @id @default(autoincrement())
+  ingredienteId Int
+  tipo          TipoKardex
+  cantidad      Decimal     @db.Decimal(10, 2)
+  motivo        String      @db.VarChar(100)
+  compraId      Int?
+  creadoEn      DateTime    @default(now())
+  ingrediente   Ingrediente @relation(fields: [ingredienteId], references: [id])
+  compra        Compra?     @relation(fields: [compraId], references: [id])
+
+  @@index([ingredienteId])
+  @@index([compraId])
+  @@map("kardex_ingredientes")
+}
+
+model Compra {
+  id               Int                 @id @default(autoincrement())
+  sucursalId       Int
+  proveedorId      Int?
+  numeroDocumento  String?             @db.VarChar(50)
+  observacion      String?             @db.VarChar(300)
+  total            Decimal             @default(0.00) @db.Decimal(12, 2)
+  creadoEn         DateTime            @default(now())
+  sucursal         Sucursal            @relation(fields: [sucursalId], references: [id])
+  proveedor        Proveedor?          @relation(fields: [proveedorId], references: [id])
+  detalles         CompraDetalle[]
+  kardexIngrediente KardexIngrediente[]
+
+  @@index([sucursalId])
+  @@index([proveedorId])
+  @@map("compras")
+}
+
+model CompraDetalle {
+  id            Int          @id @default(autoincrement())
+  compraId      Int
+  productoId    Int?
+  ingredienteId Int?
+  nombre        String       @db.VarChar(150)
+  cantidad      Decimal      @db.Decimal(10, 2)
+  costoUnitario Decimal      @db.Decimal(10, 2)
+  subtotal      Decimal      @db.Decimal(12, 2)
+  compra        Compra       @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  producto      Producto?    @relation(fields: [productoId], references: [id])
+  ingrediente   Ingrediente? @relation(fields: [ingredienteId], references: [id])
+
+  @@index([compraId])
+  @@index([productoId])
+  @@index([ingredienteId])
+  @@map("compras_detalles")
 }
 
 model Combo {
@@ -331,6 +388,7 @@ model Proveedor {
   telefono String?  @db.VarChar(20)
   activo   Boolean  @default(true)
   creadoEn DateTime @default(now())
+  compras  Compra[]
 
   @@map("proveedores")
 }
