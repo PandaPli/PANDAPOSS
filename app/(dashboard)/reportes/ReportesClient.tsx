@@ -13,8 +13,10 @@ import {
   RefreshCw,
   Printer,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { buildCsv, downloadCsv } from "@/lib/csv";
 
 /* ── Types ────────────────────────────────────────────────────────────── */
 type Tab = "cierre" | "auditoria" | "tiempos";
@@ -144,6 +146,65 @@ export function ReportesClient() {
   useEffect(() => { if (tab === "auditoria") fetchAudit(); },   [tab, fetchAudit]);
   useEffect(() => { if (tab === "tiempos")   fetchTiempos(); }, [tab, fetchTiempos]);
 
+  /* ── Export CSV ── */
+  function exportCierre() {
+    if (!cierre) return;
+    const rows: (string | number | null)[][] = [
+      ["Cierre de caja", cierre.fecha],
+      [],
+      ["Total ventas", cierre.totalVentas],
+      ["Total transacciones", cierre.totalTransacciones],
+      ["Anuladas (cantidad)", cierre.anuladas.cantidad],
+      ["Anuladas (monto)", cierre.anuladas.monto],
+      ["Efectivo esperado", cierre.efectivoEsperado],
+      [],
+      ["Método de pago", "Transacciones", "Monto"],
+      ...cierre.breakdown.map((b) => [b.label, b.transacciones, b.monto]),
+      [],
+      ["Movimientos de caja"],
+      ["Tipo", "Monto", "Motivo", "Hora", "Usuario", "Caja"],
+      ...cierre.movimientos.detalle.map((m) => [
+        m.tipo,
+        m.monto,
+        m.motivo ?? "",
+        new Date(m.creadoEn).toLocaleString("es-CL"),
+        m.usuario?.nombre ?? "",
+        m.caja?.nombre ?? "",
+      ]),
+    ];
+    downloadCsv(`cierre_caja_${cierre.fecha}`, buildCsv(rows));
+  }
+
+  function exportAudit() {
+    const rows: (string | number | null)[][] = [
+      ["Tipo", "Descripción", "Hora", "Pedido #", "Tipo pedido", "Mesa", "Usuario"],
+      ...eventos.map((ev) => [
+        ev.tipo,
+        ev.descripcion,
+        new Date(ev.creadoEn).toLocaleString("es-CL"),
+        ev.pedido.numero,
+        ev.pedido.tipo,
+        ev.pedido.mesa?.nombre ?? "",
+        ev.usuario?.nombre ?? "",
+      ]),
+    ];
+    downloadCsv(`auditoria_${fechaAudit}`, buildCsv(rows));
+  }
+
+  function exportTiempos() {
+    const rows: (string | number | null)[][] = [
+      ["Estación", "Cantidad pedidos", "Espera prom. (min)", "Prep prom. (min)", "Total prom. (min)"],
+      ...tiempos.map((t) => [
+        ESTACION_LABEL[t.tipo] ?? t.tipo,
+        t.cantidad,
+        t.esperaPromedio ?? "",
+        t.prepPromedio ?? "",
+        t.totalPromedio ?? "",
+      ]),
+    ];
+    downloadCsv(`tiempos_kds_${dias}dias`, buildCsv(rows));
+  }
+
   /* ══════════════════════════════════════════════════════════
      RENDER
   ══════════════════════════════════════════════════════════ */
@@ -199,13 +260,22 @@ export function ReportesClient() {
               Actualizar
             </button>
             {cierre && (
-              <button
-                onClick={() => window.print()}
-                className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 shadow-sm hover:bg-stone-50 transition"
-              >
-                <Printer size={14} />
-                Imprimir
-              </button>
+              <>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 shadow-sm hover:bg-stone-50 transition"
+                >
+                  <Printer size={14} />
+                  Imprimir
+                </button>
+                <button
+                  onClick={exportCierre}
+                  className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 transition"
+                >
+                  <Download size={14} />
+                  Exportar CSV
+                </button>
+              </>
             )}
           </div>
 
@@ -307,6 +377,15 @@ export function ReportesClient() {
               <RefreshCw size={14} className={cn(loadingAudit && "animate-spin")} />
               Actualizar
             </button>
+            {eventos.length > 0 && (
+              <button
+                onClick={exportAudit}
+                className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 transition"
+              >
+                <Download size={14} />
+                Exportar CSV
+              </button>
+            )}
           </div>
 
           <div className="rounded-2xl border border-stone-200 bg-white">
@@ -372,6 +451,15 @@ export function ReportesClient() {
               <RefreshCw size={14} className={cn(loadingTiempos && "animate-spin")} />
               Actualizar
             </button>
+            {tiempos.length > 0 && (
+              <button
+                onClick={exportTiempos}
+                className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 transition"
+              >
+                <Download size={14} />
+                Exportar CSV
+              </button>
+            )}
           </div>
 
           {loadingTiempos ? (
