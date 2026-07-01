@@ -40,6 +40,14 @@ export const NotificationService = {
     }
   },
 
+  /** Encola un mensaje WhatsApp arbitrario para una sucursal */
+  enqueueWsp(sucursalId: number, telefono: string, mensaje: string) {
+    const queue = wspQueue.get(sucursalId) ?? [];
+    if (queue.length >= MAX_WSP_QUEUE_PER_SUCURSAL) queue.shift();
+    queue.push({ telefono, pedidoId: 0, mensaje });
+    wspQueue.set(sucursalId, queue);
+  },
+
   /** El agente consume y drena la cola para su sucursal */
   drainWspQueue(sucursalId: number) {
     const items = wspQueue.get(sucursalId) ?? [];

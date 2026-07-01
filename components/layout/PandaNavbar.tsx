@@ -12,6 +12,7 @@ import {
   Building2,
   Calculator,
   CalendarDays,
+  Boxes,
   ChevronDown,
   ClipboardList,
   GripVertical,
@@ -58,6 +59,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn, normalize } from "@/lib/utils";
 import type { Rol } from "@/types";
 import { StockAlertaBanner } from "@/components/layout/StockAlertaBanner";
+import { NotifBell } from "@/components/layout/NotifBell";
 
 type FeatureKey = "delivery" | "menuQR" | "kiosko" | "cupones" | "eventos" | "agenteWsp";
 type ModuleCategory = "operacion" | "gestion" | "configuracion";
@@ -91,6 +93,7 @@ const modules: AppModule[] = [
   { label: "Clientes", href: "/clientes", icon: Users, color: "bg-gradient-to-br from-sky-400 to-cyan-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY", "CASHIER"], category: "gestion", description: "Base de clientes." },
   { label: "Cajas", href: "/cajas", icon: Wallet, color: "bg-gradient-to-br from-yellow-400 to-yellow-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "CASHIER"], category: "gestion", description: "Aperturas y arqueos." },
   { label: "Cupones", href: "/cupones", icon: Tag, color: "bg-gradient-to-br from-pink-400 to-rose-500", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Descuentos y promociones.", featureKey: "cupones" },
+  { label: "Inventario", href: "/inventario", icon: Boxes, color: "bg-gradient-to-br from-teal-500 to-cyan-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Movimientos de stock, kardex y alertas de reposición." },
   { label: "Recursos Humanos", href: "/rrhh", icon: BriefcaseBusiness, color: "bg-gradient-to-br from-blue-500 to-indigo-700", roles: ["ADMIN_GENERAL", "RESTAURANTE", "SECRETARY"], category: "gestion", description: "Personal, asistencia y sedes." },
   { label: "Evaluaciones", href: "/evaluacion", icon: Sparkles, color: "bg-gradient-to-br from-yellow-400 to-amber-600", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "gestion", description: "Evaluaciones y opiniones de clientes." },
   { label: "Usuarios", href: "/usuarios", icon: UserCog, color: "bg-gradient-to-br from-violet-500 to-purple-700", roles: ["ADMIN_GENERAL", "RESTAURANTE"], category: "configuracion", description: "Accesos del sistema." },
@@ -351,6 +354,8 @@ export function PandaNavbar() {
           />
         </div>
       </div>
+
+      <NotifBell />
 
       <div className="relative" ref={userRef}>
         <button
